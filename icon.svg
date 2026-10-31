@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- Неваляшка, нарисованная вокруг (0,0); цвет тела передаётся через currentColor -->
+    <g id="doll">
+      <circle cx="0" cy="70" r="80" fill="currentColor"/>
+      <ellipse cx="0" cy="88" rx="46" ry="50" fill="#fbf3e2"/>
+      <circle cx="0" cy="88" r="12" fill="currentColor"/>
+      <circle cx="0" cy="-30" r="56" fill="currentColor"/>
+      <circle cx="0" cy="-24" r="40" fill="#ffe3c6"/>
+      <path d="M-36 -36 q36 -28 72 0 q-6 -30 -36 -30 q-30 0 -36 30z" fill="#e3a92b"/>
+      <circle cx="-14" cy="-22" r="5" fill="#2b2522"/>
+      <circle cx="14" cy="-22" r="5" fill="#2b2522"/>
+      <path d="M-8 -6 q8 7 16 0" fill="none" stroke="#2b2522" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <!-- Две половины, как на экране игры -->
+  <rect width="512" height="512" fill="#c8372d"/>
+  <path d="M0 512 L512 0 L512 512Z" fill="#2a63a8"/>
+  <path d="M0 512 L512 0" stroke="#f1e2c0" stroke-width="14"/>
+  <!-- Красная — слева сверху, синяя — справа снизу, смотрят друг на друга -->
+  <use href="#doll" transform="translate(150 190) rotate(14)" color="#e8574c"/>
+  <use href="#doll" transform="translate(362 330) rotate(-14)" color="#4a86d0"/>
+  <!-- Звезда-«против» посередине -->
+  <g transform="translate(256 256)">
+    <circle r="46" fill="#f1e2c0"/>
+    <path d="M0 -32 L9 -10 L32 -10 L14 4 L20 27 L0 14 L-20 27 L-14 4 L-32 -10 L-9 -10Z" fill="#e3a92b" stroke="#2b2522" stroke-width="3"/>
+  </g>
+</svg>

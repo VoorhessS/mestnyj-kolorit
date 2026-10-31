@@ -1,0 +1,1819 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2b1d14">
+<title>Местный колорит</title>
+<!-- Установка на экран «Домой»: иконка, имя, запуск без адресной строки -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Колорит">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --p0: #2f7dd1;      /* нижний игрок — синий */
+    --p1: #d1453b;      /* верхний игрок — красный */
+    --ink: #fff8ec;
+    --pot: #3a3f47;
+    --water: #8fc7e8;
+    --win: #3fae5a;
+    --lose: #4a4a4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #2b1d14;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+
+  /* Половины экрана: верхняя повёрнута, чтобы второй игрок читал со своей стороны */
+  .half {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(21vmin + 12px) 16px 44px;
+    transition: background .25s;
+  }
+  .half.p0 { background: var(--p0); }
+  .half.p1 { background: var(--p1); transform: rotate(180deg); }
+  .half.flash-win  { background: var(--win); }
+  .half.flash-lose { background: var(--lose); }
+  body.menu .half { padding-top: calc(13vmin + 8px); padding-bottom: 12px; }
+
+  .hud {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 15px;
+    opacity: .9;
+  }
+  .hud .score { flex: 1; text-align: right; font-size: 20px; letter-spacing: 2px; }
+  .hud .quit {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.25);
+    display: grid; place-items: center;
+    font-size: 14px;
+  }
+  body.menu .hud { display: none; }
+
+  .msg { width: 100%; text-align: center; line-height: 1.25; }
+  .msg h1 { font-size: clamp(24px, 7vmin, 40px); margin-bottom: 6px; }
+  .msg h2 { font-size: clamp(20px, 6vmin, 32px); margin-bottom: 4px; }
+  .msg p  { font-size: clamp(15px, 4.2vmin, 20px); opacity: .95; }
+  .msg .big { font-size: clamp(40px, 14vmin, 80px); line-height: 1; font-weight: 800; }
+
+  .btn {
+    display: inline-block;
+    margin: 10px 4px 0;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.25);
+    font-size: 17px;
+  }
+  .btn.on { background: var(--win); }
+
+  /* Меню выбора мини-игры */
+  .modes { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .mode {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.22);
+    text-align: left;
+  }
+  .mode:active { background: rgba(0,0,0,.4); }
+  .mode .e { font-size: 28px; }
+  .mode b { display: block; font-size: 17px; }
+  .mode small { font-size: 13px; opacity: .85; }
+  body.rules-open .half { padding: 12px 16px; }
+  /* Большая кнопка игрока: засчитываются только нажатия на неё */
+  .grab {
+    width: min(82%, 320px);
+    margin: 14px auto 0;
+    padding: 18px 0;
+    border-radius: 22px;
+    background: rgba(0,0,0,.28);
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,.25);
+    font-size: clamp(22px, 7vmin, 30px);
+    font-weight: 800;
+  }
+  .grab:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
+  .grab.hot { background: #ffd23f; color: #3a2400; animation: hot .35s infinite alternate; }
+  .grab.done { opacity: .45; }
+  .grab.held { background: #1d2747; color: #cfdcff; transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0,0,0,.3); }
+  @keyframes hot { from { transform: scale(1); } to { transform: scale(1.05); } }
+  .status { min-height: 64px; }
+  .pager { display: flex; align-items: center; justify-content: center; gap: 2px; }
+  .tools { display: flex; flex-wrap: wrap; justify-content: center; }
+  .tools .btn { margin: 8px 3px 0; padding: 8px 12px; font-size: 15px; }
+  .name-input {
+    display: block;
+    width: min(80%, 300px);
+    margin: 10px auto 0;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    color: #222;
+    font: 600 20px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-align: center;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  /* На невысоких телефонах в меню остаются только эмодзи и названия */
+  @media (max-height: 720px) {
+    .modes.grid .mode small { display: none; }
+    .modes.grid .mode { padding: 8px 6px; }
+  }
+  .pager .page { margin: 10px 6px 0; font-size: 15px; opacity: .85; }
+
+  /* Две кнопки рядом */
+  .row { display: flex; gap: 10px; width: min(92%, 360px); margin: 0 auto; }
+  .row .grab { width: auto; flex: 1; margin-top: 12px; padding: 16px 0; font-size: clamp(17px, 5vmin, 22px); }
+
+  /* Игры без картинки в центре: контент поднимаем к центру экрана */
+  body.no-stage .half { padding-top: 14px; }
+
+  /* --- Кто платит --- */
+  .bill {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16vmin;
+    line-height: 1;
+    transition: top .35s ease-in-out;
+  }
+
+  /* --- Рыбалка --- */
+  .pond {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #6fb6d8, #2e7aa3 70%);
+    box-shadow: 0 0 0 6px #3d6b3a, 0 6px 24px rgba(0,0,0,.45);
+    overflow: hidden;
+  }
+  .ring {
+    position: absolute; left: 50%; top: 50%;
+    width: 20%; height: 20%;
+    margin: -10% 0 0 -10%;
+    border: 2px solid rgba(255,255,255,.5);
+    border-radius: 50%;
+    animation: ring 2.4s infinite ease-out;
+  }
+  @keyframes ring { from { transform: scale(.6); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+  .float {
+    position: absolute; left: 50%; top: 50%;
+    width: 8vmin; height: 11vmin;
+    margin: -5.5vmin 0 0 -4vmin;
+    border-radius: 50% 50% 45% 45%;
+    background: linear-gradient(#e8382d 52%, #fff 52%);
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    transition: transform .12s, opacity .12s;
+  }
+  .float.twitch { transform: translateY(-1.4vmin) rotate(10deg); }
+  .float.dip { transform: translateY(6vmin) scale(.65); opacity: .3; }
+
+  /* --- Засолка --- */
+  .track {
+    position: relative;
+    width: 86%;
+    height: 34px;
+    margin: 8px auto 0;
+    border-radius: 17px;
+    background: rgba(0,0,0,.28);
+    overflow: hidden;
+  }
+  .track .zone { position: absolute; top: 0; bottom: 0; left: 42%; width: 16%; background: rgba(120,255,150,.55); }
+  .track .dot { position: absolute; top: 4px; bottom: 4px; width: 26px; margin-left: -13px; border-radius: 13px; background: #fff; }
+
+  /* --- Перфоратор --- */
+  .wins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(84%, 320px); margin: 6px auto 0; }
+  .win {
+    aspect-ratio: 1.5;
+    border-radius: 10px;
+    background: rgba(255,240,190,.9);
+    display: grid; place-items: center;
+    font-size: clamp(22px, 7vmin, 32px);
+  }
+  .win.drill { background: #ff8a3d; animation: shake .08s infinite alternate; }
+  @keyframes shake { from { transform: translateX(-2px) rotate(-2deg); } to { transform: translateX(2px) rotate(2deg); } }
+  .rules { text-align: left; margin-top: 4px; }
+  .rules p { font-size: clamp(13px, 3.6vmin, 15px); margin-bottom: 5px; line-height: 1.3; }
+  .modes.grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .modes.grid .mode { flex-direction: column; gap: 4px; padding: 10px 8px; text-align: center; }
+  .modes.grid .mode b { font-size: 15px; }
+  .modes.grid .mode small { display: block; font-size: 12px; line-height: 1.2; }
+
+  /* Слой поверх половин; тапы проходят сквозь него */
+  #stage, #arena { position: absolute; pointer-events: none; }
+  #arena { inset: 0; z-index: 2; }
+  #stage {
+    left: 50%; top: 50%;
+    width: 42vmin; height: 42vmin;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+  body.menu #stage { width: 24vmin; height: 24vmin; }
+  /* Без CSS-фильтров на эмодзи: iOS Safari рисует их чёрными прямоугольниками */
+  .logo { font-size: 18vmin; line-height: 1; font-weight: 800; text-shadow: 0 4px 10px rgba(0,0,0,.35); }
+  body.menu .logo { font-size: 14vmin; }
+
+  /* --- Последний пельмень --- */
+  .pot {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--pot);
+    box-shadow: 0 0 0 6px #23262b, 0 6px 24px rgba(0,0,0,.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .water {
+    position: absolute; inset: 8%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #b9e1f5, var(--water) 60%, #5d9fc4);
+  }
+  .bubble {
+    position: absolute;
+    width: 8%; height: 8%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.7);
+    animation: bubble 1.2s infinite ease-in;
+  }
+  @keyframes bubble {
+    0%   { transform: scale(.2); opacity: 0; }
+    40%  { opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .pelmen {
+    position: relative;
+    font-size: 20vmin;
+    line-height: 1;
+    transition: transform .25s ease-out, opacity .25s;
+    transform: scale(.45);
+    opacity: .25;
+  }
+  .pelmen.peek { transform: scale(.75); opacity: .55; }
+  .pelmen.up   { transform: scale(1.15); opacity: 1; }
+  .pelmen.gone { transform: scale(0); opacity: 0; }
+  .steam {
+    position: absolute;
+    top: 4%;
+    font-size: 8vmin;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .pelmen.up ~ .steam { opacity: 1; animation: steam 1s infinite alternate; }
+  @keyframes steam { from { transform: translateY(0); } to { transform: translateY(-1.5vmin); } }
+
+  /* --- Битва за пульт --- */
+  .remote {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 15vmin; height: 34vmin;
+    transform: translate(-50%, -50%);
+    border-radius: 4vmin;
+    background: linear-gradient(90deg, #2a2d33, #444952 50%, #2a2d33);
+    box-shadow: 0 8px 24px rgba(0,0,0,.55);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-content: start;
+    gap: 1.6vmin;
+    padding: 3vmin 2.4vmin;
+    transition: top .08s linear;
+  }
+  .remote i { aspect-ratio: 1; border-radius: 50%; background: #6b717c; }
+  .remote i.power { grid-column: 2; background: #e0453b; }
+  .remote i.wide { grid-column: span 3; aspect-ratio: auto; height: 3vmin; border-radius: 2vmin; background: #5b8fd6; }
+
+  /* --- Бабушкина добавка --- */
+  .gauge {
+    position: relative;
+    width: 86%;
+    height: 34px;
+    margin: 12px auto 8px;
+    border-radius: 17px;
+    background: rgba(0,0,0,.28);
+    overflow: hidden;
+  }
+  .gauge .zone { position: absolute; top: 0; bottom: 0; left: 72%; width: 8%; background: rgba(120,255,150,.45); }
+  .gauge .mark { position: absolute; top: 0; bottom: 0; left: 80%; width: 3px; background: #fff; }
+  .gauge .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: #ffcf70; }
+  .gauge.over .fill { background: #7a3ce0; }
+  .gauge .zone, .gauge .mark { z-index: 1; }
+
+  /* --- Экран «как играть»: анимация с пальцем, правило, «Начать» --- */
+  .demo { position: relative; width: min(86%, 320px); margin: 6px auto 4px; padding: 8px 10px 6px; border-radius: 16px; background: rgba(0,0,0,.18); }
+  .demo-pic { position: relative; display: inline-block; height: 42px; font-size: 36px; line-height: 1.15; }
+  .demo-bar { position: relative; height: 14px; margin: 4px auto 0; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden; }
+  .demo-bar b { position: absolute; top: 0; bottom: 0; background: rgba(120,255,150,.55); }
+  .demo-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #ffcf70; transition: width .6s; }
+  .demo-bar s { position: absolute; top: 2px; bottom: 2px; width: 14px; margin-left: -7px; border-radius: 7px; background: #fff; transition: left .6s; }
+  .demo .demo-btn { position: relative; display: inline-block; width: auto; margin: 8px auto 0; padding: 8px 18px; font-size: 16px; }
+  .demo-cap { min-height: 2.6em; margin-top: 12px; font-size: 13px; line-height: 1.3; }
+  .msg .demo-rule { font-size: 13px; line-height: 1.3; opacity: .85; }
+  .msg .demo-progress { font-size: 12px; opacity: .8; }
+  .go .btn { margin-top: 8px; }
+  .demo.finger-btn .demo-btn::after, .demo.finger-pic .demo-pic::after {
+    content: '👆'; position: absolute; right: -24px; bottom: -8px; font-size: 26px; line-height: 1;
+    animation: press .5s ease-in-out infinite alternate;
+  }
+  .demo.act-rapid :is(.demo-btn, .demo-pic)::after { animation-duration: .12s; }
+  .demo.act-hold .demo-btn::after { animation: none; transform: translateY(-4px); }
+  @keyframes press { from { transform: translateY(8px); } to { transform: translateY(-4px); } }
+  @media (max-height: 760px) {
+    body.intro .half { padding-bottom: 36px; }
+    body.intro .msg h2 { font-size: 20px; margin-bottom: 0; }
+    .demo { margin: 4px auto 2px; padding: 4px 8px; }
+    .demo-pic { height: 30px; font-size: 26px; }
+    .demo-bar { height: 10px; }
+    .demo .demo-btn { margin-top: 4px; padding: 6px 14px; font-size: 14px; }
+    .demo-cap { margin-top: 6px; font-size: 12px; }
+    .msg .demo-rule { font-size: 12px; line-height: 1.25; }
+    .go .btn { margin-top: 4px; padding: 8px 18px; }
+  }
+  body.skin-win98 .demo { background: #fff; border-radius: 0; box-shadow: var(--sunken); }
+  body.skin-nokia .demo { background: rgba(0,0,0,.06); border: 2px solid currentColor; border-radius: 0; }
+  body:is(.skin-nokia, .skin-arcade) .demo-cap { font-size: 9px; line-height: 1.5; }
+  body.skin-arcade .demo-cap { color: #b8ffc6; }
+  body:is(.skin-nokia, .skin-arcade) .msg .demo-rule { font-size: 9px; line-height: 1.5; }
+
+  /* Выбор стиля: карточки в строку — иконка слева, название справа */
+  .modes.skins .mode { flex-direction: row; gap: 8px; padding: 8px 10px; text-align: left; }
+  .modes.skins .mode .e { font-size: 24px; }
+
+  /* Невысокие экраны (iPhone SE/8, Safari с панелями): меню компактное — логотип меньше, карточки в строку, без подписей */
+  @media (max-height: 760px) {
+    body.menu #stage { width: 16vmin; height: 16vmin; }
+    body.menu .half { padding-top: calc(8vmin + 6px); }
+    .msg h1 { font-size: 26px; }
+    .modes { gap: 6px; margin-top: 6px; }
+    .modes .mode small { display: none; }
+    .modes.grid .mode { flex-direction: row; gap: 8px; padding: 6px 8px; text-align: left; }
+    .modes.grid .mode .e { font-size: 22px; }
+    .modes.grid .mode b { font-size: 14px; }
+    .pager .btn, .tools .btn { margin-top: 6px; }
+  }
+
+  /* Логотип на стартовом экране — иконка игры */
+  .logo-img { width: 100%; height: 100%; border-radius: 22%; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+
+  /* ================= Скины =================
+     Скин — класс skin-* на body, выбирается кнопкой «🎨 Стиль».
+     Цвета игроков и вспышек меняем через переменные, чтобы вспышки победы работали в любом скине.
+     Узоры на половинах — полупрозрачные, поверх цвета. */
+  @font-face { font-family: 'Press Start 2P'; font-display: swap; src: url(fonts/pixel-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
+  @font-face { font-family: 'Press Start 2P'; font-display: swap; src: url(fonts/pixel-lat.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F, U+2190-2193; }
+  @font-face { font-family: 'Ruslan Display'; font-display: swap; src: url(fonts/ruslan-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
+  @font-face { font-family: 'Ruslan Display'; font-display: swap; src: url(fonts/ruslan-lat.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
+  @font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-lat.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+
+  /* --- Windows 98: компьютерный класс, серые объёмные окна --- */
+  body.skin-win98 {
+    --p0: #3a6ea5; --p1: #8a2b2b; --win: #2e8b57; --lose: #555;
+    --bevel: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+    --sunken: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+    background: #008080;
+    font-family: Tahoma, Verdana, "Segoe UI", sans-serif;
+  }
+  body.skin-win98 #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px;
+    background: #c0c0c0; box-shadow: var(--bevel); z-index: 1; pointer-events: none;
+  }
+  /* Сообщение каждого игрока — окно с синей (у красного — бордовой) полосой заголовка */
+  body.skin-win98 .msg { background: #c0c0c0; color: #000; box-shadow: var(--bevel); padding: 3px 4px 10px; }
+  body.skin-win98 .msg:empty { background: none; box-shadow: none; padding: 0; }
+  body.skin-win98 .msg h1, body.skin-win98 .msg h2 {
+    background: linear-gradient(90deg, #000080, #1084d0); color: #fff;
+    font-size: 17px; text-align: left; padding: 3px 6px; margin-bottom: 8px;
+  }
+  body.skin-win98 .half.p1 .msg h1, body.skin-win98 .half.p1 .msg h2 { background: linear-gradient(90deg, #800000, #d0503a); }
+  body.skin-win98 .msg h1::after, body.skin-win98 .msg h2::after {
+    content: '✕'; float: right; width: 18px; height: 16px; margin-top: 1px;
+    background: #c0c0c0; color: #000; box-shadow: var(--bevel); font-size: 10px; line-height: 16px; text-align: center;
+  }
+  body.skin-win98 .msg p { padding: 0 6px; }
+  body.skin-win98 .msg .big { color: #000080; }
+  body.skin-win98 .half.p1 .msg .big { color: #800000; }
+  body.skin-win98 :is(.btn, .mode, .grab) { background: #c0c0c0; color: #000; border-radius: 0; box-shadow: var(--bevel); }
+  body.skin-win98 :is(.btn, .mode, .grab):active { box-shadow: var(--sunken); }
+  body.skin-win98 .grab.hot, body.skin-win98 .btn.on { background: #000080; color: #fff; }
+  body.skin-win98 .half.p1 .grab.hot, body.skin-win98 .half.p1 .btn.on { background: #800000; }
+  body.skin-win98 .grab.held { background: #a0a0a0; color: #000; box-shadow: var(--sunken); }
+  body.skin-win98 .hud { color: #fff; }
+  body.skin-win98 .hud .quit { background: #c0c0c0; color: #000; border-radius: 0; box-shadow: var(--bevel); }
+  body.skin-win98 :is(.gauge, .track) { border-radius: 0; background: #fff; box-shadow: var(--sunken); }
+  body.skin-win98 .track .dot { background: #000080; border-radius: 0; }
+  body.skin-win98 .gauge .fill { background: #000080; }
+  body.skin-win98 .gauge .mark { background: #000; }
+  body.skin-win98 .win { border-radius: 0; box-shadow: var(--bevel); }
+  body.skin-win98 .name-input { border-radius: 0; box-shadow: var(--sunken); font-family: Tahoma, Verdana, sans-serif; }
+
+  /* --- Нокиа: зелёный экран кнопочного телефона, у красного — оранжевый, как у Сименса --- */
+  body.skin-nokia {
+    --p0: #b5c98a; --p1: #e9b85a; --ink: #1e2a12; --win: #8fd060; --lose: #8d8f7c;
+    background: #23272b;
+    font-family: 'Press Start 2P', monospace;
+  }
+  body.skin-nokia .half { background-image: linear-gradient(rgba(0,0,0,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.06) 1px, transparent 1px); background-size: 4px 4px; }
+  body.skin-nokia .half.p1 { color: #3a2200; }
+  body.skin-nokia #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 14px; margin-top: -7px;
+    background: #23272b; z-index: 1; pointer-events: none;
+  }
+  body.skin-nokia .msg h1, body.skin-nokia .msg h2, body.skin-nokia .msg .big { font-weight: 400; line-height: 1.4; }
+  body.skin-nokia .msg h1 { font-size: 18px; }
+  body.skin-nokia .msg h2 { font-size: 14px; }
+  body.skin-nokia .msg p { font-size: 11px; line-height: 1.6; }
+  body.skin-nokia .msg .big { font-size: 36px; }
+  body.skin-nokia :is(.btn, .mode, .grab) { background: transparent; color: inherit; border: 3px solid currentColor; border-radius: 0; box-shadow: none; }
+  body.skin-nokia :is(.btn, .mode, .grab):active, body.skin-nokia .grab.held { background: rgba(0,0,0,.18); }
+  body.skin-nokia .grab.hot, body.skin-nokia .btn.on { background: #1e2a12; color: #b5c98a; }
+  body.skin-nokia .half.p1 .grab.hot, body.skin-nokia .half.p1 .btn.on { background: #3a2200; color: #e9b85a; }
+  body.skin-nokia .btn { font-size: 11px; }
+  body.skin-nokia .grab { font-size: 16px; font-weight: 400; }
+  body.skin-nokia .row .grab { font-size: 12px; }
+  body.skin-nokia .mode b { font-size: 11px; line-height: 1.5; }
+  body.skin-nokia .mode small { font-size: 9px; line-height: 1.5; }
+  body.skin-nokia .modes.grid .mode b { font-size: 10px; }
+  body.skin-nokia .modes.grid .mode small { font-size: 8px; }
+  body.skin-nokia .rules p { font-size: 10px; line-height: 1.6; }
+  body.skin-nokia .hud { font-size: 10px; }
+  body.skin-nokia .hud .score { font-size: 14px; }
+  body.skin-nokia .hud .quit { background: transparent; border: 2px solid currentColor; border-radius: 0; }
+  body.skin-nokia :is(.gauge, .track) { border-radius: 0; background: transparent; border: 3px solid currentColor; }
+  body.skin-nokia :is(.track .dot, .gauge .fill) { background: currentColor; border-radius: 0; }
+  body.skin-nokia .win { border-radius: 0; }
+  body.skin-nokia .name-input { border-radius: 0; font: 14px 'Press Start 2P', monospace; background: rgba(255,255,255,.5); color: inherit; }
+
+  /* --- Плакат: советская игрушка и печатный плакат --- */
+  body.skin-poster {
+    --p0: #2a63a8; --p1: #c8372d; --ink: #f1e2c0; --win: #3f8f4f; --lose: #5a4f47;
+    background: #f1e2c0;
+    font-family: 'Rubik', system-ui, sans-serif;
+  }
+  body.skin-poster .half { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 6px, transparent 6px 12px); }
+  body.skin-poster #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px;
+    background: #f1e2c0; box-shadow: 0 0 0 3px #2b2522; z-index: 1; pointer-events: none;
+  }
+  body.skin-poster .msg :is(h1, h2, .big) { font-family: 'Ruslan Display', 'Rubik', sans-serif; font-weight: 400; letter-spacing: .5px; text-shadow: 3px 3px 0 #2b2522; }
+  body.skin-poster .msg h1 { font-size: clamp(26px, 8vmin, 36px); }
+  body.skin-poster .tools .btn { padding: 5px 10px; font-size: 14px; box-shadow: 3px 3px 0 #2b2522; }
+  body.skin-poster :is(.btn, .mode, .grab) { background: #f1e2c0; color: #2b2522; border: 3px solid #2b2522; border-radius: 14px; box-shadow: 4px 4px 0 #2b2522; }
+  body.skin-poster :is(.btn, .mode, .grab):active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2b2522; }
+  body.skin-poster :is(.mode b, .grab) { font-weight: 900; }
+  body.skin-poster .mode small { color: #6b5a4a; opacity: 1; }
+  body.skin-poster .modes.grid .mode { padding: 6px; gap: 2px; }
+  body.skin-poster .modes.grid .mode small { font-size: 11px; }
+  body.skin-poster .grab.hot { background: #e3a92b; }
+  body.skin-poster .btn.on { background: #3f8f4f; color: #f1e2c0; }
+  body.skin-poster .grab.held { background: #2b2522; color: #f1e2c0; transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2b2522; }
+  body.skin-poster .hud .quit { background: #f1e2c0; color: #2b2522; border: 2px solid #2b2522; }
+  body.skin-poster .pot { box-shadow: 0 0 0 6px #2b2522, 6px 8px 0 6px rgba(43,37,34,.5); }
+
+  /* --- Автомат: игровой зал 80-х, тёмный корпус и неон --- */
+  body.skin-arcade {
+    --p0: #12305a; --p1: #5a1712; --win: #1d6b2e; --lose: #333;
+    background: #120d0a;
+    font-family: 'Press Start 2P', monospace;
+  }
+  body.skin-arcade .half { background-image: radial-gradient(ellipse at 50% 40%, transparent, rgba(0,0,0,.6) 75%); }
+  body.skin-arcade #app::before {
+    content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px);
+  }
+  body.skin-arcade #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px;
+    background: #3a2c22; box-shadow: 0 0 12px #000; z-index: 1; pointer-events: none;
+  }
+  body.skin-arcade .msg :is(h1, h2, .big) { font-weight: 400; line-height: 1.4; }
+  body.skin-arcade .msg h1 { font-size: 20px; color: #ffd23f; text-shadow: 0 0 8px #ffd23f; }
+  body.skin-arcade .msg h2 { font-size: 15px; color: #ffd23f; text-shadow: 0 0 6px rgba(255,210,63,.8); }
+  body.skin-arcade .msg p { font-size: 11px; line-height: 1.7; }
+  body.skin-arcade .msg .big { font-size: 40px; color: #ff5a4a; text-shadow: 0 0 14px #ff5a4a; }
+  body.skin-arcade .half.p0 .msg p { color: #8fd0ff; }
+  body.skin-arcade .half.p1 .msg p { color: #ffb0a6; }
+  body.skin-arcade :is(.btn, .mode, .grab) {
+    background: rgba(0,0,0,.35); color: #6dff8a; border: 2px solid #6dff8a; border-radius: 6px;
+    box-shadow: 0 0 10px rgba(109,255,138,.45), inset 0 0 10px rgba(109,255,138,.2);
+  }
+  body.skin-arcade :is(.btn, .mode, .grab):active, body.skin-arcade .grab.held { background: rgba(109,255,138,.25); }
+  body.skin-arcade .grab.hot { border-color: #ff5a4a; color: #ff5a4a; box-shadow: 0 0 18px #ff5a4a; }
+  body.skin-arcade .btn.on { background: #6dff8a; color: #0b1a0e; }
+  body.skin-arcade .btn { font-size: 11px; }
+  body.skin-arcade .grab { font-size: 16px; font-weight: 400; }
+  body.skin-arcade .row .grab { font-size: 12px; }
+  body.skin-arcade .mode b { font-size: 11px; line-height: 1.5; }
+  body.skin-arcade .mode small { font-size: 9px; line-height: 1.5; color: #b8ffc6; }
+  body.skin-arcade .modes.grid .mode b { font-size: 10px; }
+  body.skin-arcade .modes.grid .mode small { font-size: 8px; }
+  body.skin-arcade .rules p { font-size: 10px; line-height: 1.6; }
+  body.skin-arcade .hud { font-size: 10px; color: #ccc; }
+  body.skin-arcade .hud .score { font-size: 14px; }
+  body.skin-arcade .hud .quit { background: transparent; border: 2px solid #888; }
+  body.skin-arcade .pot { box-shadow: 0 0 0 4px #444, 0 0 24px rgba(90,184,255,.5); }
+  body.skin-arcade .name-input { font: 14px 'Press Start 2P', monospace; }
+
+  /* Невысокие телефоны: в широких шрифтах скинов кнопки переносятся в два ряда — прячем подписи */
+  @media (max-height: 720px) {
+    body:is(.skin-nokia, .skin-arcade, .skin-poster) .mode small { display: none; }
+    body.skin-poster .msg h1 { font-size: 28px; }
+    body.skin-poster .mode { padding: 4px 14px; }
+    body:is(.skin-nokia, .skin-arcade) .rules p { font-size: 9px; line-height: 1.45; margin-bottom: 4px; }
+    body:is(.skin-win98, .skin-poster) .rules p { font-size: 13px; margin-bottom: 3px; }
+    body.skin-win98 .msg { padding-bottom: 6px; }
+    body.skin-win98 .msg :is(h1, h2) { margin-bottom: 4px; }
+    body:is(.skin-nokia, .skin-arcade) .tools .btn { padding: 6px 8px; font-size: 10px; }
+  }
+</style>
+</head>
+<body class="menu">
+<div id="app">
+  <div class="half p1" data-p="1">
+    <div class="hud"><span class="name"></span><span class="score"></span><span class="quit">✕</span></div>
+    <div class="msg"></div>
+  </div>
+  <div class="half p0" data-p="0">
+    <div class="hud"><span class="name"></span><span class="score"></span><span class="quit">✕</span></div>
+    <div class="msg"></div>
+  </div>
+  <div id="arena"></div>
+  <div id="stage"></div>
+</div>
+
+<script>
+// ---------- память телефона: имена и рекорды ----------
+// В приватном режиме хранилище может быть недоступно — тогда просто не запоминаем.
+
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+}
+
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* не запомнили — не страшно */ }
+}
+
+const DEFAULT_NAMES = ['Синий', 'Красный'];
+const NAMES = load('kolorit-names', DEFAULT_NAMES).slice(0, 2);
+
+// Скины: оформление меняется классом skin-* на body, выбор запоминается
+const SKINS = [
+  { id: 'classic', emoji: '🎨', title: 'Обычный', sub: 'Как было' },
+  { id: 'win98', emoji: '💾', title: 'Windows 98', sub: 'Компьютерный класс 90-х' },
+  { id: 'nokia', emoji: '🐍', title: 'Нокиа', sub: 'Кнопочный телефон 00-х' },
+  { id: 'poster', emoji: '🪆', title: 'Плакат', sub: 'Советская игрушка' },
+  { id: 'arcade', emoji: '🕹️', title: 'Автомат', sub: 'Игровой зал 80-х' },
+];
+
+function applySkin(id) {
+  const skin = SKINS.find(s => s.id === id) || SKINS[0];
+  for (const s of SKINS) document.body.classList.toggle(`skin-${s.id}`, s.id === skin.id && s.id !== 'classic');
+  save('kolorit-skin', skin.id);
+  return skin.id;
+}
+
+let currentSkin = applySkin(load('kolorit-skin', 'classic'));
+
+const halves = [...document.querySelectorAll('.half')].sort((a, b) => a.dataset.p - b.dataset.p);
+const stage = document.getElementById('stage');
+const arena = document.getElementById('arena');
+
+const state = {
+  mode: null,
+  wins: [0, 0],
+  round: 0,
+  game: null,       // мини-игра текущего раунда
+  queue: [],        // порядок игр в турнире
+  newRec: [null, null],
+  onTap: null,      // обработчик тапа текущего экрана: (игрок, элемент) => void
+  timers: [],
+  frame: 0,
+};
+
+// ---------- помощники ----------
+
+function say(html, p) {
+  const targets = p === undefined ? [0, 1] : [p];
+  for (const i of targets) halves[i].querySelector('.msg').innerHTML = html;
+}
+
+function sayEach(fn) { say(fn(0), 0); say(fn(1), 1); }
+
+// Игра сообщает результат игрока; если он лучше сохранённого — это новый рекорд
+function noteRecord(p, value) {
+  const mode = MODES.find(m => m.game === state.game);
+  if (!mode?.rec) return;
+  const all = load('kolorit-records', {});
+  const cur = all[mode.id];
+  const better = !cur || (mode.rec.lower ? value < cur.value : value > cur.value);
+  if (!better) return;
+  all[mode.id] = { value, name: NAMES[p] };
+  save('kolorit-records', all);
+  state.newRec[p] = `${value}${mode.rec.unit}`;
+}
+
+// Экран с большой кнопкой: строка статуса сверху, кнопка снизу
+function grabUI(label) { return `<div class="status"></div><div class="grab">${label}</div>`; }
+
+function setStatus(html, p) {
+  const targets = p === undefined ? [0, 1] : [p];
+  for (const i of targets) $p(i, '.status').innerHTML = html;
+}
+
+function $p(p, sel) { return halves[p].querySelector(sel); }
+
+function updateHud() {
+  for (const p of [0, 1]) {
+    $p(p, '.name').textContent = NAMES[p];
+    $p(p, '.score').textContent = '⭐'.repeat(state.wins[p]) || '—';
+  }
+}
+
+function later(ms, fn) { state.timers.push(setTimeout(fn, ms)); }
+
+function stopAll() {
+  state.timers.forEach(clearTimeout);
+  state.timers = [];
+  cancelAnimationFrame(state.frame);
+  state.onTap = null;
+  state.onRelease = null;
+}
+
+function flash(p, kind) {
+  halves[p].classList.add('flash-' + kind);
+  later(900, () => halves[p].classList.remove('flash-' + kind));
+}
+
+function flashResult(winner) {
+  if (winner === null) return;
+  flash(winner, 'win');
+  flash(1 - winner, 'lose');
+}
+
+function buzz(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+for (const half of halves) {
+  half.addEventListener('pointerdown', e => {
+    if (e.target.closest('input')) return;  // поле ввода имени должно получить фокус
+    e.preventDefault();
+    if (e.target.closest('.quit')) { buzz(20); showMenu(); return; }
+    const p = Number(half.dataset.p);
+    pointers.set(e.pointerId, p);
+    if (state.onTap) state.onTap(p, e.target);
+  });
+}
+
+// Какой игрок держит какой палец — чтобы понять, чей палец отпустили (для игр с удержанием)
+const pointers = new Map();
+for (const type of ['pointerup', 'pointercancel']) {
+  document.addEventListener(type, e => {
+    const p = pointers.get(e.pointerId);
+    pointers.delete(e.pointerId);
+    if (p !== undefined && state.onRelease) state.onRelease(p);
+  });
+}
+
+// ---------- мини-игры ----------
+// Каждая игра: play(done), где done(победитель | null, текст итога раунда).
+
+const PELMEN = {
+  emoji: '🥟',
+  title: 'Последний пельмень',
+  rule: 'Жми свою кнопку «🍴 Хватай!»,<br>как только пельмень всплывёт.<br>Раньше времени — обжёгся.',
+  // Пельмень несколько раз «подглядывает» из воды, потом всплывает по-настоящему.
+  // Засчитываются только нажатия на кнопку «Хватай!» своей половины.
+  play(done) {
+    stage.innerHTML = `
+      <div class="pot">
+        <div class="water"></div>
+        ${[...Array(6)].map((_, i) =>
+          `<div class="bubble" style="left:${rand(15, 80)}%;top:${rand(15, 80)}%;animation-delay:${(i * .2).toFixed(1)}s"></div>`
+        ).join('')}
+        <div class="pelmen">🥟</div>
+        <div class="steam">♨️</div>
+      </div>`;
+    const pelmen = stage.querySelector('.pelmen');
+    let armed = false;
+    let armedAt = 0;
+
+    say(grabUI('🍴 Хватай!'));
+    const COOKING = '<h2>Варится…</h2><p>Не торопись 👀</p>';
+    setStatus(COOKING);
+
+    const finish = (winner, text) => {
+      stopAll();
+      flashResult(winner);
+      later(1600, () => done(winner, text));
+    };
+
+    const fakes = Math.floor(Math.random() * 3);
+    let t = rand(900, 1800);
+    for (let i = 0; i < fakes; i++) {
+      later(t, () => { pelmen.classList.add('peek'); setStatus('<h2>Бульк!</h2><p>Или нет?..</p>'); });
+      later(t + 450, () => { pelmen.classList.remove('peek'); setStatus(COOKING); });
+      t += rand(900, 2300);
+    }
+    later(t, () => {
+      pelmen.classList.add('up');
+      armed = true;
+      armedAt = performance.now();
+      setStatus('<div class="big">ЖМИ!</div>');
+      document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
+      buzz(60);
+    });
+    // Никто не нажал — пельмень разварился
+    later(t + 3000, () => {
+      pelmen.classList.add('gone');
+      say('<h2>Разварился 😩</h2><p>Оба остались без ужина</p>');
+      finish(null, 'Пельмень разварился — ничья');
+    });
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab')) return;
+      const other = 1 - p;
+      if (!armed) {
+        buzz([40, 40, 40]);
+        say('<h2>Обжёгся! 🔥</h2><p>Он ещё не всплыл</p>', p);
+        say('<h2>Соперник обжёгся 😏</h2><p>Пельмень твой</p>', other);
+        finish(other, `${NAMES[p]} схватил раньше времени и обжёгся`);
+        return;
+      }
+      const ms = Math.round(performance.now() - armedAt);
+      noteRecord(p, ms);
+      buzz(80);
+      pelmen.classList.remove('up');
+      pelmen.classList.add('gone');
+      say(`<h2>Съел! 😋</h2><p>${ms} мс</p>`, p);
+      say('<h2>Не успел 😭</h2><p>Пельмень ушёл к сопернику</p>', other);
+      finish(p, `${NAMES[p]} успел за ${ms} мс`);
+    };
+  },
+};
+
+const REMOTE = {
+  emoji: '📺',
+  title: 'Битва за пульт',
+  rule: 'Тапай как можно быстрее —<br>тяни пульт к себе!',
+  // Перетягивание: каждый тап двигает пульт к тапнувшему. Дотянул до себя — победил.
+  play(done) {
+    const STEP = 0.07;
+    const LIMIT_MS = 12000;
+    stage.innerHTML = '';
+    arena.innerHTML = `<div class="remote"><i class="power"></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="wide"></i><i></i><i></i><i></i></div>`;
+    const remote = arena.querySelector('.remote');
+    let pos = 0;       // от -1 (у красного, сверху) до 1 (у синего, снизу)
+    const startAt = performance.now();
+    let left = Math.round(LIMIT_MS / 1000);
+
+    const draw = () => { remote.style.top = `${50 + pos * 36}%`; };
+    const tick = () => sayEach(() => `<div class="big">ТЯНИ!!!</div><p>${left} с</p>`);
+    draw();
+    tick();
+
+    const finish = (winner, text) => {
+      stopAll();
+      flashResult(winner);
+      if (winner !== null) {
+        say('<h2>Пульт твой! 📺</h2><p>Сегодня смотрим твоё</p>', winner);
+        say('<h2>Отжали пульт 😤</h2><p>Смотришь, что включат</p>', 1 - winner);
+      }
+      later(1600, () => done(winner, text));
+    };
+
+    const countdown = () => {
+      left--;
+      if (left > 0) { tick(); later(1000, countdown); return; }
+      if (Math.abs(pos) < 0.05) {
+        say('<h2>Пульт посередине 🤝</h2><p>Никто не перетянул</p>');
+        finish(null, 'Ничья — пульт сломался пополам');
+      } else {
+        const w = pos > 0 ? 0 : 1;
+        finish(w, `Время вышло — пульт ближе к игроку ${NAMES[w]}`);
+      }
+    };
+    later(1000, countdown);
+
+    state.onTap = p => {
+      pos += p === 0 ? STEP : -STEP;
+      buzz(8);
+      draw();
+      if (pos >= 1 || pos <= -1) {
+        noteRecord(p, +((performance.now() - startAt) / 1000).toFixed(1));
+        finish(p, `${NAMES[p]} перетянул пульт`);
+      }
+    };
+  },
+};
+
+const BABUSHKA = {
+  emoji: '👵',
+  title: 'Бабушкина добавка',
+  rule: 'Бабушка накладывает добавку.<br>Жми свою кнопку «✋ Хватит!», когда тарелка полная.<br>Перебор — объелся.',
+  // Тарелка заполняется с «рваной» скоростью. Кто остановился ближе к 100% и не перебрал — победил.
+  play(done) {
+    const MAX = 125;
+    const PHRASES = ['Ешь, ешь…', 'Ты что, голодный?', 'Ещё ложечку!', 'Совсем исхудал!', 'Я ж для тебя варила!', 'Хлебушка возьми!'];
+    stage.innerHTML = '<div class="logo">👵</div>';
+    sayEach(p => `<div class="gauge" id="g${p}"><div class="zone"></div><div class="mark"></div><div class="fill"></div></div>
+      <p id="t${p}">${PHRASES[0]}</p>
+      <div class="grab">✋ Хватит!</div>`);
+
+    let v = 0;
+    let speed = rand(20, 45);
+    let last = performance.now();
+    const stopped = [null, null];
+    let over = false;
+
+    const setGauge = (p, value) => {
+      const g = document.getElementById('g' + p);
+      g.querySelector('.fill').style.width = `${Math.min(value, MAX) / MAX * 100}%`;
+      g.classList.toggle('over', value > 100);
+    };
+
+    // Бабушка то не спешит, то подкладывает от души
+    const changeSpeed = () => { speed = pick([rand(12, 25), rand(25, 45), rand(45, 80)]); later(rand(250, 550), changeSpeed); };
+    later(400, changeSpeed);
+    const chatter = () => {
+      for (const p of [0, 1]) if (stopped[p] === null) document.getElementById('t' + p).textContent = pick(PHRASES);
+      later(1100, chatter);
+    };
+    later(1100, chatter);
+
+    const result = () => {
+      over = true;
+      const score = stopped.map(s => (s === null || s > 100) ? -1 : s);
+      let winner = null;
+      if (score[0] !== score[1]) winner = score[0] > score[1] ? 0 : 1;
+      if (score[0] < 0 && score[1] < 0) winner = null;
+      if (winner !== null) noteRecord(winner, Math.round(stopped[winner]));
+      stopAll();
+      flashResult(winner);
+      for (const p of [0, 1]) {
+        const s = stopped[p];
+        const verdict = s === null || s > 100 ? 'Объелся 🤢' : winner === p ? 'Бабушка гордится! 🥰' : 'Маловато… 😒';
+        say(`<h2>${verdict}</h2><p>${s === null ? 'Так и не сказал «Хватит!»' : `Тарелка на ${Math.round(s)}%`}</p>`, p);
+      }
+      const text = winner === null
+        ? (score[0] < 0 ? 'Оба объелись — ничья' : 'Одинаково — ничья')
+        : `${NAMES[winner]} остановился на ${Math.round(stopped[winner])}%`;
+      later(2000, () => done(winner, text));
+    };
+
+    const loop = now => {
+      if (over) return;
+      v += speed * (now - last) / 1000;
+      last = now;
+      for (const p of [0, 1]) setGauge(p, stopped[p] ?? v);
+      if (v >= MAX) { result(); return; }
+      state.frame = requestAnimationFrame(loop);
+    };
+    state.frame = requestAnimationFrame(loop);
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab') || stopped[p] !== null) return;
+      stopped[p] = v;
+      $p(p, '.grab').classList.add('done');
+      buzz(40);
+      document.getElementById('t' + p).textContent = v > 100 ? 'Поздно, уже объелся 🤢' : `Хватит! Стоп на ${Math.round(v)}%`;
+      if (stopped[0] !== null && stopped[1] !== null) result();
+    };
+  },
+};
+
+const MOM = {
+  emoji: '😴',
+  title: 'Ещё 5 минут',
+  rule: 'Держи свою кнопку — спишь и копишь минуты.<br>Отпусти, пока мама не ворвалась.<br>Попался под одеялом — проиграл.',
+  // Держишь кнопку — спишь. Мама кричит из коридора (иногда блефует), перед входом скрипит дверь.
+  // Кто под одеялом, когда она вошла, — попался. Из вставших побеждает тот, кто поспал дольше.
+  play(done) {
+    const RATE = 5;  // минут сна за секунду удержания
+    const WARNINGS = ['Вставай, в школу проспишь!', 'Последний раз говорю!', 'Я считаю до трёх!', 'Раз… два…', 'Я иду!!!'];
+    const entry = rand(5000, 11000);
+    const mins = [0, 0];
+    const st = ['awake', 'awake'];  // awake — ещё не лёг, sleep — спит, up — встал
+    let over = false;
+    let last = performance.now();
+
+    stage.innerHTML = '<div class="logo">🛏️</div>';
+    say(grabUI('🛏️ Держи, чтобы спать'));
+    setStatus('<h2>Утро, 7:00 ⏰</h2><p>Зажми кнопку и спи</p>');
+
+    const btn = p => $p(p, '.grab');
+    const label = p => {
+      if (st[p] === 'sleep') btn(p).textContent = `😴 Спишь… ${Math.floor(mins[p])} мин`;
+      if (st[p] === 'up') btn(p).textContent = `🧍 Встал · ${Math.floor(mins[p])} мин`;
+    };
+
+    const loop = now => {
+      if (over) return;
+      const dt = (now - last) / 1000;
+      last = now;
+      for (const p of [0, 1]) if (st[p] === 'sleep') { mins[p] += RATE * dt; label(p); }
+      state.frame = requestAnimationFrame(loop);
+    };
+    state.frame = requestAnimationFrame(loop);
+
+    // Мамины крики из коридора: 2–4 штуки, по нарастающей
+    const count = 2 + Math.floor(Math.random() * 3);
+    const times = [...Array(count)].map(() => rand(800, entry - 900)).sort((a, b) => a - b);
+    const lines = [...WARNINGS].sort(() => Math.random() - .5).slice(0, count)
+      .sort((a, b) => WARNINGS.indexOf(a) - WARNINGS.indexOf(b));
+    times.forEach((t, i) => later(t, () => setStatus(`<h2>👩 «${lines[i]}»</h2>`)));
+
+    // Иногда дверь скрипит зря
+    const creak = () => { stage.innerHTML = '<div class="logo">🚪</div>'; setStatus('<h2>🚪 Скрип…</h2>'); buzz(30); };
+    if (Math.random() < .5 && entry > 4000) {
+      const t = rand(1500, entry - 1800);
+      later(t, creak);
+      later(t + 600, () => { stage.innerHTML = '<div class="logo">🛏️</div>'; setStatus('<h2>…показалось</h2>'); });
+    }
+    later(entry - 600, creak);
+
+    const burst = () => {
+      if (over) return;
+      over = true;
+      stopAll();
+      stage.innerHTML = '<div class="logo">🩴</div>';
+      const caught = st.map(s => s === 'sleep');
+      const score = [0, 1].map(p => caught[p] ? -1 : Math.floor(mins[p]));
+      const winner = score[0] === score[1] ? null : (score[0] > score[1] ? 0 : 1);
+      if (winner !== null && score[winner] > 0) noteRecord(winner, score[winner]);
+      flashResult(winner);
+      buzz([80, 40, 80]);
+      for (const p of [0, 1]) {
+        const m = Math.floor(mins[p]);
+        const verdict = caught[p] ? 'Попался! 🩴'
+          : st[p] === 'awake' ? 'Даже не ложился 🤨'
+          : winner === p ? 'Выспался и не попался 😎'
+          : 'Встал слишком рано 🥱';
+        say(`<h2>👩 «ВСТАВАЙ!!!»</h2><h2>${verdict}</h2><p>Поспал ${m} мин</p>`, p);
+      }
+      const text = winner === null
+        ? (caught[0] && caught[1] ? 'Мама поймала обоих' : 'Поспали поровну — ничья')
+        : `${NAMES[winner]} поспал ${score[winner]} мин и не попался`;
+      later(2200, () => done(winner, text));
+    };
+    later(entry, burst);
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab') || st[p] !== 'awake') return;
+      st[p] = 'sleep';
+      btn(p).classList.add('held');
+      label(p);
+      buzz(15);
+    };
+    state.onRelease = p => {
+      if (st[p] !== 'sleep') return;
+      st[p] = 'up';
+      btn(p).classList.remove('held');
+      btn(p).classList.add('done');
+      label(p);
+      buzz(25);
+      // Оба встали — мама заходит пораньше
+      if (st.every(s => s === 'up')) later(700, burst);
+    };
+  },
+};
+
+const METRO = {
+  emoji: '🚇',
+  title: 'Место в метро',
+  rule: 'Жми «🪑 Сесть!», когда освободится место.<br>Бабушка, сумка или ложная тревога — не садись, позор!',
+  // Как пельмень, но с ловушками: на ложных сигналах жать нельзя.
+  play(done) {
+    const DECOYS = [['👵', 'Заходит бабушка'], ['👜', 'На сиденье сумка'], ['🧍', 'Встал… но не выходит']];
+    const RIDING = '<h2>Едем…</h2><p>Следи за местами 👀</p>';
+    let armed = false;
+    let armedAt = 0;
+    let decoy = null;
+
+    stage.innerHTML = '<div class="logo">🚇</div>';
+    say(grabUI('🪑 Сесть!'));
+    setStatus(RIDING);
+
+    const finish = (winner, text) => {
+      stopAll();
+      flashResult(winner);
+      later(1600, () => done(winner, text));
+    };
+
+    let t = rand(1000, 1800);
+    const decoys = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < decoys; i++) {
+      later(t, () => {
+        decoy = pick(DECOYS);
+        stage.innerHTML = `<div class="logo">${decoy[0]}</div>`;
+        setStatus(`<h2>${decoy[1]}</h2><p>Не садись!</p>`);
+      });
+      later(t + 900, () => { decoy = null; stage.innerHTML = '<div class="logo">🚇</div>'; setStatus(RIDING); });
+      t += rand(1400, 2300);
+    }
+    later(t, () => {
+      armed = true;
+      armedAt = performance.now();
+      stage.innerHTML = '<div class="logo">🪑</div>';
+      setStatus('<div class="big">САДИСЬ!</div>');
+      document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
+      buzz(60);
+    });
+    later(t + 3000, () => {
+      setStatus('<h2>Место занял дед 👴</h2><p>Оба стоите</p>');
+      finish(null, 'Место ушло деду — ничья');
+    });
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab')) return;
+      const other = 1 - p;
+      if (!armed) {
+        buzz([40, 40, 40]);
+        const why = decoy ? `${decoy[1]}, а ты сел 🙈` : 'Места ещё нет — сел соседу на колени';
+        say(`<h2>Позор! 😳</h2><p>${why}</p>`, p);
+        say('<h2>Соперник опозорился 😏</h2><p>Раунд твой</p>', other);
+        finish(other, `${NAMES[p]} поторопился и опозорился`);
+        return;
+      }
+      const ms = Math.round(performance.now() - armedAt);
+      noteRecord(p, ms);
+      buzz(80);
+      say(`<h2>Сел! 😌</h2><p>${ms} мс</p>`, p);
+      say('<h2>Стоишь до конечной 😩</h2><p>Место ушло сопернику</p>', other);
+      finish(p, `${NAMES[p]} сел за ${ms} мс`);
+    };
+  },
+};
+
+const BILL = {
+  emoji: '🧾',
+  title: 'Кто платит?',
+  rule: 'Чек у тебя — жми «👉 Давай ты», чтобы спихнуть его сопернику.<br>Когда придёт официант, платит тот, у кого чек.',
+  // Горячая картошка: чек летает между игроками, официант приходит в случайный момент.
+  play(done) {
+    const FLIGHT_MS = 350;
+    let holder = Math.random() < .5 ? 0 : 1;
+    let flying = false;
+
+    stage.innerHTML = '';
+    arena.innerHTML = '<div class="bill">🧾</div>';
+    const bill = arena.querySelector('.bill');
+    say(grabUI('👉 Давай ты'));
+
+    const draw = () => {
+      bill.style.top = holder === 0 ? '60%' : '40%';
+      for (const p of [0, 1]) {
+        setStatus(holder === p ? '<h2>Чек у тебя! 😱</h2>' : '<h2>Чек у соперника 😌</h2>', p);
+        $p(p, '.grab').classList.toggle('done', holder !== p);
+      }
+    };
+    draw();
+
+    later(rand(5000, 11000), () => {
+      stopAll();
+      const loser = holder;
+      const winner = 1 - holder;
+      stage.innerHTML = '<div class="logo">🤵</div>';
+      flashResult(winner);
+      buzz([80, 40, 80]);
+      say('<h2>Платишь ты 💸</h2><p>Официант уже тут со своим терминалом</p>', loser);
+      say('<h2>Угощают! 😎</h2><p>«Ну спасибо, в следующий раз я»</p>', winner);
+      later(1800, () => done(winner, `${NAMES[loser]} остался с чеком`));
+    });
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab') || holder !== p || flying) return;
+      holder = 1 - p;
+      flying = true;
+      buzz(10);
+      draw();
+      later(FLIGHT_MS, () => { flying = false; });
+    };
+  },
+};
+
+const FISH = {
+  emoji: '🎣',
+  title: 'Рыбалка',
+  rule: 'Следи за поплавком. Нырнул целиком — жми «🎣 Подсекай!».<br>Просто дёрнулся — это ветер, не трогай.',
+  // Сигнал только визуальный: дрожание поплавка — ловушка, нырок — поклёвка.
+  play(done) {
+    let armed = false;
+    let armedAt = 0;
+
+    stage.innerHTML = `<div class="pond">
+      <div class="ring" style="animation-delay:0s"></div><div class="ring" style="animation-delay:1.2s"></div>
+      <div class="float"></div></div>`;
+    const float = stage.querySelector('.float');
+    say(grabUI('🎣 Подсекай!'));
+    setStatus('<h2>Тишина…</h2><p>Смотри на поплавок</p>');
+
+    const finish = (winner, text) => {
+      stopAll();
+      flashResult(winner);
+      later(1600, () => done(winner, text));
+    };
+
+    let t = rand(1200, 2000);
+    const twitches = 2 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < twitches; i++) {
+      later(t, () => float.classList.add('twitch'));
+      later(t + 250, () => float.classList.remove('twitch'));
+      t += rand(700, 1600);
+    }
+    later(t, () => {
+      float.classList.add('dip');
+      armed = true;
+      armedAt = performance.now();
+      buzz(40);
+    });
+    later(t + 1500, () => {
+      float.classList.remove('dip');
+      setStatus('<h2>Рыба ушла 🐟💨</h2><p>Оба прозевали</p>');
+      finish(null, 'Рыба съела наживку и ушла — ничья');
+    });
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab')) return;
+      const other = 1 - p;
+      if (!armed) {
+        buzz([40, 40, 40]);
+        say('<h2>Распугал рыбу 🙄</h2><p>Это был ветер</p>', p);
+        say('<h2>Соперник поторопился 😏</h2><p>Раунд твой</p>', other);
+        finish(other, `${NAMES[p]} подсёк на ветер`);
+        return;
+      }
+      const ms = Math.round(performance.now() - armedAt);
+      noteRecord(p, ms);
+      buzz(80);
+      stage.innerHTML = '<div class="logo">🐟</div>';
+      say(`<h2>Есть! Подлещик 🐟</h2><p>${ms} мс</p>`, p);
+      say('<h2>Не успел 😭</h2><p>Рыба досталась сопернику</p>', other);
+      finish(p, `${NAMES[p]} подсёк за ${ms} мс`);
+    };
+  },
+};
+
+const PICKLE = {
+  emoji: '🥒',
+  title: 'Засолка',
+  rule: 'Бегунок ездит туда-сюда. Жми «🫙 Закрыть», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
+  // У каждого свой бегунок; с каждой банкой он ускоряется.
+  play(done) {
+    const LIMIT_S = 15;
+    const ZONE = 8;  // половина ширины зелёной зоны, в процентах
+    const jars = [0, 0];
+    const broke = [0, 0];
+    const phase = [rand(0, 6), rand(0, 6)];
+    const cooldown = [0, 0];
+    let left = LIMIT_S;
+    let last = performance.now();
+
+    stage.innerHTML = '<div class="logo">🫙</div>';
+    sayEach(p => `<div class="status"></div>
+      <div class="track" id="k${p}"><div class="zone"></div><div class="dot"></div></div>
+      <div class="grab">🫙 Закрыть</div>`);
+
+    const pos = p => (Math.sin(phase[p]) + 1) / 2 * 100;
+    const score = p => jars[p] - broke[p];
+    const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} с</p>`, p);
+    [0, 1].forEach(drawStatus);
+
+    const loop = now => {
+      const dt = (now - last) / 1000;
+      last = now;
+      for (const p of [0, 1]) {
+        phase[p] += (2.4 + jars[p] * .3) * dt;
+        document.querySelector(`#k${p} .dot`).style.left = `${pos(p)}%`;
+      }
+      state.frame = requestAnimationFrame(loop);
+    };
+    state.frame = requestAnimationFrame(loop);
+
+    const tick = () => {
+      left--;
+      [0, 1].forEach(drawStatus);
+      if (left > 0) { later(1000, tick); return; }
+      stopAll();
+      const s = [score(0), score(1)];
+      const winner = s[0] === s[1] ? null : (s[0] > s[1] ? 0 : 1);
+      if (winner !== null && jars[winner] > 0) noteRecord(winner, jars[winner]);
+      flashResult(winner);
+      for (const p of [0, 1]) {
+        say(`<h2>${winner === null ? 'Поровну 🤝' : winner === p ? 'Закрутки на всю зиму! 🥒' : 'Маловато на зиму 😕'}</h2>
+          <p>Закатал ${jars[p]}, лопнуло ${broke[p]}</p>`, p);
+      }
+      const text = winner === null ? 'Поровну — ничья'
+        : `${NAMES[winner]}: ${jars[winner]} банок, лопнуло ${broke[winner]} — лучше соперника`;
+      later(2000, () => done(winner, text));
+    };
+    later(1000, tick);
+
+    state.onTap = (p, el) => {
+      if (!el.closest('.grab')) return;
+      const now = performance.now();
+      if (now < cooldown[p]) return;
+      cooldown[p] = now + 250;
+      const hit = Math.abs(pos(p) - 50) <= ZONE;
+      if (hit) { jars[p]++; buzz(20); } else { broke[p]++; buzz([30, 30, 30]); }
+      flash(p, hit ? 'win' : 'lose');
+      phase[p] += rand(1, 2.5);  // после банки бегунок сбивается, чтобы не ловить в одном месте
+      drawStatus(p);
+    };
+  },
+};
+
+const BAGS = {
+  emoji: '🛍️',
+  title: 'Пакет с пакетами',
+  rule: 'Тапай «🛍️ Пихать», чтобы набить пакет пакетами. Жми «✅ Хватит», пока он не порвался.<br>У кого больше — победил. Порвался — ноль.',
+  // Пакет одинаковый у обоих: рвётся на одном и том же, заранее неизвестном числе. Перед разрывом трещит.
+  play(done) {
+    const LIMIT_MS = 12000;
+    const tear = 12 + Math.floor(Math.random() * 18);
+    const count = [0, 0];
+    const st = ['open', 'open'];  // open — набивает, done — остановился, torn — порвался
+
+    stage.innerHTML = '<div class="logo">🛍️</div>';
+    sayEach(() => `<div class="status"></div>
+      <div class="row"><div class="grab" data-b="push">🛍️ Пихать</div><div class="grab" data-b="stop">✅ Хватит</div></div>`);
+
+    const drawStatus = p => {
+      const n = count[p];
+      const hint = st[p] === 'torn' ? 'Порвался! 💥'
+        : st[p] === 'done' ? 'Остановился 👍'
+        : n >= tear - 2 ? 'Хрусть… 😬' : n >= tear - 5 ? 'Натянулся…' : 'Влезает 👌';
+      setStatus(`<h2>Пакетов: ${n}</h2><p>${hint}</p>`, p);
+    };
+    [0, 1].forEach(drawStatus);
+
+    const result = () => {
+      stopAll();
+      const s = [0, 1].map(p => st[p] === 'torn' ? 0 : count[p]);
+      const winner = s[0] === s[1] ? null : (s[0] > s[1] ? 0 : 1);
+      if (winner !== null) noteRecord(winner, s[winner]);
+      flashResult(winner);
+      for (const p of [0, 1]) {
+        say(`<h2>${st[p] === 'torn' ? 'Порвался 💥' : winner === p ? 'Пакет мечты! 🛍️' : winner === null ? 'Поровну 🤝' : 'Маловато 😕'}</h2>
+          <p>${st[p] === 'torn' ? `Рвётся на ${tear + 1}-м` : `В пакете ${count[p]} пакетов`}</p>`, p);
+      }
+      const text = winner === null ? 'Поровну — ничья' : `${NAMES[winner]} набил ${s[winner]} пакетов`;
+      later(2000, () => done(winner, text));
+    };
+    later(LIMIT_MS, result);
+
+    state.onTap = (p, el) => {
+      const b = el.closest('.grab')?.dataset.b;
+      if (!b || st[p] !== 'open') return;
+      if (b === 'stop') {
+        st[p] = 'done';
+        buzz(30);
+      } else {
+        count[p]++;
+        buzz(8);
+        if (count[p] > tear) { st[p] = 'torn'; buzz([60, 30, 60]); flash(p, 'lose'); }
+      }
+      halves[p].querySelectorAll('.grab').forEach(g => g.classList.toggle('done', st[p] !== 'open'));
+      drawStatus(p);
+      if (st.every(s => s !== 'open')) later(600, result);
+    };
+  },
+};
+
+const DRILL = {
+  emoji: '🔨',
+  title: 'Сосед с перфоратором',
+  rule: 'В одном из окон сверлят. Первым ткни в это окно — постучи по батарее!<br>Мимо — минус очко. Кто первым наберёт 5.',
+  // «Бей крота»: у каждого своя сетка окон, сверлят в окне с одним и тем же номером.
+  play(done) {
+    const GOAL = 5;
+    const LIMIT_MS = 25000;
+    const WINDOWS = 6;
+    const hits = [0, 0];
+    const startAt = performance.now();
+    const lockUntil = [0, 0];
+    let target = -1;
+
+    document.body.classList.add('no-stage');
+    stage.innerHTML = '';
+    sayEach(() => `<div class="status"></div>
+      <div class="wins">${[...Array(WINDOWS)].map((_, i) => `<div class="win" data-w="${i}">🪟</div>`).join('')}</div>`);
+
+    const drawStatus = p => setStatus(`<h2>🔨 ${hits[p]} из ${GOAL}</h2>`, p);
+    [0, 1].forEach(drawStatus);
+
+    const moveDrill = () => {
+      let next;
+      do { next = Math.floor(Math.random() * WINDOWS); } while (next === target);
+      target = next;
+      document.querySelectorAll('.win').forEach(w => {
+        const on = Number(w.dataset.w) === target;
+        w.classList.toggle('drill', on);
+        w.textContent = on ? '🔨' : '🪟';
+      });
+    };
+    const pause = () => {
+      target = -1;
+      document.querySelectorAll('.win').forEach(w => { w.classList.remove('drill'); w.textContent = '🪟'; });
+      later(rand(300, 700), moveDrill);
+    };
+    later(300, moveDrill);
+
+    const finish = winner => {
+      stopAll();
+      flashResult(winner);
+      for (const p of [0, 1]) {
+        say(`<h2>${winner === null ? 'Ничья 🤝' : winner === p ? 'Сосед затих! 🤫' : 'Сверлят дальше 😵‍💫'}</h2><p>Попаданий: ${hits[p]}</p>`, p);
+      }
+      const text = winner === null ? `Поровну по ${hits[0]} — ничья` : `${NAMES[winner]} достучался: ${hits[winner]} против ${hits[1 - winner]}`;
+      later(1800, () => done(winner, text));
+    };
+    later(LIMIT_MS, () => finish(hits[0] === hits[1] ? null : (hits[0] > hits[1] ? 0 : 1)));
+
+    state.onTap = (p, el) => {
+      const w = el.closest('.win');
+      if (!w || performance.now() < lockUntil[p]) return;
+      if (Number(w.dataset.w) === target) {
+        hits[p]++;
+        buzz(30);
+        flash(p, 'win');
+        drawStatus(p);
+        if (hits[p] >= GOAL) {
+          noteRecord(p, +((performance.now() - startAt) / 1000).toFixed(1));
+          finish(p);
+          return;
+        }
+        pause();
+      } else {
+        hits[p] = Math.max(0, hits[p] - 1);
+        lockUntil[p] = performance.now() + 400;
+        buzz([30, 30, 30]);
+        flash(p, 'lose');
+        drawStatus(p);
+      }
+    };
+  },
+};
+
+// Матч — одна мини-игра до WINS_TO побед
+const WINS_TO = 3;
+
+// rec — что считается рекордом: подпись, единица и «чем меньше, тем лучше»
+const MODES = [
+  { id: 'pelmen', game: PELMEN, sub: 'Кто первый схватит',
+    rec: { label: 'Быстрейшая хватка', unit: ' мс', lower: true },
+    final: ['Сытый и довольный 😋', 'Иди вари новую пачку 🥟'] },
+  { id: 'remote', game: REMOTE, sub: 'Тапай быстрее соперника',
+    rec: { label: 'Быстрее всех отжал пульт', unit: ' с', lower: true },
+    final: ['Пульт твой на весь вечер 📺', 'Смотришь, что включат 😒'] },
+  { id: 'babushka', game: BABUSHKA, sub: 'Скажи «Хватит!» вовремя',
+    rec: { label: 'Ближе всех к полной тарелке', unit: '%', lower: false },
+    final: ['Любимый внук! 🥰', '«Ты что, голодный?» — и ещё тарелку 🍲'] },
+  { id: 'mom', game: MOM, sub: 'Спи до последнего',
+    rec: { label: 'Дольше всех проспал', unit: ' мин', lower: false },
+    final: ['Выспался как король 👑', 'Получил тапком 🩴 и опоздал в школу'] },
+  { id: 'metro', game: METRO, sub: 'Садись, но не на бабушкино',
+    rec: { label: 'Быстрее всех сел', unit: ' мс', lower: true },
+    final: ['Доехал сидя, как барин 😌', 'Стоял всю дорогу в обнимку с поручнем'] },
+  { id: 'bill', game: BILL, sub: 'Спихни чек сопернику',
+    final: ['Поел за чужой счёт 😎', 'Оплатил весь банкет 💸'] },
+  { id: 'fish', game: FISH, sub: 'Подсекай на поклёвку, не на ветер',
+    rec: { label: 'Быстрейшая подсечка', unit: ' мс', lower: true },
+    final: ['Уха на всю дачу 🍲', 'Вернулся с пустым ведром 🪣'] },
+  { id: 'pickle', game: PICKLE, sub: 'Закатывай банки в такт',
+    rec: { label: 'Больше всех банок', unit: ' шт', lower: false },
+    final: ['Погреб забит до потолка 🥒', 'Зимой будешь просить у соседа'] },
+  { id: 'bags', game: BAGS, sub: 'Набей и не порви',
+    rec: { label: 'Больше всех пакетов', unit: ' шт', lower: false },
+    final: ['Главный по пакетам в доме 🛍️', 'Пакеты по всей кухне 🙈'] },
+  { id: 'drill', game: DRILL, sub: 'Найди, где сверлят',
+    rec: { label: 'Быстрее всех заткнул соседа', unit: ' с', lower: true },
+    final: ['Сосед затих навсегда 🤫', 'Сверлят до утра 😵‍💫'] },
+];
+
+// Турнир — все мини-игры по одному разу в случайном порядке
+const GAMES = MODES.map(m => m.game);
+MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: 'Турнир', sub: `Все ${GAMES.length} игр по разу`,
+  final: ['Чемпион двора 🏆', 'Есть куда расти 💪'] });
+
+// Анимация «как играть»: кадры по кругу. Кадр — картинка (pic), подпись (cap), кнопка (btn)
+// и что с ней делает палец (act: tap — нажал, rapid — часто тапает, hold — держит, pic — тычет в картинку).
+// hot — кнопка горит, как в игре; bar — полоска: fill (заполнение) или dot (бегунок), zone — зелёная зона.
+PELMEN.demo = [
+  { pic: '🍲', btn: '🍴 Хватай!', cap: 'Пельмень где-то на дне…' },
+  { pic: '🍲', btn: '🍴 Хватай!', act: 'tap', cap: 'Раньше времени — обжёгся 🔥' },
+  { pic: '🥟', btn: '🍴 Хватай!', hot: true, cap: 'Всплыл!' },
+  { pic: '🥟', btn: '🍴 Хватай!', hot: true, act: 'tap', cap: 'Жми сразу — кто первый, тот съел' },
+];
+REMOTE.demo = [
+  { pic: '📺', cap: 'Пульт посередине' },
+  { pic: '📺⬇️', act: 'rapid', cap: 'Тапай по своей половине как бешеный' },
+  { pic: '⭐', cap: 'Перетянул к себе — смотришь своё' },
+];
+BABUSHKA.demo = [
+  { pic: '👵', btn: '✋ Хватит!', bar: { fill: 30, zone: [72, 8] }, cap: 'Бабушка накладывает…' },
+  { pic: '👵', btn: '✋ Хватит!', bar: { fill: 62, zone: [72, 8] }, cap: 'Ещё накладывает…' },
+  { pic: '🍽️', btn: '✋ Хватит!', bar: { fill: 76, zone: [72, 8] }, act: 'tap', cap: 'Почти полная — жми!' },
+  { pic: '🤢', bar: { fill: 100, zone: [72, 8] }, cap: 'Не успел — перебор, объелся' },
+];
+MOM.demo = [
+  { pic: '🛏️😴', btn: '🛏️ Держи', act: 'hold', cap: 'Держи кнопку — спишь, копишь минуты' },
+  { pic: '🚪', btn: '🛏️ Держи', act: 'hold', cap: 'Скрип… может, показалось' },
+  { pic: '👩', btn: '🛏️ Держи', cap: 'Мама идёт — отпускай!' },
+  { pic: '🩴', cap: 'Попался под одеялом — проиграл' },
+];
+METRO.demo = [
+  { pic: '🚇', btn: '🪑 Сесть!', cap: 'Ждём, когда освободится место' },
+  { pic: '👵', btn: '🪑 Сесть!', cap: 'Бабушка — не садись, позор!' },
+  { pic: '🪑', btn: '🪑 Сесть!', hot: true, cap: 'Место свободно!' },
+  { pic: '🪑', btn: '🪑 Сесть!', hot: true, act: 'tap', cap: 'Жми быстрее соперника' },
+];
+BILL.demo = [
+  { pic: '🧾', btn: '👉 Давай ты', cap: 'Чек у тебя' },
+  { pic: '🧾', btn: '👉 Давай ты', act: 'tap', cap: 'Жми — спихни его сопернику' },
+  { pic: '⬆️🧾', btn: '👉 Давай ты', cap: 'Чек улетел к нему' },
+  { pic: '🤵', cap: 'Пришёл официант — платит, у кого чек' },
+];
+FISH.demo = [
+  { pic: '🎣', btn: '🎣 Подсекай!', cap: 'Следи за поплавком' },
+  { pic: '🌬️', btn: '🎣 Подсекай!', cap: 'Дёрнулся — это ветер, не трогай' },
+  { pic: '🐟', btn: '🎣 Подсекай!', act: 'tap', cap: 'Нырнул целиком — подсекай!' },
+];
+PICKLE.demo = [
+  { pic: '🫙', btn: '🫙 Закрыть', bar: { dot: 20, zone: [42, 16] }, cap: 'Бегунок ездит туда-сюда' },
+  { pic: '🫙', btn: '🫙 Закрыть', bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: 'В зелёной зоне — жми!' },
+  { pic: '🥒', btn: '🫙 Закрыть', bar: { dot: 80, zone: [42, 16] }, cap: 'Закатал! Мимо зоны — банка лопнет' },
+];
+BAGS.demo = [
+  { pic: '🛍️', btn: '🛍️ Пихать', act: 'rapid', cap: 'Тапай — пихаешь пакеты в пакет' },
+  { pic: '🛍️🛍️🛍️', btn: '🛍️ Пихать', act: 'rapid', cap: 'Больше пакетов — больше очков' },
+  { pic: '🛍️', btn: '✅ Хватит', act: 'tap', cap: 'Успей нажать «Хватит», пока не порвался' },
+  { pic: '💥', cap: 'Порвался — ноль' },
+];
+DRILL.demo = [
+  { pic: '🪟🪟🪟', cap: 'Окна соседей' },
+  { pic: '🪟🔨🪟', cap: 'В одном сверлят!' },
+  { pic: '🪟🔨🪟', act: 'pic', cap: 'Ткни в это окно первым' },
+  { pic: '🪟🪟🪟', cap: 'Мимо — минус очко. До 5 попаданий' },
+];
+
+const modeEmoji = m => m.emoji ?? m.game.emoji;
+const modeTitle = m => m.title ?? m.game.title;
+
+// ---------- меню и матч ----------
+
+function enterMenu() {
+  stopAll();
+  state.mode = null;
+  document.body.classList.remove('rules-open', 'no-stage', 'intro');
+  document.body.classList.add('menu');
+  arena.innerHTML = '';
+  stage.innerHTML = '<img class="logo-img" src="icon-192.png" alt="">';
+}
+
+// Стартовый экран: где играем
+function showStart() {
+  enterMenu();
+  say(`<h1>Местный колорит</h1><p>Как играем?</p>
+    <div class="modes">
+      <div class="mode" data-where="local"><span class="e">📱</span><span><b>На одном телефоне</b><small>Кладите телефон между собой</small></span></div>
+      <div class="mode" data-where="online"><span class="e">🌐</span><span><b>По сети</b><small>Каждый со своего телефона · скоро</small></span></div>
+    </div>
+    <div class="tools">
+      <span class="btn" data-where="rules">❓ Правила</span>
+      <span class="btn" data-where="records">🏆 Рекорды</span>
+      <span class="btn" data-where="names">✏️ Имена</span>
+      <span class="btn" data-where="skins">🎨 Стиль</span>
+    </div>`);
+  state.onTap = (p, el) => {
+    const where = el.closest('[data-where]')?.dataset.where;
+    if (!where) return;
+    buzz(20);
+    if (where === 'local') showMenu();
+    else if (where === 'rules') showRules();
+    else if (where === 'records') showRecords();
+    else if (where === 'names') showNames();
+    else if (where === 'skins') showSkins();
+    else showOnlineSoon();
+  };
+}
+
+// Выбор оформления: тап по скину сразу его включает, чтобы было видно, как выглядит
+function showSkins() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  say(`<h2>🎨 Стиль</h2>
+    <div class="modes grid skins">${SKINS.map(s =>
+      `<div class="mode" data-skin="${s.id}"><span class="e">${s.emoji}</span><span><b>${s.id === currentSkin ? '✓ ' : ''}${s.title}</b><small>${s.sub}</small></span></div>`
+    ).join('')}</div>
+    <div><span class="btn" data-act="back">← Назад</span></div>`);
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) { showStart(); return; }
+    const btn = el.closest('[data-skin]');
+    if (!btn) return;
+    buzz(20);
+    currentSkin = applySkin(btn.dataset.skin);
+    showSkins();
+  };
+}
+
+function showRecords() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  const all = load('kolorit-records', {});
+  say(`<h2>🏆 Рекорды</h2>
+    <div class="rules">${MODES.filter(m => m.rec).map(m => {
+      const r = all[m.id];
+      return `<p>${modeEmoji(m)} ${m.rec.label}: <b>${r ? `${r.value}${m.rec.unit}` : '—'}</b>${r ? ` · ${r.name}` : ''}</p>`;
+    }).join('')}</div>
+    <div><span class="btn" data-act="back">← Назад</span></div>`);
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) showStart();
+  };
+}
+
+// Каждый пишет своё имя на своей половине
+function showNames() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  sayEach(p => `<h2>Как тебя зовут?</h2>
+    <input class="name-input" maxlength="12" value="${NAMES[p]}" aria-label="Имя игрока">
+    <div><span class="btn" data-act="save">✅ Готово</span></div>`);
+  state.onTap = (p, el) => {
+    if (!el.closest('[data-act=save]')) return;
+    for (const i of [0, 1]) {
+      const v = $p(i, '.name-input').value.replace(/[<>&"]/g, '').trim();
+      NAMES[i] = v || DEFAULT_NAMES[i];
+    }
+    if (NAMES[0] === NAMES[1]) NAMES[1] += ' 2';
+    save('kolorit-names', NAMES);
+    document.activeElement?.blur();
+    buzz(20);
+    showStart();
+  };
+}
+
+function showRules() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  say(`<h2>Как играть</h2>
+    <div class="rules">
+      <p>📱 Телефон между вами: синий снизу, красный сверху. Тапай по своей половине, ✕ — в меню.</p>
+      <p>🎮 ${GAMES.length} мини-игр. Выбрали одну — играете в неё до ${WINS_TO} побед. 🎲 Турнир — все игры по разу.</p>
+      <p>📖 Правило игры показывается перед каждым раундом — успейте прочитать до «3, 2, 1».</p>
+      <p>🔘 Если на твоей половине есть кнопки — засчитываются только они, а не тапы мимо.</p>
+      <p>▶ Между раундами игра ждёт, пока оба нажмут «Следующий раунд».</p>
+    </div>
+    <div><span class="btn" data-act="back">← Назад</span></div>`);
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) showStart();
+  };
+}
+
+function showOnlineSoon() {
+  enterMenu();
+  say(`<h2>🌐 По сети — скоро</h2>
+    <p>Чтобы два телефона играли вместе, нужен сервер, который передаёт тапы между ними. Включим, когда игра будет в интернете.</p>
+    <div><span class="btn" data-act="back">← Назад</span></div>`);
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) showStart();
+  };
+}
+
+// Выбор мини-игры: по 4 на страницу, листаем ◀ ▶
+const PER_PAGE = 4;
+let menuPage = 0;
+
+function showMenu() {
+  enterMenu();
+  const pages = Math.ceil(MODES.length / PER_PAGE);
+  menuPage = Math.min(menuPage, pages - 1);
+  const list = MODES.slice(menuPage * PER_PAGE, (menuPage + 1) * PER_PAGE);
+  say(`<h2>Во что рубимся?</h2>
+    <div class="modes grid">${list.map(m =>
+      `<div class="mode" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>${modeTitle(m)}</b><small>${m.sub}</small></span></div>`
+    ).join('')}</div>
+    <div class="pager">
+      <span class="btn" data-act="back">←</span>
+      <span class="btn" data-act="prev">◀</span>
+      <span class="page">${menuPage + 1} / ${pages}</span>
+      <span class="btn" data-act="more">▶</span>
+    </div>`);
+  state.onTap = (p, el) => {
+    const act = el.closest('[data-act]')?.dataset.act;
+    if (act === 'back') { showStart(); return; }
+    if (act === 'prev' || act === 'more') {
+      buzz(10);
+      menuPage = (menuPage + (act === 'more' ? 1 : pages - 1)) % pages;
+      showMenu();
+      return;
+    }
+    const btn = el.closest('[data-mode]');
+    if (!btn) return;
+    buzz(20);
+    startMode(MODES.find(m => m.id === btn.dataset.mode));
+  };
+}
+
+function startMode(mode) {
+  stopAll();
+  state.mode = mode;
+  state.wins = [0, 0];
+  state.round = 0;
+  state.queue = mode.tour ? [...GAMES].sort(() => Math.random() - .5) : [];
+  document.body.classList.remove('menu');
+  updateHud();
+  nextRound();
+}
+
+function matchOver() {
+  return state.mode.tour ? state.round >= state.queue.length : Math.max(...state.wins) >= WINS_TO;
+}
+
+function nextRound() {
+  state.round++;
+  const prev = state.game;
+  const game = state.mode.tour ? state.queue[state.round - 1] : state.mode.game;
+  state.game = game;
+  state.newRec = [null, null];
+  arena.innerHTML = '';
+  // Новая для этого матча игра — сначала показываем, как играть, и ждём «Начать» от обоих
+  if (state.round === 1 || game !== prev) showIntro(game, () => countdown(game, 1200));
+  else countdown(game, 2400);
+}
+
+function progressText(p) {
+  const progress = state.mode.tour ? `Игра ${state.round} из ${state.queue.length}` : `Раунд ${state.round} · до ${WINS_TO} побед`;
+  return `${progress} · счёт ${state.wins[p]}:${state.wins[1 - p]}`;
+}
+
+// «3, 2, 1» в центре, правило перед глазами, потом игра
+function countdown(game, wait) {
+  document.body.classList.remove('no-stage', 'intro');
+  stage.innerHTML = `<div class="logo">${game.emoji}</div>`;
+  sayEach(p => `<p>${progressText(p)}</p><h2>${game.title}</h2><p>${game.rule}</p>`);
+  let n = 3;
+  const tick = () => {
+    if (n === 0) { game.play(roundOver); return; }
+    stage.innerHTML = `<div class="logo">${n}</div>`;
+    n--;
+    later(800, tick);
+  };
+  later(wait, tick);
+}
+
+// Экран «как играть»: анимация, правило и кнопка «Начать» у каждого игрока
+function showIntro(game, start) {
+  document.body.classList.add('no-stage', 'intro');
+  stage.innerHTML = '';
+  const ready = [false, false];
+  const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? 'Ждём соперника…' : '▶ Начать'}</span>`;
+  // Номер игры показываем только в турнире: в обычном матче это всегда первый раунд
+  const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>` : '';
+  sayEach(p => `${head(p)}<h2>${game.emoji} ${game.title}</h2>
+    <div class="demo"><div class="demo-pic"></div><div class="demo-bar"><b></b><i></i><s></s></div>
+      <div class="grab demo-btn"></div><div class="demo-cap"></div></div>
+    <p class="demo-rule">${game.rule}</p><div class="go">${button(0)}</div>`);
+  playDemo(game.demo);
+  // Задержка, чтобы тап по «Следующему раунду» не нажал заодно «Начать»
+  const shownAt = performance.now();
+  state.onTap = (p, el) => {
+    if (performance.now() - shownAt < 700) return;
+    if (!el.closest('[data-act=go]') || ready[p]) return;
+    ready[p] = true;
+    buzz(20);
+    $p(p, '.go').innerHTML = button(p);
+    if (ready[0] && ready[1]) { stopAll(); start(); }
+  };
+}
+
+function playDemo(frames) {
+  let i = 0;
+  const show = () => {
+    const f = frames[i++ % frames.length];
+    for (const p of [0, 1]) {
+      const demo = $p(p, '.demo');
+      if (!demo) return;
+      const finger = !f.act ? '' : f.act === 'pic' || !f.btn ? 'finger-pic' : 'finger-btn';
+      demo.className = `demo ${f.act ? 'act-' + f.act : ''} ${finger}`;
+      demo.querySelector('.demo-pic').textContent = f.pic;
+      demo.querySelector('.demo-cap').textContent = f.cap;
+      const btn = demo.querySelector('.demo-btn');
+      btn.textContent = f.btn || '';
+      btn.classList.toggle('hot', !!f.hot);
+      btn.classList.toggle('held', f.act === 'hold');
+      btn.style.visibility = f.btn ? '' : 'hidden';
+      const bar = demo.querySelector('.demo-bar');
+      bar.style.display = f.bar ? '' : 'none';
+      if (f.bar) {
+        bar.querySelector('b').style.cssText = `left: ${f.bar.zone[0]}%; width: ${f.bar.zone[1]}%`;
+        bar.querySelector('i').style.width = `${f.bar.fill ?? 0}%`;
+        bar.querySelector('s').style.cssText = f.bar.dot === undefined ? 'display: none' : `left: ${f.bar.dot}%`;
+      }
+    }
+    later(1500, show);
+  };
+  show();
+}
+
+function roundOver(winner, text) {
+  if (winner !== null) state.wins[winner]++;
+  updateHud();
+  arena.innerHTML = '';
+  document.body.classList.remove('no-stage');
+  stage.innerHTML = `<div class="logo">${winner === null ? '🤷' : '⭐'}</div>`;
+  const result = p => {
+    const verdict = winner === null ? (state.mode.tour ? 'Ничья, очко никому' : 'Ничья, переигрываем')
+      : winner === p ? 'Раунд твой ⭐' : 'Раунд за соперником';
+    const rec = state.newRec[p] ? `<p>🏆 Новый рекорд: ${state.newRec[p]}!</p>` : '';
+    return `<h2>${verdict}</h2><p>${text}</p>${rec}<p>Счёт ${state.wins[p]}:${state.wins[1 - p]}</p>`;
+  };
+  if (matchOver()) {
+    sayEach(result);
+    later(2200, showFinal);
+    return;
+  }
+  // Следующий раунд — только когда оба нажали «Дальше»
+  const ready = [false, false];
+  const draw = () => sayEach(p => result(p) +
+    `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? 'Ждём соперника…' : 'Следующий раунд ▶'}</span></div>`);
+  draw();
+  // Небольшая задержка, чтобы разогнавшийся в «Пульте» палец не нажал «Дальше» случайно
+  const shownAt = performance.now();
+  state.onTap = (p, el) => {
+    if (performance.now() - shownAt < 700) return;
+    if (!el.closest('[data-act=next]') || ready[p]) return;
+    ready[p] = true;
+    buzz(20);
+    draw();
+    if (ready[0] && ready[1]) { state.onTap = null; later(300, nextRound); }
+  };
+}
+
+function showFinal() {
+  const [a, b] = state.wins;
+  const winner = a === b ? null : (a > b ? 0 : 1);
+  const [winText, loseText] = state.mode.final;
+  stage.innerHTML = `<div class="logo">${winner === null ? '🤝' : '🏆'}</div>`;
+  flashResult(winner);
+  buzz([100, 60, 100]);
+  sayEach(p => {
+    const head = winner === null
+      ? `<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`
+      : winner === p
+      ? `<h1>Победа ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
+      : `<h1>Проиграл ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
+    return head + '<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>';
+  });
+  state.onTap = (p, el) => {
+    const act = el.closest('[data-act]')?.dataset.act;
+    if (act === 'again') startMode(state.mode);
+    if (act === 'menu') showMenu();
+  };
+}
+
+showStart();
+
+// Запоминаем игру в телефоне для работы без интернета (только на сайте, не из файла)
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* без офлайна тоже играем */ });
+}
+</script>
+</body>
+</html>
