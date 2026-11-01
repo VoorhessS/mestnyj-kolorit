@@ -82,6 +82,33 @@
   .msg p  { font-size: clamp(15px, 4.2vmin, 20px); opacity: .95; }
   .msg .big { font-size: clamp(40px, 14vmin, 80px); line-height: 1; font-weight: 800; }
 
+  /* Итог раунда: крупный вердикт и строки обоих игроков */
+  .msg h1.verdict { letter-spacing: 1px; }
+  .msg h1.verdict.v-lose { opacity: .8; }
+  .res { width: min(88%, 320px); margin: 6px auto 8px; display: grid; gap: 5px; }
+  .res div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; border-radius: 10px;
+    background: rgba(0,0,0,.18); font-size: clamp(14px, 4vmin, 18px); text-align: left; }
+  .res div.me { background: rgba(255,255,255,.22); }
+  .res b { font-weight: 700; }
+  .res div.won b::after { content: ' 🏆'; }
+  body.skin-win98 .res div { background: #fff; border-radius: 0; box-shadow: var(--sunken); color: #000; }
+  body.skin-win98 .res div.me { background: #ffffe1; }
+  body:is(.skin-nokia, .skin-arcade) .res div { font-size: 10px; line-height: 1.5; padding: 6px 8px; }
+  body.skin-nokia .res div { background: rgba(0,0,0,.08); border-radius: 0; border: 2px solid currentColor; }
+  body.skin-nokia .res div.me { background: rgba(0,0,0,.18); }
+  body.skin-arcade .res div { background: rgba(0,0,0,.35); border: 1px solid rgba(109,255,138,.5); color: #b8ffc6; }
+  body.skin-arcade .res div.me { border-color: #6dff8a; color: #6dff8a; }
+  body.skin-poster .res div { background: #f1e2c0; color: #2b2522; border-radius: 0; box-shadow: 3px 3px 0 #2b2522; }
+  body.skin-poster .res div.me { background: #fff6dd; }
+  /* Маленький экран: итог с рекордом и счётом должен влезть в половину */
+  @media (max-height: 720px) {
+    body .msg h1.verdict { font-size: 24px; margin-bottom: 2px; }
+    body.skin-win98 .msg h1.verdict { font-size: 15px; margin-bottom: 4px; }
+    .res { margin: 3px auto 4px; gap: 3px; }
+    .res div { padding: 4px 10px; font-size: 14px; }
+    body:is(.skin-nokia, .skin-arcade) .res div { padding: 4px 8px; }
+  }
+
   .btn {
     display: inline-block;
     margin: 10px 4px 0;
@@ -685,16 +712,191 @@ function flashResult(winner) {
   flash(1 - winner, 'lose');
 }
 
-function buzz(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+// ---------- звук: всё синтезируется на лету, как в старых приставках, без файлов ----------
+
+// Режим звука: 2 — эффекты и музыка, 1 — только эффекты, 0 — тишина
+let soundMode = load('kolorit-sound', 2);
+const SOUND_ICONS = ['🔇', '🔈', '🔊'];
+let audio = null;
+
+// Звук на телефоне можно включить только после касания экрана
+function audioCtx() {
+  if (!audio) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audio = new Ctx();
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+
+// Тембр эффектов под стиль: у Windows мягко, у Нокиа всё пищит, у Плаката — медь
+const VOICES = {
+  win98: { square: 'sine', sawtooth: 'triangle', vol: 1.5 },
+  nokia: { triangle: 'square', sawtooth: 'square', pitch: 2 },
+  poster: { square: 'sawtooth', vol: .7 },
+};
+
+// Одна нота: частота, длительность, форма волны, громкость, через сколько секунд начать.
+// raw — без подстройки под стиль (мелодии уже написаны под свой стиль)
+function tone(freq, dur, type = 'square', vol = .12, at = 0, slide = 0, raw = false) {
+  const ctx = audioCtx();
+  if (!ctx) return;
+  const voice = !raw && VOICES[currentSkin];
+  if (voice) {
+    type = voice[type] || type;
+    vol *= voice.vol || 1;
+    if (voice.pitch) { freq *= voice.pitch; slide *= voice.pitch; }
+  }
+  const t = ctx.currentTime + at;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  if (slide) osc.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(.001, t + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + .02);
+}
+
+const NOTE = n => 440 * 2 ** ((n - 69) / 12);  // номер MIDI-ноты → герцы
+const SFX = {
+  tick: () => tone(1400, .03, 'square', .05),
+  tap: () => tone(880, .05, 'square', .08),
+  hit: () => { tone(660, .05); tone(990, .07, 'square', .1, .05); },
+  alert: () => tone(520, .15, 'triangle', .2, 0, 780),
+  go: () => { tone(784, .08, 'square', .14); tone(1175, .18, 'square', .14, .08); },
+  good: () => [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), .09, 'square', .1, i * .06)),
+  bad: () => tone(220, .35, 'sawtooth', .12, 0, 90),
+  pop: () => { tone(160, .2, 'sawtooth', .15, 0, 50); tone(2000, .05, 'square', .06); },
+  beep: () => tone(660, .12, 'square', .1),
+  start: () => tone(1320, .3, 'square', .12),
+  round: () => [67, 72, 76, 79].forEach((n, i) => tone(NOTE(n), .14, 'triangle', .22, i * .09)),
+  draw: () => [67, 64].forEach((n, i) => tone(NOTE(n), .2, 'triangle', .2, i * .16)),
+  fanfare: () => [60, 64, 67, 72, 67, 72].forEach((n, i) => tone(NOTE(n), i === 5 ? .5 : .13, 'square', .11, i * .12)),
+};
+function sfx(name) { if (soundMode > 0 && SFX[name]) SFX[name](); }
+
+// Фоновые мелодии меню, у каждого стиля своя. Восемь тактов по кругу.
+// Ноты MIDI, 0 — пауза, шаг — восьмая; басовая нота звучит раз в bassEvery восьмых.
+const TUNES = {
+  classic: {
+    bpm: 132, lead: [76, 0, 79, 76, 74, 0, 72, 0,  74, 0, 76, 0, 67, 0, 0, 0,
+                     69, 0, 72, 69, 67, 0, 64, 0,  67, 0, 69, 72, 74, 0, 0, 0,
+                     76, 0, 79, 81, 79, 0, 76, 0,  74, 76, 74, 72, 69, 0, 0, 0,
+                     72, 0, 74, 76, 79, 0, 76, 74, 72, 0, 0, 0, 0, 0, 0, 0],
+    bass: [48, 43, 41, 48, 45, 40, 43, 50, 48, 43, 41, 43, 45, 41, 43, 48], bassEvery: 4,
+  },
+  // Windows 98: неторопливые мягкие «системные» переливы
+  win98: {
+    bpm: 100, leadWave: 'sine', leadVol: .07,
+    lead: [72, 0, 0, 79, 0, 0, 76, 0,  74, 0, 0, 0, 0, 0, 0, 0,
+           69, 0, 0, 76, 0, 0, 74, 0,  72, 0, 0, 0, 0, 0, 0, 0,
+           77, 0, 0, 76, 0, 0, 74, 0,  72, 0, 74, 0, 76, 0, 0, 0,
+           74, 0, 0, 72, 0, 0, 67, 0,  72, 0, 0, 0, 0, 0, 0, 0],
+    bass: [48, 48, 45, 45, 41, 41, 43, 43, 41, 41, 43, 43, 43, 43, 48, 48], bassEvery: 4,
+  },
+  // Нокиа: быстрая высокая пищалка, один голос, как у кнопочного телефона
+  nokia: {
+    bpm: 160, leadVol: .05,
+    lead: [84, 0, 84, 88, 91, 0, 88, 0,  86, 0, 83, 0, 79, 0, 0, 0,
+           81, 0, 81, 84, 88, 0, 86, 84, 83, 0, 79, 0, 83, 0, 0, 0,
+           84, 0, 84, 88, 91, 0, 93, 91, 88, 0, 86, 0, 84, 0, 83, 81,
+           79, 0, 83, 0, 86, 0, 83, 0,  84, 0, 0, 0, 0, 0, 0, 0],
+    bass: null,
+  },
+  // Плакат: бодрый марш, бас «умпа-умпа»
+  poster: {
+    bpm: 116, leadWave: 'sawtooth', leadVol: .03,
+    lead: [67, 0, 72, 0, 72, 74, 76, 0,  76, 0, 74, 72, 74, 0, 0, 0,
+           69, 0, 74, 0, 74, 76, 77, 0,  77, 0, 76, 74, 76, 0, 0, 0,
+           79, 0, 79, 77, 76, 0, 74, 0,  72, 0, 76, 0, 79, 0, 0, 0,
+           77, 0, 76, 0, 74, 0, 71, 0,  72, 0, 0, 0, 0, 0, 0, 0],
+    bass: [48, 55, 48, 55, 43, 50, 43, 50, 45, 52, 45, 52, 43, 50, 43, 50,
+           41, 48, 41, 48, 43, 50, 43, 50, 48, 55, 43, 50, 48, 55, 48, 0], bassEvery: 2, bassLen: 1.6,
+  },
+  // Автомат: быстрый 8-бит с бегающим арпеджио в басу
+  arcade: {
+    bpm: 150, leadVol: .04,
+    lead: [72, 0, 76, 79, 84, 0, 79, 76, 72, 0, 76, 79, 81, 0, 79, 0,
+           69, 0, 72, 76, 81, 0, 76, 72, 69, 0, 72, 76, 79, 0, 76, 0,
+           65, 0, 69, 72, 77, 0, 72, 69, 67, 0, 71, 74, 79, 0, 77, 74,
+           72, 0, 76, 79, 84, 0, 0, 79, 76, 0, 74, 0, 72, 0, 0, 0],
+    bass: [48, 55, 60, 55, 48, 55, 60, 55, 45, 52, 57, 52, 45, 52, 57, 52,
+           41, 48, 53, 48, 41, 48, 53, 48, 43, 50, 55, 50, 43, 50, 55, 50],
+    bassEvery: 2, bassWave: 'square', bassVol: .035, bassLen: 1.7,
+  },
+};
+const tune = () => TUNES[currentSkin] || TUNES.classic;
+const music = {
+  timer: null, step: 0, next: 0,
+  start() {
+    if (this.timer || soundMode < 2) return;
+    const ctx = audioCtx();
+    if (!ctx) return;
+    this.step = 0;
+    this.next = ctx.currentTime + .1;
+    this.timer = setInterval(() => this.schedule(), 100);
+  },
+  stop() { clearInterval(this.timer); this.timer = null; },
+  // Другой стиль — мелодия с начала
+  restart() { if (this.timer) { this.stop(); this.start(); } },
+  // Планируем ноты чуть вперёд, чтобы мелодия не спотыкалась
+  schedule() {
+    const t = tune();
+    const eighth = 30 / t.bpm;
+    const every = t.bassEvery || 4;
+    while (this.next < audio.currentTime + .3) {
+      const at = this.next - audio.currentTime;
+      const n = t.lead[this.step % t.lead.length];
+      if (n) tone(NOTE(n), eighth * .9, t.leadWave || 'square', t.leadVol || .035, at, 0, true);
+      const b = t.bass && this.step % every === 0 && t.bass[(this.step / every) % t.bass.length];
+      if (b) tone(NOTE(b), eighth * every * (t.bassLen ? t.bassLen / 2 : .9), t.bassWave || 'triangle', t.bassVol || .08, at, 0, true);
+      this.step++;
+      this.next += eighth;
+    }
+  },
+};
+
+// Переключатель: 🔊 → 🔈 → 🔇 → 🔊
+function toggleSound() {
+  soundMode = (soundMode + 2) % 3;
+  localStorage.setItem('kolorit-sound', JSON.stringify(soundMode));
+  if (soundMode === 2) music.start(); else music.stop();
+  sfx('tap');
+}
+
+// Вибрация и звук идут вместе: по рисунку вибрации понятно, что случилось
+function buzz(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+  const key = Array.isArray(pattern) ? pattern.join(',') : pattern;
+  const name = {
+    '40,40,40': 'bad', '30,30,30': 'bad', '60,30,60': 'pop',
+    8: 'tick', 10: 'tap', 15: 'tap', 20: 'tap', 25: 'tap', 30: 'hit', 40: 'alert', 60: 'go', 80: 'good',
+  }[key];
+  if (name) sfx(name);
+}
 
 function rand(a, b) { return a + Math.random() * (b - a); }
 
 function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
+// Итоги обоих игроков для экрана результата: [нижний, верхний]
+// 1 пакет, 2 пакета, 5 пакетов
+function plural(n, one, few, many) {
+  const d = n % 10, h = n % 100;
+  return `${n} ${d === 1 && h !== 11 ? one : d >= 2 && d <= 4 && (h < 12 || h > 14) ? few : many}`;
+}
+
+function pair(p, mine, theirs) { return p === 0 ? [mine, theirs] : [theirs, mine]; }
+
 for (const half of halves) {
   half.addEventListener('pointerdown', e => {
     if (e.target.closest('input')) return;  // поле ввода имени должно получить фокус
     e.preventDefault();
+    if (soundMode) audioCtx();
     if (e.target.closest('.quit')) { buzz(20); showMenu(); return; }
     const p = Number(half.dataset.p);
     pointers.set(e.pointerId, p);
@@ -739,10 +941,10 @@ const PELMEN = {
     const COOKING = '<h2>Варится…</h2><p>Не торопись 👀</p>';
     setStatus(COOKING);
 
-    const finish = (winner, text) => {
+    const finish = (winner, text, stats) => {
       stopAll();
       flashResult(winner);
-      later(1600, () => done(winner, text));
+      later(1600, () => done(winner, text, stats));
     };
 
     const fakes = Math.floor(Math.random() * 3);
@@ -764,7 +966,7 @@ const PELMEN = {
     later(t + 3000, () => {
       pelmen.classList.add('gone');
       say('<h2>Разварился 😩</h2><p>Оба остались без ужина</p>');
-      finish(null, 'Пельмень разварился — ничья');
+      finish(null, 'Пельмень разварился — ничья', ['не успел', 'не успел']);
     });
 
     state.onTap = (p, el) => {
@@ -774,7 +976,7 @@ const PELMEN = {
         buzz([40, 40, 40]);
         say('<h2>Обжёгся! 🔥</h2><p>Он ещё не всплыл</p>', p);
         say('<h2>Соперник обжёгся 😏</h2><p>Пельмень твой</p>', other);
-        finish(other, `${NAMES[p]} схватил раньше времени и обжёгся`);
+        finish(other, `${NAMES[p]} схватил раньше времени и обжёгся`, pair(p, 'обжёгся 🔥', 'дождался'));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
@@ -784,7 +986,7 @@ const PELMEN = {
       pelmen.classList.add('gone');
       say(`<h2>Съел! 😋</h2><p>${ms} мс</p>`, p);
       say('<h2>Не успел 😭</h2><p>Пельмень ушёл к сопернику</p>', other);
-      finish(p, `${NAMES[p]} успел за ${ms} мс`);
+      finish(p, `${NAMES[p]} успел за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
     };
   },
 };
@@ -809,14 +1011,14 @@ const REMOTE = {
     draw();
     tick();
 
-    const finish = (winner, text) => {
+    const finish = (winner, text, stats) => {
       stopAll();
       flashResult(winner);
       if (winner !== null) {
         say('<h2>Пульт твой! 📺</h2><p>Сегодня смотрим твоё</p>', winner);
         say('<h2>Отжали пульт 😤</h2><p>Смотришь, что включат</p>', 1 - winner);
       }
-      later(1600, () => done(winner, text));
+      later(1600, () => done(winner, text, stats));
     };
 
     const countdown = () => {
@@ -824,21 +1026,25 @@ const REMOTE = {
       if (left > 0) { tick(); later(1000, countdown); return; }
       if (Math.abs(pos) < 0.05) {
         say('<h2>Пульт посередине 🤝</h2><p>Никто не перетянул</p>');
-        finish(null, 'Ничья — пульт сломался пополам');
+        finish(null, 'Ничья — пульт сломался пополам', ['50% пульта', '50% пульта']);
       } else {
         const w = pos > 0 ? 0 : 1;
-        finish(w, `Время вышло — пульт ближе к игроку ${NAMES[w]}`);
+        finish(w, `Время вышло — пульт ближе к игроку ${NAMES[w]}`, shares());
       }
     };
     later(1000, countdown);
 
+    const shares = () => {
+      const s0 = Math.round(Math.min(1, Math.max(0, (1 + pos) / 2)) * 100);
+      return [`${s0}% пульта`, `${100 - s0}% пульта`];
+    };
     state.onTap = p => {
       pos += p === 0 ? STEP : -STEP;
       buzz(8);
       draw();
       if (pos >= 1 || pos <= -1) {
         noteRecord(p, +((performance.now() - startAt) / 1000).toFixed(1));
-        finish(p, `${NAMES[p]} перетянул пульт`);
+        finish(p, `${NAMES[p]} перетянул пульт`, pair(p, '100% пульта', '0% пульта'));
       }
     };
   },
@@ -895,7 +1101,8 @@ const BABUSHKA = {
       const text = winner === null
         ? (score[0] < 0 ? 'Оба объелись — ничья' : 'Одинаково — ничья')
         : `${NAMES[winner]} остановился на ${Math.round(stopped[winner])}%`;
-      later(2000, () => done(winner, text));
+      const stats = stopped.map(v => v === null ? 'не остановил' : v > 100 ? 'объелся 🤢' : `${Math.round(v)}%`);
+      later(2000, () => done(winner, text, stats));
     };
 
     const loop = now => {
@@ -991,7 +1198,8 @@ const MOM = {
       const text = winner === null
         ? (caught[0] && caught[1] ? 'Мама поймала обоих' : 'Поспали поровну — ничья')
         : `${NAMES[winner]} поспал ${score[winner]} мин и не попался`;
-      later(2200, () => done(winner, text));
+      const stats = [0, 1].map(p => caught[p] ? 'попался 🩴' : `${score[p]} мин сна`);
+      later(2200, () => done(winner, text, stats));
     };
     later(entry, burst);
 
@@ -1031,10 +1239,10 @@ const METRO = {
     say(grabUI('🪑 Сесть!'));
     setStatus(RIDING);
 
-    const finish = (winner, text) => {
+    const finish = (winner, text, stats) => {
       stopAll();
       flashResult(winner);
-      later(1600, () => done(winner, text));
+      later(1600, () => done(winner, text, stats));
     };
 
     let t = rand(1000, 1800);
@@ -1058,7 +1266,7 @@ const METRO = {
     });
     later(t + 3000, () => {
       setStatus('<h2>Место занял дед 👴</h2><p>Оба стоите</p>');
-      finish(null, 'Место ушло деду — ничья');
+      finish(null, 'Место ушло деду — ничья', ['не сел', 'не сел']);
     });
 
     state.onTap = (p, el) => {
@@ -1069,7 +1277,7 @@ const METRO = {
         const why = decoy ? `${decoy[1]}, а ты сел 🙈` : 'Места ещё нет — сел соседу на колени';
         say(`<h2>Позор! 😳</h2><p>${why}</p>`, p);
         say('<h2>Соперник опозорился 😏</h2><p>Раунд твой</p>', other);
-        finish(other, `${NAMES[p]} поторопился и опозорился`);
+        finish(other, `${NAMES[p]} поторопился и опозорился`, pair(p, 'опозорился 😳', 'дождался'));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
@@ -1077,7 +1285,7 @@ const METRO = {
       buzz(80);
       say(`<h2>Сел! 😌</h2><p>${ms} мс</p>`, p);
       say('<h2>Стоишь до конечной 😩</h2><p>Место ушло сопернику</p>', other);
-      finish(p, `${NAMES[p]} сел за ${ms} мс`);
+      finish(p, `${NAMES[p]} сел за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
     };
   },
 };
@@ -1115,7 +1323,7 @@ const BILL = {
       buzz([80, 40, 80]);
       say('<h2>Платишь ты 💸</h2><p>Официант уже тут со своим терминалом</p>', loser);
       say('<h2>Угощают! 😎</h2><p>«Ну спасибо, в следующий раз я»</p>', winner);
-      later(1800, () => done(winner, `${NAMES[loser]} остался с чеком`));
+      later(1800, () => done(winner, `${NAMES[loser]} остался с чеком`, pair(loser, 'с чеком 🧾', 'без чека 😎')));
     });
 
     state.onTap = (p, el) => {
@@ -1145,10 +1353,10 @@ const FISH = {
     say(grabUI('🎣 Подсекай!'));
     setStatus('<h2>Тишина…</h2><p>Смотри на поплавок</p>');
 
-    const finish = (winner, text) => {
+    const finish = (winner, text, stats) => {
       stopAll();
       flashResult(winner);
-      later(1600, () => done(winner, text));
+      later(1600, () => done(winner, text, stats));
     };
 
     let t = rand(1200, 2000);
@@ -1167,7 +1375,7 @@ const FISH = {
     later(t + 1500, () => {
       float.classList.remove('dip');
       setStatus('<h2>Рыба ушла 🐟💨</h2><p>Оба прозевали</p>');
-      finish(null, 'Рыба съела наживку и ушла — ничья');
+      finish(null, 'Рыба съела наживку и ушла — ничья', ['прозевал', 'прозевал']);
     });
 
     state.onTap = (p, el) => {
@@ -1177,7 +1385,7 @@ const FISH = {
         buzz([40, 40, 40]);
         say('<h2>Распугал рыбу 🙄</h2><p>Это был ветер</p>', p);
         say('<h2>Соперник поторопился 😏</h2><p>Раунд твой</p>', other);
-        finish(other, `${NAMES[p]} подсёк на ветер`);
+        finish(other, `${NAMES[p]} подсёк на ветер`, pair(p, 'подсёк на ветер', 'дождался'));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
@@ -1186,7 +1394,7 @@ const FISH = {
       stage.innerHTML = '<div class="logo">🐟</div>';
       say(`<h2>Есть! Подлещик 🐟</h2><p>${ms} мс</p>`, p);
       say('<h2>Не успел 😭</h2><p>Рыба досталась сопернику</p>', other);
-      finish(p, `${NAMES[p]} подсёк за ${ms} мс`);
+      finish(p, `${NAMES[p]} подсёк за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
     };
   },
 };
@@ -1241,8 +1449,9 @@ const PICKLE = {
           <p>Закатал ${jars[p]}, лопнуло ${broke[p]}</p>`, p);
       }
       const text = winner === null ? 'Поровну — ничья'
-        : `${NAMES[winner]}: ${jars[winner]} банок, лопнуло ${broke[winner]} — лучше соперника`;
-      later(2000, () => done(winner, text));
+        : `${NAMES[winner]}: ${plural(jars[winner], 'банка', 'банки', 'банок')}, лопнуло ${broke[winner]} — лучше соперника`;
+      const stats = [0, 1].map(p => `🫙 ${jars[p]} · 💥 ${broke[p]}`);
+      later(2000, () => done(winner, text, stats));
     };
     later(1000, tick);
 
@@ -1292,10 +1501,11 @@ const BAGS = {
       flashResult(winner);
       for (const p of [0, 1]) {
         say(`<h2>${st[p] === 'torn' ? 'Порвался 💥' : winner === p ? 'Пакет мечты! 🛍️' : winner === null ? 'Поровну 🤝' : 'Маловато 😕'}</h2>
-          <p>${st[p] === 'torn' ? `Рвётся на ${tear + 1}-м` : `В пакете ${count[p]} пакетов`}</p>`, p);
+          <p>${st[p] === 'torn' ? `Рвётся на ${tear + 1}-м` : `В пакете ${plural(count[p], 'пакет', 'пакета', 'пакетов')}`}</p>`, p);
       }
-      const text = winner === null ? 'Поровну — ничья' : `${NAMES[winner]} набил ${s[winner]} пакетов`;
-      later(2000, () => done(winner, text));
+      const text = winner === null ? 'Поровну — ничья' : `${NAMES[winner]} набил ${plural(s[winner], 'пакет', 'пакета', 'пакетов')}`;
+      const stats = [0, 1].map(p => st[p] === 'torn' ? 'порвал 💥' : plural(count[p], 'пакет', 'пакета', 'пакетов'));
+      later(2000, () => done(winner, text, stats));
     };
     later(LIMIT_MS, result);
 
@@ -1363,7 +1573,7 @@ const DRILL = {
         say(`<h2>${winner === null ? 'Ничья 🤝' : winner === p ? 'Сосед затих! 🤫' : 'Сверлят дальше 😵‍💫'}</h2><p>Попаданий: ${hits[p]}</p>`, p);
       }
       const text = winner === null ? `Поровну по ${hits[0]} — ничья` : `${NAMES[winner]} достучался: ${hits[winner]} против ${hits[1 - winner]}`;
-      later(1800, () => done(winner, text));
+      later(1800, () => done(winner, text, [0, 1].map(p => `🔨 ${hits[p]}`)));
     };
     later(LIMIT_MS, () => finish(hits[0] === hits[1] ? null : (hits[0] > hits[1] ? 0 : 1)));
 
@@ -1504,6 +1714,7 @@ function enterMenu() {
   state.mode = null;
   document.body.classList.remove('rules-open', 'no-stage', 'intro');
   document.body.classList.add('menu');
+  music.start();
   arena.innerHTML = '';
   stage.innerHTML = '<img class="logo-img" src="icon-192.png" alt="">';
 }
@@ -1521,10 +1732,12 @@ function showStart() {
       <span class="btn" data-where="records">🏆 Рекорды</span>
       <span class="btn" data-where="names">✏️ Имена</span>
       <span class="btn" data-where="skins">🎨 Стиль</span>
+      <span class="btn" data-where="sound">${SOUND_ICONS[soundMode]}</span>
     </div>`);
   state.onTap = (p, el) => {
     const where = el.closest('[data-where]')?.dataset.where;
     if (!where) return;
+    if (where === 'sound') { toggleSound(); showStart(); return; }
     buzz(20);
     if (where === 'local') showMenu();
     else if (where === 'rules') showRules();
@@ -1551,6 +1764,7 @@ function showSkins() {
     if (!btn) return;
     buzz(20);
     currentSkin = applySkin(btn.dataset.skin);
+    music.restart();
     showSkins();
   };
 }
@@ -1690,12 +1904,14 @@ function progressText(p) {
 
 // «3, 2, 1» в центре, правило перед глазами, потом игра
 function countdown(game, wait) {
+  music.stop();
   document.body.classList.remove('no-stage', 'intro');
   stage.innerHTML = `<div class="logo">${game.emoji}</div>`;
   sayEach(p => `<p>${progressText(p)}</p><h2>${game.title}</h2><p>${game.rule}</p>`);
   let n = 3;
   const tick = () => {
-    if (n === 0) { game.play(roundOver); return; }
+    if (n === 0) { sfx('start'); game.play(roundOver); return; }
+    sfx('beep');
     stage.innerHTML = `<div class="logo">${n}</div>`;
     n--;
     later(800, tick);
@@ -1757,17 +1973,23 @@ function playDemo(frames) {
   show();
 }
 
-function roundOver(winner, text) {
+function roundOver(winner, text, stats) {
   if (winner !== null) state.wins[winner]++;
   updateHud();
   arena.innerHTML = '';
   document.body.classList.remove('no-stage');
   stage.innerHTML = `<div class="logo">${winner === null ? '🤷' : '⭐'}</div>`;
+  sfx(winner === null ? 'draw' : 'round');
+  // Крупно — кто выиграл, ниже — что набрал каждый: сначала ты, потом соперник
   const result = p => {
-    const verdict = winner === null ? (state.mode.tour ? 'Ничья, очко никому' : 'Ничья, переигрываем')
-      : winner === p ? 'Раунд твой ⭐' : 'Раунд за соперником';
+    const kind = winner === null ? 'v-draw' : winner === p ? 'v-win' : 'v-lose';
+    const verdict = { 'v-win': 'ПОБЕДА 🏆', 'v-lose': 'ПРОИГРЫШ 😵', 'v-draw': 'НИЧЬЯ 🤝' }[kind];
+    const note = winner === null ? `<p>${state.mode.tour ? 'Очко никому' : 'Переигрываем'}</p>` : '';
+    const line = q => `<div class="${q === p ? 'me' : ''} ${q === winner ? 'won' : ''}">` +
+      `<b>${q === p ? 'Ты' : NAMES[q]}</b><span>${stats[q]}</span></div>`;
+    const board = stats ? `<div class="res">${line(p)}${line(1 - p)}</div>` : `<p>${text}</p>`;
     const rec = state.newRec[p] ? `<p>🏆 Новый рекорд: ${state.newRec[p]}!</p>` : '';
-    return `<h2>${verdict}</h2><p>${text}</p>${rec}<p>Счёт ${state.wins[p]}:${state.wins[1 - p]}</p>`;
+    return `<h1 class="verdict ${kind}">${verdict}</h1>${note}${board}${rec}<p>Счёт ${state.wins[p]}:${state.wins[1 - p]}</p>`;
   };
   if (matchOver()) {
     sayEach(result);
@@ -1798,6 +2020,7 @@ function showFinal() {
   stage.innerHTML = `<div class="logo">${winner === null ? '🤝' : '🏆'}</div>`;
   flashResult(winner);
   buzz([100, 60, 100]);
+  sfx('fanfare');
   sayEach(p => {
     const head = winner === null
       ? `<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`
