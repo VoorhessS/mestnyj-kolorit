@@ -615,16 +615,32 @@ function save(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* не запомнили — не страшно */ }
 }
 
-const DEFAULT_NAMES = ['Синий', 'Красный'];
-const NAMES = load('kolorit-names', DEFAULT_NAMES).slice(0, 2);
+// Язык: русский или английский. По умолчанию — по языку телефона, выбор запоминается.
+// Переключение — кнопка на стартовом экране, после неё страница перезагружается.
+let lang = load('kolorit-lang', /^ru|^uk|^be|^kk/i.test(navigator.language || '') ? 'ru' : 'en');
+if (lang !== 'en') lang = 'ru';
+function t(ru, en) { return lang === 'en' ? en : ru; }
+
+// Название игры: в английской версии своё
+const TITLE = t('Местный колорит', 'Babushka Battles');
+document.documentElement.lang = lang;
+document.title = TITLE;
+document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
+
+const RU_NAMES = ['Синий', 'Красный'];
+const EN_NAMES = ['Blue', 'Red'];
+const DEFAULT_NAMES = t(RU_NAMES, EN_NAMES);
+// Имена по умолчанию, сохранённые на другом языке, переводим вместе с игрой
+const NAMES = load('kolorit-names', DEFAULT_NAMES).slice(0, 2)
+  .map((n, i) => n === RU_NAMES[i] || n === EN_NAMES[i] ? DEFAULT_NAMES[i] : n);
 
 // Скины: оформление меняется классом skin-* на body, выбор запоминается
 const SKINS = [
-  { id: 'classic', emoji: '🎨', title: 'Обычный', sub: 'Как было' },
-  { id: 'win98', emoji: '💾', title: 'Windows 98', sub: 'Компьютерный класс 90-х' },
-  { id: 'nokia', emoji: '🐍', title: 'Нокиа', sub: 'Кнопочный телефон 00-х' },
-  { id: 'poster', emoji: '🪆', title: 'Плакат', sub: 'Советская игрушка' },
-  { id: 'arcade', emoji: '🕹️', title: 'Автомат', sub: 'Игровой зал 80-х' },
+  { id: 'classic', emoji: '🎨', title: t('Обычный', 'Classic'), sub: t('Как было', 'The original') },
+  { id: 'win98', emoji: '💾', title: 'Windows 98', sub: t('Компьютерный класс 90-х', '90s school computer lab') },
+  { id: 'nokia', emoji: '🐍', title: t('Нокиа', 'Nokia'), sub: t('Кнопочный телефон 00-х', '2000s brick phone') },
+  { id: 'poster', emoji: '🪆', title: t('Плакат', 'Poster'), sub: t('Советская игрушка', 'Soviet toy box') },
+  { id: 'arcade', emoji: '🕹️', title: t('Автомат', 'Arcade'), sub: t('Игровой зал 80-х', '80s game hall') },
 ];
 
 function applySkin(id) {
@@ -661,6 +677,9 @@ function say(html, p) {
 
 function sayEach(fn) { say(fn(0), 0); say(fn(1), 1); }
 
+// Рекорд с единицей: «7 шт», по-английски «1 bag», «7 bags»
+function recText(rec, value) { return `${value}${value === 1 && rec.one ? rec.one : rec.unit}`; }
+
 // Игра сообщает результат игрока; если он лучше сохранённого — это новый рекорд
 function noteRecord(p, value) {
   const mode = MODES.find(m => m.game === state.game);
@@ -671,7 +690,7 @@ function noteRecord(p, value) {
   if (!better) return;
   all[mode.id] = { value, name: NAMES[p] };
   save('kolorit-records', all);
-  state.newRec[p] = `${value}${mode.rec.unit}`;
+  state.newRec[p] = recText(mode.rec, value);
 }
 
 // Экран с большой кнопкой: строка статуса сверху, кнопка снизу
@@ -890,6 +909,9 @@ function plural(n, one, few, many) {
   return `${n} ${d === 1 && h !== 11 ? one : d >= 2 && d <= 4 && (h < 12 || h > 14) ? few : many}`;
 }
 
+// По-английски: 1 bag, 2 bags
+function bagsEn(n) { return `${n} bag${n === 1 ? '' : 's'}`; }
+
 function pair(p, mine, theirs) { return p === 0 ? [mine, theirs] : [theirs, mine]; }
 
 for (const half of halves) {
@@ -919,8 +941,9 @@ for (const type of ['pointerup', 'pointercancel']) {
 
 const PELMEN = {
   emoji: '🥟',
-  title: 'Последний пельмень',
-  rule: 'Жми свою кнопку «🍴 Хватай!»,<br>как только пельмень всплывёт.<br>Раньше времени — обжёгся.',
+  title: t('Последний пельмень', 'The Last Dumpling'),
+  rule: t('Жми свою кнопку «🍴 Хватай!»,<br>как только пельмень всплывёт.<br>Раньше времени — обжёгся.',
+    'Hit your “🍴 Grab!” button<br>the moment the dumpling floats up.<br>Too early — you get burned.'),
   // Пельмень несколько раз «подглядывает» из воды, потом всплывает по-настоящему.
   // Засчитываются только нажатия на кнопку «Хватай!» своей половины.
   play(done) {
@@ -937,8 +960,8 @@ const PELMEN = {
     let armed = false;
     let armedAt = 0;
 
-    say(grabUI('🍴 Хватай!'));
-    const COOKING = '<h2>Варится…</h2><p>Не торопись 👀</p>';
+    say(grabUI(t('🍴 Хватай!', '🍴 Grab!')));
+    const COOKING = t('<h2>Варится…</h2><p>Не торопись 👀</p>', '<h2>Boiling…</h2><p>No rush 👀</p>');
     setStatus(COOKING);
 
     const finish = (winner, text, stats) => {
@@ -948,25 +971,25 @@ const PELMEN = {
     };
 
     const fakes = Math.floor(Math.random() * 3);
-    let t = rand(900, 1800);
+    let when = rand(900, 1800);
     for (let i = 0; i < fakes; i++) {
-      later(t, () => { pelmen.classList.add('peek'); setStatus('<h2>Бульк!</h2><p>Или нет?..</p>'); });
-      later(t + 450, () => { pelmen.classList.remove('peek'); setStatus(COOKING); });
-      t += rand(900, 2300);
+      later(when, () => { pelmen.classList.add('peek'); setStatus(t('<h2>Бульк!</h2><p>Или нет?..</p>', '<h2>Bloop!</h2><p>Or not?..</p>')); });
+      later(when + 450, () => { pelmen.classList.remove('peek'); setStatus(COOKING); });
+      when += rand(900, 2300);
     }
-    later(t, () => {
+    later(when, () => {
       pelmen.classList.add('up');
       armed = true;
       armedAt = performance.now();
-      setStatus('<div class="big">ЖМИ!</div>');
+      setStatus(t('<div class="big">ЖМИ!</div>', '<div class="big">NOW!</div>'));
       document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
       buzz(60);
     });
     // Никто не нажал — пельмень разварился
-    later(t + 3000, () => {
+    later(when + 3000, () => {
       pelmen.classList.add('gone');
-      say('<h2>Разварился 😩</h2><p>Оба остались без ужина</p>');
-      finish(null, 'Пельмень разварился — ничья', ['не успел', 'не успел']);
+      say(t('<h2>Разварился 😩</h2><p>Оба остались без ужина</p>', '<h2>Boiled to mush 😩</h2><p>No dinner for either of you</p>'));
+      finish(null, t('Пельмень разварился — ничья', 'Dumpling boiled to mush — draw'), t(['не успел', 'не успел'], ['too slow', 'too slow']));
     });
 
     state.onTap = (p, el) => {
@@ -974,9 +997,10 @@ const PELMEN = {
       const other = 1 - p;
       if (!armed) {
         buzz([40, 40, 40]);
-        say('<h2>Обжёгся! 🔥</h2><p>Он ещё не всплыл</p>', p);
-        say('<h2>Соперник обжёгся 😏</h2><p>Пельмень твой</p>', other);
-        finish(other, `${NAMES[p]} схватил раньше времени и обжёгся`, pair(p, 'обжёгся 🔥', 'дождался'));
+        say(t('<h2>Обжёгся! 🔥</h2><p>Он ещё не всплыл</p>', '<h2>Ouch, hot! 🔥</h2><p>It wasn’t up yet</p>'), p);
+        say(t('<h2>Соперник обжёгся 😏</h2><p>Пельмень твой</p>', '<h2>Rival got burned 😏</h2><p>The dumpling is yours</p>'), other);
+        finish(other, t(`${NAMES[p]} схватил раньше времени и обжёгся`, `${NAMES[p]} grabbed too early and got burned`),
+          pair(p, t('обжёгся 🔥', 'burned 🔥'), t('дождался', 'waited')));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
@@ -984,17 +1008,17 @@ const PELMEN = {
       buzz(80);
       pelmen.classList.remove('up');
       pelmen.classList.add('gone');
-      say(`<h2>Съел! 😋</h2><p>${ms} мс</p>`, p);
-      say('<h2>Не успел 😭</h2><p>Пельмень ушёл к сопернику</p>', other);
-      finish(p, `${NAMES[p]} успел за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
+      say(t(`<h2>Съел! 😋</h2><p>${ms} мс</p>`, `<h2>Got it! 😋</h2><p>${ms} ms</p>`), p);
+      say(t('<h2>Не успел 😭</h2><p>Пельмень ушёл к сопернику</p>', '<h2>Too slow 😭</h2><p>Your rival ate it</p>'), other);
+      finish(p, t(`${NAMES[p]} успел за ${ms} мс`, `${NAMES[p]} grabbed it in ${ms} ms`), pair(p, t(`${ms} мс`, `${ms} ms`), t('не успел', 'too slow')));
     };
   },
 };
 
 const REMOTE = {
   emoji: '📺',
-  title: 'Битва за пульт',
-  rule: 'Тапай как можно быстрее —<br>тяни пульт к себе!',
+  title: t('Битва за пульт', 'Remote Wars'),
+  rule: t('Тапай как можно быстрее —<br>тяни пульт к себе!', 'Tap as fast as you can —<br>pull the TV remote your way!'),
   // Перетягивание: каждый тап двигает пульт к тапнувшему. Дотянул до себя — победил.
   play(done) {
     const STEP = 0.07;
@@ -1007,7 +1031,7 @@ const REMOTE = {
     let left = Math.round(LIMIT_MS / 1000);
 
     const draw = () => { remote.style.top = `${50 + pos * 36}%`; };
-    const tick = () => sayEach(() => `<div class="big">ТЯНИ!!!</div><p>${left} с</p>`);
+    const tick = () => sayEach(() => t(`<div class="big">ТЯНИ!!!</div><p>${left} с</p>`, `<div class="big">PULL!!!</div><p>${left} s</p>`));
     draw();
     tick();
 
@@ -1015,8 +1039,8 @@ const REMOTE = {
       stopAll();
       flashResult(winner);
       if (winner !== null) {
-        say('<h2>Пульт твой! 📺</h2><p>Сегодня смотрим твоё</p>', winner);
-        say('<h2>Отжали пульт 😤</h2><p>Смотришь, что включат</p>', 1 - winner);
+        say(t('<h2>Пульт твой! 📺</h2><p>Сегодня смотрим твоё</p>', '<h2>Remote is yours! 📺</h2><p>Tonight we watch your show</p>'), winner);
+        say(t('<h2>Отжали пульт 😤</h2><p>Смотришь, что включат</p>', '<h2>Remote snatched 😤</h2><p>You watch whatever’s on</p>'), 1 - winner);
       }
       later(1600, () => done(winner, text, stats));
     };
@@ -1025,18 +1049,19 @@ const REMOTE = {
       left--;
       if (left > 0) { tick(); later(1000, countdown); return; }
       if (Math.abs(pos) < 0.05) {
-        say('<h2>Пульт посередине 🤝</h2><p>Никто не перетянул</p>');
-        finish(null, 'Ничья — пульт сломался пополам', ['50% пульта', '50% пульта']);
+        say(t('<h2>Пульт посередине 🤝</h2><p>Никто не перетянул</p>', '<h2>Stuck in the middle 🤝</h2><p>Nobody won the tug</p>'));
+        finish(null, t('Ничья — пульт сломался пополам', 'Draw — the remote snapped in half'),
+          t(['50% пульта', '50% пульта'], ['50% of remote', '50% of remote']));
       } else {
         const w = pos > 0 ? 0 : 1;
-        finish(w, `Время вышло — пульт ближе к игроку ${NAMES[w]}`, shares());
+        finish(w, t(`Время вышло — пульт ближе к игроку ${NAMES[w]}`, `Time’s up — the remote is closer to ${NAMES[w]}`), shares());
       }
     };
     later(1000, countdown);
 
     const shares = () => {
       const s0 = Math.round(Math.min(1, Math.max(0, (1 + pos) / 2)) * 100);
-      return [`${s0}% пульта`, `${100 - s0}% пульта`];
+      return t([`${s0}% пульта`, `${100 - s0}% пульта`], [`${s0}% of remote`, `${100 - s0}% of remote`]);
     };
     state.onTap = p => {
       pos += p === 0 ? STEP : -STEP;
@@ -1044,7 +1069,8 @@ const REMOTE = {
       draw();
       if (pos >= 1 || pos <= -1) {
         noteRecord(p, +((performance.now() - startAt) / 1000).toFixed(1));
-        finish(p, `${NAMES[p]} перетянул пульт`, pair(p, '100% пульта', '0% пульта'));
+        finish(p, t(`${NAMES[p]} перетянул пульт`, `${NAMES[p]} yanked the remote away`),
+          t(pair(p, '100% пульта', '0% пульта'), pair(p, '100% of remote', '0% of remote')));
       }
     };
   },
@@ -1052,16 +1078,18 @@ const REMOTE = {
 
 const BABUSHKA = {
   emoji: '👵',
-  title: 'Бабушкина добавка',
-  rule: 'Бабушка накладывает добавку.<br>Жми свою кнопку «✋ Хватит!», когда тарелка полная.<br>Перебор — объелся.',
+  title: t('Бабушкина добавка', 'Babushka’s Seconds'),
+  rule: t('Бабушка накладывает добавку.<br>Жми свою кнопку «✋ Хватит!», когда тарелка полная.<br>Перебор — объелся.',
+    'Grandma keeps piling on seconds.<br>Hit your “✋ Enough!” when the plate is full.<br>Go over — you’re stuffed.'),
   // Тарелка заполняется с «рваной» скоростью. Кто остановился ближе к 100% и не перебрал — победил.
   play(done) {
     const MAX = 125;
-    const PHRASES = ['Ешь, ешь…', 'Ты что, голодный?', 'Ещё ложечку!', 'Совсем исхудал!', 'Я ж для тебя варила!', 'Хлебушка возьми!'];
+    const PHRASES = t(['Ешь, ешь…', 'Ты что, голодный?', 'Ещё ложечку!', 'Совсем исхудал!', 'Я ж для тебя варила!', 'Хлебушка возьми!'],
+      ['Eat, eat…', 'You look hungry!', 'One more spoon!', 'You’re skin and bones!', 'I cooked it for you!', 'Have some bread!']);
     stage.innerHTML = '<div class="logo">👵</div>';
     sayEach(p => `<div class="gauge" id="g${p}"><div class="zone"></div><div class="mark"></div><div class="fill"></div></div>
       <p id="t${p}">${PHRASES[0]}</p>
-      <div class="grab">✋ Хватит!</div>`);
+      <div class="grab">${t('✋ Хватит!', '✋ Enough!')}</div>`);
 
     let v = 0;
     let speed = rand(20, 45);
@@ -1095,13 +1123,13 @@ const BABUSHKA = {
       flashResult(winner);
       for (const p of [0, 1]) {
         const s = stopped[p];
-        const verdict = s === null || s > 100 ? 'Объелся 🤢' : winner === p ? 'Бабушка гордится! 🥰' : 'Маловато… 😒';
-        say(`<h2>${verdict}</h2><p>${s === null ? 'Так и не сказал «Хватит!»' : `Тарелка на ${Math.round(s)}%`}</p>`, p);
+        const verdict = s === null || s > 100 ? t('Объелся 🤢', 'Stuffed 🤢') : winner === p ? t('Бабушка гордится! 🥰', 'Grandma is proud! 🥰') : t('Маловато… 😒', 'Too little… 😒');
+        say(`<h2>${verdict}</h2><p>${s === null ? t('Так и не сказал «Хватит!»', 'Never said “Enough!”') : t(`Тарелка на ${Math.round(s)}%`, `Plate ${Math.round(s)}% full`)}</p>`, p);
       }
       const text = winner === null
-        ? (score[0] < 0 ? 'Оба объелись — ничья' : 'Одинаково — ничья')
-        : `${NAMES[winner]} остановился на ${Math.round(stopped[winner])}%`;
-      const stats = stopped.map(v => v === null ? 'не остановил' : v > 100 ? 'объелся 🤢' : `${Math.round(v)}%`);
+        ? (score[0] < 0 ? t('Оба объелись — ничья', 'Both stuffed — draw') : t('Одинаково — ничья', 'Dead even — draw'))
+        : t(`${NAMES[winner]} остановился на ${Math.round(stopped[winner])}%`, `${NAMES[winner]} stopped at ${Math.round(stopped[winner])}%`);
+      const stats = stopped.map(v => v === null ? t('не остановил', 'never stopped') : v > 100 ? t('объелся 🤢', 'stuffed 🤢') : `${Math.round(v)}%`);
       later(2000, () => done(winner, text, stats));
     };
 
@@ -1120,7 +1148,7 @@ const BABUSHKA = {
       stopped[p] = v;
       $p(p, '.grab').classList.add('done');
       buzz(40);
-      document.getElementById('t' + p).textContent = v > 100 ? 'Поздно, уже объелся 🤢' : `Хватит! Стоп на ${Math.round(v)}%`;
+      document.getElementById('t' + p).textContent = v > 100 ? t('Поздно, уже объелся 🤢', 'Too late, already stuffed 🤢') : t(`Хватит! Стоп на ${Math.round(v)}%`, `Enough! Stopped at ${Math.round(v)}%`);
       if (stopped[0] !== null && stopped[1] !== null) result();
     };
   },
@@ -1128,13 +1156,15 @@ const BABUSHKA = {
 
 const MOM = {
   emoji: '😴',
-  title: 'Ещё 5 минут',
-  rule: 'Держи свою кнопку — спишь и копишь минуты.<br>Отпусти, пока мама не ворвалась.<br>Попался под одеялом — проиграл.',
+  title: t('Ещё 5 минут', '5 More Minutes'),
+  rule: t('Держи свою кнопку — спишь и копишь минуты.<br>Отпусти, пока мама не ворвалась.<br>Попался под одеялом — проиграл.',
+    'Hold your button to sleep and bank minutes.<br>Let go before Mom bursts in.<br>Caught under the blanket — you lose.'),
   // Держишь кнопку — спишь. Мама кричит из коридора (иногда блефует), перед входом скрипит дверь.
   // Кто под одеялом, когда она вошла, — попался. Из вставших побеждает тот, кто поспал дольше.
   play(done) {
     const RATE = 5;  // минут сна за секунду удержания
-    const WARNINGS = ['Вставай, в школу проспишь!', 'Последний раз говорю!', 'Я считаю до трёх!', 'Раз… два…', 'Я иду!!!'];
+    const WARNINGS = t(['Вставай, в школу проспишь!', 'Последний раз говорю!', 'Я считаю до трёх!', 'Раз… два…', 'Я иду!!!'],
+      ['Up! You’ll be late for school!', 'I’m not saying it again!', 'I’m counting to three!', 'One… two…', 'I’m coming in!!!']);
     const entry = rand(5000, 11000);
     const mins = [0, 0];
     const st = ['awake', 'awake'];  // awake — ещё не лёг, sleep — спит, up — встал
@@ -1142,13 +1172,13 @@ const MOM = {
     let last = performance.now();
 
     stage.innerHTML = '<div class="logo">🛏️</div>';
-    say(grabUI('🛏️ Держи, чтобы спать'));
-    setStatus('<h2>Утро, 7:00 ⏰</h2><p>Зажми кнопку и спи</p>');
+    say(grabUI(t('🛏️ Держи, чтобы спать', '🛏️ Hold to sleep')));
+    setStatus(t('<h2>Утро, 7:00 ⏰</h2><p>Зажми кнопку и спи</p>', '<h2>7:00 AM ⏰</h2><p>Hold the button and sleep</p>'));
 
     const btn = p => $p(p, '.grab');
     const label = p => {
-      if (st[p] === 'sleep') btn(p).textContent = `😴 Спишь… ${Math.floor(mins[p])} мин`;
-      if (st[p] === 'up') btn(p).textContent = `🧍 Встал · ${Math.floor(mins[p])} мин`;
+      if (st[p] === 'sleep') btn(p).textContent = t(`😴 Спишь… ${Math.floor(mins[p])} мин`, `😴 Sleeping… ${Math.floor(mins[p])} min`);
+      if (st[p] === 'up') btn(p).textContent = t(`🧍 Встал · ${Math.floor(mins[p])} мин`, `🧍 Up · ${Math.floor(mins[p])} min`);
     };
 
     const loop = now => {
@@ -1165,14 +1195,14 @@ const MOM = {
     const times = [...Array(count)].map(() => rand(800, entry - 900)).sort((a, b) => a - b);
     const lines = [...WARNINGS].sort(() => Math.random() - .5).slice(0, count)
       .sort((a, b) => WARNINGS.indexOf(a) - WARNINGS.indexOf(b));
-    times.forEach((t, i) => later(t, () => setStatus(`<h2>👩 «${lines[i]}»</h2>`)));
+    times.forEach((when, i) => later(when, () => setStatus(t(`<h2>👩 «${lines[i]}»</h2>`, `<h2>👩 “${lines[i]}”</h2>`))));
 
     // Иногда дверь скрипит зря
-    const creak = () => { stage.innerHTML = '<div class="logo">🚪</div>'; setStatus('<h2>🚪 Скрип…</h2>'); buzz(30); };
+    const creak = () => { stage.innerHTML = '<div class="logo">🚪</div>'; setStatus(t('<h2>🚪 Скрип…</h2>', '<h2>🚪 Creeeak…</h2>')); buzz(30); };
     if (Math.random() < .5 && entry > 4000) {
-      const t = rand(1500, entry - 1800);
-      later(t, creak);
-      later(t + 600, () => { stage.innerHTML = '<div class="logo">🛏️</div>'; setStatus('<h2>…показалось</h2>'); });
+      const when = rand(1500, entry - 1800);
+      later(when, creak);
+      later(when + 600, () => { stage.innerHTML = '<div class="logo">🛏️</div>'; setStatus(t('<h2>…показалось</h2>', '<h2>…false alarm</h2>')); });
     }
     later(entry - 600, creak);
 
@@ -1189,16 +1219,16 @@ const MOM = {
       buzz([80, 40, 80]);
       for (const p of [0, 1]) {
         const m = Math.floor(mins[p]);
-        const verdict = caught[p] ? 'Попался! 🩴'
-          : st[p] === 'awake' ? 'Даже не ложился 🤨'
-          : winner === p ? 'Выспался и не попался 😎'
-          : 'Встал слишком рано 🥱';
-        say(`<h2>👩 «ВСТАВАЙ!!!»</h2><h2>${verdict}</h2><p>Поспал ${m} мин</p>`, p);
+        const verdict = caught[p] ? t('Попался! 🩴', 'Busted! 🩴')
+          : st[p] === 'awake' ? t('Даже не ложился 🤨', 'Never even lay down 🤨')
+          : winner === p ? t('Выспался и не попался 😎', 'Slept in, not caught 😎')
+          : t('Встал слишком рано 🥱', 'Got up too early 🥱');
+        say(t(`<h2>👩 «ВСТАВАЙ!!!»</h2><h2>${verdict}</h2><p>Поспал ${m} мин</p>`, `<h2>👩 “GET UP!!!”</h2><h2>${verdict}</h2><p>Slept ${m} min</p>`), p);
       }
       const text = winner === null
-        ? (caught[0] && caught[1] ? 'Мама поймала обоих' : 'Поспали поровну — ничья')
-        : `${NAMES[winner]} поспал ${score[winner]} мин и не попался`;
-      const stats = [0, 1].map(p => caught[p] ? 'попался 🩴' : `${score[p]} мин сна`);
+        ? (caught[0] && caught[1] ? t('Мама поймала обоих', 'Mom caught you both') : t('Поспали поровну — ничья', 'Same amount of sleep — draw'))
+        : t(`${NAMES[winner]} поспал ${score[winner]} мин и не попался`, `${NAMES[winner]} slept ${score[winner]} min and didn’t get caught`);
+      const stats = [0, 1].map(p => caught[p] ? t('попался 🩴', 'busted 🩴') : t(`${score[p]} мин сна`, `${score[p]} min of sleep`));
       later(2200, () => done(winner, text, stats));
     };
     later(entry, burst);
@@ -1225,18 +1255,20 @@ const MOM = {
 
 const METRO = {
   emoji: '🚇',
-  title: 'Место в метро',
-  rule: 'Жми «🪑 Сесть!», когда освободится место.<br>Бабушка, сумка или ложная тревога — не садись, позор!',
+  title: t('Место в метро', 'Metro Seat'),
+  rule: t('Жми «🪑 Сесть!», когда освободится место.<br>Бабушка, сумка или ложная тревога — не садись, позор!',
+    'Hit “🪑 Sit!” when a seat opens up.<br>A babushka, a bag or a false alarm — don’t sit, shame on you!'),
   // Как пельмень, но с ловушками: на ложных сигналах жать нельзя.
   play(done) {
-    const DECOYS = [['👵', 'Заходит бабушка'], ['👜', 'На сиденье сумка'], ['🧍', 'Встал… но не выходит']];
-    const RIDING = '<h2>Едем…</h2><p>Следи за местами 👀</p>';
+    const DECOYS = t([['👵', 'Заходит бабушка'], ['👜', 'На сиденье сумка'], ['🧍', 'Встал… но не выходит']],
+      [['👵', 'A babushka gets on'], ['👜', 'A bag on the seat'], ['🧍', 'He stood up… but stays']]);
+    const RIDING = t('<h2>Едем…</h2><p>Следи за местами 👀</p>', '<h2>Riding…</h2><p>Watch the seats 👀</p>');
     let armed = false;
     let armedAt = 0;
     let decoy = null;
 
     stage.innerHTML = '<div class="logo">🚇</div>';
-    say(grabUI('🪑 Сесть!'));
+    say(grabUI(t('🪑 Сесть!', '🪑 Sit!')));
     setStatus(RIDING);
 
     const finish = (winner, text, stats) => {
@@ -1245,28 +1277,28 @@ const METRO = {
       later(1600, () => done(winner, text, stats));
     };
 
-    let t = rand(1000, 1800);
+    let when = rand(1000, 1800);
     const decoys = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < decoys; i++) {
-      later(t, () => {
+      later(when, () => {
         decoy = pick(DECOYS);
         stage.innerHTML = `<div class="logo">${decoy[0]}</div>`;
-        setStatus(`<h2>${decoy[1]}</h2><p>Не садись!</p>`);
+        setStatus(`<h2>${decoy[1]}</h2><p>${t('Не садись!', 'Don’t sit!')}</p>`);
       });
-      later(t + 900, () => { decoy = null; stage.innerHTML = '<div class="logo">🚇</div>'; setStatus(RIDING); });
-      t += rand(1400, 2300);
+      later(when + 900, () => { decoy = null; stage.innerHTML = '<div class="logo">🚇</div>'; setStatus(RIDING); });
+      when += rand(1400, 2300);
     }
-    later(t, () => {
+    later(when, () => {
       armed = true;
       armedAt = performance.now();
       stage.innerHTML = '<div class="logo">🪑</div>';
-      setStatus('<div class="big">САДИСЬ!</div>');
+      setStatus(t('<div class="big">САДИСЬ!</div>', '<div class="big">SIT!</div>'));
       document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
       buzz(60);
     });
-    later(t + 3000, () => {
-      setStatus('<h2>Место занял дед 👴</h2><p>Оба стоите</p>');
-      finish(null, 'Место ушло деду — ничья', ['не сел', 'не сел']);
+    later(when + 3000, () => {
+      setStatus(t('<h2>Место занял дед 👴</h2><p>Оба стоите</p>', '<h2>Grandpa took the seat 👴</h2><p>You both stand</p>'));
+      finish(null, t('Место ушло деду — ничья', 'Grandpa got the seat — draw'), t(['не сел', 'не сел'], ['still standing', 'still standing']));
     });
 
     state.onTap = (p, el) => {
@@ -1274,26 +1306,27 @@ const METRO = {
       const other = 1 - p;
       if (!armed) {
         buzz([40, 40, 40]);
-        const why = decoy ? `${decoy[1]}, а ты сел 🙈` : 'Места ещё нет — сел соседу на колени';
-        say(`<h2>Позор! 😳</h2><p>${why}</p>`, p);
-        say('<h2>Соперник опозорился 😏</h2><p>Раунд твой</p>', other);
-        finish(other, `${NAMES[p]} поторопился и опозорился`, pair(p, 'опозорился 😳', 'дождался'));
+        const why = decoy ? t(`${decoy[1]}, а ты сел 🙈`, `${decoy[1]}, and you sat 🙈`) : t('Места ещё нет — сел соседу на колени', 'No free seat — you sat on a stranger’s lap');
+        say(t(`<h2>Позор! 😳</h2><p>${why}</p>`, `<h2>Shame! 😳</h2><p>${why}</p>`), p);
+        say(t('<h2>Соперник опозорился 😏</h2><p>Раунд твой</p>', '<h2>Rival made a scene 😏</h2><p>Round is yours</p>'), other);
+        finish(other, t(`${NAMES[p]} поторопился и опозорился`, `${NAMES[p]} rushed and got shamed`), pair(p, t('опозорился 😳', 'shamed 😳'), t('дождался', 'waited')));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
       noteRecord(p, ms);
       buzz(80);
-      say(`<h2>Сел! 😌</h2><p>${ms} мс</p>`, p);
-      say('<h2>Стоишь до конечной 😩</h2><p>Место ушло сопернику</p>', other);
-      finish(p, `${NAMES[p]} сел за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
+      say(t(`<h2>Сел! 😌</h2><p>${ms} мс</p>`, `<h2>Seated! 😌</h2><p>${ms} ms</p>`), p);
+      say(t('<h2>Стоишь до конечной 😩</h2><p>Место ушло сопернику</p>', '<h2>Standing to the last stop 😩</h2><p>Your rival got the seat</p>'), other);
+      finish(p, t(`${NAMES[p]} сел за ${ms} мс`, `${NAMES[p]} sat down in ${ms} ms`), pair(p, t(`${ms} мс`, `${ms} ms`), t('не успел', 'too slow')));
     };
   },
 };
 
 const BILL = {
   emoji: '🧾',
-  title: 'Кто платит?',
-  rule: 'Чек у тебя — жми «👉 Давай ты», чтобы спихнуть его сопернику.<br>Когда придёт официант, платит тот, у кого чек.',
+  title: t('Кто платит?', 'Who’s Paying?'),
+  rule: t('Чек у тебя — жми «👉 Давай ты», чтобы спихнуть его сопернику.<br>Когда придёт официант, платит тот, у кого чек.',
+    'Got the bill? Hit “👉 Your treat” to push it to your rival.<br>When the waiter comes, whoever holds the bill pays.'),
   // Горячая картошка: чек летает между игроками, официант приходит в случайный момент.
   play(done) {
     const FLIGHT_MS = 350;
@@ -1303,12 +1336,12 @@ const BILL = {
     stage.innerHTML = '';
     arena.innerHTML = '<div class="bill">🧾</div>';
     const bill = arena.querySelector('.bill');
-    say(grabUI('👉 Давай ты'));
+    say(grabUI(t('👉 Давай ты', '👉 Your treat')));
 
     const draw = () => {
       bill.style.transform = `translate(-50%, calc(-50% + ${holder === 0 ? 10 : -10}vh))`;
       for (const p of [0, 1]) {
-        setStatus(holder === p ? '<h2>Чек у тебя! 😱</h2>' : '<h2>Чек у соперника 😌</h2>', p);
+        setStatus(holder === p ? t('<h2>Чек у тебя! 😱</h2>', '<h2>You have the bill! 😱</h2>') : t('<h2>Чек у соперника 😌</h2>', '<h2>Rival has the bill 😌</h2>'), p);
         $p(p, '.grab').classList.toggle('done', holder !== p);
       }
     };
@@ -1321,9 +1354,10 @@ const BILL = {
       stage.innerHTML = '<div class="logo">🤵</div>';
       flashResult(winner);
       buzz([80, 40, 80]);
-      say('<h2>Платишь ты 💸</h2><p>Официант уже тут со своим терминалом</p>', loser);
-      say('<h2>Угощают! 😎</h2><p>«Ну спасибо, в следующий раз я»</p>', winner);
-      later(1800, () => done(winner, `${NAMES[loser]} остался с чеком`, pair(loser, 'с чеком 🧾', 'без чека 😎')));
+      say(t('<h2>Платишь ты 💸</h2><p>Официант уже тут со своим терминалом</p>', '<h2>You’re paying 💸</h2><p>The waiter is here with the card machine</p>'), loser);
+      say(t('<h2>Угощают! 😎</h2><p>«Ну спасибо, в следующий раз я»</p>', '<h2>It’s on them! 😎</h2><p>“Aw, thanks, next time’s on me”</p>'), winner);
+      later(1800, () => done(winner, t(`${NAMES[loser]} остался с чеком`, `${NAMES[loser]} got stuck with the bill`),
+        pair(loser, t('с чеком 🧾', 'has the bill 🧾'), t('без чека 😎', 'bill-free 😎'))));
     });
 
     state.onTap = (p, el) => {
@@ -1339,8 +1373,9 @@ const BILL = {
 
 const FISH = {
   emoji: '🎣',
-  title: 'Рыбалка',
-  rule: 'Следи за поплавком. Нырнул целиком — жми «🎣 Подсекай!».<br>Просто дёрнулся — это ветер, не трогай.',
+  title: t('Рыбалка', 'Gone Fishing'),
+  rule: t('Следи за поплавком. Нырнул целиком — жми «🎣 Подсекай!».<br>Просто дёрнулся — это ветер, не трогай.',
+    'Watch the float. When it goes fully under, hit “🎣 Hook it!”.<br>Just a twitch? That’s the wind, leave it.'),
   // Сигнал только визуальный: дрожание поплавка — ловушка, нырок — поклёвка.
   play(done) {
     let armed = false;
@@ -1350,8 +1385,8 @@ const FISH = {
       <div class="ring" style="animation-delay:0s"></div><div class="ring" style="animation-delay:1.2s"></div>
       <div class="float"></div></div>`;
     const float = stage.querySelector('.float');
-    say(grabUI('🎣 Подсекай!'));
-    setStatus('<h2>Тишина…</h2><p>Смотри на поплавок</p>');
+    say(grabUI(t('🎣 Подсекай!', '🎣 Hook it!')));
+    setStatus(t('<h2>Тишина…</h2><p>Смотри на поплавок</p>', '<h2>Quiet…</h2><p>Watch the float</p>'));
 
     const finish = (winner, text, stats) => {
       stopAll();
@@ -1359,23 +1394,23 @@ const FISH = {
       later(1600, () => done(winner, text, stats));
     };
 
-    let t = rand(1200, 2000);
+    let when = rand(1200, 2000);
     const twitches = 2 + Math.floor(Math.random() * 4);
     for (let i = 0; i < twitches; i++) {
-      later(t, () => float.classList.add('twitch'));
-      later(t + 250, () => float.classList.remove('twitch'));
-      t += rand(700, 1600);
+      later(when, () => float.classList.add('twitch'));
+      later(when + 250, () => float.classList.remove('twitch'));
+      when += rand(700, 1600);
     }
-    later(t, () => {
+    later(when, () => {
       float.classList.add('dip');
       armed = true;
       armedAt = performance.now();
       buzz(40);
     });
-    later(t + 1500, () => {
+    later(when + 1500, () => {
       float.classList.remove('dip');
-      setStatus('<h2>Рыба ушла 🐟💨</h2><p>Оба прозевали</p>');
-      finish(null, 'Рыба съела наживку и ушла — ничья', ['прозевал', 'прозевал']);
+      setStatus(t('<h2>Рыба ушла 🐟💨</h2><p>Оба прозевали</p>', '<h2>It got away 🐟💨</h2><p>You both missed it</p>'));
+      finish(null, t('Рыба съела наживку и ушла — ничья', 'The fish took the bait and left — draw'), t(['прозевал', 'прозевал'], ['missed it', 'missed it']));
     });
 
     state.onTap = (p, el) => {
@@ -1383,26 +1418,27 @@ const FISH = {
       const other = 1 - p;
       if (!armed) {
         buzz([40, 40, 40]);
-        say('<h2>Распугал рыбу 🙄</h2><p>Это был ветер</p>', p);
-        say('<h2>Соперник поторопился 😏</h2><p>Раунд твой</p>', other);
-        finish(other, `${NAMES[p]} подсёк на ветер`, pair(p, 'подсёк на ветер', 'дождался'));
+        say(t('<h2>Распугал рыбу 🙄</h2><p>Это был ветер</p>', '<h2>Scared the fish 🙄</h2><p>That was the wind</p>'), p);
+        say(t('<h2>Соперник поторопился 😏</h2><p>Раунд твой</p>', '<h2>Rival jumped the gun 😏</h2><p>Round is yours</p>'), other);
+        finish(other, t(`${NAMES[p]} подсёк на ветер`, `${NAMES[p]} hooked the wind`), pair(p, t('подсёк на ветер', 'hooked the wind'), t('дождался', 'waited')));
         return;
       }
       const ms = Math.round(performance.now() - armedAt);
       noteRecord(p, ms);
       buzz(80);
       stage.innerHTML = '<div class="logo">🐟</div>';
-      say(`<h2>Есть! Подлещик 🐟</h2><p>${ms} мс</p>`, p);
-      say('<h2>Не успел 😭</h2><p>Рыба досталась сопернику</p>', other);
-      finish(p, `${NAMES[p]} подсёк за ${ms} мс`, pair(p, `${ms} мс`, 'не успел'));
+      say(t(`<h2>Есть! Подлещик 🐟</h2><p>${ms} мс</p>`, `<h2>Fish on! 🐟</h2><p>${ms} ms</p>`), p);
+      say(t('<h2>Не успел 😭</h2><p>Рыба досталась сопернику</p>', '<h2>Too slow 😭</h2><p>Your rival got the fish</p>'), other);
+      finish(p, t(`${NAMES[p]} подсёк за ${ms} мс`, `${NAMES[p]} hooked it in ${ms} ms`), pair(p, t(`${ms} мс`, `${ms} ms`), t('не успел', 'too slow')));
     };
   },
 };
 
 const PICKLE = {
   emoji: '🥒',
-  title: 'Засолка',
-  rule: 'Бегунок ездит туда-сюда. Жми «🫙 Закрыть», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
+  title: t('Засолка', 'Pickle Season'),
+  rule: t('Бегунок ездит туда-сюда. Жми «🫙 Закрыть», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
+    'The slider runs back and forth. Hit “🫙 Seal” while it’s in the green.<br>Most jars sealed in 15 seconds wins. Miss — the jar pops.'),
   // У каждого свой бегунок; с каждой банкой он ускоряется.
   play(done) {
     const LIMIT_S = 15;
@@ -1417,11 +1453,11 @@ const PICKLE = {
     stage.innerHTML = '<div class="logo">🫙</div>';
     sayEach(p => `<div class="status"></div>
       <div class="track" id="k${p}"><div class="zone"></div><div class="dot"></div></div>
-      <div class="grab">🫙 Закрыть</div>`);
+      <div class="grab">${t('🫙 Закрыть', '🫙 Seal')}</div>`);
 
     const pos = p => (Math.sin(phase[p]) + 1) / 2 * 100;
     const score = p => jars[p] - broke[p];
-    const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} с</p>`, p);
+    const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} ${t('с', 's')}</p>`, p);
     [0, 1].forEach(drawStatus);
 
     const loop = now => {
@@ -1445,11 +1481,12 @@ const PICKLE = {
       if (winner !== null && jars[winner] > 0) noteRecord(winner, jars[winner]);
       flashResult(winner);
       for (const p of [0, 1]) {
-        say(`<h2>${winner === null ? 'Поровну 🤝' : winner === p ? 'Закрутки на всю зиму! 🥒' : 'Маловато на зиму 😕'}</h2>
-          <p>Закатал ${jars[p]}, лопнуло ${broke[p]}</p>`, p);
+        say(`<h2>${winner === null ? t('Поровну 🤝', 'Tie 🤝') : winner === p ? t('Закрутки на всю зиму! 🥒', 'Pickles for all winter! 🥒') : t('Маловато на зиму 😕', 'A lean winter ahead 😕')}</h2>
+          <p>${t(`Закатал ${jars[p]}, лопнуло ${broke[p]}`, `Sealed ${jars[p]}, popped ${broke[p]}`)}</p>`, p);
       }
-      const text = winner === null ? 'Поровну — ничья'
-        : `${NAMES[winner]}: ${plural(jars[winner], 'банка', 'банки', 'банок')}, лопнуло ${broke[winner]} — лучше соперника`;
+      const text = winner === null ? t('Поровну — ничья', 'Even — draw')
+        : t(`${NAMES[winner]}: ${plural(jars[winner], 'банка', 'банки', 'банок')}, лопнуло ${broke[winner]} — лучше соперника`,
+          `${NAMES[winner]}: ${jars[winner]} jar${jars[winner] === 1 ? '' : 's'}, ${broke[winner]} popped — beat the rival`);
       const stats = [0, 1].map(p => `🫙 ${jars[p]} · 💥 ${broke[p]}`);
       later(2000, () => done(winner, text, stats));
     };
@@ -1471,8 +1508,9 @@ const PICKLE = {
 
 const BAGS = {
   emoji: '🛍️',
-  title: 'Пакет с пакетами',
-  rule: 'Тапай «🛍️ Пихать», чтобы набить пакет пакетами. Жми «✅ Хватит», пока он не порвался.<br>У кого больше — победил. Порвался — ноль.',
+  title: t('Пакет с пакетами', 'Bag of Bags'),
+  rule: t('Тапай «🛍️ Пихать», чтобы набить пакет пакетами. Жми «✅ Хватит», пока он не порвался.<br>У кого больше — победил. Порвался — ноль.',
+    'Tap “🛍️ Stuff” to cram bags into the bag. Hit “✅ Done” before it rips.<br>Most bags wins. Ripped — zero.'),
   // Пакет одинаковый у обоих: рвётся на одном и том же, заранее неизвестном числе. Перед разрывом трещит.
   play(done) {
     const LIMIT_MS = 12000;
@@ -1482,14 +1520,14 @@ const BAGS = {
 
     stage.innerHTML = '<div class="logo">🛍️</div>';
     sayEach(() => `<div class="status"></div>
-      <div class="row"><div class="grab" data-b="push">🛍️ Пихать</div><div class="grab" data-b="stop">✅ Хватит</div></div>`);
+      <div class="row"><div class="grab" data-b="push">${t('🛍️ Пихать', '🛍️ Stuff')}</div><div class="grab" data-b="stop">${t('✅ Хватит', '✅ Done')}</div></div>`);
 
     const drawStatus = p => {
       const n = count[p];
-      const hint = st[p] === 'torn' ? 'Порвался! 💥'
-        : st[p] === 'done' ? 'Остановился 👍'
-        : n >= tear - 2 ? 'Хрусть… 😬' : n >= tear - 5 ? 'Натянулся…' : 'Влезает 👌';
-      setStatus(`<h2>Пакетов: ${n}</h2><p>${hint}</p>`, p);
+      const hint = st[p] === 'torn' ? t('Порвался! 💥', 'Ripped! 💥')
+        : st[p] === 'done' ? t('Остановился 👍', 'Stopped 👍')
+        : n >= tear - 2 ? t('Хрусть… 😬', 'Crrrack… 😬') : n >= tear - 5 ? t('Натянулся…', 'Getting tight…') : t('Влезает 👌', 'Still fits 👌');
+      setStatus(`<h2>${t('Пакетов', 'Bags')}: ${n}</h2><p>${hint}</p>`, p);
     };
     [0, 1].forEach(drawStatus);
 
@@ -1500,11 +1538,11 @@ const BAGS = {
       if (winner !== null) noteRecord(winner, s[winner]);
       flashResult(winner);
       for (const p of [0, 1]) {
-        say(`<h2>${st[p] === 'torn' ? 'Порвался 💥' : winner === p ? 'Пакет мечты! 🛍️' : winner === null ? 'Поровну 🤝' : 'Маловато 😕'}</h2>
-          <p>${st[p] === 'torn' ? `Рвётся на ${tear + 1}-м` : `В пакете ${plural(count[p], 'пакет', 'пакета', 'пакетов')}`}</p>`, p);
+        say(`<h2>${st[p] === 'torn' ? t('Порвался 💥', 'Ripped 💥') : winner === p ? t('Пакет мечты! 🛍️', 'Dream bag! 🛍️') : winner === null ? t('Поровну 🤝', 'Tie 🤝') : t('Маловато 😕', 'Too few 😕')}</h2>
+          <p>${st[p] === 'torn' ? t(`Рвётся на ${tear + 1}-м`, `It rips at bag #${tear + 1}`) : t(`В пакете ${plural(count[p], 'пакет', 'пакета', 'пакетов')}`, `${bagsEn(count[p])} inside`)}</p>`, p);
       }
-      const text = winner === null ? 'Поровну — ничья' : `${NAMES[winner]} набил ${plural(s[winner], 'пакет', 'пакета', 'пакетов')}`;
-      const stats = [0, 1].map(p => st[p] === 'torn' ? 'порвал 💥' : plural(count[p], 'пакет', 'пакета', 'пакетов'));
+      const text = winner === null ? t('Поровну — ничья', 'Even — draw') : t(`${NAMES[winner]} набил ${plural(s[winner], 'пакет', 'пакета', 'пакетов')}`, `${NAMES[winner]} stuffed in ${bagsEn(s[winner])}`);
+      const stats = [0, 1].map(p => st[p] === 'torn' ? t('порвал 💥', 'ripped 💥') : t(plural(count[p], 'пакет', 'пакета', 'пакетов'), bagsEn(count[p])));
       later(2000, () => done(winner, text, stats));
     };
     later(LIMIT_MS, result);
@@ -1529,8 +1567,9 @@ const BAGS = {
 
 const DRILL = {
   emoji: '🔨',
-  title: 'Сосед с перфоратором',
-  rule: 'В одном из окон сверлят. Первым ткни в это окно — постучи по батарее!<br>Мимо — минус очко. Кто первым наберёт 5.',
+  title: t('Сосед с перфоратором', 'The Neighbor’s Drill'),
+  rule: t('В одном из окон сверлят. Первым ткни в это окно — постучи по батарее!<br>Мимо — минус очко. Кто первым наберёт 5.',
+    'Someone’s drilling behind one window. Tap it first — bang on the radiator!<br>Miss — minus a point. First to 5 wins.'),
   // «Бей крота»: у каждого своя сетка окон, сверлят в окне с одним и тем же номером.
   play(done) {
     const GOAL = 5;
@@ -1546,7 +1585,7 @@ const DRILL = {
     sayEach(() => `<div class="status"></div>
       <div class="wins">${[...Array(WINDOWS)].map((_, i) => `<div class="win" data-w="${i}">🪟</div>`).join('')}</div>`);
 
-    const drawStatus = p => setStatus(`<h2>🔨 ${hits[p]} из ${GOAL}</h2>`, p);
+    const drawStatus = p => setStatus(`<h2>🔨 ${hits[p]} ${t('из', 'of')} ${GOAL}</h2>`, p);
     [0, 1].forEach(drawStatus);
 
     const moveDrill = () => {
@@ -1570,9 +1609,10 @@ const DRILL = {
       stopAll();
       flashResult(winner);
       for (const p of [0, 1]) {
-        say(`<h2>${winner === null ? 'Ничья 🤝' : winner === p ? 'Сосед затих! 🤫' : 'Сверлят дальше 😵‍💫'}</h2><p>Попаданий: ${hits[p]}</p>`, p);
+        say(`<h2>${winner === null ? t('Ничья 🤝', 'Draw 🤝') : winner === p ? t('Сосед затих! 🤫', 'Peace and quiet! 🤫') : t('Сверлят дальше 😵‍💫', 'Still drilling 😵‍💫')}</h2><p>${t('Попаданий', 'Hits')}: ${hits[p]}</p>`, p);
       }
-      const text = winner === null ? `Поровну по ${hits[0]} — ничья` : `${NAMES[winner]} достучался: ${hits[winner]} против ${hits[1 - winner]}`;
+      const text = winner === null ? t(`Поровну по ${hits[0]} — ничья`, `${hits[0]} each — draw`)
+        : t(`${NAMES[winner]} достучался: ${hits[winner]} против ${hits[1 - winner]}`, `${NAMES[winner]} got through: ${hits[winner]} to ${hits[1 - winner]}`);
       later(1800, () => done(winner, text, [0, 1].map(p => `🔨 ${hits[p]}`)));
     };
     later(LIMIT_MS, () => finish(hits[0] === hits[1] ? null : (hits[0] > hits[1] ? 0 : 1)));
@@ -1607,105 +1647,107 @@ const WINS_TO = 3;
 
 // rec — что считается рекордом: подпись, единица и «чем меньше, тем лучше»
 const MODES = [
-  { id: 'pelmen', game: PELMEN, sub: 'Кто первый схватит',
-    rec: { label: 'Быстрейшая хватка', unit: ' мс', lower: true },
-    final: ['Сытый и довольный 😋', 'Иди вари новую пачку 🥟'] },
-  { id: 'remote', game: REMOTE, sub: 'Тапай быстрее соперника',
-    rec: { label: 'Быстрее всех отжал пульт', unit: ' с', lower: true },
-    final: ['Пульт твой на весь вечер 📺', 'Смотришь, что включат 😒'] },
-  { id: 'babushka', game: BABUSHKA, sub: 'Скажи «Хватит!» вовремя',
-    rec: { label: 'Ближе всех к полной тарелке', unit: '%', lower: false },
-    final: ['Любимый внук! 🥰', '«Ты что, голодный?» — и ещё тарелку 🍲'] },
-  { id: 'mom', game: MOM, sub: 'Спи до последнего',
-    rec: { label: 'Дольше всех проспал', unit: ' мин', lower: false },
-    final: ['Выспался как король 👑', 'Получил тапком 🩴 и опоздал в школу'] },
-  { id: 'metro', game: METRO, sub: 'Садись, но не на бабушкино',
-    rec: { label: 'Быстрее всех сел', unit: ' мс', lower: true },
-    final: ['Доехал сидя, как барин 😌', 'Стоял всю дорогу в обнимку с поручнем'] },
-  { id: 'bill', game: BILL, sub: 'Спихни чек сопернику',
-    final: ['Поел за чужой счёт 😎', 'Оплатил весь банкет 💸'] },
-  { id: 'fish', game: FISH, sub: 'Подсекай на поклёвку, не на ветер',
-    rec: { label: 'Быстрейшая подсечка', unit: ' мс', lower: true },
-    final: ['Уха на всю дачу 🍲', 'Вернулся с пустым ведром 🪣'] },
-  { id: 'pickle', game: PICKLE, sub: 'Закатывай банки в такт',
-    rec: { label: 'Больше всех банок', unit: ' шт', lower: false },
-    final: ['Погреб забит до потолка 🥒', 'Зимой будешь просить у соседа'] },
-  { id: 'bags', game: BAGS, sub: 'Набей и не порви',
-    rec: { label: 'Больше всех пакетов', unit: ' шт', lower: false },
-    final: ['Главный по пакетам в доме 🛍️', 'Пакеты по всей кухне 🙈'] },
-  { id: 'drill', game: DRILL, sub: 'Найди, где сверлят',
-    rec: { label: 'Быстрее всех заткнул соседа', unit: ' с', lower: true },
-    final: ['Сосед затих навсегда 🤫', 'Сверлят до утра 😵‍💫'] },
+  { id: 'pelmen', game: PELMEN, sub: t('Кто первый схватит', 'First to grab wins'),
+    rec: { label: t('Быстрейшая хватка', 'Fastest grab'), unit: t(' мс', ' ms'), lower: true },
+    final: t(['Сытый и довольный 😋', 'Иди вари новую пачку 🥟'], ['Full and happy 😋', 'Go boil a fresh pack 🥟']) },
+  { id: 'remote', game: REMOTE, sub: t('Тапай быстрее соперника', 'Out-tap your rival'),
+    rec: { label: t('Быстрее всех отжал пульт', 'Fastest remote snatch'), unit: t(' с', ' s'), lower: true },
+    final: t(['Пульт твой на весь вечер 📺', 'Смотришь, что включат 😒'], ['The remote is yours all night 📺', 'Watching whatever’s on 😒']) },
+  { id: 'babushka', game: BABUSHKA, sub: t('Скажи «Хватит!» вовремя', 'Say “Enough!” in time'),
+    rec: { label: t('Ближе всех к полной тарелке', 'Closest to a full plate'), unit: '%', lower: false },
+    final: t(['Любимый внук! 🥰', '«Ты что, голодный?» — и ещё тарелку 🍲'], ['Grandma’s favorite! 🥰', '“Still hungry?” — and another plate 🍲']) },
+  { id: 'mom', game: MOM, sub: t('Спи до последнего', 'Sleep till the last second'),
+    rec: { label: t('Дольше всех проспал', 'Longest sleep-in'), unit: t(' мин', ' min'), lower: false },
+    final: t(['Выспался как король 👑', 'Получил тапком 🩴 и опоздал в школу'], ['Slept like a king 👑', 'Got the slipper 🩴 and was late for school']) },
+  { id: 'metro', game: METRO, sub: t('Садись, но не на бабушкино', 'Sit, but not in Babushka’s seat'),
+    rec: { label: t('Быстрее всех сел', 'Fastest to sit'), unit: t(' мс', ' ms'), lower: true },
+    final: t(['Доехал сидя, как барин 😌', 'Стоял всю дорогу в обнимку с поручнем'], ['Rode sitting, like a lord 😌', 'Hugged the handrail all the way']) },
+  { id: 'bill', game: BILL, sub: t('Спихни чек сопернику', 'Dump the bill on your rival'),
+    final: t(['Поел за чужой счёт 😎', 'Оплатил весь банкет 💸'], ['Ate on someone else’s dime 😎', 'Paid for the whole feast 💸']) },
+  { id: 'fish', game: FISH, sub: t('Подсекай на поклёвку, не на ветер', 'Strike on a bite, not the wind'),
+    rec: { label: t('Быстрейшая подсечка', 'Fastest hook'), unit: t(' мс', ' ms'), lower: true },
+    final: t(['Уха на всю дачу 🍲', 'Вернулся с пустым ведром 🪣'], ['Fish soup for the whole dacha 🍲', 'Home with an empty bucket 🪣']) },
+  { id: 'pickle', game: PICKLE, sub: t('Закатывай банки в такт', 'Seal the jars on the beat'),
+    rec: { label: t('Больше всех банок', 'Most jars'), unit: t(' шт', ' jars'), one: t(null, ' jar'), lower: false },
+    final: t(['Погреб забит до потолка 🥒', 'Зимой будешь просить у соседа'], ['Cellar stocked to the ceiling 🥒', 'Come winter, you’ll beg the neighbors']) },
+  { id: 'bags', game: BAGS, sub: t('Набей и не порви', 'Stuff it, don’t rip it'),
+    rec: { label: t('Больше всех пакетов', 'Most bags'), unit: t(' шт', ' bags'), one: t(null, ' bag'), lower: false },
+    final: t(['Главный по пакетам в доме 🛍️', 'Пакеты по всей кухне 🙈'], ['Head of Household Bags 🛍️', 'Bags all over the kitchen 🙈']) },
+  { id: 'drill', game: DRILL, sub: t('Найди, где сверлят', 'Find who’s drilling'),
+    rec: { label: t('Быстрее всех заткнул соседа', 'Fastest to shush the neighbor'), unit: t(' с', ' s'), lower: true },
+    final: t(['Сосед затих навсегда 🤫', 'Сверлят до утра 😵‍💫'], ['The neighbor went quiet for good 🤫', 'Drilling till dawn 😵‍💫']) },
 ];
 
 // Турнир — все мини-игры по одному разу в случайном порядке
 const GAMES = MODES.map(m => m.game);
-MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: 'Турнир', sub: `Все ${GAMES.length} игр по разу`,
-  final: ['Чемпион двора 🏆', 'Есть куда расти 💪'] });
+MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: t('Турнир', 'Tournament'), sub: t(`Все ${GAMES.length} игр по разу`, `All ${GAMES.length} games once`),
+  final: t(['Чемпион двора 🏆', 'Есть куда расти 💪'], ['Champion of the block 🏆', 'Room to grow 💪']) });
 
 // Анимация «как играть»: кадры по кругу. Кадр — картинка (pic), подпись (cap), кнопка (btn)
 // и что с ней делает палец (act: tap — нажал, rapid — часто тапает, hold — держит, pic — тычет в картинку).
 // hot — кнопка горит, как в игре; bar — полоска: fill (заполнение) или dot (бегунок), zone — зелёная зона.
 PELMEN.demo = [
-  { pic: '🍲', btn: '🍴 Хватай!', cap: 'Пельмень где-то на дне…' },
-  { pic: '🍲', btn: '🍴 Хватай!', act: 'tap', cap: 'Раньше времени — обжёгся 🔥' },
-  { pic: '🥟', btn: '🍴 Хватай!', hot: true, cap: 'Всплыл!' },
-  { pic: '🥟', btn: '🍴 Хватай!', hot: true, act: 'tap', cap: 'Жми сразу — кто первый, тот съел' },
+  { pic: '🍲', btn: t('🍴 Хватай!', '🍴 Grab!'), cap: t('Пельмень где-то на дне…', 'The dumpling is down at the bottom…') },
+  { pic: '🍲', btn: t('🍴 Хватай!', '🍴 Grab!'), act: 'tap', cap: t('Раньше времени — обжёгся 🔥', 'Too early — you get burned 🔥') },
+  { pic: '🥟', btn: t('🍴 Хватай!', '🍴 Grab!'), hot: true, cap: t('Всплыл!', 'It’s up!') },
+  { pic: '🥟', btn: t('🍴 Хватай!', '🍴 Grab!'), hot: true, act: 'tap', cap: t('Жми сразу — кто первый, тот съел', 'Tap fast — first one gets to eat it') },
 ];
 REMOTE.demo = [
-  { pic: '📺', cap: 'Пульт посередине' },
-  { pic: '📺⬇️', act: 'rapid', cap: 'Тапай по своей половине как бешеный' },
-  { pic: '⭐', cap: 'Перетянул к себе — смотришь своё' },
+  { pic: '📺', cap: t('Пульт посередине', 'The remote is in the middle') },
+  { pic: '📺⬇️', act: 'rapid', cap: t('Тапай по своей половине как бешеный', 'Tap your half like crazy') },
+  { pic: '⭐', cap: t('Перетянул к себе — смотришь своё', 'Pull it to you — you pick the show') },
 ];
 BABUSHKA.demo = [
-  { pic: '👵', btn: '✋ Хватит!', bar: { fill: 30, zone: [72, 8] }, cap: 'Бабушка накладывает…' },
-  { pic: '👵', btn: '✋ Хватит!', bar: { fill: 62, zone: [72, 8] }, cap: 'Ещё накладывает…' },
-  { pic: '🍽️', btn: '✋ Хватит!', bar: { fill: 76, zone: [72, 8] }, act: 'tap', cap: 'Почти полная — жми!' },
-  { pic: '🤢', bar: { fill: 100, zone: [72, 8] }, cap: 'Не успел — перебор, объелся' },
+  { pic: '👵', btn: t('✋ Хватит!', '✋ Enough!'), bar: { fill: 30, zone: [72, 8] }, cap: t('Бабушка накладывает…', 'Grandma is serving…') },
+  { pic: '👵', btn: t('✋ Хватит!', '✋ Enough!'), bar: { fill: 62, zone: [72, 8] }, cap: t('Ещё накладывает…', 'Still serving…') },
+  { pic: '🍽️', btn: t('✋ Хватит!', '✋ Enough!'), bar: { fill: 76, zone: [72, 8] }, act: 'tap', cap: t('Почти полная — жми!', 'Almost full — tap!') },
+  { pic: '🤢', bar: { fill: 100, zone: [72, 8] }, cap: t('Не успел — перебор, объелся', 'Too late — overfull, stuffed') },
 ];
 MOM.demo = [
-  { pic: '🛏️😴', btn: '🛏️ Держи', act: 'hold', cap: 'Держи кнопку — спишь, копишь минуты' },
-  { pic: '🚪', btn: '🛏️ Держи', act: 'hold', cap: 'Скрип… может, показалось' },
-  { pic: '👩', btn: '🛏️ Держи', cap: 'Мама идёт — отпускай!' },
-  { pic: '🩴', cap: 'Попался под одеялом — проиграл' },
+  { pic: '🛏️😴', btn: t('🛏️ Держи', '🛏️ Hold'), act: 'hold', cap: t('Держи кнопку — спишь, копишь минуты', 'Hold the button — sleep and bank minutes') },
+  { pic: '🚪', btn: t('🛏️ Держи', '🛏️ Hold'), act: 'hold', cap: t('Скрип… может, показалось', 'Creak… maybe it’s nothing') },
+  { pic: '👩', btn: t('🛏️ Держи', '🛏️ Hold'), cap: t('Мама идёт — отпускай!', 'Mom’s coming — let go!') },
+  { pic: '🩴', cap: t('Попался под одеялом — проиграл', 'Caught in bed — you lose') },
 ];
 METRO.demo = [
-  { pic: '🚇', btn: '🪑 Сесть!', cap: 'Ждём, когда освободится место' },
-  { pic: '👵', btn: '🪑 Сесть!', cap: 'Бабушка — не садись, позор!' },
-  { pic: '🪑', btn: '🪑 Сесть!', hot: true, cap: 'Место свободно!' },
-  { pic: '🪑', btn: '🪑 Сесть!', hot: true, act: 'tap', cap: 'Жми быстрее соперника' },
+  { pic: '🚇', btn: t('🪑 Сесть!', '🪑 Sit!'), cap: t('Ждём, когда освободится место', 'Waiting for a free seat') },
+  { pic: '👵', btn: t('🪑 Сесть!', '🪑 Sit!'), cap: t('Бабушка — не садись, позор!', 'A babushka — don’t sit, shame!') },
+  { pic: '🪑', btn: t('🪑 Сесть!', '🪑 Sit!'), hot: true, cap: t('Место свободно!', 'The seat is free!') },
+  { pic: '🪑', btn: t('🪑 Сесть!', '🪑 Sit!'), hot: true, act: 'tap', cap: t('Жми быстрее соперника', 'Tap before your rival does') },
 ];
 BILL.demo = [
-  { pic: '🧾', btn: '👉 Давай ты', cap: 'Чек у тебя' },
-  { pic: '🧾', btn: '👉 Давай ты', act: 'tap', cap: 'Жми — спихни его сопернику' },
-  { pic: '⬆️🧾', btn: '👉 Давай ты', cap: 'Чек улетел к нему' },
-  { pic: '🤵', cap: 'Пришёл официант — платит, у кого чек' },
+  { pic: '🧾', btn: t('👉 Давай ты', '👉 Your treat'), cap: t('Чек у тебя', 'You have the bill') },
+  { pic: '🧾', btn: t('👉 Давай ты', '👉 Your treat'), act: 'tap', cap: t('Жми — спихни его сопернику', 'Tap — push it to your rival') },
+  { pic: '⬆️🧾', btn: t('👉 Давай ты', '👉 Your treat'), cap: t('Чек улетел к нему', 'The bill flew over to them') },
+  { pic: '🤵', cap: t('Пришёл официант — платит, у кого чек', 'The waiter’s here — bill holder pays') },
 ];
 FISH.demo = [
-  { pic: '🎣', btn: '🎣 Подсекай!', cap: 'Следи за поплавком' },
-  { pic: '🌬️', btn: '🎣 Подсекай!', cap: 'Дёрнулся — это ветер, не трогай' },
-  { pic: '🐟', btn: '🎣 Подсекай!', act: 'tap', cap: 'Нырнул целиком — подсекай!' },
+  { pic: '🎣', btn: t('🎣 Подсекай!', '🎣 Hook it!'), cap: t('Следи за поплавком', 'Watch the float') },
+  { pic: '🌬️', btn: t('🎣 Подсекай!', '🎣 Hook it!'), cap: t('Дёрнулся — это ветер, не трогай', 'A twitch is just the wind — leave it') },
+  { pic: '🐟', btn: t('🎣 Подсекай!', '🎣 Hook it!'), act: 'tap', cap: t('Нырнул целиком — подсекай!', 'Fully under — hook it!') },
 ];
 PICKLE.demo = [
-  { pic: '🫙', btn: '🫙 Закрыть', bar: { dot: 20, zone: [42, 16] }, cap: 'Бегунок ездит туда-сюда' },
-  { pic: '🫙', btn: '🫙 Закрыть', bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: 'В зелёной зоне — жми!' },
-  { pic: '🥒', btn: '🫙 Закрыть', bar: { dot: 80, zone: [42, 16] }, cap: 'Закатал! Мимо зоны — банка лопнет' },
+  { pic: '🫙', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 20, zone: [42, 16] }, cap: t('Бегунок ездит туда-сюда', 'The slider runs back and forth') },
+  { pic: '🫙', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: t('В зелёной зоне — жми!', 'In the green — tap!') },
+  { pic: '🥒', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 80, zone: [42, 16] }, cap: t('Закатал! Мимо зоны — банка лопнет', 'Sealed! Miss the zone — the jar pops') },
 ];
 BAGS.demo = [
-  { pic: '🛍️', btn: '🛍️ Пихать', act: 'rapid', cap: 'Тапай — пихаешь пакеты в пакет' },
-  { pic: '🛍️🛍️🛍️', btn: '🛍️ Пихать', act: 'rapid', cap: 'Больше пакетов — больше очков' },
-  { pic: '🛍️', btn: '✅ Хватит', act: 'tap', cap: 'Успей нажать «Хватит», пока не порвался' },
-  { pic: '💥', cap: 'Порвался — ноль' },
+  { pic: '🛍️', btn: t('🛍️ Пихать', '🛍️ Stuff'), act: 'rapid', cap: t('Тапай — пихаешь пакеты в пакет', 'Tap to cram bags into the bag') },
+  { pic: '🛍️🛍️🛍️', btn: t('🛍️ Пихать', '🛍️ Stuff'), act: 'rapid', cap: t('Больше пакетов — больше очков', 'More bags, more points') },
+  { pic: '🛍️', btn: t('✅ Хватит', '✅ Done'), act: 'tap', cap: t('Успей нажать «Хватит», пока не порвался', 'Hit “Done” before it rips') },
+  { pic: '💥', cap: t('Порвался — ноль', 'Ripped — zero') },
 ];
 DRILL.demo = [
-  { pic: '🪟🪟🪟', cap: 'Окна соседей' },
-  { pic: '🪟🔨🪟', cap: 'В одном сверлят!' },
-  { pic: '🪟🔨🪟', act: 'pic', cap: 'Ткни в это окно первым' },
-  { pic: '🪟🪟🪟', cap: 'Мимо — минус очко. До 5 попаданий' },
+  { pic: '🪟🪟🪟', cap: t('Окна соседей', 'The neighbors’ windows') },
+  { pic: '🪟🔨🪟', cap: t('В одном сверлят!', 'Someone’s drilling in one!') },
+  { pic: '🪟🔨🪟', act: 'pic', cap: t('Ткни в это окно первым', 'Tap that window first') },
+  { pic: '🪟🪟🪟', cap: t('Мимо — минус очко. До 5 попаданий', 'Miss — minus a point. First to 5') },
 ];
 
 const modeEmoji = m => m.emoji ?? m.game.emoji;
 const modeTitle = m => m.title ?? m.game.title;
+const BACK = t('← Назад', '← Back');
+const WAITING = t('Ждём соперника…', 'Waiting for rival…');
 
 // ---------- меню и матч ----------
 
@@ -1722,22 +1764,25 @@ function enterMenu() {
 // Стартовый экран: где играем
 function showStart() {
   enterMenu();
-  say(`<h1>Местный колорит</h1><p>Как играем?</p>
+  say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
-      <div class="mode" data-where="local"><span class="e">📱</span><span><b>На одном телефоне</b><small>Кладите телефон между собой</small></span></div>
-      <div class="mode" data-where="online"><span class="e">🌐</span><span><b>По сети</b><small>Каждый со своего телефона · скоро</small></span></div>
+      <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('На одном телефоне', 'On one phone')}</b><small>${t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
+      <div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>
     </div>
     <div class="tools">
-      <span class="btn" data-where="rules">❓ Правила</span>
-      <span class="btn" data-where="records">🏆 Рекорды</span>
-      <span class="btn" data-where="names">✏️ Имена</span>
-      <span class="btn" data-where="skins">🎨 Стиль</span>
+      <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
+      <span class="btn" data-where="records">${t('🏆 Рекорды', '🏆 Records')}</span>
+      <span class="btn" data-where="names">${t('✏️ Имена', '✏️ Names')}</span>
+      <span class="btn" data-where="skins">${t('🎨 Стиль', '🎨 Style')}</span>
       <span class="btn" data-where="sound">${SOUND_ICONS[soundMode]}</span>
+      <span class="btn" data-where="lang">${t('EN', 'RU')}</span>
     </div>`);
   state.onTap = (p, el) => {
     const where = el.closest('[data-where]')?.dataset.where;
     if (!where) return;
     if (where === 'sound') { toggleSound(); showStart(); return; }
+    // Другой язык: запоминаем и перезагружаем — все надписи соберутся заново
+    if (where === 'lang') { buzz(20); save('kolorit-lang', t('en', 'ru')); location.reload(); return; }
     buzz(20);
     if (where === 'local') showMenu();
     else if (where === 'rules') showRules();
@@ -1753,11 +1798,11 @@ function showSkins() {
   enterMenu();
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
-  say(`<h2>🎨 Стиль</h2>
+  say(`<h2>${t('🎨 Стиль', '🎨 Style')}</h2>
     <div class="modes grid skins">${SKINS.map(s =>
       `<div class="mode" data-skin="${s.id}"><span class="e">${s.emoji}</span><span><b>${s.id === currentSkin ? '✓ ' : ''}${s.title}</b><small>${s.sub}</small></span></div>`
     ).join('')}</div>
-    <div><span class="btn" data-act="back">← Назад</span></div>`);
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) { showStart(); return; }
     const btn = el.closest('[data-skin]');
@@ -1774,12 +1819,12 @@ function showRecords() {
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
   const all = load('kolorit-records', {});
-  say(`<h2>🏆 Рекорды</h2>
+  say(`<h2>${t('🏆 Рекорды', '🏆 Records')}</h2>
     <div class="rules">${MODES.filter(m => m.rec).map(m => {
       const r = all[m.id];
-      return `<p>${modeEmoji(m)} ${m.rec.label}: <b>${r ? `${r.value}${m.rec.unit}` : '—'}</b>${r ? ` · ${r.name}` : ''}</p>`;
+      return `<p>${modeEmoji(m)} ${m.rec.label}: <b>${r ? recText(m.rec, r.value) : '—'}</b>${r ? ` · ${r.name}` : ''}</p>`;
     }).join('')}</div>
-    <div><span class="btn" data-act="back">← Назад</span></div>`);
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -1790,9 +1835,9 @@ function showNames() {
   enterMenu();
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
-  sayEach(p => `<h2>Как тебя зовут?</h2>
-    <input class="name-input" maxlength="12" value="${NAMES[p]}" aria-label="Имя игрока">
-    <div><span class="btn" data-act="save">✅ Готово</span></div>`);
+  sayEach(p => `<h2>${t('Как тебя зовут?', 'What’s your name?')}</h2>
+    <input class="name-input" maxlength="12" value="${NAMES[p]}" aria-label="${t('Имя игрока', 'Player name')}">
+    <div><span class="btn" data-act="save">${t('✅ Готово', '✅ Done')}</span></div>`);
   state.onTap = (p, el) => {
     if (!el.closest('[data-act=save]')) return;
     for (const i of [0, 1]) {
@@ -1811,15 +1856,22 @@ function showRules() {
   enterMenu();
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
-  say(`<h2>Как играть</h2>
+  say(t(`<h2>Как играть</h2>
     <div class="rules">
       <p>📱 Телефон между вами: синий снизу, красный сверху. Тапай по своей половине, ✕ — в меню.</p>
       <p>🎮 ${GAMES.length} мини-игр. Выбрали одну — играете в неё до ${WINS_TO} побед. 🎲 Турнир — все игры по разу.</p>
       <p>📖 Правило игры показывается перед каждым раундом — успейте прочитать до «3, 2, 1».</p>
       <p>🔘 Если на твоей половине есть кнопки — засчитываются только они, а не тапы мимо.</p>
       <p>▶ Между раундами игра ждёт, пока оба нажмут «Следующий раунд».</p>
-    </div>
-    <div><span class="btn" data-act="back">← Назад</span></div>`);
+    </div>`, `<h2>How to play</h2>
+    <div class="rules">
+      <p>📱 Phone between you: blue at the bottom, red on top. Tap your own half, ✕ goes to the menu.</p>
+      <p>🎮 ${GAMES.length} mini-games. Pick one and play it to ${WINS_TO} wins. 🎲 Tournament: every game once.</p>
+      <p>📖 The rule shows before every round — read it before “3, 2, 1”.</p>
+      <p>🔘 If your half has buttons, only taps on them count, not taps around them.</p>
+      <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
+    </div>`) + `
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -1827,9 +1879,11 @@ function showRules() {
 
 function showOnlineSoon() {
   enterMenu();
-  say(`<h2>🌐 По сети — скоро</h2>
-    <p>Чтобы два телефона играли вместе, нужен сервер, который передаёт тапы между ними. Включим, когда игра будет в интернете.</p>
-    <div><span class="btn" data-act="back">← Назад</span></div>`);
+  say(`${t(`<h2>🌐 По сети — скоро</h2>
+    <p>Чтобы два телефона играли вместе, нужен сервер, который передаёт тапы между ними. Включим, когда игра будет в интернете.</p>`,
+    `<h2>🌐 Online — coming soon</h2>
+    <p>For two phones to play together, we need a server that passes taps between them. We’ll switch it on once the game is online.</p>`)}
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -1844,7 +1898,7 @@ function showMenu() {
   const pages = Math.ceil(MODES.length / PER_PAGE);
   menuPage = Math.min(menuPage, pages - 1);
   const list = MODES.slice(menuPage * PER_PAGE, (menuPage + 1) * PER_PAGE);
-  say(`<h2>Во что рубимся?</h2>
+  say(`<h2>${t('Во что рубимся?', 'Pick your battle')}</h2>
     <div class="modes grid">${list.map(m =>
       `<div class="mode" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>${modeTitle(m)}</b><small>${m.sub}</small></span></div>`
     ).join('')}</div>
@@ -1898,8 +1952,10 @@ function nextRound() {
 }
 
 function progressText(p) {
-  const progress = state.mode.tour ? `Игра ${state.round} из ${state.queue.length}` : `Раунд ${state.round} · до ${WINS_TO} побед`;
-  return `${progress} · счёт ${state.wins[p]}:${state.wins[1 - p]}`;
+  const progress = state.mode.tour
+    ? t(`Игра ${state.round} из ${state.queue.length}`, `Game ${state.round} of ${state.queue.length}`)
+    : t(`Раунд ${state.round} · до ${WINS_TO} побед`, `Round ${state.round} · first to ${WINS_TO} wins`);
+  return `${progress} · ${t('счёт', 'score')} ${state.wins[p]}:${state.wins[1 - p]}`;
 }
 
 // «3, 2, 1» в центре, правило перед глазами, потом игра
@@ -1924,7 +1980,7 @@ function showIntro(game, start) {
   document.body.classList.add('no-stage', 'intro');
   stage.innerHTML = '';
   const ready = [false, false];
-  const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? 'Ждём соперника…' : '▶ Начать'}</span>`;
+  const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? WAITING : t('▶ Начать', '▶ Start')}</span>`;
   // Номер игры показываем только в турнире: в обычном матче это всегда первый раунд
   const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>` : '';
   sayEach(p => `${head(p)}<h2>${game.emoji} ${game.title}</h2>
@@ -1983,13 +2039,14 @@ function roundOver(winner, text, stats) {
   // Крупно — кто выиграл, ниже — что набрал каждый: сначала ты, потом соперник
   const result = p => {
     const kind = winner === null ? 'v-draw' : winner === p ? 'v-win' : 'v-lose';
-    const verdict = { 'v-win': 'ПОБЕДА 🏆', 'v-lose': 'ПРОИГРЫШ 😵', 'v-draw': 'НИЧЬЯ 🤝' }[kind];
-    const note = winner === null ? `<p>${state.mode.tour ? 'Очко никому' : 'Переигрываем'}</p>` : '';
+    const verdict = t({ 'v-win': 'ПОБЕДА 🏆', 'v-lose': 'ПРОИГРЫШ 😵', 'v-draw': 'НИЧЬЯ 🤝' },
+      { 'v-win': 'VICTORY 🏆', 'v-lose': 'DEFEAT 😵', 'v-draw': 'DRAW 🤝' })[kind];
+    const note = winner === null ? `<p>${state.mode.tour ? t('Очко никому', 'No point for anyone') : t('Переигрываем', 'Play it again')}</p>` : '';
     const line = q => `<div class="${q === p ? 'me' : ''} ${q === winner ? 'won' : ''}">` +
-      `<b>${q === p ? 'Ты' : NAMES[q]}</b><span>${stats[q]}</span></div>`;
+      `<b>${q === p ? t('Ты', 'You') : NAMES[q]}</b><span>${stats[q]}</span></div>`;
     const board = stats ? `<div class="res">${line(p)}${line(1 - p)}</div>` : `<p>${text}</p>`;
-    const rec = state.newRec[p] ? `<p>🏆 Новый рекорд: ${state.newRec[p]}!</p>` : '';
-    return `<h1 class="verdict ${kind}">${verdict}</h1>${note}${board}${rec}<p>Счёт ${state.wins[p]}:${state.wins[1 - p]}</p>`;
+    const rec = state.newRec[p] ? `<p>🏆 ${t('Новый рекорд', 'New record')}: ${state.newRec[p]}!</p>` : '';
+    return `<h1 class="verdict ${kind}">${verdict}</h1>${note}${board}${rec}<p>${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>`;
   };
   if (matchOver()) {
     sayEach(result);
@@ -1999,7 +2056,7 @@ function roundOver(winner, text, stats) {
   // Следующий раунд — только когда оба нажали «Дальше»
   const ready = [false, false];
   const draw = () => sayEach(p => result(p) +
-    `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? 'Ждём соперника…' : 'Следующий раунд ▶'}</span></div>`);
+    `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? WAITING : t('Следующий раунд ▶', 'Next round ▶')}</span></div>`);
   draw();
   // Небольшая задержка, чтобы разогнавшийся в «Пульте» палец не нажал «Дальше» случайно
   const shownAt = performance.now();
@@ -2023,11 +2080,12 @@ function showFinal() {
   sfx('fanfare');
   sayEach(p => {
     const head = winner === null
-      ? `<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`
+      ? t(`<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`, `<h1>Draw ${a}:${b} 🤝</h1><p>Evenly matched — rematch?</p>`)
       : winner === p
-      ? `<h1>Победа ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
-      : `<h1>Проиграл ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
-    return head + '<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>';
+      ? `<h1>${t('Победа', 'Victory')} ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
+      : `<h1>${t('Проиграл', 'Lost')} ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
+    return head + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
+      '<div><span class="btn" data-act="again">🔁 Rematch</span><span class="btn" data-act="menu">🏠 Menu</span></div>');
   });
   state.onTap = (p, el) => {
     const act = el.closest('[data-act]')?.dataset.act;
