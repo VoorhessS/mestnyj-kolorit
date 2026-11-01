@@ -163,7 +163,10 @@
     transform: translate(-50%, -50%);
     font-size: 16vmin;
     line-height: 1;
-    transition: top .35s ease-in-out;
+    /* Двигаем отдельным слоем через transform: при перерисовке через top айфон
+       оставлял след чека под полосками «Автомата». */
+    will-change: transform;
+    transition: transform .35s ease-in-out;
   }
 
   /* --- Рыбалка --- */
@@ -207,7 +210,7 @@
     overflow: hidden;
   }
   .track .zone { position: absolute; top: 0; bottom: 0; left: 42%; width: 16%; background: rgba(120,255,150,.55); }
-  .track .dot { position: absolute; top: 4px; bottom: 4px; width: 26px; margin-left: -13px; border-radius: 13px; background: #fff; }
+  .track .dot { position: absolute; top: 4px; bottom: 4px; width: 26px; margin-left: -13px; border-radius: 13px; background: #fff; will-change: transform; }
 
   /* --- Перфоратор --- */
   .wins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(84%, 320px); margin: 6px auto 0; }
@@ -308,6 +311,7 @@
     align-content: start;
     gap: 1.6vmin;
     padding: 3vmin 2.4vmin;
+    will-change: transform;
     transition: top .08s linear;
   }
   .remote i { aspect-ratio: 1; border-radius: 50%; background: #6b717c; }
@@ -511,6 +515,7 @@
   body.skin-arcade #app::before {
     content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px);
+    will-change: transform; /* полоски — своим слоем, чтобы движение под ними не оставляло следов */
   }
   body.skin-arcade #app::after {
     content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px;
@@ -1093,7 +1098,7 @@ const BILL = {
     say(grabUI('👉 Давай ты'));
 
     const draw = () => {
-      bill.style.top = holder === 0 ? '60%' : '40%';
+      bill.style.transform = `translate(-50%, calc(-50% + ${holder === 0 ? 10 : -10}vh))`;
       for (const p of [0, 1]) {
         setStatus(holder === p ? '<h2>Чек у тебя! 😱</h2>' : '<h2>Чек у соперника 😌</h2>', p);
         $p(p, '.grab').classList.toggle('done', holder !== p);
