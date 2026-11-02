@@ -660,6 +660,13 @@ const ADS = {
     // Яндекс отдаёт SDK со своего же сервера по этому адресу
     if (this.kind === 'yandex') this.script('/sdk.js', () => window.YaGames.init().then(sdk => {
       this.sdk = sdk;
+      // Язык на Яндексе — как у игрока на площадке, пока он сам не переключил
+      const want = /^(ru|be|kk|uk|uz)$/.test(sdk.environment?.i18n?.lang) ? 'ru' : 'en';
+      if (localStorage.getItem('kolorit-lang') === null && want !== lang) {
+        save('kolorit-lang', want);
+        location.reload();
+        return;
+      }
       sdk.features.LoadingAPI?.ready();
     }));
   },
@@ -672,9 +679,15 @@ const ADS = {
   },
   // Есть ли где взять рекламу за награду: без неё скины не закрываем
   get rewards() { return this.kind !== null; },
+  // Яндекс просит отмечать, когда идёт сама игра, а когда меню и пауза
+  playing(on) {
+    if (this.kind === 'yandex') this.sdk?.features.GameplayAPI?.[on ? 'start' : 'stop']();
+  },
   // Звук на время рекламы выключаем — этого требуют площадки
+  busy: false,
   hush(on) {
-    if (on) { music.stop(); audio?.suspend(); } else if (soundMode) audio?.resume();
+    this.busy = on;
+    if (on) { music.stop(); audio?.suspend(); } else if (soundMode && !document.hidden) audio?.resume();
   },
   // Реклама между матчами. Ответ приходит, когда её закрыли или если показывать не стали
   async between() {
@@ -1875,6 +1888,7 @@ function enterMenu() {
   state.mode = null;
   document.body.classList.remove('rules-open', 'no-stage', 'intro');
   document.body.classList.add('menu');
+  ADS.playing(false);
   music.start();
   arena.innerHTML = '';
   stage.innerHTML = '<img class="logo-img" src="icon-192.png" alt="">';
@@ -1886,7 +1900,7 @@ function showStart() {
   say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
       <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('На одном телефоне', 'On one phone')}</b><small>${t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
-      <div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>
+      ${ADS.kind === 'yandex' || ADS.kind === 'vk' ? '' /* на площадках недоделанное не показываем */ : `<div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>`}
     </div>
     <div class="tools">
       <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
@@ -2095,6 +2109,7 @@ function progressText(p) {
 // «3, 2, 1» в центре, правило перед глазами, потом игра
 function countdown(game, wait) {
   music.stop();
+  ADS.playing(true);
   document.body.classList.remove('no-stage', 'intro');
   stage.innerHTML = `<div class="logo">${game.emoji}</div>`;
   sayEach(p => `<p>${progressText(p)}</p><h2>${game.title}</h2><p>${game.rule}</p>`);
@@ -2209,6 +2224,7 @@ function showFinal() {
   const winner = a === b ? null : (a > b ? 0 : 1);
   const [winText, loseText] = state.mode.final;
   stage.innerHTML = `<div class="logo">${winner === null ? '🤝' : '🏆'}</div>`;
+  ADS.playing(false);
   flashResult(winner);
   buzz([100, 60, 100]);
   sfx('fanfare');
@@ -2232,8 +2248,15 @@ function showFinal() {
 
 showStart();
 
-// Запоминаем игру в телефоне для работы без интернета (только на сайте, не из файла)
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+// Свернули игру — звук молчит, вернулись — звучит снова (площадки это проверяют)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) audio?.suspend();
+  else if (soundMode && !ADS.busy) audio?.resume();
+});
+
+// Запоминаем игру в телефоне для работы без интернета (только на своём сайте, не из файла
+// и не на площадках — там за файлы отвечает сама площадка)
+if ('serviceWorker' in navigator && location.protocol === 'https:' && ADS.kind !== 'yandex' && ADS.kind !== 'vk') {
   navigator.serviceWorker.register('sw.js').catch(() => { /* без офлайна тоже играем */ });
 }
 </script>
