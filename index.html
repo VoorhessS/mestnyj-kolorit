@@ -36,7 +36,8 @@
     -webkit-touch-callout: none;
     touch-action: none;
   }
-  #app { position: fixed; inset: 0 0 var(--cut, 0px); display: flex; flex-direction: column; }
+  /* Чёлка и полоска «домой» на айфоне, запас под панель браузера в окне площадки */
+  #app { position: fixed; inset: env(safe-area-inset-top, 0px) 0 max(var(--cut, 0px), env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; }
 
   /* Половины экрана: верхняя повёрнута, чтобы второй игрок читал со своей стороны */
   .half {
@@ -641,7 +642,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 15;
+const BUILD = 16;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
