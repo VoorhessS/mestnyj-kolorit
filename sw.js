@@ -1,6 +1,6 @@
 // Сервис-воркер: запоминает игру в телефоне, чтобы она открывалась без интернета.
 // При каждом выкладывании меняй VERSION — тогда телефон скачает свежую версию.
-const VERSION = 'kolorit-v10';
+const VERSION = 'kolorit-v11';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './fonts/pixel-cyr.woff2', './fonts/pixel-lat.woff2', './fonts/ruslan-cyr.woff2', './fonts/ruslan-lat.woff2',
   './fonts/rubik-cyr.woff2', './fonts/rubik-lat.woff2'];

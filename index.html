@@ -36,7 +36,7 @@
     -webkit-touch-callout: none;
     touch-action: none;
   }
-  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  #app { position: fixed; inset: 0 0 var(--cut, 0px); display: flex; flex-direction: column; }
 
   /* Половины экрана: верхняя повёрнута, чтобы второй игрок читал со своей стороны */
   .half {
@@ -880,8 +880,15 @@ function audioCtx() {
     if (!Ctx) return null;
     audio = new Ctx();
   }
-  if (audio.state === 'suspended') audio.resume();
+  // На айфоне после сворачивания бывает состояние interrupted, его тоже будим
+  if (audio.state !== 'running' && !ADS.busy && !document.hidden) audio.resume();
   return audio;
+}
+
+// Браузер разрешает включить звук только после касания, и для пальца это отпускание, а не нажатие:
+// поэтому будим звук ещё и тут, иначе первое касание проходит в тишине
+for (const type of ['pointerup', 'touchend', 'click']) {
+  document.addEventListener(type, () => { if (soundMode) audioCtx(); }, { passive: true });
 }
 
 // Тембр эффектов под стиль: у Windows мягко, у Нокиа всё пищит, у Плаката — медь
@@ -1292,9 +1299,9 @@ const BABUSHKA = {
 const MOM = {
   emoji: '😴',
   title: t('Ещё 5 минут', '5 More Minutes'),
-  rule: t('Держи свою кнопку — спишь и копишь минуты.<br>Отпусти, пока мама не ворвалась.<br>Попался под одеялом — проиграл.',
-    'Hold your button to sleep and bank minutes.<br>Let go before Mom bursts in.<br>Caught under the blanket — you lose.'),
-  // Держишь кнопку — спишь. Мама кричит из коридора (иногда блефует), перед входом скрипит дверь.
+  rule: t('Держи свою кнопку — спишь и копишь минуты.<br>Дверь открывается — отпускай, вставай!<br>Попался под одеялом — проиграл.',
+    'Hold your button to sleep and bank minutes.<br>The door opens — let go and get up!<br>Caught under the blanket — you lose.'),
+  // Держишь кнопку — спишь. Мама кричит из коридора (иногда блефует), бывает ложный скрип, а перед самым входом — «Дверь открывается!».
   // Кто под одеялом, когда она вошла, — попался. Из вставших побеждает тот, кто поспал дольше.
   play(done) {
     const RATE = 5;  // минут сна за секунду удержания
@@ -1327,7 +1334,7 @@ const MOM = {
 
     // Мамины крики из коридора: 2–4 штуки, по нарастающей
     const count = 2 + Math.floor(Math.random() * 3);
-    const times = [...Array(count)].map(() => rand(800, entry - 900)).sort((a, b) => a - b);
+    const times = [...Array(count)].map(() => rand(800, entry - 1300)).sort((a, b) => a - b);
     const lines = [...WARNINGS].sort(() => Math.random() - .5).slice(0, count)
       .sort((a, b) => WARNINGS.indexOf(a) - WARNINGS.indexOf(b));
     times.forEach((when, i) => later(when, () => setStatus(t(`<h2>👩 «${lines[i]}»</h2>`, `<h2>👩 “${lines[i]}”</h2>`))));
@@ -1339,7 +1346,12 @@ const MOM = {
       later(when, creak);
       later(when + 600, () => { stage.innerHTML = '<div class="logo">🛏️</div>'; setStatus(t('<h2>…показалось</h2>', '<h2>…false alarm</h2>')); });
     }
-    later(entry - 600, creak);
+    // Перед входом — отдельный, громкий сигнал, его не спутать с ложным скрипом
+    later(entry - 900, () => {
+      stage.innerHTML = '<div class="logo">🚪</div>';
+      setStatus(t('<h2>🚪 Дверь открывается! Вставай!</h2>', '<h2>🚪 The door opens! Get up!</h2>'));
+      buzz([60, 30, 60]);
+    });
 
     const burst = () => {
       if (over) return;
@@ -1841,7 +1853,7 @@ BABUSHKA.demo = [
 MOM.demo = [
   { pic: '🛏️😴', btn: t('🛏️ Держи', '🛏️ Hold'), act: 'hold', cap: t('Держи кнопку — спишь, копишь минуты', 'Hold the button — sleep and bank minutes') },
   { pic: '🚪', btn: t('🛏️ Держи', '🛏️ Hold'), act: 'hold', cap: t('Скрип… может, показалось', 'Creak… maybe it’s nothing') },
-  { pic: '👩', btn: t('🛏️ Держи', '🛏️ Hold'), cap: t('Мама идёт — отпускай!', 'Mom’s coming — let go!') },
+  { pic: '🚪👩', btn: t('🛏️ Держи', '🛏️ Hold'), cap: t('«Дверь открывается!» — отпускай!', '“The door opens!” — let go!') },
   { pic: '🩴', cap: t('Попался под одеялом — проиграл', 'Caught in bed — you lose') },
 ];
 METRO.demo = [
@@ -2250,6 +2262,21 @@ function showFinal() {
 }
 
 showStart();
+
+// Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
+// браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
+if (window !== window.top && 'IntersectionObserver' in window) {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position: fixed; inset: 0; pointer-events: none; opacity: 0';
+  document.body.append(probe);
+  const steps = [...Array(101).keys()].map(i => i / 100);
+  new IntersectionObserver(([e]) => {
+    const cut = Math.round(e.boundingClientRect.bottom - e.intersectionRect.bottom);
+    // Совсем не видно (свернули) или видно целиком — не трогаем
+    const value = e.isIntersecting && cut > 0 && cut < innerHeight / 2 ? cut : 0;
+    document.documentElement.style.setProperty('--cut', value + 'px');
+  }, { threshold: steps }).observe(probe);
+}
 
 // Свернули игру — звук молчит, вернулись — звучит снова (площадки это проверяют)
 document.addEventListener('visibilitychange', () => {
