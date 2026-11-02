@@ -1803,7 +1803,8 @@ const MODES = [
   { id: 'babushka', game: BABUSHKA, sub: t('Скажи «Хватит!» вовремя', 'Say “Enough!” in time'),
     rec: { label: t('Ближе всех к полной тарелке', 'Closest to a full plate'), unit: '%', lower: false },
     final: t(['Любимый внук! 🥰', '«Ты что, голодный?» — и ещё тарелку 🍲'], ['Grandma’s favorite! 🥰', '“Still hungry?” — and another plate 🍲']) },
-  { id: 'mom', game: MOM, sub: t('Спи до последнего', 'Sleep till the last second'),
+  // Супер-уровень: там, где есть реклама, открывается за просмотр — один раз и навсегда
+  { id: 'mom', game: MOM, premium: true, sub: t('Спи до последнего', 'Sleep till the last second'),
     rec: { label: t('Дольше всех проспал', 'Longest sleep-in'), unit: t(' мин', ' min'), lower: false },
     final: t(['Выспался как король 👑', 'Получил тапком 🩴 и опоздал в школу'], ['Slept like a king 👑', 'Got the slipper 🩴 and was late for school']) },
   { id: 'metro', game: METRO, sub: t('Садись, но не на бабушкино', 'Sit, but not in Babushka’s seat'),
@@ -1827,7 +1828,9 @@ const MODES = [
 
 // Турнир — все мини-игры по одному разу в случайном порядке
 const GAMES = MODES.map(m => m.game);
-MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: t('Турнир', 'Tournament'), sub: t(`Все ${GAMES.length} игр по разу`, `All ${GAMES.length} games once`),
+const openGames = () => MODES.filter(m => m.game && !(m.premium && isLocked(m.id))).map(m => m.game);
+MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: t('Турнир', 'Tournament'),
+  get sub() { const n = openGames().length; return t(`Все ${n} игр по разу`, `All ${n} games once`); },
   final: t(['Чемпион двора 🏆', 'Есть куда расти 💪'], ['Champion of the block 🏆', 'Room to grow 💪']) });
 
 // Анимация «как играть»: кадры по кругу. Кадр — картинка (pic), подпись (cap), кнопка (btn)
@@ -2063,7 +2066,9 @@ function showMenu() {
   const list = MODES.slice(menuPage * PER_PAGE, (menuPage + 1) * PER_PAGE);
   say(`<h2>${t('Во что рубимся?', 'Pick your battle')}</h2>
     <div class="modes grid">${list.map(m =>
-      `<div class="mode" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>${modeTitle(m)}</b><small>${m.sub}</small></span></div>`
+      m.premium && isLocked(m.id)
+        ? `<div class="mode locked" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>🔒 ${modeTitle(m)}</b><small>${t('⭐ Супер-уровень · 📺 за рекламу', '⭐ Super level · 📺 watch an ad')}</small></span></div>`
+        : `<div class="mode" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>${modeTitle(m)}</b><small>${m.premium ? '⭐ ' : ''}${m.sub}</small></span></div>`
     ).join('')}</div>
     <div class="pager">
       <span class="btn" data-act="back">←</span>
@@ -2083,7 +2088,19 @@ function showMenu() {
     const btn = el.closest('[data-mode]');
     if (!btn) return;
     buzz(20);
-    startMode(MODES.find(m => m.id === btn.dataset.mode));
+    const mode = MODES.find(m => m.id === btn.dataset.mode);
+    if (mode.premium && isLocked(mode.id)) {
+      state.onTap = null;
+      ADS.reward().then(ok => {
+        if (!ok) { showMenu(); return; }
+        unlocked.add(mode.id);
+        save('kolorit-unlocked', [...unlocked]);
+        sfx('fanfare');
+        startMode(mode);
+      });
+      return;
+    }
+    startMode(mode);
   };
 }
 
@@ -2092,7 +2109,7 @@ function startMode(mode) {
   state.mode = mode;
   state.wins = [0, 0];
   state.round = 0;
-  state.queue = mode.tour ? [...GAMES].sort(() => Math.random() - .5) : [];
+  state.queue = mode.tour ? openGames().sort(() => Math.random() - .5) : [];
   document.body.classList.remove('menu');
   updateHud();
   nextRound();
