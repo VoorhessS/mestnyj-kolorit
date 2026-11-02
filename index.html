@@ -640,6 +640,9 @@ document.documentElement.lang = lang;
 document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
+// Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
+const BUILD = 15;
+
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
 // запущена, и зовёт их SDK. На своём сайте рекламы нет; с ?ads=test вместо неё заглушка.
@@ -2037,7 +2040,8 @@ function showRules() {
       <p>🔘 If your half has buttons, only taps on them count, not taps around them.</p>
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
-    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+    <div><span class="btn" data-act="back">${BACK}</span></div>
+    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -2282,6 +2286,12 @@ showStart();
 
 // Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
 // браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
+// Но на айфоне окно площадки уходит ещё и под нижнюю панель браузера, а её наблюдатель не видит:
+// для него страница тянется до самого низа экрана. Поэтому там держим запас по замерам с телефона:
+// у Safari панель с адресом снизу закрывает ~110 точек, у Chrome — ~65.
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IOS_BAR = window !== window.top && IOS ? (/CriOS|FxiOS/.test(navigator.userAgent) ? 65 : 110) : 0;
+document.documentElement.style.setProperty('--cut', IOS_BAR + 'px');
 if (window !== window.top && 'IntersectionObserver' in window) {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: fixed; inset: 0; pointer-events: none; opacity: 0';
@@ -2291,7 +2301,7 @@ if (window !== window.top && 'IntersectionObserver' in window) {
     const cut = Math.round(e.boundingClientRect.bottom - e.intersectionRect.bottom);
     // Совсем не видно (свернули) или видно целиком — не трогаем
     const value = e.isIntersecting && cut > 0 && cut < innerHeight / 2 ? cut : 0;
-    document.documentElement.style.setProperty('--cut', value + 'px');
+    document.documentElement.style.setProperty('--cut', Math.max(value, IOS_BAR) + 'px');
   }, { threshold: steps }).observe(probe);
 }
 
