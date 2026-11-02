@@ -1569,7 +1569,7 @@ const FISH = {
 const PICKLE = {
   emoji: '🥒',
   title: t('Засолка', 'Pickle Season'),
-  rule: t('Бегунок ездит туда-сюда. Жми «🫙 Закрыть», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
+  rule: t('Бегунок ездит туда-сюда. Жми «🫙 Закатать», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
     'The slider runs back and forth. Hit “🫙 Seal” while it’s in the green.<br>Most jars sealed in 15 seconds wins. Miss — the jar pops.'),
   // У каждого свой бегунок; с каждой банкой он ускоряется.
   play(done) {
@@ -1585,7 +1585,7 @@ const PICKLE = {
     stage.innerHTML = '<div class="logo">🫙</div>';
     sayEach(p => `<div class="status"></div>
       <div class="track" id="k${p}"><div class="zone"></div><div class="dot"></div></div>
-      <div class="grab">${t('🫙 Закрыть', '🫙 Seal')}</div>`);
+      <div class="grab">${t('🫙 Закатать', '🫙 Seal')}</div>`);
 
     const pos = p => (Math.sin(phase[p]) + 1) / 2 * 100;
     const score = p => jars[p] - broke[p];
@@ -1859,9 +1859,9 @@ FISH.demo = [
   { pic: '🐟', btn: t('🎣 Подсекай!', '🎣 Hook it!'), act: 'tap', cap: t('Нырнул целиком — подсекай!', 'Fully under — hook it!') },
 ];
 PICKLE.demo = [
-  { pic: '🫙', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 20, zone: [42, 16] }, cap: t('Бегунок ездит туда-сюда', 'The slider runs back and forth') },
-  { pic: '🫙', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: t('В зелёной зоне — жми!', 'In the green — tap!') },
-  { pic: '🥒', btn: t('🫙 Закрыть', '🫙 Seal'), bar: { dot: 80, zone: [42, 16] }, cap: t('Закатал! Мимо зоны — банка лопнет', 'Sealed! Miss the zone — the jar pops') },
+  { pic: '🫙', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 20, zone: [42, 16] }, cap: t('Бегунок ездит туда-сюда', 'The slider runs back and forth') },
+  { pic: '🫙', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: t('В зелёной зоне — жми!', 'In the green — tap!') },
+  { pic: '🥒', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 80, zone: [42, 16] }, cap: t('Закатал! Мимо зоны — банка лопнет', 'Sealed! Miss the zone — the jar pops') },
 ];
 BAGS.demo = [
   { pic: '🛍️', btn: t('🛍️ Пихать', '🛍️ Stuff'), act: 'rapid', cap: t('Тапай — пихаешь пакеты в пакет', 'Tap to cram bags into the bag') },
