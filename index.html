@@ -668,6 +668,9 @@ const ADS = {
         return;
       }
       sdk.features.LoadingAPI?.ready();
+      // Липкий баннер внизу закрывает кнопки нижнего игрока — не показываем его вовсе.
+      // Работает, если в консоли включено «Использовать API для показа sticky-баннера»
+      sdk.adv.hideBannerAdv?.()?.catch?.(() => {});
     }));
   },
   script(src, onload) {
