@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 21;
+const BUILD = 22;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
@@ -2064,8 +2064,7 @@ function showRules() {
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
-    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>${ADS.kind === 'vk' ? `
-    <p style="opacity: .5; font-size: 11px">h ${innerHeight} · vh ${ADS.vk.viewport_height ?? '—'} · ah ${ADS.vk.avail_height ?? '—'} · ins ${ADS.vk.insets ? Object.values(ADS.vk.insets).join('/') : '—'} · ${new URLSearchParams(location.search).get('vk_platform') ?? '—'} · cut ${getComputedStyle(document.documentElement).getPropertyValue('--cut') || 0}</p>` : ''}`);
+    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
