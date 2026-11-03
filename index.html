@@ -41,7 +41,9 @@
 
   /* Половины экрана: верхняя повёрнута, чтобы второй игрок читал со своей стороны */
   .half {
-    flex: 1;
+    /* Всегда ровно пополам, даже если надпись длиннее: её ужимает fitMsg */
+    flex: 1 1 0;
+    min-height: 0;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -642,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 16;
+const BUILD = 18;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
@@ -813,6 +815,18 @@ function say(html, p) {
   const targets = p === undefined ? [0, 1] : [p];
   for (const i of targets) halves[i].querySelector('.msg').innerHTML = html;
 }
+
+// Невысокое окно (площадка с шапкой и панелями браузера): если надпись не влезает в свою половину,
+// ужимаем её целиком, а не даём половине расти и выталкивать соседнюю за край экрана
+function fitMsg(half) {
+  const msg = half.querySelector('.msg');
+  const cs = getComputedStyle(half);
+  const room = half.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const k = msg.offsetHeight ? Math.max(.5, Math.min(1, room / msg.offsetHeight)) : 1;
+  msg.style.transform = k < 1 ? `scale(${k.toFixed(3)})` : '';
+}
+const fitter = new ResizeObserver(() => halves.forEach(fitMsg));
+for (const h of halves) { fitter.observe(h); fitter.observe(h.querySelector('.msg')); }
 
 function sayEach(fn) { say(fn(0), 0); say(fn(1), 1); }
 
@@ -2042,7 +2056,8 @@ function showRules() {
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
-    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
+    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>
+    <p style="opacity: .5; font-size: 11px">${fitInfo()}</p>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -2287,12 +2302,9 @@ showStart();
 
 // Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
 // браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
-// Но на айфоне окно площадки уходит ещё и под нижнюю панель браузера, а её наблюдатель не видит:
-// для него страница тянется до самого низа экрана. Поэтому там держим запас по замерам с телефона:
-// у Safari панель с адресом снизу закрывает ~110 точек, у Chrome — ~65.
-const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const IOS_BAR = window !== window.top && IOS ? (/CriOS|FxiOS/.test(navigator.userAgent) ? 65 : 110) : 0;
-document.documentElement.style.setProperty('--cut', IOS_BAR + 'px');
+// (Замеры с айфона на Яндексе показали: окно там ровно до панели, отдельный запас не нужен.)
+// Замеры для «Правил»: по скрину с телефона видно, что игра думает об окне
+const FIT = { io: '—' };
 if (window !== window.top && 'IntersectionObserver' in window) {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: fixed; inset: 0; pointer-events: none; opacity: 0';
@@ -2300,11 +2312,18 @@ if (window !== window.top && 'IntersectionObserver' in window) {
   const steps = [...Array(101).keys()].map(i => i / 100);
   new IntersectionObserver(([e]) => {
     const cut = Math.round(e.boundingClientRect.bottom - e.intersectionRect.bottom);
+    FIT.io = (e.isIntersecting ? '' : 'x') + Math.round(e.intersectionRect.top) + '-' + Math.round(e.intersectionRect.bottom);
     // Совсем не видно (свернули) или видно целиком — не трогаем
     const value = e.isIntersecting && cut > 0 && cut < innerHeight / 2 ? cut : 0;
-    document.documentElement.style.setProperty('--cut', Math.max(value, IOS_BAR) + 'px');
+    document.documentElement.style.setProperty('--cut', value + 'px');
   }, { threshold: steps }).observe(probe);
 }
+
+const fitInfo = () => {
+  const app = getComputedStyle(document.getElementById('app'));
+  const vv = window.visualViewport;
+  return `h ${innerHeight} · vv ${vv ? Math.round(vv.height) : '—'} · scr ${screen.height} · io ${FIT.io} · top ${parseInt(app.top)} · bot ${parseInt(app.bottom)}`;
+};
 
 // Свернули игру — звук молчит, вернулись — звучит снова (площадки это проверяют)
 document.addEventListener('visibilitychange', () => {
