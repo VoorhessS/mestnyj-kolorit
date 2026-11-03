@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 19;
+const BUILD = 20;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
@@ -654,6 +654,8 @@ const ADS = {
   sdk: null,
   GAP: 120000,  // между рекламами не меньше двух минут, отсчёт и от запуска игры
   lastAt: performance.now(),
+  vk: {},
+  vkFit(c) { Object.assign(this.vk, c); },
   init() {
     const q = new URLSearchParams(location.search);
     if (q.get('ads') === 'test') this.kind = 'test';
@@ -662,6 +664,9 @@ const ADS = {
     if (this.kind === 'vk') this.script('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js', () => {
       this.sdk = window.vkBridge;
       this.sdk.send('VKWebAppInit');
+      // ВК сам говорит, какая часть его окна видна (viewport_height) — запоминаем для подгонки
+      this.sdk.subscribe(e => { if (e.detail?.type === 'VKWebAppUpdateConfig') this.vkFit(e.detail.data); });
+      this.sdk.send('VKWebAppGetConfig').then(c => this.vkFit(c)).catch(() => {});
     });
     // Яндекс отдаёт SDK со своего же сервера по этому адресу
     if (this.kind === 'yandex') this.script('/sdk.js', () => window.YaGames.init().then(sdk => {
@@ -2059,7 +2064,8 @@ function showRules() {
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
-    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
+    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>${ADS.kind === 'vk' ? `
+    <p style="opacity: .5; font-size: 11px">h ${innerHeight} · vh ${ADS.vk.viewport_height ?? '—'} · ah ${ADS.vk.avail_height ?? '—'} · ins ${ADS.vk.insets ? Object.values(ADS.vk.insets).join('/') : '—'} · ${new URLSearchParams(location.search).get('vk_platform') ?? '—'}</p>` : ''}`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
