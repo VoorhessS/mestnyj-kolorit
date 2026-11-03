@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 20;
+const BUILD = 21;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
@@ -2065,7 +2065,7 @@ function showRules() {
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
     <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>${ADS.kind === 'vk' ? `
-    <p style="opacity: .5; font-size: 11px">h ${innerHeight} · vh ${ADS.vk.viewport_height ?? '—'} · ah ${ADS.vk.avail_height ?? '—'} · ins ${ADS.vk.insets ? Object.values(ADS.vk.insets).join('/') : '—'} · ${new URLSearchParams(location.search).get('vk_platform') ?? '—'}</p>` : ''}`);
+    <p style="opacity: .5; font-size: 11px">h ${innerHeight} · vh ${ADS.vk.viewport_height ?? '—'} · ah ${ADS.vk.avail_height ?? '—'} · ins ${ADS.vk.insets ? Object.values(ADS.vk.insets).join('/') : '—'} · ${new URLSearchParams(location.search).get('vk_platform') ?? '—'} · cut ${getComputedStyle(document.documentElement).getPropertyValue('--cut') || 0}</p>` : ''}`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -2311,6 +2311,13 @@ showStart();
 // Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
 // браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
 // (Замеры с айфона на Яндексе показали: окно там ровно до панели, отдельный запас не нужен.)
+// А мобильный сайт ВК растягивает окно игры на весь экран, под нижнюю панель браузера на айфоне,
+// и ни наблюдатель, ни сам ВК этого не видят. Там держим запас по замерам с телефона:
+// у Chrome и встроенного браузера панель ~76 точек, у Safari с адресом снизу ~134.
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const VK_WEB = ADS.kind === 'vk' && new URLSearchParams(location.search).get('vk_platform') === 'mobile_web';
+const CUT_BASE = VK_WEB && IOS ? (/CriOS|FxiOS/.test(navigator.userAgent) ? 76 : 134) : 0;
+document.documentElement.style.setProperty('--cut', CUT_BASE + 'px');
 if (window !== window.top && 'IntersectionObserver' in window) {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: fixed; inset: 0; pointer-events: none; opacity: 0';
@@ -2320,7 +2327,7 @@ if (window !== window.top && 'IntersectionObserver' in window) {
     const cut = Math.round(e.boundingClientRect.bottom - e.intersectionRect.bottom);
     // Совсем не видно (свернули) или видно целиком — не трогаем
     const value = e.isIntersecting && cut > 0 && cut < innerHeight / 2 ? cut : 0;
-    document.documentElement.style.setProperty('--cut', value + 'px');
+    document.documentElement.style.setProperty('--cut', Math.max(value, CUT_BASE) + 'px');
   }, { threshold: steps }).observe(probe);
 }
 
