@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 18;
+const BUILD = 19;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
@@ -763,6 +763,9 @@ const ADS = {
   },
 };
 ADS.init();
+// Игра открыта на игровом портале (Яндекс, VK, CrazyGames, itch.io), а не на своём сайте:
+// там не показываем недоделанное и не ставим офлайн-режим — порталы обновляют игру сами
+const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
 
 const RU_NAMES = ['Синий', 'Красный'];
 const EN_NAMES = ['Blue', 'Red'];
@@ -1936,7 +1939,7 @@ function showStart() {
   say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
       <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('На одном телефоне', 'On one phone')}</b><small>${t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
-      ${ADS.kind === 'yandex' || ADS.kind === 'vk' ? '' /* на площадках недоделанное не показываем */ : `<div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>`}
+      ${PORTAL ? '' /* на площадках недоделанное не показываем */ : `<div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>`}
     </div>
     <div class="tools">
       <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
@@ -2056,8 +2059,7 @@ function showRules() {
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
-    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>
-    <p style="opacity: .5; font-size: 11px">${fitInfo()}</p>`);
+    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
@@ -2303,8 +2305,6 @@ showStart();
 // Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
 // браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
 // (Замеры с айфона на Яндексе показали: окно там ровно до панели, отдельный запас не нужен.)
-// Замеры для «Правил»: по скрину с телефона видно, что игра думает об окне
-const FIT = { io: '—' };
 if (window !== window.top && 'IntersectionObserver' in window) {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: fixed; inset: 0; pointer-events: none; opacity: 0';
@@ -2312,18 +2312,11 @@ if (window !== window.top && 'IntersectionObserver' in window) {
   const steps = [...Array(101).keys()].map(i => i / 100);
   new IntersectionObserver(([e]) => {
     const cut = Math.round(e.boundingClientRect.bottom - e.intersectionRect.bottom);
-    FIT.io = (e.isIntersecting ? '' : 'x') + Math.round(e.intersectionRect.top) + '-' + Math.round(e.intersectionRect.bottom);
     // Совсем не видно (свернули) или видно целиком — не трогаем
     const value = e.isIntersecting && cut > 0 && cut < innerHeight / 2 ? cut : 0;
     document.documentElement.style.setProperty('--cut', value + 'px');
   }, { threshold: steps }).observe(probe);
 }
-
-const fitInfo = () => {
-  const app = getComputedStyle(document.getElementById('app'));
-  const vv = window.visualViewport;
-  return `h ${innerHeight} · vv ${vv ? Math.round(vv.height) : '—'} · scr ${screen.height} · io ${FIT.io} · top ${parseInt(app.top)} · bot ${parseInt(app.bottom)}`;
-};
 
 // Свернули игру — звук молчит, вернулись — звучит снова (площадки это проверяют)
 document.addEventListener('visibilitychange', () => {
@@ -2333,7 +2326,7 @@ document.addEventListener('visibilitychange', () => {
 
 // Запоминаем игру в телефоне для работы без интернета (только на своём сайте, не из файла
 // и не на площадках — там за файлы отвечает сама площадка)
-if ('serviceWorker' in navigator && location.protocol === 'https:' && ADS.kind !== 'yandex' && ADS.kind !== 'vk') {
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !PORTAL) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* без офлайна тоже играем */ });
 }
 </script>
