@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 25;
+const BUILD = 26;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -686,6 +686,7 @@ const ADS = {
       // Свайп вниз в Телеграме сворачивает приложение — посреди тапов это беда
       tg.disableVerticalSwipes?.();
       tg.enableClosingConfirmation?.();
+      STARS.check();
       const blocks = Object.entries(this.ADSGRAM).filter(([, id]) => id);
       if (blocks.length) this.script('https://sad.adsgram.ai/js/sad.min.js', () => {
         this.sdk = Object.fromEntries(blocks.map(([k, id]) => [k, window.Adsgram.init({ blockId: id })]));
@@ -728,7 +729,7 @@ const ADS = {
   },
   // Реклама между матчами. Ответ приходит, когда её закрыли или если показывать не стали
   async between() {
-    if (!this.kind || performance.now() - this.lastAt < this.GAP) return;
+    if (!this.kind || STARS.paid || performance.now() - this.lastAt < this.GAP) return;
     if (this.kind !== 'test' && !this.sdk) return;
     this.lastAt = performance.now();
     this.hush(true);
@@ -800,6 +801,40 @@ ADS.init();
 // там не показываем недоделанное и не ставим офлайн-режим — порталы обновляют игру сами
 const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || ADS.kind === 'tg' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
 
+// ---------- покупка за звёзды ----------
+// Только в Телеграме: «Открыть всё» за Telegram Stars — все стили, «мама» и без рекламы
+// между матчами. Счёт выписывает наш сервер (stars/ — Cloudflare Worker), он же помнит,
+// кто купил, — покупка возвращается и на другом телефоне.
+const STARS = {
+  API: 'https://babushka-stars.17homosapiens.workers.dev',  // воркер stars/; пусто — кнопки покупки нет
+  PRICE: 50,
+  paid: load('kolorit-paid', false),
+  get tg() { return ADS.kind === 'tg' ? window.Telegram?.WebApp : null; },
+  get can() { return Boolean(this.API && this.tg?.initData && this.tg.openInvoice) && !this.paid; },
+  ask(path) {
+    return fetch(this.API + path, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: this.tg.initData }),
+    }).then(r => r.json());
+  },
+  grant() { this.paid = true; save('kolorit-paid', true); },
+  // При запуске спрашиваем сервер: вдруг купил раньше или на другом телефоне
+  check() {
+    if (!this.API || !this.tg?.initData || this.paid) return;
+    this.ask('/status').then(r => { if (r.paid) this.grant(); }).catch(() => {});
+  },
+  // Ответ: 'paid', 'cancelled', 'failed' или 'error'
+  async buy() {
+    try {
+      const { link } = await this.ask('/invoice');
+      if (!link) return 'error';
+      const result = await new Promise(done => this.tg.openInvoice(link, done));
+      if (result === 'paid') this.grant();
+      return result;
+    } catch { return 'error'; }
+  },
+};
+
 const RU_NAMES = ['Синий', 'Красный'];
 const EN_NAMES = ['Blue', 'Red'];
 const DEFAULT_NAMES = t(RU_NAMES, EN_NAMES);
@@ -825,7 +860,7 @@ function applySkin(id) {
 
 // Там, где есть реклама, стили кроме обычного открываются за просмотр — один раз и навсегда
 const unlocked = new Set(load('kolorit-unlocked', ['classic']));
-const isLocked = id => ADS.rewards && !unlocked.has(id);
+const isLocked = id => ADS.rewards && !STARS.paid && !unlocked.has(id);
 
 let currentSkin = applySkin(isLocked(load('kolorit-skin', 'classic')) ? 'classic' : load('kolorit-skin', 'classic'));
 
@@ -2008,10 +2043,20 @@ function showSkins(note = '') {
   say(`<h2>${t('🎨 Стиль', '🎨 Style')}</h2>${note ? `<p>${note}</p>` : hint}
     <div class="modes grid skins">${SKINS.map(s =>
       `<div class="mode ${isLocked(s.id) ? 'locked' : ''}" data-skin="${s.id}"><span class="e">${s.emoji}</span><span><b>${s.id === currentSkin ? '✓ ' : isLocked(s.id) ? '🔒 ' : ''}${s.title}</b><small>${isLocked(s.id) ? t('📺 Реклама — и стиль твой', '📺 Watch an ad to unlock') : s.sub}</small></span></div>`
-    ).join('')}</div>
+    ).join('')}${STARS.can && hint ? `<div class="mode" data-act="buy"><span class="e">⭐</span><span><b>${t('Всё сразу', 'Everything')} · ${STARS.PRICE} ⭐</b><small>${t('Стили, «Мама», без рекламы', 'Styles, Mom, no ads')}</small></span></div>` : ''}</div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) { showStart(); return; }
+    if (el.closest('[data-act=buy]')) {
+      buzz(20);
+      state.onTap = null;
+      STARS.buy().then(result => {
+        if (result === 'paid') sfx('fanfare');
+        showSkins(result === 'paid' ? t('🎉 Всё открыто навсегда! Спасибо ⭐', '🎉 Everything unlocked forever! Thank you ⭐')
+          : result === 'cancelled' ? '' : t('Оплата не прошла — попробуй ещё раз', 'Payment failed — please try again'));
+      });
+      return;
+    }
     const btn = el.closest('[data-skin]');
     if (!btn) return;
     buzz(20);
