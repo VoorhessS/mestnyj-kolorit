@@ -590,6 +590,42 @@
     body.skin-win98 .msg :is(h1, h2) { margin-bottom: 4px; }
     body:is(.skin-nokia, .skin-arcade) .tools .btn { padding: 6px 8px; font-size: 10px; }
   }
+  /* ---------- «сочность»: объём, нажатие, искры, тряска, конфетти ---------- */
+  /* Обычный стиль: кнопки объёмные — блик сверху и бортик снизу, при нажатии вдавливаются */
+  body:not([class*="skin-"]) :is(.btn, .mode, .grab) {
+    background-image: linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
+    box-shadow: 0 4px 0 rgba(0,0,0,.3), 0 6px 12px rgba(0,0,0,.18);
+    transition: transform .08s, box-shadow .08s;
+  }
+  body:not([class*="skin-"]) :is(.btn, .mode, .grab).pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.18);
+  }
+  body[class*="skin-"] :is(.btn, .mode, .grab).pressed { transform: scale(.95); }
+  .tap-ring, .spark { position: fixed; z-index: 50; pointer-events: none; border-radius: 50%; }
+  .tap-ring { width: 44px; height: 44px; margin: -22px; border: 3px solid var(--ink); animation: tapring .35s ease-out forwards; }
+  .spark { width: 8px; height: 8px; margin: -4px; background: var(--ink); animation: spark .45s ease-out forwards; }
+  @keyframes tapring { from { transform: scale(.3); opacity: .8; } to { transform: scale(1.6); opacity: 0; } }
+  @keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  /* Новые заголовки и цифры отсчёта выпрыгивают */
+  .msg h1, .logo { animation: pop .4s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+  /* Итог раунда: экран вздрагивает */
+  #app.jolt { animation: jolt .4s; }
+  @keyframes jolt { 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(2px, -1px); } }
+  /* Конфетти летит в половине победителя — «вниз» с его стороны */
+  .fx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 5; }
+  .fx i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; animation: fall var(--t) ease-in var(--d) forwards; }
+  @keyframes fall { to { transform: translate(var(--x), 110vh) rotate(var(--r)); } }
+  @media (prefers-reduced-motion: reduce) {
+    .msg h1, .logo, #app.jolt { animation: none; }
+  }
+  /* Компьютер: оба сидят с одной стороны экрана — верхнюю половину не переворачиваем */
+  body.desktop .half.p1 { transform: none; }
+  .kb-hint { margin-top: 6px; font-size: 13px; opacity: .8; letter-spacing: 1px; }
+  /* На компьютере у каждого окна «Перфоратора» подписана его клавиша */
+  .win { position: relative; }
+  body.desktop .win::after { content: attr(data-k); position: absolute; left: 6px; top: 3px; font: 700 12px system-ui, sans-serif; color: #5a4a2a; opacity: .7; }
   /* Закрытый стиль и заглушка рекламы */
   .mode.locked { opacity: .7; }
   .ad-fake {
@@ -644,7 +680,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 26;
+const BUILD = 29;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -906,6 +942,7 @@ function recText(rec, value) { return `${value}${value === 1 && rec.one ? rec.on
 
 // Игра сообщает результат игрока; если он лучше сохранённого — это новый рекорд
 function noteRecord(p, value) {
+  if (BOT.on && p === BOT.P) return;  // рекорды робота не считаем
   const mode = MODES.find(m => m.game === state.game);
   if (!mode?.rec) return;
   const all = load('kolorit-records', {});
@@ -1145,10 +1182,66 @@ function bagsEn(n) { return `${n} bag${n === 1 ? '' : 's'}`; }
 
 function pair(p, mine, theirs) { return p === 0 ? [mine, theirs] : [theirs, mine]; }
 
+// ---------- «сочность»: отклик на нажатия, тряска, конфетти ----------
+const CALM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const app = document.getElementById('app');
+
+// Кнопка вдавливается, от пальца расходится кольцо, от кнопки — искры
+function pressFx(e) {
+  const btn = e.target.closest('.btn, .mode, .grab');
+  if (btn) {
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 120);
+  }
+  if (CALM) return;
+  spawn(document.body, 'tap-ring', { left: e.clientX + 'px', top: e.clientY + 'px' });
+  if (!btn) return;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6 + Math.random() * .08) * Math.PI * 2;
+    const r = 26 + Math.random() * 18;
+    spawn(document.body, 'spark', { left: e.clientX + 'px', top: e.clientY + 'px',
+      '--dx': `${Math.cos(a) * r}px`, '--dy': `${Math.sin(a) * r}px` });
+  }
+}
+
+// Элемент-эффект сам удаляется, когда доиграла его анимация
+function spawn(parent, cls, style) {
+  const el = document.createElement('i');
+  if (cls) el.className = cls;
+  for (const [k, v] of Object.entries(style)) el.style.setProperty(k, v);
+  el.addEventListener('animationend', () => el.remove());
+  parent.append(el);
+  return el;
+}
+
+function jolt() {
+  if (CALM) return;
+  app.classList.remove('jolt');
+  void app.offsetWidth;  // перезапуск анимации, если раунды идут подряд
+  app.classList.add('jolt');
+}
+
+const CONFETTI = ['#ffd23f', '#ff5d73', '#4dd5ff', '#7dff8a', '#ffffff', '#c58bff'];
+function confetti(p, count) {
+  if (CALM) return;
+  const fx = document.createElement('div');
+  fx.className = 'fx';
+  halves[p].append(fx);
+  for (let i = 0; i < count; i++) {
+    spawn(fx, '', {
+      left: Math.random() * 100 + '%', background: CONFETTI[i % CONFETTI.length],
+      '--x': `${(Math.random() - .5) * 120}px`, '--r': `${(Math.random() - .5) * 900}deg`,
+      '--t': `${1.4 + Math.random() * 1.2}s`, '--d': `${Math.random() * .5}s`,
+    });
+  }
+  setTimeout(() => fx.remove(), 3500);
+}
+
 for (const half of halves) {
   half.addEventListener('pointerdown', e => {
     if (e.target.closest('input')) return;  // поле ввода имени должно получить фокус
     e.preventDefault();
+    pressFx(e);
     if (soundMode) audioCtx();
     if (e.target.closest('.quit')) { buzz(20); showMenu(); return; }
     const p = Number(half.dataset.p);
@@ -1166,6 +1259,149 @@ for (const type of ['pointerup', 'pointercancel']) {
     if (p !== undefined && state.onRelease) state.onRelease(p);
   });
 }
+
+// ---------- клавиатура: двое за одним компьютером ----------
+// Красный (верх) — левая сторона клавиатуры Q W E / A S D, синий (низ) — правая U I O / J K L.
+// Клавиша жмёт кнопку в своей половине: окна «Перфоратора» — по местам (две строки по три),
+// из двух кнопок правая колонка (E, D, O, L) жмёт вторую, остальные — первую.
+const DESKTOP = matchMedia('(hover: hover) and (pointer: fine)').matches;
+if (DESKTOP) document.body.classList.add('desktop');
+const KB = {
+  KeyQ: [1, 0], KeyW: [1, 1], KeyE: [1, 2], KeyA: [1, 3], KeyS: [1, 4], KeyD: [1, 5],
+  KeyU: [0, 0], KeyI: [0, 1], KeyO: [0, 2], KeyJ: [0, 3], KeyK: [0, 4], KeyL: [0, 5],
+};
+const KB_HINT = ['U I O · J K L', 'Q W E · A S D'];
+const kbDown = new Set();
+
+function kbTarget(p, slot) {
+  const half = halves[p];
+  const wins = half.querySelectorAll('.win');
+  if (wins.length) return wins[slot] || null;
+  let list = [...half.querySelectorAll('.grab:not(.demo-btn)')];
+  // Кнопки «Начать», «Следующий раунд», «Реванш/Меню»; в меню с плитками клавиши не работают — там мышь
+  if (!list.length && !half.querySelector('.mode')) list = [...half.querySelectorAll('.btn')];
+  if (!list.length) return half;  // «Битва за пульт»: считается любой тап по своей половине
+  return list.length > 1 && slot % 3 === 2 ? list[1] : list[0];
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape' && !document.body.classList.contains('menu')) { showMenu(); return; }
+  const hit = KB[e.code];
+  if (!hit || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input')) return;
+  e.preventDefault();
+  if (soundMode) audioCtx();
+  const [p, slot] = hit;
+  const el = kbTarget(p, slot);
+  if (!el) return;
+  kbDown.add(e.code);
+  if (el !== halves[p]) {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 120);
+  }
+  if (state.onTap) state.onTap(p, el);
+});
+// Отпустил все свои клавиши — как отпустил палец (для игр с удержанием)
+document.addEventListener('keyup', e => {
+  const hit = KB[e.code];
+  if (!hit || !kbDown.delete(e.code)) return;
+  const p = hit[0];
+  if (![...kbDown].some(c => KB[c][0] === p) && state.onRelease) state.onRelease(p);
+});
+
+// ---------- игра против компьютера ----------
+// Робот играет за красного (верх): раз в 40 мс смотрит на свою половину так же, как человек, —
+// на подсвеченную кнопку, поплавок, шкалу — и жмёт с человеческой задержкой.
+// Реакция медленнее, если робот ведёт по счёту, и быстрее, если проигрывает: так интереснее.
+const BOT = {
+  P: 1,
+  on: false,
+  timer: 0,
+  name: '',
+  memo: new Set(),
+  next: 0,     // когда снова тапать в «Пульте» и «Пакетах»
+  aim: 0,      // на сколько процентов наполнить тарелку у бабушки
+  held: false,
+  start() {
+    if (this.on) return;
+    this.on = true;
+    this.name = NAMES[this.P];
+    NAMES[this.P] = t('🤖 Робот', '🤖 Robot');
+    this.timer = setInterval(() => this.think(), 40);
+  },
+  stop() {
+    if (!this.on) return;
+    this.on = false;
+    NAMES[this.P] = this.name;
+    clearInterval(this.timer);
+  },
+  // Новый раунд или экран — всё, на что уже реагировал, забываем
+  reset() { this.memo.clear(); this.next = 0; this.held = false; this.aim = rand(86, 99); },
+  reaction() {
+    const lead = state.wins[this.P] - state.wins[1 - this.P];
+    return rand(330, 620) + lead * 90;
+  },
+  // Один раз на ситуацию key: нажать через delay мс (таймер раунда — отменится вместе с ним)
+  once(key, delay, act) {
+    if (this.memo.has(key)) return;
+    this.memo.add(key);
+    later(delay, act);
+  },
+  tap(el) {
+    if (!el || !state.onTap) return;
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 120);
+    state.onTap(this.P, el);
+  },
+  think() {
+    if (!state.onTap) return;
+    const half = halves[this.P];
+    const $ = sel => half.querySelector(sel);
+    const go = $('.btn[data-act=go]:not(.on), .btn[data-act=next]:not(.on)');
+    if (go) { this.once('btn:' + go.dataset.act, rand(900, 1400), () => this.tap($(`[data-act=${go.dataset.act}]`))); return; }
+    const grab = $('.grab:not(.demo-btn)');
+    const now = performance.now();
+    const g = state.game;
+    if (g === PELMEN || g === METRO) {
+      if (grab?.classList.contains('hot')) this.once('hot', this.reaction(), () => this.tap(grab));
+      else if (stage.querySelector('.pelmen.peek') && Math.random() < .002) this.tap(grab);  // иногда и робот спешит
+    } else if (g === FISH) {
+      if (stage.querySelector('.float.dip')) this.once('dip', this.reaction(), () => this.tap(grab));
+      else if (stage.querySelector('.float.twitch') && Math.random() < .003) this.tap(grab);
+    } else if (g === REMOTE) {
+      if (now >= this.next) { this.tap(half); this.next = now + rand(115, 175); }
+    } else if (g === BABUSHKA) {
+      const fill = parseFloat($('.fill')?.style.width) * 1.25;  // шкала до 125%
+      if (grab && !grab.classList.contains('done') && fill >= this.aim) this.tap(grab);
+    } else if (g === MOM) {
+      const door = stage.textContent.includes('🚪');
+      const real = door && half.querySelector('.status')?.textContent.includes('!');
+      if (grab && !grab.classList.contains('held') && !grab.classList.contains('done') && !door) this.once('sleep', rand(200, 600), () => this.tap(grab));
+      if (grab?.classList.contains('held') && door) {
+        const fooled = !real && Math.random() < .25;
+        if (real || fooled) this.once(real ? 'door' : 'creak', real ? rand(250, 600) : rand(150, 400), () => state.onRelease?.(this.P));
+      }
+    } else if (g === BILL) {
+      if (grab && !grab.classList.contains('done')) { if (!this.held) { this.held = true; later(rand(250, 700), () => this.tap(grab)); } }
+      else this.held = false;
+    } else if (g === PICKLE) {
+      const dot = parseFloat(half.querySelector('.dot')?.style.left);
+      if (Math.abs(dot - 50) <= 6 && Math.random() < .35) this.tap(grab);
+    } else if (g === BAGS) {
+      const [push, stop] = half.querySelectorAll('.grab');
+      if (!push || push.classList.contains('done') || now < this.next) return;
+      this.next = now + rand(150, 280);
+      const hint = half.querySelector('.status')?.textContent || '';
+      const quit = hint.includes('😬') ? .75 : hint.includes('…') ? .22 : 0;
+      this.tap(Math.random() < quit ? stop : push);
+    } else if (g === DRILL) {
+      const wins = [...half.querySelectorAll('.win')];
+      const i = wins.findIndex(w => w.classList.contains('drill'));
+      if (i < 0) { this.memo.delete('drill'); return; }
+      const miss = Math.random() < .08;
+      this.once('drill', this.reaction() + 80, () => this.tap(miss ? wins[(i + 1 + Math.floor(Math.random() * 5)) % 6] : wins[i]));
+    }
+  },
+};
 
 // ---------- мини-игры ----------
 // Каждая игра: play(done), где done(победитель | null, текст итога раунда).
@@ -1818,8 +2054,8 @@ const DRILL = {
 
     document.body.classList.add('no-stage');
     stage.innerHTML = '';
-    sayEach(() => `<div class="status"></div>
-      <div class="wins">${[...Array(WINDOWS)].map((_, i) => `<div class="win" data-w="${i}">🪟</div>`).join('')}</div>`);
+    sayEach(p => `<div class="status"></div>
+      <div class="wins">${[...Array(WINDOWS)].map((_, i) => `<div class="win" data-w="${i}" data-k="${KB_HINT[p].replace(/\W/g, '')[i]}">🪟</div>`).join('')}</div>`);
 
     const drawStatus = p => setStatus(`<h2>🔨 ${hits[p]} ${t('из', 'of')} ${GOAL}</h2>`, p);
     [0, 1].forEach(drawStatus);
@@ -2003,10 +2239,12 @@ function enterMenu() {
 
 // Стартовый экран: где играем
 function showStart() {
+  BOT.stop();
   enterMenu();
   say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
-      <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('На одном телефоне', 'On one phone')}</b><small>${t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
+      <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
+      <div class="mode" data-where="bot"><span class="e">🤖</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
       ${PORTAL ? '' /* на площадках недоделанное не показываем */ : `<div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона · скоро', 'Each on your own phone · soon')}</small></span></div>`}
     </div>
     <div class="tools">
@@ -2025,6 +2263,7 @@ function showStart() {
     if (where === 'lang') { buzz(20); save('kolorit-lang', t('en', 'ru')); location.reload(); return; }
     buzz(20);
     if (where === 'local') showMenu();
+    else if (where === 'bot') { BOT.start(); showMenu(); }
     else if (where === 'rules') showRules();
     else if (where === 'records') showRecords();
     else if (where === 'names') showNames();
@@ -2240,6 +2479,7 @@ function progressText(p) {
 
 // «3, 2, 1» в центре, правило перед глазами, потом игра
 function countdown(game, wait) {
+  BOT.reset();
   music.stop();
   ADS.playing(true);
   document.body.classList.remove('no-stage', 'intro');
@@ -2258,6 +2498,7 @@ function countdown(game, wait) {
 
 // Экран «как играть»: анимация, правило и кнопка «Начать» у каждого игрока
 function showIntro(game, start) {
+  BOT.reset();
   document.body.classList.add('no-stage', 'intro');
   stage.innerHTML = '';
   const ready = [false, false];
@@ -2267,7 +2508,7 @@ function showIntro(game, start) {
   sayEach(p => `${head(p)}<h2>${game.emoji} ${game.title}</h2>
     <div class="demo"><div class="demo-pic"></div><div class="demo-bar"><b></b><i></i><s></s></div>
       <div class="grab demo-btn"></div><div class="demo-cap"></div></div>
-    <p class="demo-rule">${game.rule}</p><div class="go">${button(0)}</div>`);
+    <p class="demo-rule">${game.rule}</p>${DESKTOP ? `<p class="kb-hint">⌨️ ${t('Твои клавиши', 'Your keys')}: ${KB_HINT[p]}</p>` : ''}<div class="go">${button(0)}</div>`);
   playDemo(game.demo);
   // Задержка, чтобы тап по «Следующему раунду» не нажал заодно «Начать»
   const shownAt = performance.now();
@@ -2311,8 +2552,10 @@ function playDemo(frames) {
 }
 
 function roundOver(winner, text, stats) {
+  BOT.reset();
   if (winner !== null) state.wins[winner]++;
   updateHud();
+  if (winner !== null) { jolt(); confetti(winner, 18); }
   arena.innerHTML = '';
   document.body.classList.remove('no-stage');
   stage.innerHTML = `<div class="logo">${winner === null ? '🤷' : '⭐'}</div>`;
@@ -2360,6 +2603,7 @@ function showFinal() {
   flashResult(winner);
   buzz([100, 60, 100]);
   sfx('fanfare');
+  if (winner === null) { confetti(0, 25); confetti(1, 25); } else confetti(winner, 70);
   sayEach(p => {
     const head = winner === null
       ? t(`<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`, `<h1>Draw ${a}:${b} 🤝</h1><p>Evenly matched — rematch?</p>`)
