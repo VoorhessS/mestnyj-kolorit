@@ -644,13 +644,15 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 22;
+const BUILD = 23;
 
 // ---------- реклама ----------
-// Рекламу дают только площадки: Яндекс Игры и VK Mini Apps. Игра сама понимает, где
-// запущена, и зовёт их SDK. На своём сайте рекламы нет; с ?ads=test вместо неё заглушка.
+// Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
+// Игра сама понимает, где запущена, и зовёт их SDK. На своём сайте рекламы нет; с ?ads=test вместо неё заглушка.
 const ADS = {
-  kind: null,  // 'yandex', 'vk', 'test' или null — рекламы нет
+  kind: null,  // 'yandex', 'vk', 'tg', 'test' или null — рекламы нет
+  // Блоки AdsGram из кабинета partner.adsgram.ai: пока пусто — в Телеграме рекламы нет и всё открыто
+  ADSGRAM: { reward: '', inter: '' },
   sdk: null,
   GAP: 120000,  // между рекламами не меньше двух минут, отсчёт и от запуска игры
   lastAt: performance.now(),
@@ -660,6 +662,8 @@ const ADS = {
     const q = new URLSearchParams(location.search);
     if (q.get('ads') === 'test') this.kind = 'test';
     else if (q.has('vk_app_id')) this.kind = 'vk';
+    // Телеграм передаёт данные запуска в адресе после #
+    else if (/tgWebApp(Data|Platform)=/.test(location.hash)) this.kind = 'tg';
     else if (/(^|\.)(yandex\.(net|ru|com)|playhop\.com)$/.test(location.hostname)) this.kind = 'yandex';
     if (this.kind === 'vk') this.script('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js', () => {
       this.sdk = window.vkBridge;
@@ -667,6 +671,25 @@ const ADS = {
       // ВК сам говорит, какая часть его окна видна (viewport_height) — запоминаем для подгонки
       this.sdk.subscribe(e => { if (e.detail?.type === 'VKWebAppUpdateConfig') this.vkFit(e.detail.data); });
       this.sdk.send('VKWebAppGetConfig').then(c => this.vkFit(c)).catch(() => {});
+    });
+    if (this.kind === 'tg') this.script('https://telegram.org/js/telegram-web-app.js', () => {
+      const tg = window.Telegram.WebApp;
+      // Язык — как в Телеграме у игрока, пока он сам не переключил
+      const want = /^(ru|be|kk|uk|uz)$/.test(tg.initDataUnsafe?.user?.language_code) ? 'ru' : 'en';
+      if (localStorage.getItem('kolorit-lang') === null && want !== lang) {
+        save('kolorit-lang', want);
+        location.reload();
+        return;
+      }
+      tg.ready();
+      tg.expand();
+      // Свайп вниз в Телеграме сворачивает приложение — посреди тапов это беда
+      tg.disableVerticalSwipes?.();
+      tg.enableClosingConfirmation?.();
+      const blocks = Object.entries(this.ADSGRAM).filter(([, id]) => id);
+      if (blocks.length) this.script('https://sad.adsgram.ai/js/sad.min.js', () => {
+        this.sdk = Object.fromEntries(blocks.map(([k, id]) => [k, window.Adsgram.init({ blockId: id })]));
+      });
     });
     // Яндекс отдаёт SDK со своего же сервера по этому адресу
     if (this.kind === 'yandex') this.script('/sdk.js', () => window.YaGames.init().then(sdk => {
@@ -692,7 +715,7 @@ const ADS = {
     document.head.append(s);
   },
   // Есть ли где взять рекламу за награду: без неё скины не закрываем
-  get rewards() { return this.kind !== null; },
+  get rewards() { return this.kind !== null && (this.kind !== 'tg' || Boolean(this.ADSGRAM.reward)); },
   // Яндекс просит отмечать, когда идёт сама игра, а когда меню и пауза
   playing(on) {
     if (this.kind === 'yandex') this.sdk?.features.GameplayAPI?.[on ? 'start' : 'stop']();
@@ -725,6 +748,11 @@ const ADS = {
   },
   show(rewarded) {
     if (this.kind === 'test') return this.fake(rewarded);
+    if (this.kind === 'tg') {
+      // AdsGram: show() выполняется, когда досмотрели, и падает, если пропустили или нечего показать
+      const block = this.sdk[rewarded ? 'reward' : 'inter'];
+      return block ? block.show().then(r => Boolean(r?.done)) : Promise.resolve(false);
+    }
     if (this.kind === 'vk') {
       return this.sdk.send('VKWebAppShowNativeAds', { ad_format: rewarded ? 'reward' : 'interstitial' })
         .then(data => Boolean(data && data.result));
@@ -768,9 +796,9 @@ const ADS = {
   },
 };
 ADS.init();
-// Игра открыта на игровом портале (Яндекс, VK, CrazyGames, itch.io), а не на своём сайте:
+// Игра открыта на игровом портале (Яндекс, VK, Телеграм, CrazyGames, itch.io), а не на своём сайте:
 // там не показываем недоделанное и не ставим офлайн-режим — порталы обновляют игру сами
-const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
+const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || ADS.kind === 'tg' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
 
 const RU_NAMES = ['Синий', 'Красный'];
 const EN_NAMES = ['Blue', 'Red'];
