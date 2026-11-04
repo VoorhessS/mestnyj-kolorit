@@ -627,6 +627,48 @@
   body.online .half.p1 { transform: none; }
   body.guest .half.p1 { order: 2; }
   body.guest #arena { transform: rotate(180deg); }
+  /* Инструкция «По сети»: два телефона, код летит от тебя к другу, подписи шагов сменяются (цикл 9 с) */
+  .how-net { --T: 9s; margin: 8px auto 0; max-width: 300px; }
+  .how-net .scene { position: relative; display: flex; justify-content: space-between; align-items: flex-end; height: 92px; padding: 0 18px; }
+  .how-net .ph { position: relative; width: 50px; height: 80px; border: 3px solid var(--ink); border-radius: 10px; background: rgba(0,0,0,.25); }
+  .how-net .ph::before { content: ''; position: absolute; left: 50%; bottom: 3px; width: 10px; height: 3px; margin-left: -5px; border-radius: 2px; background: var(--ink); opacity: .6; }
+  .how-net .ph > span { position: absolute; inset: 6px 3px 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; opacity: 0; }
+  .how-net .ph > span.e { font-size: 24px; }
+  .how-net .ph > .who { inset: auto -14px auto; top: 100%; margin-top: 3px; font-size: 12px; font-weight: 400; opacity: .85; }
+  .how-net .fly { position: absolute; left: 62px; bottom: 34px; padding: 2px 6px; border-radius: 8px; background: var(--ink); color: #333; font-size: 12px; font-weight: 800; white-space: nowrap; opacity: 0; animation: hn-fly var(--T) infinite; }
+  .how-net .finger { position: absolute; left: 44px; bottom: 6px; font-size: 22px; opacity: 0; animation: hn-finger var(--T) infinite; }
+  .how-net .steps { position: relative; height: 40px; margin-top: 24px; }
+  .how-net .steps p { position: absolute; inset: 0; margin: 0; font-size: 14px; line-height: 1.3; opacity: 0; }
+  .how-net .steps b { font-size: 16px; }
+  /* Шаг 1 (0–33%), шаг 2 (33–62%), шаг 3 (62–100%) */
+  .how-net .a1 { animation: hn-a1 var(--T) infinite; }
+  .how-net .a2 { animation: hn-a2 var(--T) infinite; }
+  .how-net .a3 { animation: hn-a3 var(--T) infinite; }
+  .how-net .b1 { animation: hn-b1 var(--T) infinite; }
+  .how-net .b2 { animation: hn-b2 var(--T) infinite; }
+  .how-net .b3 { animation: hn-b3 var(--T) infinite; }
+  .how-net .s1 { animation: hn-s1 var(--T) infinite; }
+  .how-net .s2 { animation: hn-s2 var(--T) infinite; }
+  .how-net .s3 { animation: hn-s3 var(--T) infinite; }
+  @keyframes hn-s1 { 0%, 31% { opacity: 1; } 33%, 100% { opacity: 0; } }
+  @keyframes hn-s2 { 0%, 33% { opacity: 0; } 35%, 60% { opacity: 1; } 62%, 100% { opacity: 0; } }
+  @keyframes hn-s3 { 0%, 62% { opacity: 0; } 64%, 98% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes hn-finger { 0%, 4% { opacity: 0; transform: translate(10px, 14px); } 10%, 16% { opacity: 1; transform: none; } 19% { transform: scale(.85); } 22% { opacity: 1; transform: none; } 27%, 100% { opacity: 0; } }
+  @keyframes hn-a1 { 0%, 19% { opacity: 1; } 21%, 100% { opacity: 0; } }
+  @keyframes hn-a2 { 0%, 20% { opacity: 0; transform: scale(.4); } 23% { opacity: 1; transform: scale(1.2); } 26%, 78% { opacity: 1; transform: none; } 80%, 100% { opacity: 0; } }
+  @keyframes hn-a3 { 0%, 79% { opacity: 0; } 82%, 98% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes hn-fly { 0%, 36% { opacity: 0; left: 62px; } 39% { opacity: 1; left: 62px; } 55% { opacity: 1; left: calc(100% - 120px); } 58%, 100% { opacity: 0; left: calc(100% - 120px); } }
+  @keyframes hn-b1 { 0%, 56% { opacity: 1; } 58%, 100% { opacity: 0; } }
+  @keyframes hn-b2 { 0%, 57% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(1.2); } 63%, 78% { opacity: 1; transform: none; } 80%, 100% { opacity: 0; } }
+  @keyframes hn-b3 { 0%, 79% { opacity: 0; } 82%, 98% { opacity: 1; } 100% { opacity: 0; } }
+  /* Без анимаций: сразу итоговая картинка и все три шага списком */
+  @media (prefers-reduced-motion: reduce) {
+    .how-net * { animation: none !important; }
+    .how-net .a3, .how-net .b3 { opacity: 1; }
+    .how-net .fly, .how-net .finger { display: none; }
+    .how-net .steps { height: auto; }
+    .how-net .steps p { position: static; opacity: 1; margin-top: 2px; }
+  }
   .code-input { letter-spacing: 8px; font-size: 28px; }
   .kb-hint { margin-top: 6px; font-size: 13px; opacity: .8; letter-spacing: 1px; }
   /* На компьютере у каждого окна «Перфоратора» подписана его клавиша */
@@ -686,7 +728,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 30;
+const BUILD = 31;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1480,11 +1522,29 @@ document.addEventListener('pointerdown', e => {
 });
 for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, () => { if (ONLINE.role === 'guest') ONLINE.up(); });
 
+// Анимированная подсказка, как сыграть по сети: ты создаёшь → код летит другу → друг входит, оба в игре
+function howNet() {
+  return `<div class="how-net" aria-hidden="true">
+    <div class="scene">
+      <div class="ph"><span class="e a1">➕</span><span class="a2">1234</span><span class="e a3">🎮</span><span class="who">${t('Ты', 'You')}</span></div>
+      <div class="finger">👆</div>
+      <div class="fly">📤 1234</div>
+      <div class="ph"><span class="e b1">🔢</span><span class="b2">1234</span><span class="e b3">🎮</span><span class="who">${t('Друг', 'Friend')}</span></div>
+    </div>
+    <div class="steps">
+      <p class="s1"><b>1.</b> ${t('Ты жмёшь «Создать игру» — появится код', 'You tap “Create a game” — you get a code')}</p>
+      <p class="s2"><b>2.</b> ${t('«Пригласить» — код улетит другу', '“Invite” sends the code to your friend')}</p>
+      <p class="s3"><b>3.</b> ${t('Друг: «Войти по коду» — и вы играете!', 'Friend: “Join with a code” — and you play!')}</p>
+    </div>
+  </div>`;
+}
+
 // Экран «По сети»: создать комнату или войти по коду
 function showOnline(note = '') {
   enterMenu();
   ONLINE.leave();
-  sayEach(p => `<h2>🌐 ${t('По сети', 'Online')}</h2><p>${note || t('Каждый играет со своего телефона', 'Each player on their own phone')}</p>
+  sayEach(p => `<h2>🌐 ${t('По сети', 'Online')}</h2>${note ? `<p>${note}</p>` : ''}
+    ${howNet()}
     <div class="modes">
       <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Получишь код для друга', 'You get a code for your friend')}</small></span></div>
       <div class="mode" data-act="join"><span class="e">🔢</span><span><b>${t('Войти по коду', 'Join with a code')}</b><small>${t('Код пришлёт друг', 'Your friend sends the code')}</small></span></div>
