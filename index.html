@@ -276,6 +276,44 @@
   /* Без CSS-фильтров на эмодзи: iOS Safari рисует их чёрными прямоугольниками */
   .logo { font-size: 18vmin; line-height: 1; font-weight: 800; text-shadow: 0 4px 10px rgba(0,0,0,.35); }
   body.menu .logo { font-size: 14vmin; }
+  /* Новый экран въезжает снизу (у каждого игрока — со своей стороны) */
+  .msg.enter { animation: enter .3s ease-out; }
+  @keyframes enter { from { opacity: 0; translate: 0 22px; } }
+  /* Звёзды побед в углу: новая влетает с поворотом; счёт на итоге — перекидные таблички */
+  .hud .score i { display: inline-block; font-style: normal; }
+  .hud .score i.new { animation: starin .8s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes starin { from { transform: scale(2.6) rotate(-200deg); opacity: 0; } }
+  .board { margin-top: 4px; }
+  .board .tile { display: inline-block; min-width: 1.6em; margin: 0 3px; padding: 1px 6px; border-radius: 7px; background: rgba(0,0,0,.28);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.2); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .board .tile.flip { animation: flip .7s ease-out; background: rgba(255,255,255,.3); }
+  @keyframes flip { 0% { transform: perspective(200px) rotateX(90deg); } 60% { transform: perspective(200px) rotateX(-25deg); } 100% { transform: none; } }
+  body[class*="skin-"] .board .tile { background: transparent; box-shadow: none; padding: 0; min-width: 0; }
+  @media (prefers-reduced-motion: reduce) { .msg.enter, .hud .score i.new, .board .tile.flip { animation: none; } }
+  /* «Постучи и беги»: кот за дверью — дверь вздрагивает, шаги — трясётся */
+  .knock-door.cat { animation: shake .12s 3 alternate; }
+  .knock-door.steps { animation: shake .07s infinite alternate; }
+  /* Бабушка на итоге: победитель радуется и подпрыгивает, проигравший сердито мотает головой */
+  .granny { display: block; width: 60px; height: 60px; margin: 0 auto 4px; }
+  .granny.big { width: 84px; height: 84px; }
+  .half.p0 .granny { --scarf: #1f5ea6; }
+  .half.p1 .granny { --scarf: #a3302a; }
+  .granny.is-win { animation: hop .5s ease-in-out 4; }
+  .granny.is-lose { animation: grump .4s ease-in-out 4; }
+  .granny.is-draw { animation: shrug 1.1s ease-in-out 2; }
+  @keyframes hop { 50% { transform: translateY(-12px) rotate(-6deg) scale(1.06); } }
+  @keyframes grump { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+  @keyframes shrug { 30% { transform: rotate(-8deg); } 70% { transform: rotate(8deg); } }
+  @media (max-height: 720px) { .granny { width: 42px; height: 42px; margin-bottom: 0; } .granny.big { width: 60px; height: 60px; } }
+  @media (prefers-reduced-motion: reduce) { .granny { animation: none !important; } }
+  /* Свои иконки (svg) — размером с букву, в карточках меню и на заставке крупнее */
+  .ico { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -.25em; }
+  .mode .e .ico { width: 36px; height: 36px; vertical-align: middle; }
+  .modes.grid .mode .e .ico { width: 40px; height: 40px; }
+  .logo .ico { width: 1em; height: 1em; vertical-align: top; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
+  @media (max-height: 760px) { .mode .e .ico, .modes.grid .mode .e .ico { width: 28px; height: 28px; } }
+  body.skin-nokia .ico { filter: grayscale(1) contrast(1.3); opacity: .8; }
+  body.skin-arcade .ico { filter: drop-shadow(0 0 4px rgba(109,255,138,.6)); }
 
   /* --- Последний пельмень --- */
   .pot {
@@ -702,6 +740,152 @@
   <div id="arena"></div>
   <div id="stage"></div>
 </div>
+<!-- Свои иконки игр и бабушки вместо эмодзи: на всех телефонах выглядят одинаково.
+     Вне #app, чтобы игра по сети не гоняла их гостю: у гостя тот же файл и та же коробка иконок -->
+<svg id="sprite" width="0" height="0" style="position: absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-tour" viewBox="0 0 48 48">
+      <g transform="rotate(-12 24 24)">
+        <rect x="8" y="9" width="32" height="32" rx="7" fill="#d9c7ab"/>
+        <rect x="8" y="7" width="32" height="30" rx="7" fill="#fff8ec"/>
+        <g fill="#d1453b"><circle cx="16" cy="15" r="3"/><circle cx="32" cy="15" r="3"/><circle cx="24" cy="22" r="3"/><circle cx="16" cy="29" r="3"/><circle cx="32" cy="29" r="3"/></g>
+      </g>
+    </symbol>
+    <symbol id="i-pelmen" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="37" rx="21" ry="8" fill="#5d9fc4"/>
+      <ellipse cx="24" cy="36" rx="16" ry="5" fill="#b9e1f5"/>
+      <path d="M7 34 Q24 6 41 34 Q24 39 7 34Z" fill="#f6e7c8"/>
+      <path d="M7 34 Q24 39 41 34 Q24 42 7 34Z" fill="#dcc59e"/>
+      <path d="M14 26q3 2 1 6M20 19q3 4 1 9M28 19q-3 4-1 9M34 26q-3 2-1 6" stroke="#dcc59e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M17 11q-3-3 0-6M24 9q-3-3 0-6M31 11q-3-3 0-6" stroke="#fff" stroke-opacity=".8" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-remote" viewBox="0 0 48 48">
+      <rect x="15" y="3" width="18" height="42" rx="7" fill="#2a2d33"/>
+      <rect x="17" y="5" width="5" height="38" rx="2.5" fill="#4f5560"/>
+      <circle cx="24" cy="11" r="3.4" fill="#e0453b"/>
+      <g fill="#9aa1ad"><circle cx="20" cy="19" r="2"/><circle cx="24" cy="19" r="2"/><circle cx="28" cy="19" r="2"/><circle cx="20" cy="25" r="2"/><circle cx="24" cy="25" r="2"/><circle cx="28" cy="25" r="2"/></g>
+      <rect x="18.5" y="31" width="11" height="3.4" rx="1.7" fill="#5b8fd6"/>
+      <rect x="18.5" y="37" width="11" height="3.4" rx="1.7" fill="#3fae5a"/>
+    </symbol>
+    <symbol id="i-babushka" viewBox="0 0 48 48">
+      <path d="M37 25 46 6" stroke="#c3c9d2" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M5 24h38a19 17 0 0 1-38 0Z" fill="#fff8ec"/>
+      <path d="M7.5 31h33" stroke="#2f7dd1" stroke-width="3"/>
+      <path d="M13 37.5h22" stroke="#d1453b" stroke-width="2.4"/>
+      <ellipse cx="24" cy="24" rx="19" ry="4.5" fill="#e8a33a"/>
+      <circle cx="18" cy="23.5" r="2" fill="#f6c46a"/><circle cx="28" cy="24.5" r="1.6" fill="#3fae5a"/>
+      <path d="M17 15q-3-3 0-6M24 13q-3-3 0-6M31 15q-3-3 0-6" stroke="#fff" stroke-opacity=".8" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-mom" viewBox="0 0 48 48">
+      <path d="M14 40l-3 5M34 40l3 5" stroke="#2b1d14" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="11" cy="12" r="6" fill="#e8b21f"/><circle cx="37" cy="12" r="6" fill="#e8b21f"/>
+      <circle cx="24" cy="27" r="16" fill="#ffcf3f"/>
+      <circle cx="24" cy="27" r="12" fill="#fff8ec"/>
+      <path d="M24 27v-8M24 27l6 3" stroke="#2b1d14" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="24" cy="27" r="1.8" fill="#d1453b"/>
+    </symbol>
+    <symbol id="i-metro" viewBox="0 0 48 48">
+      <path d="M13 41l-4 5M35 41l4 5" stroke="#2b1d14" stroke-width="3" stroke-linecap="round"/>
+      <rect x="8" y="5" width="32" height="37" rx="9" fill="#eef1f4"/>
+      <rect x="8" y="27" width="32" height="10" fill="#6b7886"/>
+      <rect x="8" y="34" width="32" height="8" rx="4" fill="#6b7886"/>
+      <rect x="8" y="25" width="32" height="3" fill="#d1453b"/>
+      <rect x="12" y="10" width="24" height="13" rx="3.5" fill="#b9e1f5"/>
+      <path d="M14 12h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="15" cy="33" r="2.6" fill="#ffd23f"/><circle cx="33" cy="33" r="2.6" fill="#ffd23f"/>
+      <path d="M20.5 35v-5l3.5 3 3.5-3v5" stroke="#ffd23f" stroke-width="2" fill="none" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-bill" viewBox="0 0 48 48">
+      <path d="M11 3h26v40l-4.3-3-4.4 3-4.3-3-4.3 3-4.4-3L11 43Z" fill="#fff8ec"/>
+      <g fill="#cdbb9c"><rect x="15" y="9" width="18" height="2.6" rx="1.3"/><rect x="15" y="15" width="12" height="2.6" rx="1.3"/><rect x="15" y="21" width="16" height="2.6" rx="1.3"/></g>
+      <rect x="15" y="29" width="18" height="4" rx="2" fill="#2b1d14"/>
+      <circle cx="34" cy="34" r="8" fill="#e8b21f"/><circle cx="34" cy="34" r="5.5" fill="#ffcf3f"/>
+    </symbol>
+    <symbol id="i-fish" viewBox="0 0 48 48">
+      <path d="M33 24l12-9v18Z" fill="#e8742a"/>
+      <ellipse cx="21" cy="24" rx="15" ry="10" fill="#ff8a3d"/>
+      <path d="M17 14.5q5-6 11 0" fill="#e8742a"/>
+      <path d="M13 31q8 4 16 0" stroke="#ffb27a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M24 17q3 7 0 14" stroke="#e8742a" stroke-width="2" fill="none"/>
+      <circle cx="13" cy="21.5" r="3" fill="#fff"/><circle cx="12.4" cy="21.5" r="1.5" fill="#2b1d14"/>
+    </symbol>
+    <symbol id="i-pickle" viewBox="0 0 48 48">
+      <rect x="9" y="10" width="30" height="35" rx="8" fill="#cfeaf6"/>
+      <rect x="14" y="15" width="8" height="25" rx="4" fill="#3fae5a" transform="rotate(-7 18 27)"/>
+      <rect x="25" y="14" width="8" height="26" rx="4" fill="#2e8b47" transform="rotate(6 29 27)"/>
+      <g fill="#a6e0b5"><circle cx="17" cy="22" r="1"/><circle cx="19" cy="30" r="1"/><circle cx="29" cy="20" r="1"/><circle cx="30" cy="31" r="1"/></g>
+      <rect x="12" y="14" width="3" height="22" rx="1.5" fill="#fff" fill-opacity=".6"/>
+      <rect x="11" y="4" width="26" height="8" rx="3" fill="#e8b21f"/>
+      <rect x="11" y="9" width="26" height="3" fill="#c9971a"/>
+    </symbol>
+    <symbol id="i-bags" viewBox="0 0 48 48">
+      <path d="M16 16q0-12 8-12t8 12" stroke="#fff8ec" stroke-width="3.4" fill="none"/>
+      <path d="M12 14q4-6 8 0M22 13q5-7 10 0" fill="#ffcf3f"/>
+      <path d="M15 14q5-8 11-1" fill="#2f7dd1"/>
+      <path d="M8 15h32l-2.5 27a4 4 0 0 1-4 3.5h-19a4 4 0 0 1-4-3.5Z" fill="#fff8ec"/>
+      <path d="M10 22h28" stroke="#e2d3bd" stroke-width="2"/>
+      <circle cx="24" cy="32" r="6" fill="#d1453b"/><circle cx="24" cy="32" r="2.4" fill="#fff8ec"/>
+    </symbol>
+    <symbol id="i-drill" viewBox="0 0 48 48">
+      <path d="M12 27h11l-2.5 14h-9Z" fill="#3a3f47"/>
+      <rect x="9" y="40" width="15" height="5" rx="1.5" fill="#2a2d33"/>
+      <rect x="4" y="14" width="28" height="14" rx="5" fill="#ff8a3d"/>
+      <rect x="6" y="16" width="14" height="4" rx="2" fill="#ffb27a"/>
+      <rect x="32" y="17" width="6" height="8" rx="1.5" fill="#6b717c"/>
+      <path d="M38 19.5h7l2 1.5-2 1.5h-7Z" fill="#c3c9d2"/>
+      <rect x="19" y="28" width="3" height="5" rx="1" fill="#e0453b"/>
+    </symbol>
+    <symbol id="i-knock" viewBox="0 0 48 48">
+      <rect x="13" y="3" width="30" height="43" rx="2" fill="#5e3a20"/>
+      <rect x="16" y="6" width="24" height="40" fill="#a8693c"/>
+      <g fill="none" stroke="#86522d" stroke-width="2.2"><rect x="19.5" y="10" width="17" height="13" rx="1"/><rect x="19.5" y="27" width="17" height="14" rx="1"/></g>
+      <circle cx="35" cy="25" r="2.2" fill="#ffd23f"/>
+      <circle cx="28" cy="16.5" r="1.6" fill="#2b1d14"/>
+      <path d="M8 18q-3 5 0 10M3.5 15q-4 8 0 16" stroke="#fff8ec" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-local" viewBox="0 0 48 48">
+      <rect x="4" y="9" width="18" height="32" rx="4" fill="#2a2d33" transform="rotate(-10 13 25)"/>
+      <rect x="7" y="13" width="12" height="22" rx="1.5" fill="#5b8fd6" transform="rotate(-10 13 25)"/>
+      <rect x="26" y="9" width="18" height="32" rx="4" fill="#2a2d33" transform="rotate(10 35 25)"/>
+      <rect x="29" y="13" width="12" height="22" rx="1.5" fill="#e0453b" transform="rotate(10 35 25)"/>
+    </symbol>
+    <symbol id="i-bot" viewBox="0 0 48 48">
+      <path d="M24 10V5" stroke="#c3c9d2" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="4.5" r="3" fill="#e0453b"/>
+      <rect x="3" y="20" width="5" height="12" rx="2" fill="#9aa1ad"/><rect x="40" y="20" width="5" height="12" rx="2" fill="#9aa1ad"/>
+      <rect x="7" y="10" width="34" height="30" rx="9" fill="#dfe4ea"/>
+      <rect x="11" y="15" width="26" height="15" rx="6" fill="#2a2d33"/>
+      <circle cx="18" cy="22.5" r="3.4" fill="#6dd3ff"/><circle cx="30" cy="22.5" r="3.4" fill="#6dd3ff"/>
+      <rect x="17" y="33" width="14" height="3" rx="1.5" fill="#9aa1ad"/>
+    </symbol>
+    <symbol id="i-online" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="20" fill="#3fa0e0"/>
+      <path d="M11 13q5 1 6 6t-4 9q-2 4 1 8M30 6q-2 5 3 7t8 0M36 36q-4-6 1-9t7 1" fill="none" stroke="#3fae5a" stroke-width="5" stroke-linecap="round"/>
+      <g fill="none" stroke="#fff8ec" stroke-width="1.8" stroke-opacity=".75"><ellipse cx="24" cy="24" rx="9" ry="20"/><path d="M4 24h40M7 14h34M7 34h34"/></g>
+    </symbol>
+    <!-- Бабушка для итога раунда: платок цвета игрока (--scarf), лицо по настроению -->
+    <symbol id="g-base" viewBox="0 0 64 64">
+      <path d="M22 54l-8 9h12l6-7 6 7h12l-8-9Z" fill="var(--scarf, #a3302a)"/>
+      <circle cx="32" cy="32" r="27" fill="var(--scarf, #a3302a)" stroke="#fff8ec" stroke-width="2.5"/>
+      <g fill="#fff8ec" fill-opacity=".85"><circle cx="13" cy="24" r="2.4"/><circle cx="18" cy="12" r="2"/><circle cx="46" cy="12" r="2"/><circle cx="51" cy="24" r="2.4"/><circle cx="12" cy="40" r="2"/><circle cx="52" cy="40" r="2"/></g>
+      <circle cx="32" cy="35" r="18" fill="#f7d9b9"/>
+      <path d="M14.5 31q17.5-17 35 0q-17.5-8-35 0Z" fill="#d8d8d8"/>
+      <g fill="#f29a8f" fill-opacity=".75"><circle cx="22" cy="42" r="3.6"/><circle cx="42" cy="42" r="3.6"/></g>
+    </symbol>
+    <symbol id="g-win" viewBox="0 0 64 64">
+      <path d="M22 36q3.5-4.5 7 0M35 36q3.5-4.5 7 0" stroke="#2b1d14" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M25 42q7 9 14 0Z" fill="#7a2424"/>
+    </symbol>
+    <symbol id="g-lose" viewBox="0 0 64 64">
+      <path d="M21 30l7 3M43 30l-7 3" stroke="#2b1d14" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="25.5" cy="36.5" r="2.2" fill="#2b1d14"/><circle cx="38.5" cy="36.5" r="2.2" fill="#2b1d14"/>
+      <path d="M26 47q6-5 12 0" stroke="#2b1d14" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="g-draw" viewBox="0 0 64 64">
+      <circle cx="25.5" cy="36" r="2.2" fill="#2b1d14"/><circle cx="38.5" cy="36" r="2.2" fill="#2b1d14"/>
+      <path d="M27 45h10" stroke="#2b1d14" stroke-width="2.6" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
 
 <script>
 // ---------- память телефона: имена и рекорды ----------
@@ -728,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 31;
+const BUILD = 32;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1015,11 +1199,29 @@ function setStatus(html, p) {
 
 function $p(p, sel) { return halves[p].querySelector(sel); }
 
+const hudWins = [0, 0];
 function updateHud() {
   for (const p of [0, 1]) {
     $p(p, '.name').textContent = NAMES[p];
-    $p(p, '.score').textContent = '⭐'.repeat(state.wins[p]) || '—';
+    const n = state.wins[p];
+    $p(p, '.score').innerHTML = n ? [...Array(n)].map((_, i) => `<i class="${i >= hudWins[p] ? 'new' : ''}">⭐</i>`).join('') : '—';
+    hudWins[p] = n;
   }
+}
+
+// Новый экран въезжает. По сети не трогаем: гость получает экран целиком при каждом изменении
+function swipeIn() {
+  if (CALM || ONLINE.peer) return;
+  for (const h of halves) {
+    const m = h.querySelector('.msg');
+    m.classList.remove('enter');
+    void m.offsetWidth;  // перезапуск анимации
+    m.classList.add('enter');
+  }
+}
+for (const h of halves) {
+  const m = h.querySelector('.msg');
+  m.addEventListener('animationend', e => { if (e.target === m) m.classList.remove('enter'); });
 }
 
 function later(ms, fn) { state.timers.push(setTimeout(fn, ms)); }
@@ -1103,6 +1305,7 @@ const NOTE = n => 440 * 2 ** ((n - 69) / 12);  // номер MIDI-ноты → �
 const SFX = {
   tick: () => tone(1400, .03, 'square', .05),
   tap: () => tone(880, .05, 'square', .08),
+  knock: () => { tone(150, .05, 'square', .16); tone(90, .07, 'triangle', .2, .01); },
   hit: () => { tone(660, .05); tone(990, .07, 'square', .1, .05); },
   alert: () => tone(520, .15, 'triangle', .2, 0, 780),
   go: () => { tone(784, .08, 'square', .14); tone(1175, .18, 'square', .14, .08); },
@@ -1687,6 +1890,13 @@ const BOT = {
       const hint = half.querySelector('.status')?.textContent || '';
       const quit = hint.includes('😬') ? .75 : hint.includes('…') ? .22 : 0;
       this.tap(Math.random() < quit ? stop : push);
+    } else if (g === KNOCK) {
+      const [knock, run] = half.querySelectorAll('.grab');
+      if (!knock || knock.classList.contains('done')) return;
+      const hint = half.querySelector('.status')?.textContent || '';
+      if (hint.includes('👣')) this.once('run', this.reaction() + 120, () => this.tap(run));
+      else if (hint.includes('🐈') && Math.random() < .01) this.tap(run);  // кот иногда пугает и робота
+      if (now >= this.next) { this.tap(knock); this.next = now + rand(150, 240); }
     } else if (g === DRILL) {
       const wins = [...half.querySelectorAll('.win')];
       const i = wins.findIndex(w => w.classList.contains('drill'));
@@ -2408,6 +2618,95 @@ const DRILL = {
   },
 };
 
+const KNOCK = {
+  emoji: '🚪',
+  title: t('Постучи и беги', 'Knock and Run'),
+  rule: t('Тапай «✊ Стучать» — каждый стук очко. Услышал шаги 👣 — стук идёт ×2, но жми «🏃 Бежать!», пока не открыли.<br>Попался у двери — ноль. Больше настучал и сбежал — победил.',
+    'Tap “✊ Knock” — every knock is a point. Hear footsteps 👣? Knocks count ×2 now, but hit “🏃 Run!” before the door opens.<br>Caught at the door — zero. Most knocks and a clean getaway wins.'),
+  // Дверь одна на двоих: шаги и открытие у обоих в одно время. Иногда за дверью топает кот — ложная тревога.
+  play(done) {
+    const open = rand(5000, 10000);
+    const steps = open - rand(850, 1150);
+    const pts = [0, 0];
+    const st = ['open', 'open'];  // open — стучит, ran — убежал
+    let cue = 'quiet';            // quiet — тихо, cat — топает кот, steps — идут к двери
+    let over = false;
+
+    const door = cls => { stage.innerHTML = `<div class="logo knock-door ${cls}">${ico('knock')}</div>`; };
+    door('');
+    sayEach(() => `<div class="status"></div>
+      <div class="row"><div class="grab" data-b="knock">${t('✊ Стучать', '✊ Knock')}</div><div class="grab" data-b="run">${t('🏃 Бежать!', '🏃 Run!')}</div></div>`);
+
+    const drawStatus = p => {
+      const hint = st[p] === 'ran' ? t('Сбежал, сидишь за углом 🤫', 'You ran, hiding round the corner 🤫')
+        : cue === 'steps' ? t('👣 Шаги за дверью! Стук ×2', '👣 Footsteps! Knocks ×2')
+        : cue === 'cat' ? t('🐈 Кто-то топает…', '🐈 Something’s pattering…')
+        : t('Тихо… стучи!', 'All quiet… knock!');
+      setStatus(`<h2>✊ ${pts[p]}</h2><p>${hint}</p>`, p);
+    };
+    [0, 1].forEach(drawStatus);
+
+    // Ложная тревога: топает кот, через полсекунды выясняется
+    if (Math.random() < .55 && steps > 3500) {
+      const when = rand(1500, steps - 1500);
+      later(when, () => { cue = 'cat'; door('cat'); [0, 1].forEach(drawStatus); buzz(20); });
+      later(when + 650, () => {
+        cue = 'quiet'; door('');
+        for (const p of [0, 1]) if (st[p] === 'open') setStatus(`<h2>✊ ${pts[p]}</h2><p>${t('…это кот 🐈 Стучи дальше', '…just the cat 🐈 Keep knocking')}</p>`, p);
+      });
+    }
+    later(steps, () => {
+      cue = 'steps'; door('steps'); [0, 1].forEach(drawStatus); sfx('alert'); buzz([40, 30, 40]);
+      for (const p of [0, 1]) if (st[p] === 'open') $p(p, '[data-b=run]').classList.add('hot');  // «Бежать!» загорается
+    });
+
+    const burst = () => {
+      if (over) return;
+      over = true;
+      stopAll();
+      stage.innerHTML = '<div class="logo">👴</div>';
+      sfx('bad');
+      const caught = st.map(s => s === 'open');
+      const score = [0, 1].map(p => caught[p] ? -1 : pts[p]);
+      const winner = score[0] === score[1] ? null : (score[0] > score[1] ? 0 : 1);
+      if (winner !== null && score[winner] > 0) noteRecord(winner, score[winner]);
+      flashResult(winner);
+      buzz([80, 40, 80]);
+      for (const p of [0, 1]) {
+        const verdict = caught[p] ? t('Попался! 👴', 'Caught! 👴')
+          : winner === p ? t('Настучал и смылся 😎', 'Knocked and vanished 😎')
+          : winner === null ? t('Поровну 🤝', 'Even 🤝')
+          : t('Маловато настучал 😕', 'Not enough knocks 😕');
+        say(`<h2>${t('👴 «Ах вы ж!..»', '👴 “Why, you little…!”')}</h2><h2>${verdict}</h2><p>${t('Стуков', 'Knocks')}: ${pts[p]}</p>`, p);
+      }
+      const text = winner === null
+        ? (caught[0] && caught[1] ? t('Сосед поймал обоих', 'The neighbor caught you both') : t('Поровну — ничья', 'Even — draw'))
+        : t(`${NAMES[winner]} настучал ${score[winner]} и не попался`, `${NAMES[winner]} knocked ${score[winner]} times and got away`);
+      const stats = [0, 1].map(p => caught[p] ? t('попался 👴', 'caught 👴') : `✊ ${pts[p]}`);
+      later(2200, () => done(winner, text, stats));
+    };
+    later(open, burst);
+
+    state.onTap = (p, el) => {
+      const b = el.closest('.grab')?.dataset.b;
+      if (!b || st[p] !== 'open') return;
+      if (b === 'run') {
+        st[p] = 'ran';
+        buzz(30);
+        sfx('tap');
+        halves[p].querySelectorAll('.grab').forEach(g => { g.classList.add('done'); g.classList.remove('hot'); });
+        // Оба убежали — сосед выглядывает пораньше
+        if (st.every(s => s !== 'open')) later(600, burst);
+      } else {
+        pts[p] += cue === 'steps' ? 2 : 1;
+        buzz(8);
+        sfx('knock');
+      }
+      drawStatus(p);
+    };
+  },
+};
+
 // Матч — одна мини-игра до WINS_TO побед
 const WINS_TO = 3;
 
@@ -2443,6 +2742,9 @@ const MODES = [
   { id: 'drill', game: DRILL, sub: t('Найди, где сверлят', 'Find who’s drilling'),
     rec: { label: t('Быстрее всех заткнул соседа', 'Fastest to shush the neighbor'), unit: t(' с', ' s'), lower: true },
     final: t(['Сосед затих навсегда 🤫', 'Сверлят до утра 😵‍💫'], ['The neighbor went quiet for good 🤫', 'Drilling till dawn 😵‍💫']) },
+  { id: 'knock', game: KNOCK, premium: true, sub: t('Стучи и вовремя смойся', 'Knock, then bolt in time'),
+    rec: { label: t('Больше всех настучал', 'Most knocks'), unit: ' ✊', lower: false },
+    final: t(['Легенда подъезда 🏃💨', 'Сосед теперь знает тебя в лицо 👴'], ['Legend of the stairwell 🏃💨', 'The neighbor knows your face now 👴']) },
 ];
 
 // Турнир — все мини-игры по одному разу в случайном порядке
@@ -2513,7 +2815,57 @@ DRILL.demo = [
   { pic: '🪟🪟🪟', cap: t('Мимо — минус очко. До 5 попаданий', 'Miss — minus a point. First to 5') },
 ];
 
-const modeEmoji = m => m.emoji ?? m.game.emoji;
+// Своя иконка игры (svg из #sprite), если нарисована, иначе эмодзи
+const ico = id => `<svg class="ico"><use href="#i-${id}"/></svg>`;
+const hasIco = id => Boolean(document.getElementById('i-' + id));
+for (const m of MODES) if (m.game) m.game.id = m.id;
+const gameIco = g => hasIco(g.id) ? ico(g.id) : g.emoji;
+KNOCK.demo = [
+  { pic: '🚪', btn: t('✊ Стучать', '✊ Knock'), act: 'rapid', cap: t('Стучи — каждый стук очко', 'Knock — every knock is a point') },
+  { pic: '🚪👣', btn: t('✊ Стучать', '✊ Knock'), act: 'rapid', hot: true, cap: t('Шаги! Стук теперь ×2 — но рискуешь', 'Footsteps! Knocks are ×2 now — risky') },
+  { pic: '🏃💨', btn: t('🏃 Бежать!', '🏃 Run!'), act: 'tap', cap: t('Жми «Бежать», пока не открыли', 'Hit “Run” before the door opens') },
+  { pic: '👴🚪', cap: t('Не успел — попался, ноль', 'Too slow — caught, zero') },
+];
+
+const modeEmoji = m => hasIco(m.id) ? ico(m.id) : m.emoji ?? m.game.emoji;
+
+// Обстановка каждой игры: бледный рисованный узор поверх цвета игрока (только в обычном стиле).
+// Класс scene-<игра> на body — его же получает гость в игре по сети.
+const W = 'stroke="#fff" stroke-opacity=".1" fill="none" stroke-width="2"';
+const F = 'fill="#fff" fill-opacity=".07"';
+const SCENES = {
+  // кухонная плитка
+  pelmen: [40, `<path d="M0 1H40M1 0V40" ${W}/><circle cx="20" cy="20" r="3" ${F}/>`],
+  // обои с ромбиками в гостиной
+  remote: [48, `<path d="M24 6l7 12-7 12-7-12Z" ${F}/><circle cx="0" cy="42" r="3" ${F}/><circle cx="48" cy="42" r="3" ${F}/><path d="M24 34v10" ${W}/>`],
+  // клетчатая скатерть
+  babushka: [36, `<rect width="18" height="36" ${F}/><rect width="36" height="18" ${F}/>`],
+  // ночь: звёзды и месяц за окном спальни
+  mom: [90, `<path d="M62 14a9 9 0 1 0 8 13 7 7 0 1 1-8-13Z" ${F}/><g fill="#fff" fill-opacity=".22"><circle cx="14" cy="20" r="1.6"/><circle cx="40" cy="58" r="1.3"/><circle cx="76" cy="70" r="1.8"/><circle cx="22" cy="78" r="1.1"/><circle cx="48" cy="8" r="1.2"/></g>`],
+  // кафельные стены метро
+  metro: [56, `<rect x="2" y="2" width="52" height="24" rx="5" ${W}/><rect x="-26" y="30" width="52" height="24" rx="5" ${W}/><rect x="30" y="30" width="52" height="24" rx="5" ${W}/>`],
+  // ресторан: вилки и тарелки
+  bill: [60, `<circle cx="15" cy="15" r="9" ${W}/><circle cx="15" cy="15" r="4" ${F}/><path d="M42 36v20M38 36v6q0 4 4 4t4-4v-6" ${W}/>`],
+  // волны на озере
+  fish: [64, `<path d="M0 12q16-10 32 0t32 0M-32 44q16-10 32 0t32 0t32 0" ${W}/>`],
+  // доски погреба
+  pickle: [72, `<path d="M0 1H72M0 25H72M0 49H72M30 1v24M66 25v24M14 49v24" ${W}/><circle cx="50" cy="12" r="2.5" ${F}/>`],
+  // ящик с пакетами — зигзаг
+  bags: [40, `<path d="M0 20l10-10 10 10 10-10 10 10" ${W}/>`],
+  // кирпичная стена
+  drill: [60, `<path d="M0 1H60M0 16H60M1 1v15M31 16v15" ${W}/><path d="M0 31H60" ${W}/>`],
+  // подъезд: плитка на полу ёлочкой и почтовые ящики
+  knock: [48, `<path d="M0 24L24 0L48 24L24 48Z" ${F}/><path d="M0 0L48 48M48 0L0 48" stroke="#fff" stroke-opacity=".07" stroke-width="2"/>`],
+};
+document.head.insertAdjacentHTML('beforeend', `<style>${Object.entries(SCENES).map(([id, [size, art]]) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${art}</svg>`;
+  return `body.scene-${id}:not([class*="skin-"]) .half { background-image: url("data:image/svg+xml,${encodeURIComponent(svg)}"); }`;
+}).join('\n')}</style>`);
+const granny = (mood, big) => `<svg class="granny is-${mood} ${big ? 'big' : ''}" viewBox="0 0 64 64"><use href="#g-base"/><use href="#g-${mood}"/></svg>`;
+function setScene(id) {
+  [...document.body.classList].forEach(c => c.startsWith('scene-') && document.body.classList.remove(c));
+  if (id) document.body.classList.add('scene-' + id);
+}
 const modeTitle = m => m.title ?? m.game.title;
 const BACK = t('← Назад', '← Back');
 const WAITING = t('Ждём соперника…', 'Waiting for rival…');
@@ -2525,6 +2877,8 @@ function enterMenu() {
   state.mode = null;
   document.body.classList.remove('rules-open', 'no-stage', 'intro');
   document.body.classList.add('menu');
+  setScene(null);
+  swipeIn();
   ADS.playing(false);
   music.start();
   arena.innerHTML = '';
@@ -2538,9 +2892,9 @@ function showStart() {
   enterMenu();
   say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
-      <div class="mode" data-where="local"><span class="e">📱</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
-      <div class="mode" data-where="bot"><span class="e">🤖</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
-      ${PORTAL && ADS.kind !== 'tg' ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">🌐</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
+      <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
+      <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
+      ${PORTAL && ADS.kind !== 'tg' ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
     </div>
     <div class="tools">
       <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
@@ -2577,7 +2931,7 @@ function showSkins(note = '') {
   say(`<h2>${t('🎨 Стиль', '🎨 Style')}</h2>${note ? `<p>${note}</p>` : hint}
     <div class="modes grid skins">${SKINS.map(s =>
       `<div class="mode ${isLocked(s.id) ? 'locked' : ''}" data-skin="${s.id}"><span class="e">${s.emoji}</span><span><b>${s.id === currentSkin ? '✓ ' : isLocked(s.id) ? '🔒 ' : ''}${s.title}</b><small>${isLocked(s.id) ? t('📺 Реклама — и стиль твой', '📺 Watch an ad to unlock') : s.sub}</small></span></div>`
-    ).join('')}${STARS.can && hint ? `<div class="mode" data-act="buy"><span class="e">⭐</span><span><b>${t('Всё сразу', 'Everything')} · ${STARS.PRICE} ⭐</b><small>${t('Стили, «Мама», без рекламы', 'Styles, Mom, no ads')}</small></span></div>` : ''}</div>
+    ).join('')}${STARS.can && hint ? `<div class="mode" data-act="buy"><span class="e">⭐</span><span><b>${t('Всё сразу', 'Everything')} · ${STARS.PRICE} ⭐</b><small>${t('Стили, супер-игры, без рекламы', 'Styles, super games, no ads')}</small></span></div>` : ''}</div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) { showStart(); return; }
@@ -2766,7 +3120,9 @@ function countdown(game, wait) {
   music.stop();
   ADS.playing(true);
   document.body.classList.remove('no-stage', 'intro');
-  stage.innerHTML = `<div class="logo">${game.emoji}</div>`;
+  setScene(game.id);
+  swipeIn();
+  stage.innerHTML = `<div class="logo">${gameIco(game)}</div>`;
   sayEach(p => `<p>${progressText(p)}</p><h2>${game.title}</h2><p>${game.rule}</p>`);
   let n = 3;
   const tick = () => {
@@ -2783,12 +3139,14 @@ function countdown(game, wait) {
 function showIntro(game, start) {
   BOT.reset();
   document.body.classList.add('no-stage', 'intro');
+  setScene(game.id);
+  swipeIn();
   stage.innerHTML = '';
   const ready = [false, false];
   const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? WAITING : t('▶ Начать', '▶ Start')}</span>`;
   // Номер игры показываем только в турнире: в обычном матче это всегда первый раунд
   const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>` : '';
-  sayEach(p => `${head(p)}<h2>${game.emoji} ${game.title}</h2>
+  sayEach(p => `${head(p)}<h2>${gameIco(game)} ${game.title}</h2>
     <div class="demo"><div class="demo-pic"></div><div class="demo-bar"><b></b><i></i><s></s></div>
       <div class="grab demo-btn"></div><div class="demo-cap"></div></div>
     <p class="demo-rule">${game.rule}</p>${DESKTOP ? `<p class="kb-hint">⌨️ ${t('Твои клавиши', 'Your keys')}: ${KB_HINT[p]}</p>` : ''}<div class="go">${button(0)}</div>`);
@@ -2843,6 +3201,8 @@ function roundOver(winner, text, stats) {
   document.body.classList.remove('no-stage');
   stage.innerHTML = `<div class="logo">${winner === null ? '🤷' : '⭐'}</div>`;
   sfx(winner === null ? 'draw' : 'round');
+  swipeIn();
+  let fresh = true;  // табличка счёта перекидывается только при первом показе
   // Крупно — кто выиграл, ниже — что набрал каждый: сначала ты, потом соперник
   const result = p => {
     const kind = winner === null ? 'v-draw' : winner === p ? 'v-win' : 'v-lose';
@@ -2853,10 +3213,12 @@ function roundOver(winner, text, stats) {
       `<b>${q === p ? t('Ты', 'You') : NAMES[q]}</b><span>${stats[q]}</span></div>`;
     const board = stats ? `<div class="res">${line(p)}${line(1 - p)}</div>` : `<p>${text}</p>`;
     const rec = state.newRec[p] ? `<p>🏆 ${t('Новый рекорд', 'New record')}: ${state.newRec[p]}!</p>` : '';
-    return `<h1 class="verdict ${kind}">${verdict}</h1>${note}${board}${rec}<p>${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>`;
+    return `${granny(kind.slice(2))}<h1 class="verdict ${kind}">${verdict}</h1>${note}${board}${rec}<p class="board">${t('Счёт', 'Score')} ${tile(p)}:${tile(1 - p)}</p>`;
   };
+  const tile = q => `<span class="tile ${fresh && winner === q ? 'flip' : ''}">${state.wins[q]}</span>`;
   if (matchOver()) {
     sayEach(result);
+    fresh = false;
     later(2200, showFinal);
     return;
   }
@@ -2865,6 +3227,7 @@ function roundOver(winner, text, stats) {
   const draw = () => sayEach(p => result(p) +
     `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? WAITING : t('Следующий раунд ▶', 'Next round ▶')}</span></div>`);
   draw();
+  fresh = false;
   // Небольшая задержка, чтобы разогнавшийся в «Пульте» палец не нажал «Дальше» случайно
   const shownAt = performance.now();
   state.onTap = (p, el) => {
@@ -2887,13 +3250,15 @@ function showFinal() {
   buzz([100, 60, 100]);
   sfx('fanfare');
   if (winner === null) { confetti(0, 25); confetti(1, 25); } else confetti(winner, 70);
+  swipeIn();
   sayEach(p => {
+    const face = granny(winner === null ? 'draw' : winner === p ? 'win' : 'lose', true);
     const head = winner === null
       ? t(`<h1>Ничья ${a}:${b} 🤝</h1><p>Силы равны — реванш?</p>`, `<h1>Draw ${a}:${b} 🤝</h1><p>Evenly matched — rematch?</p>`)
       : winner === p
       ? `<h1>${t('Победа', 'Victory')} ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
       : `<h1>${t('Проиграл', 'Lost')} ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
-    return head + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
+    return face + head + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
       '<div><span class="btn" data-act="again">🔁 Rematch</span><span class="btn" data-act="menu">🏠 Menu</span></div>');
   });
   state.onTap = (p, el) => {
