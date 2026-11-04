@@ -644,7 +644,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 24;
+const BUILD = 25;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -652,7 +652,7 @@ const BUILD = 24;
 const ADS = {
   kind: null,  // 'yandex', 'vk', 'tg', 'test' или null — рекламы нет
   // Блоки AdsGram из кабинета partner.adsgram.ai: пока пусто — в Телеграме рекламы нет и всё открыто
-  ADSGRAM: { reward: '58007', inter: '' },
+  ADSGRAM: { reward: '58007', inter: 'int-58008' },
   sdk: null,
   GAP: 120000,  // между рекламами не меньше двух минут, отсчёт и от запуска игры
   lastAt: performance.now(),
