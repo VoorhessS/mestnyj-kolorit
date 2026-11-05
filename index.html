@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 32;
+const BUILD = 33;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -3025,7 +3025,7 @@ function showRules() {
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
     </div>`) + `
     <div><span class="btn" data-act="back">${BACK}</span></div>
-    <p style="opacity: .5; font-size: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
+    <p style="opacity: .5; font-size: 12px; margin-top: 12px">${t('Версия', 'Version')} ${BUILD}${ADS.kind ? ' · ' + ADS.kind : ''}</p>`);
   state.onTap = (p, el) => {
     if (el.closest('[data-act=back]')) showStart();
   };
