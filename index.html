@@ -919,10 +919,13 @@
     </symbol>
     <!-- Чёрная тонированная машина бабки -->
     <symbol id="g-car" viewBox="0 0 120 50">
-      <path d="M6 34q0-8 8-9l16-2 14-11q4-3 9-3h26q5 0 9 4l10 10 12 2q8 1 8 9v6H6Z" fill="#141418"/>
-      <path d="M36 23l11-9q3-2 6-2h11v11Z M68 12h11q3 0 5 2l9 9H68Z" fill="#2b2f3a"/>
-      <path d="M40 22l9-7M71 15l3 4" stroke="#fff" stroke-opacity=".25" stroke-width="1.5" stroke-linecap="round"/>
-      <rect x="104" y="29" width="8" height="4" rx="2" fill="#ffe08a"/><rect x="7" y="30" width="6" height="4" rx="2" fill="#c0392b"/>
+      <!-- кузов нарисован капотом влево, отражаем: капот (длинный) впереди, справа — куда едет -->
+      <g transform="translate(120 0) scale(-1 1)">
+        <path d="M6 34q0-8 8-9l16-2 14-11q4-3 9-3h26q5 0 9 4l10 10 12 2q8 1 8 9v6H6Z" fill="#141418"/>
+        <path d="M36 23l11-9q3-2 6-2h11v11Z M68 12h11q3 0 5 2l9 9H68Z" fill="#2b2f3a"/>
+        <path d="M40 22l9-7M71 15l3 4" stroke="#fff" stroke-opacity=".25" stroke-width="1.5" stroke-linecap="round"/>
+      </g>
+      <rect x="106" y="30" width="7" height="4" rx="2" fill="#ffe08a"/><rect x="6" y="29" width="7" height="4" rx="2" fill="#c0392b"/>
       <circle cx="30" cy="41" r="8" fill="#0a0a0c"/><circle cx="30" cy="41" r="3.5" fill="#8a8f99"/>
       <circle cx="92" cy="41" r="8" fill="#0a0a0c"/><circle cx="92" cy="41" r="3.5" fill="#8a8f99"/>
     </symbol>
@@ -958,7 +961,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 44;
+const BUILD = 45;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
