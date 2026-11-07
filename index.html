@@ -962,12 +962,12 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 49;
+const BUILD = 50;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
-// ('newgrounds', 'gamejolt' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
+// ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
 const HOST = window.KOLORIT_PORTAL || null;
-const LINKS_OK = HOST === 'newgrounds' || HOST === 'gamejolt';  // там можно ссылки наружу и свой сервер
+const LINKS_OK = HOST === 'newgrounds' || HOST === 'gamejolt' || HOST === 'itch';  // там можно ссылки наружу и свой сервер
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
