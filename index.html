@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 39;
+const BUILD = 40;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -2837,7 +2837,8 @@ const KNOCK = {
 // игру у себя не выйдет. Ты всегда снизу (половина 0), соперник сверху, не перевёрнут — он на другом телефоне.
 // Игры, которые уже умеет судить сервер, — в GAMES; остальные пока только на одном телефоне и по коду.
 const FAIR = {
-  GAMES: { pelmen: PELMEN, remote: REMOTE, knock: KNOCK, metro: METRO, fish: FISH, babushka: BABUSHKA, bill: BILL },
+  GAMES: { pelmen: PELMEN, remote: REMOTE, knock: KNOCK, metro: METRO, fish: FISH, babushka: BABUSHKA, bill: BILL,
+    mom: MOM, pickle: PICKLE, bags: BAGS, drill: DRILL },
   ws: null,
   seat: 0,
   game: null,
@@ -2936,6 +2937,182 @@ const FAIR = {
 
   // Как показывать каждую игру: та же картинка, что на одном телефоне, но решает сервер
   play: {
+    mom() {
+      const RATE = 5;
+      const WARNINGS = t(['Вставай, в школу проспишь!', 'Последний раз говорю!', 'Я считаю до трёх!', 'Раз… два…', 'Я иду!!!'],
+        ['Up! You’ll be late for school!', 'I’m not saying it again!', 'I’m counting to three!', 'One… two…', 'I’m coming in!!!']);
+      stage.innerHTML = '<div class="logo">🛏️</div>';
+      say(grabUI(t('🛏️ Держи, чтобы спать', '🛏️ Hold to sleep')));
+      setStatus(t('<h2>Утро, 7:00 ⏰</h2><p>Зажми кнопку и спи</p>', '<h2>7:00 AM ⏰</h2><p>Hold the button and sleep</p>'));
+      const st = ['awake', 'awake'];
+      const since = [0, 0];
+      const mins = [0, 0];
+      const btn = p => $p(p, '.grab');
+      const label = p => {
+        if (st[p] === 'sleep') btn(p).textContent = t(`😴 ${p === 0 ? 'Спишь' : 'Спит'}… ${Math.floor(mins[p])} мин`, `😴 Sleeping… ${Math.floor(mins[p])} min`);
+        if (st[p] === 'up') btn(p).textContent = t(`🧍 Встал · ${Math.floor(mins[p])} мин`, `🧍 Up · ${Math.floor(mins[p])} min`);
+      };
+      btn(1).classList.add('done');
+      const loop = now => {
+        for (const p of [0, 1]) if (st[p] === 'sleep') { mins[p] = RATE * (now - since[p]) / 1000; label(p); }
+        state.frame = requestAnimationFrame(loop);
+      };
+      state.frame = requestAnimationFrame(loop);
+      state.onTap = (p, el) => {
+        if (p !== 0 || st[0] !== 'awake' || !el.closest('.grab')) return;
+        st[0] = 'sleep';
+        since[0] = performance.now();
+        btn(0).classList.add('held');
+        label(0);
+        buzz(15);
+        this.tap('sleep');
+      };
+      state.onRelease = p => {
+        if (p !== 0 || st[0] !== 'sleep') return;
+        st[0] = 'up';
+        btn(0).classList.remove('held');
+        btn(0).classList.add('done');
+        label(0);
+        buzz(25);
+        this.tap('wake');
+      };
+      const mom = () => { stage.innerHTML = '<div class="logo">🩴</div>'; setStatus(t('<h2>👩 «ВСТАВАЙ!!!»</h2>', '<h2>👩 “GET UP!!!”</h2>')); state.onTap = null; state.onRelease = null; };
+      this.on = {
+        shout: m => setStatus(t(`<h2>👩 «${WARNINGS[m.i] || WARNINGS[0]}»</h2>`, `<h2>👩 “${WARNINGS[m.i] || WARNINGS[0]}”</h2>`)),
+        creak: () => { stage.innerHTML = '<div class="logo">🚪</div>'; setStatus(t('<h2>🚪 Скрип…</h2>', '<h2>🚪 Creeeak…</h2>')); buzz(30); },
+        calm: () => { stage.innerHTML = '<div class="logo">🛏️</div>'; setStatus(t('<h2>…показалось</h2>', '<h2>…false alarm</h2>')); },
+        door: () => {
+          stage.innerHTML = '<div class="logo">🚪</div>';
+          setStatus(t('<h2>🚪 Дверь открывается! Вставай!</h2>', '<h2>🚪 The door opens! Get up!</h2>'));
+          buzz([60, 30, 60]);
+        },
+        mom,
+        // Соперник лёг / встал (свои нажатия мы уже показали сами)
+        st: m => {
+          const q = this.me(m.s);
+          if (q === 0) { if (m.st === 'up') { mins[0] = m.m; label(0); } return; }
+          st[1] = m.st;
+          if (m.st === 'sleep') { since[1] = performance.now(); btn(1).classList.add('held'); }
+          else { mins[1] = m.m; btn(1).classList.remove('held'); }
+          label(1);
+        },
+      };
+    },
+
+    pickle(e) {
+      const ZONE = 8;
+      const jars = [0, 0];
+      const broke = [0, 0];
+      let left = e.left;
+      stage.innerHTML = '<div class="logo">🫙</div>';
+      sayEach(p => `<div class="status"></div>
+        <div class="track" id="k${p}"><div class="zone"></div><div class="dot"></div></div>
+        <div class="grab">${t('🫙 Закатать', '🫙 Seal')}</div>`);
+      $p(1, '.grab').classList.add('done');
+      const now0 = performance.now();
+      const seg = [0, 1].map(p => { const x = e.seg[p === 0 ? this.seat : 1 - this.seat]; return { at: now0, ph: x.ph, rate: x.rate }; });
+      const pos = (p, now) => (Math.sin(seg[p].ph + seg[p].rate * (now - seg[p].at) / 1000) + 1) / 2 * 100;
+      const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} ${t('с', 's')}</p>`, p);
+      [0, 1].forEach(drawStatus);
+      const loop = now => {
+        for (const p of [0, 1]) document.querySelector(`#k${p} .dot`).style.left = `${pos(p, now)}%`;
+        state.frame = requestAnimationFrame(loop);
+      };
+      state.frame = requestAnimationFrame(loop);
+      // Свой бегунок сдвигаем сразу (сдвиги сервер прислал заранее), сервер потом только поправит
+      const jumps = e.jumps?.[this.seat] || [];
+      let taps = 0;
+      let myJars = 0;
+      let cool = 0;
+      state.onTap = (p, el) => {
+        const now = performance.now();
+        if (p !== 0 || !el.closest('.grab') || now < cool) return;
+        cool = now + 250;
+        const hit = Math.abs(pos(0, now) - 50) <= ZONE;
+        buzz(hit ? 20 : [30, 30, 30]);
+        if (hit) myJars++;
+        const ph = seg[0].ph + seg[0].rate * (now - seg[0].at) / 1000;
+        seg[0] = { at: now, ph: ph + (jumps[taps++ % 80] ?? 1.7), rate: 2.4 + myJars * 0.3 };
+        this.tap('seal');
+      };
+      this.on = {
+        left: m => { left = m.left; [0, 1].forEach(drawStatus); if (!left) state.onTap = null; },
+        jar: m => {
+          const p = this.me(m.s);
+          const j = this.mine(m.jars);
+          const b = this.mine(m.broke);
+          jars[0] = j[0]; jars[1] = j[1]; broke[0] = b[0]; broke[1] = b[1];
+          // свой бегунок поправляем, только если после этого нажатия не было новых (иначе сотрём своё предсказание)
+          if (p === 1 || m.n >= taps) { seg[p] = { at: performance.now(), ph: m.ph, rate: m.rate }; if (p === 0) { taps = m.n; myJars = jars[0]; } }
+          flash(p, m.hit ? 'win' : 'lose');
+          drawStatus(p);
+        },
+      };
+    },
+
+    bags() {
+      stage.innerHTML = '<div class="logo">🛍️</div>';
+      sayEach(() => `<div class="status"></div>
+        <div class="row"><div class="grab" data-b="push">${t('🛍️ Пихать', '🛍️ Stuff')}</div><div class="grab" data-b="stop">${t('✅ Хватит', '✅ Done')}</div></div>`);
+      halves[1].querySelectorAll('.grab').forEach(g => g.classList.add('done'));
+      const count = [0, 0];
+      const st = ['open', 'open'];
+      const hint = [0, 0];
+      const drawStatus = p => {
+        const h = st[p] === 'torn' ? t('Порвался! 💥', 'Ripped! 💥')
+          : st[p] === 'done' ? t('Остановился 👍', 'Stopped 👍')
+          : [t('Влезает 👌', 'Still fits 👌'), t('Натянулся…', 'Getting tight…'), t('Хрусть… 😬', 'Crrrack… 😬')][hint[p]];
+        setStatus(`<h2>${t('Пакетов', 'Bags')}: ${count[p]}</h2><p>${h}</p>`, p);
+      };
+      [0, 1].forEach(drawStatus);
+      let mine = 'open';
+      state.onTap = (p, el) => {
+        const b = el.closest('.grab')?.dataset.b;
+        if (p !== 0 || !b || mine !== 'open') return;
+        if (b === 'stop') { mine = 'done'; buzz(30); halves[0].querySelectorAll('.grab').forEach(g => g.classList.add('done')); }
+        else buzz(8);
+        this.tap(b);
+      };
+      this.on = {
+        bag: m => {
+          const p = this.me(m.s);
+          count[p] = m.n;
+          st[p] = m.st;
+          hint[p] = m.hint;
+          if (p === 0 && m.st !== 'open') { mine = m.st; halves[0].querySelectorAll('.grab').forEach(g => g.classList.add('done')); }
+          if (m.st === 'torn') { flash(p, 'lose'); if (p === 0) buzz([60, 30, 60]); }
+          drawStatus(p);
+        },
+      };
+    },
+
+    drill() {
+      const GOAL = 5;
+      const hits = [0, 0];
+      document.body.classList.add('no-stage');
+      stage.innerHTML = '';
+      sayEach(p => `<div class="status"></div>
+        <div class="wins">${[...Array(6)].map((_, i) => `<div class="win" data-w="${i}" data-k="${KB_HINT[p].replace(/\W/g, '')[i]}">🪟</div>`).join('')}</div>`);
+      const drawStatus = p => setStatus(`<h2>🔨 ${hits[p]} ${t('из', 'of')} ${GOAL}</h2>`, p);
+      [0, 1].forEach(drawStatus);
+      state.onTap = (p, el) => {
+        const w = el.closest('.win');
+        if (p !== 0 || !w) return;
+        buzz(15);
+        this.tap('w' + w.dataset.w);
+      };
+      const score = m => { const h = this.mine(m.hits); hits[0] = h[0]; hits[1] = h[1]; };
+      this.on = {
+        drill: m => document.querySelectorAll('.win').forEach(w => {
+          const on = Number(w.dataset.w) === m.w;
+          w.classList.toggle('drill', on);
+          w.textContent = on ? '🔨' : '🪟';
+        }),
+        hit: m => { score(m); const p = this.me(m.s); flash(p, 'win'); if (p === 0) buzz(30); drawStatus(0); drawStatus(1); },
+        miss: m => { score(m); const p = this.me(m.s); flash(p, 'lose'); if (p === 0) buzz([30, 30, 30]); drawStatus(0); drawStatus(1); },
+      };
+    },
+
     metro() {
       const DECOYS = t([['👵', 'Заходит бабушка'], ['👜', 'На сиденье сумка'], ['🧍', 'Встал… но не выходит']],
         [['👵', 'A babushka gets on'], ['👜', 'A bag on the seat'], ['🧍', 'He stood up… but stays']]);
@@ -3163,6 +3340,19 @@ const FAIR = {
       return [miss, miss];
     }
     if (k === 'plate') return this.mine(info.stopped).map(v => v === null ? t('не остановил', 'never stopped') : v > 100 ? t('объелся 🤢', 'stuffed 🤢') : `${Math.round(v)}%`);
+    if (k === 'mom') {
+      const mins = this.mine(info.mins);
+      const caught = this.mine(info.caught);
+      const lay = this.mine(info.lay);
+      return [0, 1].map(p => caught[p] ? t('попался 🩴', 'busted 🩴') : !lay[p] ? t('не ложился 🤨', 'never lay down 🤨') : t(`${mins[p]} мин сна`, `${mins[p]} min of sleep`));
+    }
+    if (k === 'pickle') { const j = this.mine(info.jars); const b = this.mine(info.broke); return [0, 1].map(p => `🫙 ${j[p]} · 💥 ${b[p]}`); }
+    if (k === 'bags') {
+      const c = this.mine(info.count);
+      const torn = this.mine(info.torn);
+      return [0, 1].map(p => torn[p] ? t('порвал 💥', 'ripped 💥') : t(plural(c[p], 'пакет', 'пакета', 'пакетов'), bagsEn(c[p])));
+    }
+    if (k === 'drill') return this.mine(info.hits).map(h => `🔨 ${h}`);
     if (k === 'bill') { const loser = this.me(info.loser); return [0, 1].map(p => p === loser ? t('с чеком 🧾', 'has the bill 🧾') : t('без чека 😎', 'bill-free 😎')); }
     if (k === 'pull' || k === 'time' || k === 'draw') {
       const mine = this.seat === 0 ? info.pos : -info.pos;
