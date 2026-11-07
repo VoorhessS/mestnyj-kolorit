@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 35;
+const BUILD = 36;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1604,6 +1604,9 @@ const ONLINE = {
   sent: '',
   flushAt: 0,
   down: false,   // гость держит палец или клавишу
+  patient: 0,    // гость из лобби: до этого времени ждём хозяина, а не «комнаты нет»
+  lobby: null,   // сокет лобби, пока ищем соперника
+  findTimer: 0,
   observer: new MutationObserver(() => ONLINE.dirty()),
 
   // Ссылка-приглашение: в Телеграме — на мини-приложение с кодом, иначе — на сайт с ?room=
@@ -1622,6 +1625,7 @@ const ONLINE = {
   },
   send(msg) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(msg)); },
   leave() {
+    this.stopFind();
     const ws = this.ws;
     this.ws = null;
     this.role = null;
@@ -1649,7 +1653,8 @@ const ONLINE = {
   receive(m) {
     if (m.t === 'peer') {
       // Гость пришёл, а хозяина нет — значит, такой комнаты нет
-      if (!m.on && (this.peer || this.role === 'guest')) { this.lost(); return; }
+      if (!m.on && (this.peer || (this.role === 'guest' && Date.now() > this.patient))) { this.lost(); return; }
+      if (!m.on) return;
       if (m.on === this.peer) return;
       this.peer = true;
       document.body.classList.add('online');
@@ -1727,7 +1732,50 @@ const ONLINE = {
     try { await this.connect(code, 'host'); } catch { showOnline(t('Не получилось создать комнату', 'Could not create a room')); return; }
     showRoom();
   },
+  // Лобби: ищем случайного соперника. Нашёлся — оба уходим в новую комнату (кто ждал дольше — хозяин).
+  find() {
+    this.stopFind();
+    STATS.hit('find:wait');
+    const ws = this.lobby = new WebSocket(`${this.API.replace(/^http/, 'ws')}/lobby`);
+    const t0 = Date.now();
+    let n = 1;
+    let offered = false;
+    showFind(0, n, false);
+    ws.onopen = () => ws.send(JSON.stringify({ t: 'find' }));
+    ws.onerror = () => { if (this.lobby === ws) { this.stopFind(); showOnline(t('Сервер не отвечает — проверь интернет', 'The server is not answering — check your connection')); } };
+    ws.onmessage = e => {
+      if (this.lobby !== ws) return;
+      const m = JSON.parse(e.data);
+      if (m.t === 'count') { n = m.n; showFind(Math.floor((Date.now() - t0) / 1000), n, offered, true); }
+      else if (m.t === 'match') { this.stopFind(); STATS.hit('find:pair'); this.matched(m.code, m.role); }
+      else if (m.t === 'error') { this.stopFind(); showOnline(t('Не получилось найти комнату, попробуй ещё раз', 'Could not get a room, try again')); }
+    };
+    this.findTimer = setInterval(() => {
+      const sec = Math.floor((Date.now() - t0) / 1000);
+      if (sec >= FIND_WAIT && !offered) { offered = true; buzz(40); }
+      showFind(sec, n, offered, true);
+    }, 1000);
+  },
+  stopFind() {
+    clearInterval(this.findTimer);
+    this.findTimer = 0;
+    const ws = this.lobby;
+    this.lobby = null;
+    try { ws?.close(); } catch { /* уже закрыт */ }
+  },
+  async matched(code, role) {
+    say(`<h2>🎉 ${t('Соперник найден!', 'Opponent found!')}</h2><p>${t('Подключаемся…', 'Connecting…')}</p>`);
+    state.onTap = null;
+    sfx('fanfare');
+    try { await this.connect(code, role); } catch { showOnline(t('Не получилось подключиться', 'Could not connect')); return; }
+    if (role === 'guest') {
+      // Хозяин может войти в комнату на секунду позже — ждём его, а не пишем «комнаты нет»
+      this.patient = Date.now() + 8000;
+      setTimeout(() => { if (this.role === 'guest' && !this.peer && this.code === code) this.lost(); }, 8500);
+    }
+  },
   async join(code) {
+    this.patient = 0;
     try { await this.connect(code, 'guest'); } catch { showOnline(t('Не получилось подключиться', 'Could not connect')); return; }
     say(`<h2>🔌 ${t('Подключаемся…', 'Connecting…')}</h2><p>${t('Комната', 'Room')} ${code}</p>`);
     state.onTap = null;
@@ -1770,6 +1818,7 @@ function showOnline(note = '') {
   sayEach(p => `<h2>🌐 ${t('По сети', 'Online')}</h2>${note ? `<p>${note}</p>` : ''}
     ${howNet()}
     <div class="modes">
+      <div class="mode" data-act="find"><span class="e">🎲</span><span><b>${t('Найти соперника', 'Find an opponent')}</b><small>${t('Случайный игрок, который тоже ищет', 'A random player who is also searching')}</small></span></div>
       <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Получишь код для друга', 'You get a code for your friend')}</small></span></div>
       <div class="mode" data-act="join"><span class="e">🔢</span><span><b>${t('Войти по коду', 'Join with a code')}</b><small>${t('Код пришлёт друг', 'Your friend sends the code')}</small></span></div>
     </div>
@@ -1779,8 +1828,34 @@ function showOnline(note = '') {
     if (!act) return;
     buzz(20);
     if (act === 'back') showStart();
+    else if (act === 'find') ONLINE.find();
     else if (act === 'create') { say(`<h2>⏳ ${t('Создаём комнату…', 'Creating a room…')}</h2>`); state.onTap = null; ONLINE.create(); }
     else showJoin(p);
+  };
+}
+
+// Поиск случайного соперника: сколько ищут сейчас, сколько ждём; через FIND_WAIT секунд — «сыграть с роботом?»
+const FIND_WAIT = 30;
+function showFind(sec, n, offered, update = false) {
+  const others = Math.max(0, n - 1);
+  const html = `<h2>🎲 ${t('Ищем соперника…', 'Looking for an opponent…')}</h2>
+    <div class="big find-sec">${sec}</div>
+    <p class="find-n">${others ? t(`Ещё ищут: ${others}`, `Also searching: ${others}`) : t('Пока ищешь только ты — позови друга в игру', 'Only you are searching — invite a friend')}</p>
+    ${offered ? `<p>${t('Никого нет. Сыграешь пока с роботом? Поиск можно продолжить', 'Nobody yet. Play the robot meanwhile? Or keep searching')}</p>` : ''}
+    <div>${offered ? `<span class="btn" data-act="robot">🤖 ${t('С роботом', 'Robot')}</span>` : ''}<span class="btn" data-act="back">${BACK}</span></div>`;
+  // Каждую секунду меняется только цифра — не пересобираем экран, чтобы не моргали кнопки
+  if (update && !offered === !document.querySelector('.half.p0 [data-act=robot]') && document.querySelector('.half.p0 .find-sec')) {
+    for (const h of halves) {
+      const s = h.querySelector('.find-sec'); if (s) s.textContent = sec;
+      const p = h.querySelector('.find-n'); if (p) p.textContent = others ? t(`Ещё ищут: ${others}`, `Also searching: ${others}`) : t('Пока ищешь только ты — позови друга в игру', 'Only you are searching — invite a friend');
+    }
+    return;
+  }
+  say(html);
+  state.onTap = (p, el) => {
+    const act = el.closest('[data-act]')?.dataset.act;
+    if (act === 'back') { buzz(20); STATS.hit('find:quit'); ONLINE.stopFind(); showOnline(); }
+    else if (act === 'robot') { buzz(20); STATS.hit('find:robot'); ONLINE.stopFind(); BOT.start(); showMenu(); }
   };
 }
 
