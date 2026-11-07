@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 38;
+const BUILD = 39;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1844,7 +1844,7 @@ function showOnline(note = '') {
     ${howNet()}
     <div class="modes">
       <div class="mode" data-act="find"><span class="e">🎲</span><span><b>${t('Найти соперника', 'Find an opponent')}</b><small>${t('Случайный игрок, который тоже ищет', 'A random player who is also searching')}</small></span></div>
-      <div class="mode" data-act="fair"><span class="e">⚔️</span><span><b>${t('Честный матч', 'Fair match')}</b><small>${t('Судит сервер · 3 игры · до 3 побед', 'Server referee · 3 games · first to 3')}</small></span></div>
+      <div class="mode" data-act="fair"><span class="e">⚔️</span><span><b>${t('Честный матч', 'Fair match')}</b><small>${t(`Судит сервер · ${Object.keys(FAIR.GAMES).length} игр · до 3 побед`, `Server referee · ${Object.keys(FAIR.GAMES).length} games · first to 3`)}</small></span></div>
       <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Получишь код для друга', 'You get a code for your friend')}</small></span></div>
       <div class="mode" data-act="join"><span class="e">🔢</span><span><b>${t('Войти по коду', 'Join with a code')}</b><small>${t('Код пришлёт друг', 'Your friend sends the code')}</small></span></div>
     </div>
@@ -2835,9 +2835,9 @@ const KNOCK = {
 // Игру ведёт сервер (online/ — класс Match): он решает, когда всплывёт пельмень, считает нажатия обоих
 // и объявляет победителя. Телефон только показывает события и шлёт свои нажатия, поэтому подкрутить
 // игру у себя не выйдет. Ты всегда снизу (половина 0), соперник сверху, не перевёрнут — он на другом телефоне.
-// Пока на сервере три игры: пельмень, пульт, «Постучи и беги».
+// Игры, которые уже умеет судить сервер, — в GAMES; остальные пока только на одном телефоне и по коду.
 const FAIR = {
-  GAMES: { pelmen: PELMEN, remote: REMOTE, knock: KNOCK },
+  GAMES: { pelmen: PELMEN, remote: REMOTE, knock: KNOCK, metro: METRO, fish: FISH, babushka: BABUSHKA, bill: BILL },
   ws: null,
   seat: 0,
   game: null,
@@ -2863,7 +2863,7 @@ const FAIR = {
     arena.innerHTML = '';
     stage.innerHTML = '<div class="logo">⚔️</div>';
     say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Подключаемся к судье…', 'Connecting to the referee…')}</p>`);
-    const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}${this.testGames ? '&games=' + this.testGames : ''}`);
+    const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}&have=${Object.keys(this.GAMES).join(',')}${this.testGames ? '&games=' + this.testGames : ''}`);
     ws.onmessage = e => { if (this.ws === ws) this.recv(JSON.parse(e.data)); };
     ws.onclose = () => { if (this.ws === ws) this.gone(); };
   },
@@ -2906,6 +2906,7 @@ const FAIR = {
     stopAll();
     this.on = null;
     const game = this.game = this.GAMES[m.game];
+    this.gid = m.game;
     state.wins = this.mine(m.wins);
     updateHud();
     arena.innerHTML = '';
@@ -2921,8 +2922,127 @@ const FAIR = {
     this.on = { go: e => { stopAll(); sfx('start'); this.play[m.game].call(this, e); } };
   },
 
+  // Одно нажатие на свою кнопку за раунд (пельмень, метро, рыбалка, бабушка)
+  once(b) {
+    let sent = false;
+    state.onTap = (p, el) => {
+      if (p !== 0 || sent || !el.closest('.grab')) return;
+      sent = true;
+      buzz(30);
+      this.tap(b);
+      $p(0, '.grab').classList.add('done');
+    };
+  },
+
   // Как показывать каждую игру: та же картинка, что на одном телефоне, но решает сервер
   play: {
+    metro() {
+      const DECOYS = t([['👵', 'Заходит бабушка'], ['👜', 'На сиденье сумка'], ['🧍', 'Встал… но не выходит']],
+        [['👵', 'A babushka gets on'], ['👜', 'A bag on the seat'], ['🧍', 'He stood up… but stays']]);
+      const RIDING = t('<h2>Едем…</h2><p>Следи за местами 👀</p>', '<h2>Riding…</h2><p>Watch the seats 👀</p>');
+      stage.innerHTML = '<div class="logo">🚇</div>';
+      say(grabUI(t('🪑 Сесть!', '🪑 Sit!')));
+      setStatus(RIDING);
+      this.once('grab');
+      this.on = {
+        decoy: m => {
+          const d = DECOYS[m.i] || DECOYS[0];
+          stage.innerHTML = `<div class="logo">${d[0]}</div>`;
+          setStatus(`<h2>${d[1]}</h2><p>${t('Не садись!', 'Don’t sit!')}</p>`);
+        },
+        ride: () => { stage.innerHTML = '<div class="logo">🚇</div>'; setStatus(RIDING); },
+        arm: () => {
+          stage.innerHTML = '<div class="logo">🪑</div>';
+          setStatus(t('<div class="big">САДИСЬ!</div>', '<div class="big">SIT!</div>'));
+          document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
+          buzz(60);
+        },
+      };
+    },
+
+    fish() {
+      stage.innerHTML = `<div class="pond">
+        <div class="ring" style="animation-delay:0s"></div><div class="ring" style="animation-delay:1.2s"></div>
+        <div class="float"></div></div>`;
+      const float = stage.querySelector('.float');
+      say(grabUI(t('🎣 Подсекай!', '🎣 Hook it!')));
+      setStatus(t('<h2>Тишина…</h2><p>Смотри на поплавок</p>', '<h2>Quiet…</h2><p>Watch the float</p>'));
+      this.once('grab');
+      this.on = {
+        twitch: () => float.classList.add('twitch'),
+        still: () => float.classList.remove('twitch'),
+        arm: () => { float.classList.remove('twitch'); float.classList.add('dip'); buzz(40); },
+      };
+    },
+
+    babushka(e) {
+      const MAX = 125;
+      const PHRASES = t(['Ешь, ешь…', 'Ты что, голодный?', 'Ещё ложечку!', 'Совсем исхудал!', 'Я ж для тебя варила!', 'Хлебушка возьми!'],
+        ['Eat, eat…', 'You look hungry!', 'One more spoon!', 'You’re skin and bones!', 'I cooked it for you!', 'Have some bread!']);
+      stage.innerHTML = '<div class="logo">👵</div>';
+      sayEach(p => `<div class="gauge" id="g${p}"><div class="zone"></div><div class="mark"></div><div class="fill"></div></div>
+        <p id="t${p}">${PHRASES[0]}</p>
+        <div class="grab">${t('✋ Хватит!', '✋ Enough!')}</div>`);
+      let v = e.v || 0;
+      let speed = e.speed || 30;
+      let at = performance.now();
+      let full = false;
+      const stopped = [null, null];
+      const setGauge = (p, value) => {
+        const g = document.getElementById('g' + p);
+        g.querySelector('.fill').style.width = `${Math.min(value, MAX) / MAX * 100}%`;
+        g.classList.toggle('over', value > 100);
+      };
+      const loop = now => {
+        const cur = full ? MAX : Math.min(MAX, v + speed * (now - at) / 1000);
+        for (const p of [0, 1]) setGauge(p, stopped[p] ?? cur);
+        state.frame = requestAnimationFrame(loop);
+      };
+      state.frame = requestAnimationFrame(loop);
+      const chatter = () => {
+        for (const p of [0, 1]) if (stopped[p] === null) document.getElementById('t' + p).textContent = pick(PHRASES);
+        later(1100, chatter);
+      };
+      later(1100, chatter);
+      this.once('stop');
+      this.on = {
+        spd: m => { v = m.v; speed = m.speed; at = performance.now(); },
+        full: () => { full = true; state.onTap = null; },
+        stop: m => {
+          const p = this.me(m.s);
+          stopped[p] = m.v;
+          $p(p, '.grab').classList.add('done');
+          document.getElementById('t' + p).textContent = m.v > 100 ? t('Поздно, уже объелся 🤢', 'Too late, already stuffed 🤢')
+            : t(`Хватит! Стоп на ${Math.round(m.v)}%`, `Enough! Stopped at ${Math.round(m.v)}%`);
+        },
+      };
+    },
+
+    bill(e) {
+      stage.innerHTML = '';
+      arena.innerHTML = '<div class="bill">🧾</div>';
+      const bill = arena.querySelector('.bill');
+      say(grabUI(t('👉 Давай ты', '👉 Your treat')));
+      let holder = this.me(e.h);
+      const draw = () => {
+        bill.style.transform = `translate(-50%, calc(-50% + ${holder === 0 ? 10 : -10}vh))`;
+        for (const p of [0, 1]) {
+          setStatus(holder === p ? t('<h2>Чек у тебя! 😱</h2>', '<h2>You have the bill! 😱</h2>') : t('<h2>Чек у соперника 😌</h2>', '<h2>Rival has the bill 😌</h2>'), p);
+          $p(p, '.grab').classList.toggle('done', holder !== p);
+        }
+      };
+      draw();
+      state.onTap = (p, el) => {
+        if (p !== 0 || holder !== 0 || !el.closest('.grab')) return;
+        buzz(10);
+        this.tap('pass');
+      };
+      this.on = {
+        hold: m => { holder = this.me(m.h); draw(); },
+        waiter: () => { stage.innerHTML = '<div class="logo">🤵</div>'; state.onTap = null; },
+      };
+    },
+
     pelmen() {
       stage.innerHTML = `<div class="pot"><div class="water"></div>
         ${[...Array(6)].map((_, i) => `<div class="bubble" style="left:${rand(15, 80)}%;top:${rand(15, 80)}%;animation-delay:${(i * .2).toFixed(1)}s"></div>`).join('')}
@@ -3031,9 +3151,19 @@ const FAIR = {
   // Что набрал каждый — по подробностям от сервера; [я, соперник]
   stats(info, winner) {
     const k = info.kind;
+    const g = this.gid;
     if (k === 'grab') return [0, 1].map(p => p === winner ? t(`${info.ms} мс`, `${info.ms} ms`) : t('не успел', 'too slow'));
-    if (k === 'burned') { const who = this.me(info.who); return [0, 1].map(p => p === who ? t('обжёгся 🔥', 'burned 🔥') : t('дождался', 'waited')); }
-    if (k === 'mush') return t(['не успел', 'не успел'], ['too slow', 'too slow']);
+    if (k === 'burned') {
+      const who = this.me(info.who);
+      const bad = g === 'metro' ? t('опозорился 😳', 'shamed 😳') : g === 'fish' ? t('подсёк на ветер', 'hooked the wind') : t('обжёгся 🔥', 'burned 🔥');
+      return [0, 1].map(p => p === who ? bad : t('дождался', 'waited'));
+    }
+    if (k === 'mush') {
+      const miss = g === 'metro' ? t('не сел', 'still standing') : g === 'fish' ? t('прозевал', 'missed it') : t('не успел', 'too slow');
+      return [miss, miss];
+    }
+    if (k === 'plate') return this.mine(info.stopped).map(v => v === null ? t('не остановил', 'never stopped') : v > 100 ? t('объелся 🤢', 'stuffed 🤢') : `${Math.round(v)}%`);
+    if (k === 'bill') { const loser = this.me(info.loser); return [0, 1].map(p => p === loser ? t('с чеком 🧾', 'has the bill 🧾') : t('без чека 😎', 'bill-free 😎')); }
     if (k === 'pull' || k === 'time' || k === 'draw') {
       const mine = this.seat === 0 ? info.pos : -info.pos;
       const s0 = Math.round(Math.min(1, Math.max(0, (1 + mine) / 2)) * 100);
