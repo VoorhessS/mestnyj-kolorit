@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 36;
+const BUILD = 37;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1521,10 +1521,10 @@ for (const half of halves) {
     if (ONLINE.role === 'guest') return;    // у гостя тапы уходят по сети, см. ONLINE
     e.preventDefault();
     const p = Number(half.dataset.p);
-    if (ONLINE.peer && p !== 0) return;     // верхняя половина у хозяина — гостя, жмёт только он
+    if ((ONLINE.peer || FAIR.ws) && p !== 0) return;   // верхняя половина — соперника по сети, жмёт только он
     pressFx(e);
     if (soundMode) audioCtx();
-    if (e.target.closest('.quit')) { buzz(20); showMenu(); return; }
+    if (e.target.closest('.quit')) { buzz(20); if (FAIR.ws) FAIR.quit(); else showMenu(); return; }
     pointers.set(e.pointerId, p);
     if (state.onTap) state.onTap(p, e.target);
   });
@@ -1733,27 +1733,32 @@ const ONLINE = {
     showRoom();
   },
   // Лобби: ищем случайного соперника. Нашёлся — оба уходим в новую комнату (кто ждал дольше — хозяин).
-  find() {
+  find(fair = false) {
     this.stopFind();
-    STATS.hit('find:wait');
+    const tag = fair ? 'fair' : 'find';
+    STATS.hit(`${tag}:wait`);
     const ws = this.lobby = new WebSocket(`${this.API.replace(/^http/, 'ws')}/lobby`);
     const t0 = Date.now();
     let n = 1;
     let offered = false;
-    showFind(0, n, false);
-    ws.onopen = () => ws.send(JSON.stringify({ t: 'find' }));
+    showFind(0, n, false, false, fair);
+    ws.onopen = () => ws.send(JSON.stringify({ t: 'find', fair }));
     ws.onerror = () => { if (this.lobby === ws) { this.stopFind(); showOnline(t('Сервер не отвечает — проверь интернет', 'The server is not answering — check your connection')); } };
     ws.onmessage = e => {
       if (this.lobby !== ws) return;
       const m = JSON.parse(e.data);
-      if (m.t === 'count') { n = m.n; showFind(Math.floor((Date.now() - t0) / 1000), n, offered, true); }
-      else if (m.t === 'match') { this.stopFind(); STATS.hit('find:pair'); this.matched(m.code, m.role); }
+      if (m.t === 'count') { n = m.n; showFind(Math.floor((Date.now() - t0) / 1000), n, offered, true, fair); }
+      else if (m.t === 'match') {
+        this.stopFind();
+        STATS.hit(`${tag}:pair`);
+        if (m.fair) FAIR.start(m.code, m.seat); else this.matched(m.code, m.role);
+      }
       else if (m.t === 'error') { this.stopFind(); showOnline(t('Не получилось найти комнату, попробуй ещё раз', 'Could not get a room, try again')); }
     };
     this.findTimer = setInterval(() => {
       const sec = Math.floor((Date.now() - t0) / 1000);
       if (sec >= FIND_WAIT && !offered) { offered = true; buzz(40); }
-      showFind(sec, n, offered, true);
+      showFind(sec, n, offered, true, fair);
     }, 1000);
   },
   stopFind() {
@@ -1819,6 +1824,7 @@ function showOnline(note = '') {
     ${howNet()}
     <div class="modes">
       <div class="mode" data-act="find"><span class="e">🎲</span><span><b>${t('Найти соперника', 'Find an opponent')}</b><small>${t('Случайный игрок, который тоже ищет', 'A random player who is also searching')}</small></span></div>
+      <div class="mode" data-act="fair"><span class="e">⚔️</span><span><b>${t('Честный матч', 'Fair match')}</b><small>${t('Судит сервер · 3 игры · до 3 побед', 'Server referee · 3 games · first to 3')}</small></span></div>
       <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Получишь код для друга', 'You get a code for your friend')}</small></span></div>
       <div class="mode" data-act="join"><span class="e">🔢</span><span><b>${t('Войти по коду', 'Join with a code')}</b><small>${t('Код пришлёт друг', 'Your friend sends the code')}</small></span></div>
     </div>
@@ -1829,6 +1835,7 @@ function showOnline(note = '') {
     buzz(20);
     if (act === 'back') showStart();
     else if (act === 'find') ONLINE.find();
+    else if (act === 'fair') ONLINE.find(true);
     else if (act === 'create') { say(`<h2>⏳ ${t('Создаём комнату…', 'Creating a room…')}</h2>`); state.onTap = null; ONLINE.create(); }
     else showJoin(p);
   };
@@ -1836,9 +1843,10 @@ function showOnline(note = '') {
 
 // Поиск случайного соперника: сколько ищут сейчас, сколько ждём; через FIND_WAIT секунд — «сыграть с роботом?»
 const FIND_WAIT = 30;
-function showFind(sec, n, offered, update = false) {
+function showFind(sec, n, offered, update = false, fair = false) {
   const others = Math.max(0, n - 1);
-  const html = `<h2>🎲 ${t('Ищем соперника…', 'Looking for an opponent…')}</h2>
+  const tag = fair ? 'fair' : 'find';
+  const html = `<h2>${fair ? '⚔️' : '🎲'} ${fair ? t('Ищем соперника для честного матча…', 'Finding a rival for a fair match…') : t('Ищем соперника…', 'Looking for an opponent…')}</h2>
     <div class="big find-sec">${sec}</div>
     <p class="find-n">${others ? t(`Ещё ищут: ${others}`, `Also searching: ${others}`) : t('Пока ищешь только ты — позови друга в игру', 'Only you are searching — invite a friend')}</p>
     ${offered ? `<p>${t('Никого нет. Сыграешь пока с роботом? Поиск можно продолжить', 'Nobody yet. Play the robot meanwhile? Or keep searching')}</p>` : ''}
@@ -1854,8 +1862,8 @@ function showFind(sec, n, offered, update = false) {
   say(html);
   state.onTap = (p, el) => {
     const act = el.closest('[data-act]')?.dataset.act;
-    if (act === 'back') { buzz(20); STATS.hit('find:quit'); ONLINE.stopFind(); showOnline(); }
-    else if (act === 'robot') { buzz(20); STATS.hit('find:robot'); ONLINE.stopFind(); BOT.start(); showMenu(); }
+    if (act === 'back') { buzz(20); STATS.hit(`${tag}:quit`); ONLINE.stopFind(); showOnline(); }
+    else if (act === 'robot') { buzz(20); STATS.hit(`${tag}:robot`); ONLINE.stopFind(); BOT.start(); showMenu(); }
   };
 }
 
@@ -2799,6 +2807,250 @@ const KNOCK = {
         sfx('knock');
       }
       drawStatus(p);
+    };
+  },
+};
+
+// ---------- честный матч ----------
+// Игру ведёт сервер (online/ — класс Match): он решает, когда всплывёт пельмень, считает нажатия обоих
+// и объявляет победителя. Телефон только показывает события и шлёт свои нажатия, поэтому подкрутить
+// игру у себя не выйдет. Ты всегда снизу (половина 0), соперник сверху, не перевёрнут — он на другом телефоне.
+// Пока на сервере три игры: пельмень, пульт, «Постучи и беги».
+const FAIR = {
+  GAMES: { pelmen: PELMEN, remote: REMOTE, knock: KNOCK },
+  ws: null,
+  seat: 0,
+  game: null,
+  names: null,
+  on: null,   // обработчики событий текущей игры
+  me(s) { return s === null || s === undefined ? null : s === this.seat ? 0 : 1; },
+  mine(w) { return this.seat === 0 ? [w[0], w[1]] : [w[1], w[0]]; },
+
+  start(code, seat) {
+    ONLINE.stopFind();
+    stopAll();
+    BOT.stop();
+    this.seat = seat;
+    this.on = null;
+    document.body.classList.remove('menu', 'rules-open', 'intro', 'no-stage');
+    document.body.classList.add('online', 'fair');
+    this.names = [NAMES[0], NAMES[1]];
+    NAMES[0] = t('Ты', 'You');
+    NAMES[1] = t('Соперник', 'Rival');
+    state.mode = null;
+    state.wins = [0, 0];
+    updateHud();
+    arena.innerHTML = '';
+    stage.innerHTML = '<div class="logo">⚔️</div>';
+    say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Подключаемся к судье…', 'Connecting to the referee…')}</p>`);
+    const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}${this.testGames ? '&games=' + this.testGames : ''}`);
+    ws.onmessage = e => { if (this.ws === ws) this.recv(JSON.parse(e.data)); };
+    ws.onclose = () => { if (this.ws === ws) this.gone(); };
+  },
+  send(m) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m)); },
+  tap(b) { this.send({ t: 'tap', b }); },
+
+  // Выход из матча: соперник получит «вышел», матч не засчитан
+  quit(note = '') {
+    const ws = this.ws;
+    this.ws = null;
+    this.on = null;
+    try { ws?.close(); } catch { /* уже закрыт */ }
+    document.body.classList.remove('online', 'fair');
+    if (this.names) { NAMES[0] = this.names[0]; NAMES[1] = this.names[1]; this.names = null; }
+    updateHud();
+    showOnline(note);
+  },
+  gone() {
+    if (!this.ws) return;
+    stopAll();
+    this.ws = null;
+    arena.innerHTML = '';
+    stage.innerHTML = '<div class="logo">👋</div>';
+    say(`<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${t('Матч не засчитан', 'The match does not count')}</p>`);
+    setTimeout(() => { if (!this.ws) this.quit(); }, 2600);
+  },
+
+  recv(m) {
+    if (m.t === 'ping') { this.send({ t: 'pong', id: m.id }); return; }
+    if (m.t === 'wait') say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Ждём соперника…', 'Waiting for your rival…')}</p>`);
+    else if (m.t === 'round') this.intro(m);
+    else if (m.t === 'ev') this.on?.[m.e]?.(m);
+    else if (m.t === 'end') this.result(m);
+    else if (m.t === 'final') this.final(m);
+    else if (m.t === 'gone') this.gone();
+  },
+
+  // Правило и «3, 2, 1»; игра начнётся по событию go от сервера
+  intro(m) {
+    stopAll();
+    this.on = null;
+    const game = this.game = this.GAMES[m.game];
+    state.wins = this.mine(m.wins);
+    updateHud();
+    arena.innerHTML = '';
+    setScene(m.game);
+    swipeIn();
+    document.body.classList.remove('no-stage');
+    stage.innerHTML = `<div class="logo">${gameIco(game)}</div>`;
+    sayEach(p => `<p>${t(`Раунд ${m.n} · до 3 побед · счёт ${state.wins[p]}:${state.wins[1 - p]}`, `Round ${m.n} · first to 3 · score ${state.wins[p]}:${state.wins[1 - p]}`)}</p>
+      <h2>${game.title}</h2><p>${game.rule}</p>`);
+    let n = 3;
+    const tick = () => { if (n === 0) return; sfx('beep'); stage.innerHTML = `<div class="logo">${n}</div>`; n--; later(800, tick); };
+    later(Math.max(0, m.in - 2500), tick);
+    this.on = { go: e => { stopAll(); sfx('start'); this.play[m.game].call(this, e); } };
+  },
+
+  // Как показывать каждую игру: та же картинка, что на одном телефоне, но решает сервер
+  play: {
+    pelmen() {
+      stage.innerHTML = `<div class="pot"><div class="water"></div>
+        ${[...Array(6)].map((_, i) => `<div class="bubble" style="left:${rand(15, 80)}%;top:${rand(15, 80)}%;animation-delay:${(i * .2).toFixed(1)}s"></div>`).join('')}
+        <div class="pelmen">🥟</div><div class="steam">♨️</div></div>`;
+      const pelmen = stage.querySelector('.pelmen');
+      const COOKING = t('<h2>Варится…</h2><p>Не торопись 👀</p>', '<h2>Boiling…</h2><p>No rush 👀</p>');
+      say(grabUI(t('🍴 Хватай!', '🍴 Grab!')));
+      setStatus(COOKING);
+      let sent = false;
+      state.onTap = (p, el) => {
+        if (p !== 0 || sent || !el.closest('.grab')) return;
+        sent = true;
+        buzz(30);
+        this.tap('grab');
+        $p(0, '.grab').classList.add('done');
+      };
+      this.on = {
+        peek: () => { pelmen.classList.add('peek'); setStatus(t('<h2>Бульк!</h2><p>Или нет?..</p>', '<h2>Bloop!</h2><p>Or not?..</p>')); },
+        unpeek: () => { pelmen.classList.remove('peek'); setStatus(COOKING); },
+        up: () => {
+          pelmen.classList.add('up');
+          setStatus(t('<div class="big">ЖМИ!</div>', '<div class="big">NOW!</div>'));
+          document.querySelectorAll('.grab').forEach(b => b.classList.add('hot'));
+          buzz(60);
+        },
+      };
+    },
+
+    remote(e) {
+      stage.innerHTML = '';
+      arena.innerHTML = `<div class="remote"><i class="power"></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="wide"></i><i></i><i></i><i></i></div>`;
+      const remote = arena.querySelector('.remote');
+      // pos сервера: 1 — у места 0; у себя: плюс — ко мне (вниз)
+      const draw = pos => { const mine = this.seat === 0 ? pos : -pos; remote.style.top = `${50 + mine * 36}%`; };
+      const tick = left => sayEach(() => t(`<div class="big">ТЯНИ!!!</div><p>${left} с</p>`, `<div class="big">PULL!!!</div><p>${left} s</p>`));
+      draw(e.pos);
+      tick(e.left);
+      state.onTap = p => { if (p !== 0) return; buzz(8); this.tap('pull'); };
+      this.on = { pos: m => draw(m.pos), left: m => tick(m.left) };
+    },
+
+    knock() {
+      const pts = [0, 0];
+      let cue = 'quiet';
+      let ran = false;
+      const door = cls => { stage.innerHTML = `<div class="logo knock-door ${cls}">${ico('knock')}</div>`; };
+      door('');
+      sayEach(() => `<div class="status"></div>
+        <div class="row"><div class="grab" data-b="knock">${t('✊ Стучать', '✊ Knock')}</div><div class="grab" data-b="run">${t('🏃 Бежать!', '🏃 Run!')}</div></div>`);
+      const drawStatus = p => {
+        const hint = p === 0 && ran ? t('Сбежал, сидишь за углом 🤫', 'You ran, hiding round the corner 🤫')
+          : cue === 'steps' ? t('👣 Шаги за дверью! Стук ×2', '👣 Footsteps! Knocks ×2')
+          : cue === 'cat' ? t('🐈 Кто-то топает…', '🐈 Something’s pattering…')
+          : t('Тихо… стучи!', 'All quiet… knock!');
+        setStatus(`<h2>✊ ${pts[p]}</h2><p>${hint}</p>`, p);
+      };
+      [0, 1].forEach(drawStatus);
+      halves[1].querySelectorAll('.grab').forEach(g => g.classList.add('done'));   // кнопки соперника — у него
+      state.onTap = (p, el) => {
+        const b = el.closest('.grab')?.dataset.b;
+        if (p !== 0 || !b || ran) return;
+        if (b === 'run') { ran = true; buzz(30); sfx('tap'); halves[0].querySelectorAll('.grab').forEach(g => { g.classList.add('done'); g.classList.remove('hot'); }); drawStatus(0); }
+        else { buzz(8); sfx('knock'); }
+        this.tap(b);
+      };
+      this.on = {
+        cat: () => { cue = 'cat'; door('cat'); [0, 1].forEach(drawStatus); buzz(20); },
+        quiet: () => { cue = 'quiet'; door(''); [0, 1].forEach(drawStatus); },
+        steps: () => {
+          cue = 'steps'; door('steps'); [0, 1].forEach(drawStatus); sfx('alert'); buzz([40, 30, 40]);
+          if (!ran) $p(0, '[data-b=run]').classList.add('hot');
+        },
+        pts: m => { const mine = this.mine(m.pts); pts[0] = mine[0]; pts[1] = mine[1]; [0, 1].forEach(drawStatus); },
+        ran: () => { ran = true; drawStatus(0); },
+        open: () => { stage.innerHTML = '<div class="logo">👴</div>'; sfx('bad'); state.onTap = null; },
+      };
+    },
+  },
+
+  // Итог раунда от сервера
+  result(m) {
+    stopAll();
+    this.on = null;
+    const winner = this.me(m.winner);
+    const info = m.info || {};
+    state.wins = this.mine(m.wins);
+    updateHud();
+    flashResult(winner);
+    if (winner !== null) { jolt(); confetti(winner, 18); }
+    sfx(winner === null ? 'draw' : 'round');
+    buzz(winner === 0 ? 80 : [40, 40, 40]);
+    arena.innerHTML = '';
+    stage.innerHTML = `<div class="logo">${winner === null ? '🤷' : '⭐'}</div>`;
+    const stats = this.stats(info, winner);
+    const line = (p, q) => `<div class="${q === p ? 'me' : ''} ${q === winner ? 'won' : ''}"><b>${NAMES[q]}</b><span>${stats[q]}</span></div>`;
+    sayEach(p => {
+      const kind = winner === null ? 'v-draw' : winner === p ? 'v-win' : 'v-lose';
+      const verdict = t({ 'v-win': 'ПОБЕДА 🏆', 'v-lose': 'ПРОИГРЫШ 😵', 'v-draw': 'НИЧЬЯ 🤝' }, { 'v-win': 'VICTORY 🏆', 'v-lose': 'DEFEAT 😵', 'v-draw': 'DRAW 🤝' })[kind];
+      return `${granny(kind.slice(2))}<h1 class="verdict ${kind}">${verdict}</h1>
+        ${winner === null ? `<p>${t('Переигрываем', 'Play it again')}</p>` : ''}
+        <div class="res">${line(p, p)}${line(p, 1 - p)}</div>
+        <p class="board">${t('Счёт', 'Score')} <span class="tile">${state.wins[p]}</span>:<span class="tile">${state.wins[1 - p]}</span></p>
+        <p class="kb-hint">⚖️ ${t('Судил сервер', 'Refereed by the server')}</p>`;
+    });
+  },
+  // Что набрал каждый — по подробностям от сервера; [я, соперник]
+  stats(info, winner) {
+    const k = info.kind;
+    if (k === 'grab') return [0, 1].map(p => p === winner ? t(`${info.ms} мс`, `${info.ms} ms`) : t('не успел', 'too slow'));
+    if (k === 'burned') { const who = this.me(info.who); return [0, 1].map(p => p === who ? t('обжёгся 🔥', 'burned 🔥') : t('дождался', 'waited')); }
+    if (k === 'mush') return t(['не успел', 'не успел'], ['too slow', 'too slow']);
+    if (k === 'pull' || k === 'time' || k === 'draw') {
+      const mine = this.seat === 0 ? info.pos : -info.pos;
+      const s0 = Math.round(Math.min(1, Math.max(0, (1 + mine) / 2)) * 100);
+      return t([`${s0}% пульта`, `${100 - s0}% пульта`], [`${s0}% of remote`, `${100 - s0}% of remote`]);
+    }
+    if (k === 'knock') {
+      const pts = this.mine(info.pts);
+      const caught = this.mine(info.caught);
+      return [0, 1].map(p => caught[p] ? t('попался 👴', 'caught 👴') : `✊ ${pts[p]}`);
+    }
+    return ['', ''];
+  },
+
+  final(m) {
+    stopAll();
+    const winner = this.me(m.winner);
+    state.wins = this.mine(m.wins);
+    updateHud();
+    const ws = this.ws;
+    this.ws = null;
+    try { ws?.close(); } catch { /* уже закрыт */ }
+    STATS.hit('final', 'fair:done');
+    flashResult(winner);
+    sfx('fanfare');
+    buzz([100, 60, 100]);
+    confetti(winner, 70);
+    stage.innerHTML = '<div class="logo">🏆</div>';
+    sayEach(p => `${granny(p === winner ? 'win' : 'lose', true)}
+      <h1 class="verdict ${p === winner ? 'v-win' : 'v-lose'}">${p === winner ? t('Ты выиграл матч! 🏆', 'You won the match! 🏆') : t('Матч проигран 😵', 'Match lost 😵')}</h1>
+      <p class="board">${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>
+      <div><span class="btn" data-act="again">⚔️ ${t('Ещё матч', 'Another match')}</span><span class="btn" data-act="back">${BACK}</span></div>`);
+    const shownAt = performance.now();
+    state.onTap = (p, el) => {
+      if (p !== 0 || performance.now() - shownAt < 700) return;
+      const act = el.closest('[data-act]')?.dataset.act;
+      if (act === 'again') { buzz(20); this.quit(); ONLINE.find(true); }
+      else if (act === 'back') { buzz(20); this.quit(); }
     };
   },
 };
