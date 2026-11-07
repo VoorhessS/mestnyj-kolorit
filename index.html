@@ -95,6 +95,7 @@
   .msg .gift { font-weight: 700; animation: giftin .6s ease-out; }
   @keyframes giftin { from { transform: scale(.7); opacity: 0; } }
   .wallet-log span { opacity: .85; }
+  .msg p.small { font-size: clamp(12px, 3.4vmin, 15px); margin: 4px 0; }
   .res b { font-weight: 700; }
   .res div.won b::after { content: ' 🏆'; }
   body.skin-win98 .res div { background: #fff; border-radius: 0; box-shadow: var(--sunken); color: #000; }
@@ -961,7 +962,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 46;
+const BUILD = 47;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1213,6 +1214,7 @@ const WALLET = {
   },
 };
 const fmtN = n => Math.round(n).toLocaleString('ru-RU');
+const esc = v => String(v).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
 // Турнир на пельмешки — только в Телеграме. Пока не запущен (LIVE = false), виден только по ссылке
 // t.me/BabushkaBattlesBot/play?startapp=tourtest — для проверки. До запуска никаких подарков и накоплений.
@@ -1230,7 +1232,9 @@ const TOUR = {
   league: s => TOUR.LEAGUES.find(l => l.stakes.includes(s)),
 };
 const WHY = () => ({ welcome: t('Подарок новичку', 'Welcome gift'), daily: t('Ежедневный подарок', 'Daily gift'), pension: t('Бабушкина пенсия', 'Granny’s pension'),
-  buy: t('Покупка', 'Purchase'), stake: t('Ставка', 'Stake'), win: t('Выигрыш', 'Winnings'), back: t('Возврат ставки', 'Stake returned') });
+  buy: t('Покупка', 'Purchase'), stake: t('Ставка', 'Stake'), win: t('Выигрыш', 'Winnings'), back: t('Возврат ставки', 'Stake returned'), prize: t('Приз недели', 'Weekly prize') });
+// Группы лидерборда недели (те же, что на сервере stars/, GROUPS)
+const GROUP = () => ({ bronze: ['🥉', t('Бронза', 'Bronze')], silver: ['🥈', t('Серебро', 'Silver')], gold: ['🥇', t('Золото', 'Gold')], diamond: ['💎', t('Алмаз', 'Diamond')] });
 
 const RU_NAMES = ['Синий', 'Красный'];
 const EN_NAMES = ['Blue', 'Red'];
@@ -3853,10 +3857,11 @@ async function showTour(note = '', reload = true) {
     <p>${t('Выбери ставку. Соперник ставит столько же, победитель забирает банк, Бабке — 10%.', 'Pick a stake. Your rival bets the same; the winner takes the pot, Granny takes 10%.')}</p>
     <div class="modes grid">${TOUR.LEAGUES.flatMap(l => l.stakes.map(st =>
       `<div class="mode ${bal < st ? 'locked' : ''}" data-stake="${st}"><span class="e">${l.ico}</span><span><b>${fmtN(st)} 🥟</b><small>${l.name}</small></span></div>`)).join('')}</div>
-    <div class="tools"><span class="btn" data-act="wallet">🥟 ${t('Кошелёк', 'Wallet')}</span><span class="btn" data-act="rules">📜 ${t('Правила', 'Rules')}</span><span class="btn" data-act="back">${BACK}</span></div>`);
+    <div class="tools"><span class="btn" data-act="board">📊 ${t('Лидерборд', 'Leaderboard')}</span><span class="btn" data-act="wallet">🥟 ${t('Кошелёк', 'Wallet')}</span><span class="btn" data-act="rules">📜 ${t('Правила', 'Rules')}</span><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => {
     const act = el.closest('[data-act]')?.dataset.act;
     if (act === 'back') { buzz(20); showStart(); return; }
+    if (act === 'board') { buzz(20); showBoard(); return; }
     if (act === 'wallet') { buzz(20); showWallet(); return; }
     if (act === 'rules') { buzz(20); showTourRules(); return; }
     const st = Number(el.closest('[data-stake]')?.dataset.stake);
@@ -3873,10 +3878,49 @@ function showTourRules() {
   stage.innerHTML = '<div class="logo">📜</div>';
   say(`<h2>📜 ${t('Правила турнира', 'Tournament rules')}</h2>
     <div class="rules-list"><p>${t(
-      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
-      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
+      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Лидерборд недели: группа по чистому выигрышу (Бронза, Серебро, Золото, Алмаз). В ночь на понедельник Бабка раздаёт из фонда призы трём лучшим в каждой группе (нужно хотя бы 3 матча за неделю), таблица обнуляется.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
+      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Weekly leaderboard: groups by net winnings. Every Monday the top 3 in each group get prizes from the fund (3+ matches needed), and the board resets.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } };
+}
+
+// Лидерборд недели: моя группа по чистому выигрышу, топ-10, моё место, фонд Бабки и сколько до итогов
+async function showBoard() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2><p>⏳ ${t('Считаем…', 'Counting…')}</p>`);
+  state.onTap = null;
+  let b = null;
+  try { b = await STARS.ask('/board'); } catch { /* нет сети */ }
+  const back = () => { state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } }; };
+  if (!b?.me) {
+    say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2><p>${t('Не получилось загрузить — проверь интернет', 'Could not load — check your connection')}</p><div><span class="btn" data-act="back">${BACK}</span></div>`);
+    back();
+    return;
+  }
+  const G = GROUP();
+  const g = b.groups.find(x => x.id === b.me.group) || b.groups[0];
+  const [ico, gname] = G[g.id];
+  const left = Math.max(0, b.end - Date.now());
+  const d = Math.floor(left / 86400e3), h = Math.floor(left % 86400e3 / 3600e3);
+  const sign = n => (n > 0 ? '+' : '') + fmtN(n);
+  const row = (r, i) => `<div class="${r.me ? 'me' : ''}"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1 + '.'} ${esc(r.name)}</span><b>${sign(r.net)}</b></div>`;
+  // Топ-5; если я ниже — моя строка отдельно
+  const rows = b.top.slice(0, 5).map(row).join('') + (b.me.place > 5 ? row({ name: t('Ты', 'You'), net: b.me.net, me: true }, b.me.place - 1) : '');
+  const mine = b.me.games
+    ? `${t('Ты', 'You')}: <b>${b.me.place}-${t('е место', 'th')}</b> · ${sign(b.me.net)} 🥟 · ${t('матчей', 'matches')} ${b.me.games}${b.me.games < b.minGames ? ` (${t('для приза нужно', 'need')} ${b.minGames})` : ''}`
+    : t('Сыграй турнирный матч — и попадёшь в таблицу', 'Play a tournament match to get on the board');
+  const lastMine = b.last?.winners?.length ? `<p class="kb-hint">${t('Прошлая неделя', 'Last week')}: ${b.last.winners.slice(0, 3).map(w => `${G[w.group][0]} ${esc(w.name || '—')} +${fmtN(w.prize)}`).join(' · ')}</p>` : '';
+  say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2>
+    <p class="board">${ico} ${gname}</p>
+    <p>${mine}</p>
+    ${rows ? `<div class="res">${rows}</div>` : ''}
+    <p class="small">💰 ${t('Фонд Бабки', 'Granny’s fund')}: <b>${fmtN(b.fund)} 🥟</b> · ${t('призы', 'prizes')} ${g.prizes.map(fmtN).join(' / ')}</p>
+    <p class="small">⏳ ${t(`Итоги через ${d} дн. ${h} ч. · группа по чистому выигрышу`, `Results in ${d}d ${h}h · group by net winnings`)}</p>
+    ${lastMine}
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+  back();
 }
 
 // Кошелёк: баланс, пенсия, наборы за звёзды (когда включены на сервере), последние операции
