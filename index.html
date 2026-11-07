@@ -962,13 +962,20 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 48;
+const BUILD = 49;
+
+// Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
+// ('newgrounds', 'gamejolt' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
+const HOST = window.KOLORIT_PORTAL || null;
+const LINKS_OK = HOST === 'newgrounds' || HOST === 'gamejolt';  // там можно ссылки наружу и свой сервер
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
 // Игра сама понимает, где запущена, и зовёт их SDK. На своём сайте рекламы нет; с ?ads=test вместо неё заглушка.
 const ADS = {
-  kind: null,  // 'yandex', 'vk', 'tg', 'test' или null — рекламы нет
+  kind: null,  // 'yandex', 'vk', 'tg', 'gd', 'poki', 'test' или null — рекламы нет
+  // Номер игры из кабинета GameDistribution (Upload → игра → Game ID). Пусто — рекламы нет, всё открыто
+  GD_ID: '',
   // Блоки AdsGram из кабинета partner.adsgram.ai: пока пусто — в Телеграме рекламы нет и всё открыто
   ADSGRAM: { reward: '58007', inter: 'int-58008' },
   sdk: null,
@@ -983,6 +990,19 @@ const ADS = {
     // Телеграм передаёт данные запуска в адресе после #
     else if (/tgWebApp(Data|Platform)=/.test(location.hash)) this.kind = 'tg';
     else if (/(^|\.)(yandex\.(net|ru|com)|playhop\.com)$/.test(location.hostname)) this.kind = 'yandex';
+    else if (HOST === 'gd' || HOST === 'poki') this.kind = HOST;
+    if (this.kind === 'gd' && this.GD_ID) {
+      // GameDistribution: реклама и пауза игры приходят событиями
+      window.GD_OPTIONS = { gameId: this.GD_ID, onEvent: e => {
+        if (e.name === 'SDK_REWARDED_WATCH_COMPLETE') this.gdReward = true;
+        if (e.name === 'SDK_GAME_PAUSE') this.hush(true);
+        if (e.name === 'SDK_GAME_START') this.hush(false);
+      } };
+      this.script('https://html5.api.gamedistribution.com/main.min.js', () => { this.sdk = window.gdsdk; });
+    }
+    if (this.kind === 'poki') this.script('https://game-cdn.poki.com/scripts/v2/poki-sdk.js', () => {
+      window.PokiSDK.init().then(() => { this.sdk = window.PokiSDK; this.sdk.gameLoadingFinished(); }).catch(() => { this.sdk = window.PokiSDK; });
+    });
     if (this.kind === 'vk') this.script('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js', () => {
       this.sdk = window.vkBridge;
       this.sdk.send('VKWebAppInit');
@@ -1040,10 +1060,11 @@ const ADS = {
     document.head.append(s);
   },
   // Есть ли где взять рекламу за награду: без неё скины не закрываем
-  get rewards() { return this.kind !== null && (this.kind !== 'tg' || Boolean(this.ADSGRAM.reward)); },
+  get rewards() { return this.kind !== null && (this.kind !== 'tg' || Boolean(this.ADSGRAM.reward)) && (this.kind !== 'gd' || Boolean(this.GD_ID)); },
   // Яндекс просит отмечать, когда идёт сама игра, а когда меню и пауза
   playing(on) {
     if (this.kind === 'yandex') this.sdk?.features.GameplayAPI?.[on ? 'start' : 'stop']();
+    if (this.kind === 'poki') try { this.sdk?.[on ? 'gameplayStart' : 'gameplayStop'](); } catch { /* без SDK */ }
   },
   // Звук на время рекламы выключаем — этого требуют площадки
   busy: false,
@@ -1081,6 +1102,13 @@ const ADS = {
     if (this.kind === 'vk') {
       return this.sdk.send('VKWebAppShowNativeAds', { ad_format: rewarded ? 'reward' : 'interstitial' })
         .then(data => Boolean(data && data.result));
+    }
+    if (this.kind === 'gd') {
+      this.gdReward = false;
+      return this.sdk.showAd(rewarded ? 'rewarded' : undefined).then(() => !rewarded || this.gdReward);
+    }
+    if (this.kind === 'poki') {
+      return rewarded ? this.sdk.rewardedBreak().then(Boolean) : this.sdk.commercialBreak().then(() => true);
     }
     return new Promise(done => {
       let got = false;
@@ -1123,7 +1151,7 @@ const ADS = {
 ADS.init();
 // Игра открыта на игровом портале (Яндекс, VK, Телеграм, CrazyGames, itch.io), а не на своём сайте:
 // там не показываем недоделанное и не ставим офлайн-режим — порталы обновляют игру сами
-const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || ADS.kind === 'tg' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
+const PORTAL = Boolean(HOST) || ADS.kind === 'yandex' || ADS.kind === 'vk' || ADS.kind === 'tg' || /(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net)$/.test(location.hostname);
 
 // ---------- счётчик ----------
 // Сколько раз открыли игру, сколько разных телефонов за день, какие мини-игры запускают.
@@ -1131,14 +1159,14 @@ const PORTAL = ADS.kind === 'yandex' || ADS.kind === 'vk' || ADS.kind === 'tg' |
 // Не считаем на Яндексе, CrazyGames и itch (там правила порталов) и при запуске из файла.
 const STATS = {
   API: 'https://babushka-online.17homosapiens.workers.dev',
-  on: location.protocol.startsWith('http') && ADS.kind !== 'yandex'
+  on: location.protocol.startsWith('http') && ADS.kind !== 'yandex' && HOST !== 'gd' && HOST !== 'poki'
     && !/(^|\.)(crazygames\.[a-z.]+|itch\.zone|itch\.io|hwcdn\.net|localhost|127\.0\.0\.1)$/.test(location.hostname),
   hit(...keys) {
     if (!this.on) return;
     try { navigator.sendBeacon(`${this.API}/hit`, JSON.stringify({ k: keys })); } catch { /* не страшно */ }
   },
   open() {
-    const plat = ADS.kind === 'tg' ? 'tg' : ADS.kind === 'vk' ? 'vk' : 'web';
+    const plat = ADS.kind === 'tg' ? 'tg' : ADS.kind === 'vk' ? 'vk' : LINKS_OK ? HOST : 'web';
     const today = new Date().toDateString();
     const first = load('kolorit-seen', '') !== today;
     if (first) save('kolorit-seen', today);
@@ -3807,8 +3835,9 @@ function showStart() {
     <div class="modes">
       <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
       <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
-      ${PORTAL && ADS.kind !== 'tg' ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
+      ${PORTAL && ADS.kind !== 'tg' && !LINKS_OK ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
       ${TOUR.on ? `<div class="mode" data-where="tour"><span class="e">🏆</span><span><b>${t('Турнир', 'Tournament')}</b><small>${t('Ставки пельмешками 🥟', 'Play for dumplings 🥟')}</small></span></div>` : ''}
+      ${LINKS_OK ? `<div class="mode" data-where="tgtour"><span class="e">🏆</span><span><b>${t('Турнир у Бабки', 'Granny’s tournament')}</b><small>${t('В Телеграме, на пельмешки 🥟', 'In Telegram, for dumplings 🥟')}</small></span></div>` : ''}
     </div>
     <div class="tools">
       <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
@@ -3832,6 +3861,7 @@ function showStart() {
     else if (where === 'names') showNames();
     else if (where === 'skins') showSkins();
     else if (where === 'tour') showTour();
+    else if (where === 'tgtour') window.open('https://t.me/BabushkaBattlesBot/play', '_blank', 'noopener');
     else showOnline();
   };
 }
