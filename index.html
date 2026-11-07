@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 40;
+const BUILD = 41;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1843,9 +1843,8 @@ function showOnline(note = '') {
   sayEach(p => `<h2>🌐 ${t('По сети', 'Online')}</h2>${note ? `<p>${note}</p>` : ''}
     ${howNet()}
     <div class="modes">
-      <div class="mode" data-act="find"><span class="e">🎲</span><span><b>${t('Найти соперника', 'Find an opponent')}</b><small>${t('Случайный игрок, который тоже ищет', 'A random player who is also searching')}</small></span></div>
-      <div class="mode" data-act="fair"><span class="e">⚔️</span><span><b>${t('Честный матч', 'Fair match')}</b><small>${t(`Судит сервер · ${Object.keys(FAIR.GAMES).length} игр · до 3 побед`, `Server referee · ${Object.keys(FAIR.GAMES).length} games · first to 3`)}</small></span></div>
-      <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Получишь код для друга', 'You get a code for your friend')}</small></span></div>
+      <div class="mode" data-act="find"><span class="e">⚔️</span><span><b>${t('Найти соперника', 'Find an opponent')}</b><small>${t('Случайный игрок · судит сервер · до 3 побед', 'A random player · server referee · first to 3')}</small></span></div>
+      <div class="mode" data-act="create"><span class="e">➕</span><span><b>${t('Создать игру', 'Create a game')}</b><small>${t('Код для друга · выбери игру', 'A code for your friend · pick a game')}</small></span></div>
       <div class="mode" data-act="join"><span class="e">🔢</span><span><b>${t('Войти по коду', 'Join with a code')}</b><small>${t('Код пришлёт друг', 'Your friend sends the code')}</small></span></div>
     </div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
@@ -1854,9 +1853,8 @@ function showOnline(note = '') {
     if (!act) return;
     buzz(20);
     if (act === 'back') showStart();
-    else if (act === 'find') ONLINE.find();
-    else if (act === 'fair') ONLINE.find(true);
-    else if (act === 'create') { say(`<h2>⏳ ${t('Создаём комнату…', 'Creating a room…')}</h2>`); state.onTap = null; ONLINE.create(); }
+    else if (act === 'find' || act === 'fair') ONLINE.find(true);
+    else if (act === 'create') showPick();
     else showJoin(p);
   };
 }
@@ -1885,6 +1883,36 @@ function showFind(sec, n, offered, update = false, fair = false) {
     if (act === 'back') { buzz(20); STATS.hit(`${tag}:quit`); ONLINE.stopFind(); showOnline(); }
     else if (act === 'robot') { buzz(20); STATS.hit(`${tag}:robot`); ONLINE.stopFind(); BOT.start(); showMenu(); }
   };
+}
+
+// Комната с другом: во что играем — всё вперемешку или одна игра до 3 побед
+function showPick() {
+  sayEach(() => `<h2>➕ ${t('Во что играем?', 'What do we play?')}</h2>
+    <div class="modes">
+      <div class="mode" data-pick="all"><span class="e">🎲</span><span><b>${t('Все игры вперемешку', 'All games, shuffled')}</b><small>${t('До 3 побед', 'First to 3')}</small></span></div>
+      ${Object.entries(FAIR.GAMES).map(([id, g]) => `<div class="mode" data-pick="${id}"><span class="e">${gameIco(g)}</span><span><b>${g.title}</b></span></div>`).join('')}
+    </div>
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) { buzz(20); showOnline(); return; }
+    const pick = el.closest('[data-pick]')?.dataset.pick;
+    if (!pick) return;
+    buzz(20);
+    FAIR.create(pick === 'all' ? null : pick);
+  };
+}
+
+// Пригласить друга: в Телеграме — через «Поделиться», в браузере — системное меню или копия ссылки
+function shareInvite() {
+  const text = t('Сыграем в Babushka Battles? Заходи:', 'Up for Babushka Battles? Join me:');
+  const tg = window.Telegram?.WebApp;
+  if (ADS.kind === 'tg' && tg?.openTelegramLink) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(ONLINE.link())}&text=${encodeURIComponent(text)}`);
+  } else if (navigator.share) {
+    navigator.share({ title: TITLE, text, url: ONLINE.link() }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(ONLINE.link()).then(() => setStatusNote(t('Ссылка скопирована ✅', 'Link copied ✅')), () => {});
+  }
 }
 
 // Хозяин ждёт друга: код крупно и кнопка «Отправить приглашение»
@@ -1925,7 +1953,7 @@ function showJoin(p) {
     document.activeElement?.blur();
     if (code.length !== 4) { $p(p, '.code-input').value = ''; return; }
     buzz(20);
-    ONLINE.join(code);
+    FAIR.join(code);
   };
 }
 
@@ -2847,8 +2875,12 @@ const FAIR = {
   me(s) { return s === null || s === undefined ? null : s === this.seat ? 0 : 1; },
   mine(w) { return this.seat === 0 ? [w[0], w[1]] : [w[1], w[0]]; },
 
-  start(code, seat) {
+  // opts.room — комната по коду с другом (место 0 — кто создал), opts.pick — одна игра на весь матч
+  start(code, seat, opts = {}) {
     ONLINE.stopFind();
+    this.room = !!opts.room;
+    this.code = code;
+    this.over = false;
     stopAll();
     BOT.stop();
     this.seat = seat;
@@ -2864,12 +2896,41 @@ const FAIR = {
     arena.innerHTML = '';
     stage.innerHTML = '<div class="logo">⚔️</div>';
     say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Подключаемся к судье…', 'Connecting to the referee…')}</p>`);
-    const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}&have=${Object.keys(this.GAMES).join(',')}${this.testGames ? '&games=' + this.testGames : ''}`);
+    const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}&have=${Object.keys(this.GAMES).join(',')}${this.room ? '&room=1' : ''}${opts.pick ? '&pick=' + opts.pick : ''}${this.testGames ? '&games=' + this.testGames : ''}`);
     ws.onmessage = e => { if (this.ws === ws) this.recv(JSON.parse(e.data)); };
     ws.onclose = () => { if (this.ws === ws) this.gone(); };
   },
   send(m) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m)); },
   tap(b) { this.send({ t: 'tap', b }); },
+
+  // Создать комнату для друга: сервер выдаёт свободный код, мы — место 0
+  async create(pick) {
+    say(`<h2>⏳ ${t('Создаём комнату…', 'Creating a room…')}</h2>`);
+    state.onTap = null;
+    let code;
+    try { ({ code } = await (await fetch(ONLINE.API + '/free')).json()); } catch { /* нет сети */ }
+    if (!code) { showOnline(t('Сервер не отвечает — проверь интернет', 'The server is not answering — check your connection')); return; }
+    STATS.hit('fair:room');
+    ONLINE.code = code;   // для ссылки-приглашения
+    this.start(code, 0, { room: true, pick });
+  },
+  join(code) {
+    STATS.hit('fair:join');
+    this.start(code, 1, { room: true });
+  },
+  // Ждём друга: код крупно и «Пригласить»
+  waitRoom() {
+    stage.innerHTML = '<div class="logo">🔢</div>';
+    say(`<h2>${t('Код комнаты', 'Room code')}</h2><div class="big">${this.code}</div>
+      <p>${t('Друг открывает игру → «По сети» → «Войти по коду». Или отправь ему ссылку:', 'Your friend opens the game → “Online” → “Join with a code”. Or send them the link:')}</p>
+      <div><span class="btn" data-act="share">📤 ${t('Пригласить', 'Invite')}</span><span class="btn" data-act="back">${BACK}</span></div>
+      <p class="kb-hint">⏳ ${t('Ждём друга…', 'Waiting for your friend…')}</p>`);
+    state.onTap = (p, el) => {
+      const act = el.closest('[data-act]')?.dataset.act;
+      if (act === 'back') { buzz(20); this.quit(); }
+      else if (act === 'share') { buzz(20); shareInvite(); }
+    };
+  },
 
   // Выход из матча: соперник получит «вышел», матч не засчитан
   quit(note = '') {
@@ -2888,13 +2949,19 @@ const FAIR = {
     this.ws = null;
     arena.innerHTML = '';
     stage.innerHTML = '<div class="logo">👋</div>';
-    say(`<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${t('Матч не засчитан', 'The match does not count')}</p>`);
+    say(this.over ? `<h2>${t('Друг вышел 👋', 'Your friend left 👋')}</h2>`
+      : `<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${t('Матч не засчитан', 'The match does not count')}</p>`);
     setTimeout(() => { if (!this.ws) this.quit(); }, 2600);
   },
 
   recv(m) {
     if (m.t === 'ping') { this.send({ t: 'pong', id: m.id }); return; }
-    if (m.t === 'wait') say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Ждём соперника…', 'Waiting for your rival…')}</p>`);
+    if (m.t === 'wait') {
+      if (this.room && this.seat === 0) this.waitRoom();
+      else say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${this.room ? t('Подключаемся к другу…', 'Connecting to your friend…') : t('Ждём соперника…', 'Waiting for your rival…')}</p>`);
+    }
+    else if (m.t === 'noroom') { this.ws = null; this.quit(t('Комнаты с таким кодом нет — проверь код', 'No room with this code — check it')); }
+    else if (m.t === 'again') setStatusNote(t('🔁 Друг хочет ещё матч!', '🔁 Your friend wants another match!'));
     else if (m.t === 'round') this.intro(m);
     else if (m.t === 'ev') this.on?.[m.e]?.(m);
     else if (m.t === 'end') this.result(m);
@@ -2906,6 +2973,7 @@ const FAIR = {
   intro(m) {
     stopAll();
     this.on = null;
+    this.over = false;
     const game = this.game = this.GAMES[m.game];
     this.gid = m.game;
     state.wins = this.mine(m.wins);
@@ -3372,9 +3440,12 @@ const FAIR = {
     const winner = this.me(m.winner);
     state.wins = this.mine(m.wins);
     updateHud();
-    const ws = this.ws;
-    this.ws = null;
-    try { ws?.close(); } catch { /* уже закрыт */ }
+    this.over = true;
+    if (!this.room) {
+      const ws = this.ws;
+      this.ws = null;
+      try { ws?.close(); } catch { /* уже закрыт */ }
+    }
     STATS.hit('final', 'fair:done');
     flashResult(winner);
     sfx('fanfare');
@@ -3384,12 +3455,19 @@ const FAIR = {
     sayEach(p => `${granny(p === winner ? 'win' : 'lose', true)}
       <h1 class="verdict ${p === winner ? 'v-win' : 'v-lose'}">${p === winner ? t('Ты выиграл матч! 🏆', 'You won the match! 🏆') : t('Матч проигран 😵', 'Match lost 😵')}</h1>
       <p class="board">${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>
-      <div><span class="btn" data-act="again">⚔️ ${t('Ещё матч', 'Another match')}</span><span class="btn" data-act="back">${BACK}</span></div>`);
+      <div><span class="btn" data-act="again">⚔️ ${t('Ещё матч', 'Another match')}</span><span class="btn" data-act="back">${BACK}</span></div>
+      ${this.room ? '<p class="kb-hint"></p>' : ''}`);
     const shownAt = performance.now();
     state.onTap = (p, el) => {
       if (p !== 0 || performance.now() - shownAt < 700) return;
       const act = el.closest('[data-act]')?.dataset.act;
-      if (act === 'again') { buzz(20); this.quit(); ONLINE.find(true); }
+      if (act === 'again' && this.room) {
+        buzz(20);
+        this.send({ t: 'again' });
+        $p(0, '[data-act=again]').classList.add('done');
+        setStatusNote(t('⏳ Ждём, пока друг тоже нажмёт «Ещё матч»', '⏳ Waiting for your friend to tap “Another match” too'));
+      }
+      else if (act === 'again') { buzz(20); this.quit(); ONLINE.find(true); }
       else if (act === 'back') { buzz(20); this.quit(); }
     };
   },
@@ -3973,7 +4051,7 @@ function joinOnce(code) {
     if (sessionStorage.getItem('kolorit-joined') === code) return;
     sessionStorage.setItem('kolorit-joined', code);
   } catch { /* без памяти вкладки просто заходим */ }
-  ONLINE.join(code);
+  FAIR.join(code);
 }
 const invited = new URLSearchParams(location.search).get('room');
 if (/^\d{4}$/.test(invited || '')) joinOnce(invited);
