@@ -912,7 +912,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 37;
+const BUILD = 38;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1219,6 +1219,23 @@ function setStatus(html, p) {
 }
 
 function $p(p, sel) { return halves[p].querySelector(sel); }
+
+// Перенести разметку next в cur, не трогая совпадающие узлы (живые анимации не сбрасываются)
+function morphKids(cur, next) {
+  const a = [...cur.childNodes], b = [...next.childNodes];
+  b.forEach((y, i) => {
+    const x = a[i];
+    if (!x) cur.appendChild(y);
+    else if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) cur.replaceChild(y, x);
+    else if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; }
+    else {
+      for (const at of [...x.attributes]) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+      for (const at of y.attributes) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+      morphKids(x, y);
+    }
+  });
+  for (let i = b.length; i < a.length; i++) a[i].remove();
+}
 
 const hudWins = [0, 0];
 function updateHud() {
@@ -1680,7 +1697,10 @@ const ONLINE = {
         state.onTap?.(1, el);
       } else if (m.t === 'up') state.onRelease?.(1);
     } else if (m.t === 'view') {
-      app.innerHTML = m.app;
+      // Меняем только то, что поменялось: иначе анимации (звёзды, пельмень) перезапускаются каждые 70 мс
+      const next = document.createElement('div');
+      next.innerHTML = m.app;
+      morphKids(app, next);
       document.body.className = `${m.cls.replace(/\bdesktop\b/, '')}${DESKTOP ? ' desktop' : ''} online guest`;
       for (const h of app.querySelectorAll('.half')) fitMsg(h);
     } else if (m.t === 'sfx') sfx(m.n);
