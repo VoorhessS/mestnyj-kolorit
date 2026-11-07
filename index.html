@@ -92,6 +92,9 @@
   .res div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; border-radius: 10px;
     background: rgba(0,0,0,.18); font-size: clamp(14px, 4vmin, 18px); text-align: left; }
   .res div.me { background: rgba(255,255,255,.22); }
+  .msg .gift { font-weight: 700; animation: giftin .6s ease-out; }
+  @keyframes giftin { from { transform: scale(.7); opacity: 0; } }
+  .wallet-log span { opacity: .85; }
   .res b { font-weight: 700; }
   .res div.won b::after { content: ' 🏆'; }
   body.skin-win98 .res div { background: #fff; border-radius: 0; box-shadow: var(--sunken); color: #000; }
@@ -306,6 +309,19 @@
   @keyframes shrug { 30% { transform: rotate(-8deg); } 70% { transform: rotate(8deg); } }
   @media (max-height: 720px) { .granny { width: 42px; height: 42px; margin-bottom: 0; } .granny.big { width: 60px; height: 60px; } }
   @media (prefers-reduced-motion: reduce) { .granny { animation: none !important; } }
+  /* Бабка-смотрящая и её отъезд */
+  .boss { width: 1em; height: 1em; vertical-align: top; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
+  .boss.sway { animation: bossway 2.4s ease-in-out infinite; }
+  @keyframes bossway { 50% { transform: rotate(-5deg) translateY(-3px); } }
+  .msg .boss-line { font-style: italic; opacity: .9; }
+  .boss-exit { position: relative; width: 2.6em; height: 1em; overflow: visible; font-size: inherit; }
+  .boss-exit .boss { position: absolute; left: .35em; top: 0; width: .8em; height: .8em; animation: bossin 3.6s ease-in forwards; }
+  .boss-exit .car { position: absolute; left: .7em; bottom: -.05em; width: 1.6em; height: .67em; animation: carride 3.6s ease-in forwards; }
+  .boss-exit .cut { position: absolute; left: 0; right: 0; top: -.35em; font-size: .28em; font-weight: 800; color: #ffe08a; text-shadow: 0 2px 4px #000; animation: cutup 3.6s ease-out forwards; }
+  @keyframes bossin { 0%, 25% { transform: none; opacity: 1; } 45% { transform: translate(.45em, .15em) scale(.6); opacity: 1; } 50%, 100% { transform: translate(.45em, .15em) scale(.6); opacity: 0; } }
+  @keyframes carride { 0%, 55% { transform: none; } 62% { transform: translateX(-.05em); } 100% { transform: translateX(6em); } }
+  @keyframes cutup { 0% { opacity: 0; transform: translateY(.3em); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-.4em); } }
+  @media (prefers-reduced-motion: reduce) { .boss-exit * { animation-duration: .01s !important; } }
   /* Свои иконки (svg) — размером с букву, в карточках меню и на заставке крупнее */
   .ico { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -.25em; }
   .mode .e .ico { width: 36px; height: 36px; vertical-align: middle; }
@@ -880,6 +896,36 @@
       <circle cx="25.5" cy="36.5" r="2.2" fill="#2b1d14"/><circle cx="38.5" cy="36.5" r="2.2" fill="#2b1d14"/>
       <path d="M26 47q6-5 12 0" stroke="#2b1d14" stroke-width="2.6" fill="none" stroke-linecap="round"/>
     </symbol>
+    <!-- Бабка-смотрящая из 90-х (турнир): леопардовый платок, тёмные очки, кожанка, цепь, «кирпич» -->
+    <symbol id="g-boss" viewBox="0 0 64 64">
+      <path d="M4 64q1-15 28-15q27 0 28 15Z" fill="#17171b"/>
+      <path d="M22 50l10 14 10-14-10 4Z" fill="#2c2c33"/>
+      <path d="M24 51q8 7 16 0" stroke="#f2c230" stroke-width="2.4" fill="none" stroke-dasharray="2.2 1.6" stroke-linecap="round"/>
+      <circle cx="32" cy="29" r="25" fill="#d49a3a" stroke="#fff8ec" stroke-width="2"/>
+      <g fill="#4a2c12"><circle cx="15" cy="22" r="2.6"/><circle cx="21" cy="11" r="2.2"/><circle cx="32" cy="7" r="2.4"/><circle cx="43" cy="11" r="2.2"/><circle cx="49" cy="22" r="2.6"/><circle cx="12" cy="34" r="2"/><circle cx="52" cy="34" r="2"/></g>
+      <circle cx="32" cy="33" r="17" fill="#f7d9b9"/>
+      <path d="M15.5 29q16.5-15 33 0q-16.5-7-33 0Z" fill="#d8d8d8"/>
+      <rect x="18" y="29" width="12" height="7" rx="3" fill="#0e0e12"/><rect x="34" y="29" width="12" height="7" rx="3" fill="#0e0e12"/>
+      <path d="M30 31.5h4M18 31l-3-1M46 31l3-1" stroke="#0e0e12" stroke-width="2" stroke-linecap="round"/>
+      <path d="M20.5 31l3-1.2M36.5 31l3-1.2" stroke="#fff" stroke-opacity=".7" stroke-width="1.3" stroke-linecap="round"/>
+      <g fill="#f29a8f" fill-opacity=".7"><circle cx="22" cy="41" r="3"/><circle cx="42" cy="41" r="3"/></g>
+      <path d="M27 44q6 3 11-1" stroke="#2b1d14" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <rect x="49" y="40" width="8" height="15" rx="1.6" fill="#3a3d44" stroke="#17171b" stroke-width="1.2"/>
+      <path d="M55 40v-6" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/><rect x="50.5" y="42" width="5" height="3.5" fill="#9bc29b"/>
+      <!-- выбивалка для ковров вместо оружия -->
+      <path d="M8 63l-1-17" stroke="#7a4b1c" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M7 46c-6-2-7-10-3-13c3-2 4 2 3 5c1-4 4-7 6-4c2 4-1 10-6 12" stroke="#e0a64a" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 46c-1-3-1-6 0-8" stroke="#e0a64a" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <!-- Чёрная тонированная машина бабки -->
+    <symbol id="g-car" viewBox="0 0 120 50">
+      <path d="M6 34q0-8 8-9l16-2 14-11q4-3 9-3h26q5 0 9 4l10 10 12 2q8 1 8 9v6H6Z" fill="#141418"/>
+      <path d="M36 23l11-9q3-2 6-2h11v11Z M68 12h11q3 0 5 2l9 9H68Z" fill="#2b2f3a"/>
+      <path d="M40 22l9-7M71 15l3 4" stroke="#fff" stroke-opacity=".25" stroke-width="1.5" stroke-linecap="round"/>
+      <rect x="104" y="29" width="8" height="4" rx="2" fill="#ffe08a"/><rect x="7" y="30" width="6" height="4" rx="2" fill="#c0392b"/>
+      <circle cx="30" cy="41" r="8" fill="#0a0a0c"/><circle cx="30" cy="41" r="3.5" fill="#8a8f99"/>
+      <circle cx="92" cy="41" r="8" fill="#0a0a0c"/><circle cx="92" cy="41" r="3.5" fill="#8a8f99"/>
+    </symbol>
     <symbol id="g-draw" viewBox="0 0 64 64">
       <circle cx="25.5" cy="36" r="2.2" fill="#2b1d14"/><circle cx="38.5" cy="36" r="2.2" fill="#2b1d14"/>
       <path d="M27 45h10" stroke="#2b1d14" stroke-width="2.6" stroke-linecap="round"/>
@@ -912,7 +958,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 41;
+const BUILD = 43;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -955,6 +1001,7 @@ const ADS = {
       tg.disableVerticalSwipes?.();
       tg.enableClosingConfirmation?.();
       STARS.check();
+      if (tg.initDataUnsafe?.start_param === 'tourtest') TOUR.test = true;
       // Пришёл по приглашению: t.me/…/play?startapp=room1234
       const room = /^room(\d{4})$/.exec(tg.initDataUnsafe?.start_param || '')?.[1];
       if (room) joinOnce(room);
@@ -1126,6 +1173,59 @@ const STARS = {
     } catch { return 'error'; }
   },
 };
+
+// Кошелёк пельмешек 🥟 — только в Телеграме. Баланс хранит сервер звёзд (stars/, Durable Object на игрока),
+// здесь только показываем. При входе сервер сам дарит: новичку 1000, раз в день 300; при нуле — пенсия 200.
+const WALLET = {
+  bal: null,
+  data: null,
+  gifts: [],
+  get on() { return Boolean(STARS.API && STARS.tg?.initData); },
+  async load() {
+    if (!this.on) return;
+    try {
+      const r = await STARS.ask('/wallet');
+      if (typeof r.balance !== 'number') return;
+      this.data = r;
+      this.bal = r.balance;
+      if (r.gifts?.length) this.gifts = r.gifts;
+
+    } catch { /* нет сети — кошелька просто не видно */ }
+  },
+  async pension() {
+    try { const r = await STARS.ask('/pension'); if (typeof r.balance === 'number') { this.data = r; this.bal = r.balance; } } catch { /* нет сети */ }
+  },
+  async buy(pack) {
+    try {
+      const { link } = await fetch(STARS.API + '/pack', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ initData: STARS.tg.initData, pack }) }).then(r => r.json());
+      if (!link) return 'error';
+      const result = await new Promise(done => STARS.tg.openInvoice(link, done));
+      // Пельмешки зачисляет сервер, когда Телеграм сообщит об оплате — даём ему секунду
+      if (result === 'paid') { await new Promise(ok => setTimeout(ok, 1500)); await this.load(); }
+      return result;
+    } catch { return 'error'; }
+  },
+};
+const fmtN = n => Math.round(n).toLocaleString('ru-RU');
+
+// Турнир на пельмешки — только в Телеграме. Пока не запущен (LIVE = false), виден только по ссылке
+// t.me/BabushkaBattlesBot/play?startapp=tourtest — для проверки. До запуска никаких подарков и накоплений.
+const TOUR = {
+  LIVE: false,
+  test: false,
+  get on() { return WALLET.on && (this.LIVE || this.test); },
+  // Лиги и ставки (те же, что на сервере online/, STAKES)
+  LEAGUES: [
+    { ico: '🥉', name: t('Мелочь', 'Small change'), stakes: [100, 500] },
+    { ico: '🥈', name: t('Средние', 'Mid stakes'), stakes: [1000, 5000] },
+    { ico: '🥇', name: t('По-крупному', 'High rollers'), stakes: [50000] },
+    { ico: '💎', name: t('Для китов', 'Whales'), stakes: [500000] },
+  ],
+  league: s => TOUR.LEAGUES.find(l => l.stakes.includes(s)),
+};
+const WHY = () => ({ welcome: t('Подарок новичку', 'Welcome gift'), daily: t('Ежедневный подарок', 'Daily gift'), pension: t('Бабушкина пенсия', 'Granny’s pension'),
+  buy: t('Покупка', 'Purchase'), stake: t('Ставка', 'Stake'), win: t('Выигрыш', 'Winnings'), back: t('Возврат ставки', 'Stake returned') });
 
 const RU_NAMES = ['Синий', 'Красный'];
 const EN_NAMES = ['Blue', 'Red'];
@@ -1753,16 +1853,17 @@ const ONLINE = {
     showRoom();
   },
   // Лобби: ищем случайного соперника. Нашёлся — оба уходим в новую комнату (кто ждал дольше — хозяин).
-  find(fair = false) {
+  find(fair = false, stake = 0) {
     this.stopFind();
-    const tag = fair ? 'fair' : 'find';
+    this.stake = stake;
+    const tag = stake ? 'tour' : fair ? 'fair' : 'find';
     STATS.hit(`${tag}:wait`);
     const ws = this.lobby = new WebSocket(`${this.API.replace(/^http/, 'ws')}/lobby`);
     const t0 = Date.now();
     let n = 1;
     let offered = false;
     showFind(0, n, false, false, fair);
-    ws.onopen = () => ws.send(JSON.stringify({ t: 'find', fair }));
+    ws.onopen = () => ws.send(JSON.stringify(stake ? { t: 'find', fair, stake, initData: STARS.tg?.initData } : { t: 'find', fair }));
     ws.onerror = () => { if (this.lobby === ws) { this.stopFind(); showOnline(t('Сервер не отвечает — проверь интернет', 'The server is not answering — check your connection')); } };
     ws.onmessage = e => {
       if (this.lobby !== ws) return;
@@ -1771,8 +1872,10 @@ const ONLINE = {
       else if (m.t === 'match') {
         this.stopFind();
         STATS.hit(`${tag}:pair`);
-        if (m.fair) FAIR.start(m.code, m.seat); else this.matched(m.code, m.role);
+        if (m.fair) FAIR.start(m.code, m.seat, { stake: m.stake || 0 }); else this.matched(m.code, m.role);
       }
+      else if (m.t === 'nofunds') { this.stopFind(); WALLET.bal = m.balance; showTour(t('Не хватает пельмешек на эту ставку', 'Not enough dumplings for this stake'), false); }
+      else if (m.t === 'error' && stake) { this.stopFind(); showTour(t('Не получилось проверить аккаунт Телеграма', 'Could not verify your Telegram account'), false); }
       else if (m.t === 'error') { this.stopFind(); showOnline(t('Не получилось найти комнату, попробуй ещё раз', 'Could not get a room, try again')); }
     };
     this.findTimer = setInterval(() => {
@@ -1863,14 +1966,15 @@ function showOnline(note = '') {
 const FIND_WAIT = 30;
 function showFind(sec, n, offered, update = false, fair = false) {
   const others = Math.max(0, n - 1);
-  const tag = fair ? 'fair' : 'find';
-  const html = `<h2>${fair ? '⚔️' : '🎲'} ${fair ? t('Ищем соперника для честного матча…', 'Finding a rival for a fair match…') : t('Ищем соперника…', 'Looking for an opponent…')}</h2>
+  const stake = ONLINE.stake;
+  const tag = stake ? 'tour' : fair ? 'fair' : 'find';
+  const html = `<h2>${stake ? `🏆 ${t('Ищем соперника', 'Finding a rival')} · ${fmtN(stake)} 🥟` : `${fair ? '⚔️' : '🎲'} ${fair ? t('Ищем соперника для честного матча…', 'Finding a rival for a fair match…') : t('Ищем соперника…', 'Looking for an opponent…')}`}</h2>
     <div class="big find-sec">${sec}</div>
     <p class="find-n">${others ? t(`Ещё ищут: ${others}`, `Also searching: ${others}`) : t('Пока ищешь только ты — позови друга в игру', 'Only you are searching — invite a friend')}</p>
-    ${offered ? `<p>${t('Никого нет. Сыграешь пока с роботом? Поиск можно продолжить', 'Nobody yet. Play the robot meanwhile? Or keep searching')}</p>` : ''}
-    <div>${offered ? `<span class="btn" data-act="robot">🤖 ${t('С роботом', 'Robot')}</span>` : ''}<span class="btn" data-act="back">${BACK}</span></div>`;
+    ${offered && stake ? `<p class="find-note">${t('Пока никого с такой ставкой. Подожди или позови друга в турнир', 'Nobody at this stake yet. Wait or invite a friend')}</p>` : offered ? `<p>${t('Никого нет. Сыграешь пока с роботом? Поиск можно продолжить', 'Nobody yet. Play the robot meanwhile? Or keep searching')}</p>` : ''}
+    <div>${offered && !stake ? `<span class="btn" data-act="robot">🤖 ${t('С роботом', 'Robot')}</span>` : ''}<span class="btn" data-act="back">${BACK}</span></div>`;
   // Каждую секунду меняется только цифра — не пересобираем экран, чтобы не моргали кнопки
-  if (update && !offered === !document.querySelector('.half.p0 [data-act=robot]') && document.querySelector('.half.p0 .find-sec')) {
+  if (update && (stake || !offered === !document.querySelector('.half.p0 [data-act=robot]')) && document.querySelector('.half.p0 .find-sec') && (!offered || !stake || document.querySelector('.half.p0 .find-note'))) {
     for (const h of halves) {
       const s = h.querySelector('.find-sec'); if (s) s.textContent = sec;
       const p = h.querySelector('.find-n'); if (p) p.textContent = others ? t(`Ещё ищут: ${others}`, `Also searching: ${others}`) : t('Пока ищешь только ты — позови друга в игру', 'Only you are searching — invite a friend');
@@ -1880,7 +1984,7 @@ function showFind(sec, n, offered, update = false, fair = false) {
   say(html);
   state.onTap = (p, el) => {
     const act = el.closest('[data-act]')?.dataset.act;
-    if (act === 'back') { buzz(20); STATS.hit(`${tag}:quit`); ONLINE.stopFind(); showOnline(); }
+    if (act === 'back') { buzz(20); STATS.hit(`${tag}:quit`); ONLINE.stopFind(); if (stake) showTour('', false); else showOnline(); }
     else if (act === 'robot') { buzz(20); STATS.hit(`${tag}:robot`); ONLINE.stopFind(); BOT.start(); showMenu(); }
   };
 }
@@ -2881,6 +2985,7 @@ const FAIR = {
     this.room = !!opts.room;
     this.code = code;
     this.over = false;
+    this.stake = opts.stake || 0;
     stopAll();
     BOT.stop();
     this.seat = seat;
@@ -2899,6 +3004,8 @@ const FAIR = {
     const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}&have=${Object.keys(this.GAMES).join(',')}${this.room ? '&room=1' : ''}${opts.pick ? '&pick=' + opts.pick : ''}${this.testGames ? '&games=' + this.testGames : ''}`);
     ws.onmessage = e => { if (this.ws === ws) this.recv(JSON.parse(e.data)); };
     ws.onclose = () => { if (this.ws === ws) this.gone(); };
+    // Турнир: сервер должен знать, кто это — подпись Телеграма
+    if (this.stake) ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', initData: STARS.tg?.initData }));
   },
   send(m) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m)); },
   tap(b) { this.send({ t: 'tap', b }); },
@@ -2941,17 +3048,20 @@ const FAIR = {
     document.body.classList.remove('online', 'fair');
     if (this.names) { NAMES[0] = this.names[0]; NAMES[1] = this.names[1]; this.names = null; }
     updateHud();
-    showOnline(note);
+    if (this.stake) showTour(note, false); else showOnline(note);
   },
-  gone() {
+  gone(m = {}) {
     if (!this.ws) return;
     stopAll();
     this.ws = null;
     arena.innerHTML = '';
     stage.innerHTML = '<div class="logo">👋</div>';
-    say(this.over ? `<h2>${t('Друг вышел 👋', 'Your friend left 👋')}</h2>`
-      : `<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${t('Матч не засчитан', 'The match does not count')}</p>`);
-    setTimeout(() => { if (!this.ws) this.quit(); }, 2600);
+    if (m.balance !== undefined) WALLET.bal = m.balance;
+    say(m.forfeit ? `<h2>${t('Соперник сбежал 🏃', 'Your rival fled 🏃')}</h2><p>${t('Победа твоя', 'The win is yours')}: +${fmtN(m.prize || 0)} 🥟</p>`
+      : this.over ? `<h2>${t('Друг вышел 👋', 'Your friend left 👋')}</h2>`
+      : `<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${this.stake ? t('Матч не начался — ставка не списана', 'The match never started — no stake taken') : t('Матч не засчитан', 'The match does not count')}</p>`);
+    if (m.forfeit) { sfx('fanfare'); confetti(0, 40); }
+    setTimeout(() => { if (!this.ws) this.quit(); }, m.forfeit ? 3500 : 2600);
   },
 
   recv(m) {
@@ -2966,7 +3076,15 @@ const FAIR = {
     else if (m.t === 'ev') this.on?.[m.e]?.(m);
     else if (m.t === 'end') this.result(m);
     else if (m.t === 'final') this.final(m);
-    else if (m.t === 'gone') this.gone();
+    else if (m.t === 'gone') this.gone(m);
+    else if (m.t === 'held') {
+      WALLET.bal = m.balance;
+      stage.innerHTML = `<div class="logo">${boss('sway')}</div>`;
+      say(`<h2>💼 ${t('Бабка приняла ставки', 'Granny took the stakes')}</h2><p>${t('Банк', 'Pot')}: ${fmtN(m.stake * 2)} 🥟 · ${t('доля Бабки', 'Granny’s cut')} ${fmtN(m.stake * 2 * 0.1)}</p>
+        <p class="boss-line">«${t('Сбежишь посреди матча — ставка моя', 'Run off mid-match and your stake is mine')}»</p>`);
+    }
+    else if (m.t === 'nofunds') { this.ws = null; this.quit(t('У кого-то не хватило пельмешек — матч отменён, ничего не списано', 'Someone was short of dumplings — match cancelled, nothing taken')); }
+    else if (m.t === 'error' && this.stake) { this.ws = null; this.quit(t('Не получилось проверить аккаунт Телеграма', 'Could not verify your Telegram account')); }
   },
 
   // Правило и «3, 2, 1»; игра начнётся по событию go от сервера
@@ -2983,7 +3101,7 @@ const FAIR = {
     swipeIn();
     document.body.classList.remove('no-stage');
     stage.innerHTML = `<div class="logo">${gameIco(game)}</div>`;
-    sayEach(p => `<p>${t(`Раунд ${m.n} · до 3 побед · счёт ${state.wins[p]}:${state.wins[1 - p]}`, `Round ${m.n} · first to 3 · score ${state.wins[p]}:${state.wins[1 - p]}`)}</p>
+    sayEach(p => `<p>${t(`Раунд ${m.n} · до 3 побед · счёт ${state.wins[p]}:${state.wins[1 - p]}`, `Round ${m.n} · first to 3 · score ${state.wins[p]}:${state.wins[1 - p]}`)}${this.stake ? ` · 🏆 ${fmtN(this.stake * 2)} 🥟` : ''}</p>
       <h2>${game.title}</h2><p>${game.rule}</p>`);
     let n = 3;
     const tick = () => { if (n === 0) return; sfx('beep'); stage.innerHTML = `<div class="logo">${n}</div>`; n--; later(800, tick); };
@@ -3441,6 +3559,9 @@ const FAIR = {
     state.wins = this.mine(m.wins);
     updateHud();
     this.over = true;
+    if (m.balance !== undefined) WALLET.bal = m.balance;
+    const money = this.stake && m.prize !== undefined
+      ? `<p class="board">${m.prize > 0 ? `+${fmtN(m.prize)}` : `−${fmtN(-m.prize)}`} 🥟 · ${t('баланс', 'balance')} ${fmtN(m.balance)}</p>` : '';
     if (!this.room) {
       const ws = this.ws;
       this.ws = null;
@@ -3451,11 +3572,14 @@ const FAIR = {
     sfx('fanfare');
     buzz([100, 60, 100]);
     confetti(winner, 70);
-    stage.innerHTML = '<div class="logo">🏆</div>';
+    const fee = Math.floor(this.stake * 2 * 0.1);
+    stage.innerHTML = this.stake ? `<div class="logo">${bossExit(fee)}</div>` : '<div class="logo">🏆</div>';
+    if (this.stake) later(1900, () => sfx('round'));
     sayEach(p => `${granny(p === winner ? 'win' : 'lose', true)}
       <h1 class="verdict ${p === winner ? 'v-win' : 'v-lose'}">${p === winner ? t('Ты выиграл матч! 🏆', 'You won the match! 🏆') : t('Матч проигран 😵', 'Match lost 😵')}</h1>
-      <p class="board">${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>
-      <div><span class="btn" data-act="again">⚔️ ${t('Ещё матч', 'Another match')}</span><span class="btn" data-act="back">${BACK}</span></div>
+      <p class="board">${t('Счёт', 'Score')} ${state.wins[p]}:${state.wins[1 - p]}</p>${p === 0 ? money : ''}
+      ${this.stake && p === 0 ? `<p class="boss-line">💼 ${t(`Бабка забрала свои ${fmtN(fee)} 🥟 и укатила. «${pick(BOSS_SAYS())}»`, `Granny took her ${fmtN(fee)} 🥟 and drove off. “${pick(BOSS_SAYS())}”`)}</p>` : ''}
+      <div><span class="btn" data-act="again">${this.stake ? '🏆' : '⚔️'} ${t('Ещё матч', 'Another match')}</span><span class="btn" data-act="back">${BACK}</span></div>
       ${this.room ? '<p class="kb-hint"></p>' : ''}`);
     const shownAt = performance.now();
     state.onTap = (p, el) => {
@@ -3466,6 +3590,12 @@ const FAIR = {
         this.send({ t: 'again' });
         $p(0, '[data-act=again]').classList.add('done');
         setStatusNote(t('⏳ Ждём, пока друг тоже нажмёт «Ещё матч»', '⏳ Waiting for your friend to tap “Another match” too'));
+      }
+      else if (act === 'again' && this.stake) {
+        const st = this.stake;
+        buzz(20);
+        this.quit();
+        if (WALLET.bal >= st) ONLINE.find(true, st); else showTour(t('Не хватает пельмешек на эту ставку', 'Not enough dumplings for this stake'), false);
       }
       else if (act === 'again') { buzz(20); this.quit(); ONLINE.find(true); }
       else if (act === 'back') { buzz(20); this.quit(); }
@@ -3628,6 +3758,12 @@ document.head.insertAdjacentHTML('beforeend', `<style>${Object.entries(SCENES).m
   return `body.scene-${id}:not([class*="skin-"]) .half { background-image: url("data:image/svg+xml,${encodeURIComponent(svg)}"); }`;
 }).join('\n')}</style>`);
 const granny = (mood, big) => `<svg class="granny is-${mood} ${big ? 'big' : ''}" viewBox="0 0 64 64"><use href="#g-base"/><use href="#g-${mood}"/></svg>`;
+// Бабка-смотрящая (турнир): организует, берёт свою долю — 10% с банка
+const boss = (cls = '') => `<svg class="boss ${cls}" viewBox="0 0 64 64"><use href="#g-boss"/></svg>`;
+const BOSS_SAYS = () => t(['Хочешь играть — заноси', 'Порядок такой', 'Без обид, это бизнес', 'Бабка своё возьмёт', 'Всё по понятиям', 'Чё как, внучки?'],
+  ['Wanna play? Pay up', 'That’s how it works', 'No hard feelings, it’s business', 'Granny gets her cut', 'By the rules of the street', 'What’s up, grandkids?']);
+// Конец турнирного матча: бабка забирает долю, садится в чёрную тонированную машину и уезжает
+const bossExit = fee => `<div class="boss-exit">${boss('rides')}<svg class="car" viewBox="0 0 120 50"><use href="#g-car"/></svg><span class="cut">−${fmtN(fee)} 🥟</span></div>`;
 function setScene(id) {
   [...document.body.classList].forEach(c => c.startsWith('scene-') && document.body.classList.remove(c));
   if (id) document.body.classList.add('scene-' + id);
@@ -3663,6 +3799,7 @@ function showStart() {
       <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
       <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
       ${PORTAL && ADS.kind !== 'tg' ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
+      ${TOUR.on ? `<div class="mode" data-where="tour"><span class="e">🏆</span><span><b>${t('Турнир', 'Tournament')}</b><small>${t('Ставки пельмешками 🥟', 'Play for dumplings 🥟')}</small></span></div>` : ''}
     </div>
     <div class="tools">
       <span class="btn" data-where="rules">${t('❓ Правила', '❓ Rules')}</span>
@@ -3685,7 +3822,84 @@ function showStart() {
     else if (where === 'records') showRecords();
     else if (where === 'names') showNames();
     else if (where === 'skins') showSkins();
+    else if (where === 'tour') showTour();
     else showOnline();
+  };
+}
+
+// Турнир: баланс, подарок, лиги и ставки. Нажал ставку — ищем соперника с такой же
+async function showTour(note = '', reload = true) {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = `<div class="logo">${boss('sway')}</div>`;
+  if (reload || WALLET.bal === null) {
+    say(`<h2>🏆 ${t('Турнир', 'Tournament')}</h2><p>⏳ ${t('Открываем кошелёк…', 'Opening your wallet…')}</p>`);
+    state.onTap = null;
+    await WALLET.load();
+    if (WALLET.bal === null) { showStart(); return; }
+  }
+  const sum = WALLET.gifts.reduce((a, g) => a + g[1], 0);
+  const gift = sum ? `🎁 ${WALLET.gifts.length === 1 ? WHY()[WALLET.gifts[0][0]] : t('Подарок', 'Gift')} +${fmtN(sum)} 🥟` : '';
+  WALLET.gifts = [];
+  const bal = WALLET.bal;
+  say(`<h2>🏆 ${t('Турнир', 'Tournament')}</h2>${note ? `<p>${note}</p>` : ''}${gift ? `<p class="gift">${gift}</p>` : ''}
+    <p class="board">🥟 <span class="tile">${fmtN(bal)}</span></p>
+    <p class="boss-line">😎 ${t('Турнир держит Бабка. «', 'Granny runs this. “')}${pick(BOSS_SAYS())}${t('»', '”')}</p>
+    <p>${t('Выбери ставку. Соперник ставит столько же, победитель забирает банк, Бабке — 10%.', 'Pick a stake. Your rival bets the same; the winner takes the pot, Granny takes 10%.')}</p>
+    <div class="modes grid">${TOUR.LEAGUES.flatMap(l => l.stakes.map(st =>
+      `<div class="mode ${bal < st ? 'locked' : ''}" data-stake="${st}"><span class="e">${l.ico}</span><span><b>${fmtN(st)} 🥟</b><small>${l.name}</small></span></div>`)).join('')}</div>
+    <div class="tools"><span class="btn" data-act="wallet">🥟 ${t('Кошелёк', 'Wallet')}</span><span class="btn" data-act="rules">📜 ${t('Правила', 'Rules')}</span><span class="btn" data-act="back">${BACK}</span></div>`);
+  state.onTap = (p, el) => {
+    const act = el.closest('[data-act]')?.dataset.act;
+    if (act === 'back') { buzz(20); showStart(); return; }
+    if (act === 'wallet') { buzz(20); showWallet(); return; }
+    if (act === 'rules') { buzz(20); showTourRules(); return; }
+    const st = Number(el.closest('[data-stake]')?.dataset.stake);
+    if (!st) return;
+    buzz(20);
+    if (WALLET.bal < st) { showTour(t('Не хватает пельмешек на эту ставку', 'Not enough dumplings for this stake'), false); return; }
+    ONLINE.find(true, st);
+  };
+}
+
+function showTourRules() {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '<div class="logo">📜</div>';
+  say(`<h2>📜 ${t('Правила турнира', 'Tournament rules')}</h2>
+    <div class="rules-list"><p>${t(
+      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
+      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+  state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } };
+}
+
+// Кошелёк: баланс, пенсия, наборы за звёзды (когда включены на сервере), последние операции
+function showWallet(note = '') {
+  enterMenu();
+  document.body.classList.add('rules-open');
+  stage.innerHTML = '';
+  const d = WALLET.data || {};
+  const packs = d.packs ? Object.entries(d.packs) : [];
+  const log = (d.log || []).slice(0, 6).map(e => `<div><span>${WHY()[e.why] || e.why}</span><b>${e.n > 0 ? '+' : ''}${fmtN(e.n)}</b></div>`).join('');
+  say(`<h2>🥟 ${t('Пельмешки', 'Dumplings')}</h2>${note ? `<p>${note}</p>` : ''}
+    <div class="big">${fmtN(WALLET.bal || 0)}</div>
+    ${d.pension ? `<div><span class="btn" data-act="pension">👵 ${t('Бабушкина пенсия +200', 'Granny’s pension +200')}</span></div>` : ''}
+    ${packs.length ? `<div class="modes grid">${packs.map(([id, [stars, n]]) => `<div class="mode" data-pack="${id}"><span class="e">🥟</span><span><b>${fmtN(n)}</b><small>${stars} ⭐</small></span></div>`).join('')}</div>`
+      : `<p>${t('Скоро: ставки пельмешками на матчи по сети', 'Coming soon: dumpling stakes on online matches')}</p>`}
+    <p>${t('Каждый день при входе +300. Всё проиграл — раз в день пенсия +200.', 'Every day you play: +300. Lost it all? Daily pension +200.')}</p>
+    ${log ? `<div class="res wallet-log">${log}</div>` : ''}
+    <p class="kb-hint">${t('Игровая валюта: на звёзды и деньги не меняется', 'Game currency: cannot be exchanged for Stars or money')}</p>
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+  state.onTap = async (p, el) => {
+    if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); return; }
+    if (el.closest('[data-act=pension]')) { buzz(20); state.onTap = null; await WALLET.pension(); sfx('round'); showWallet(t('👵 Бабушка подкинула +200 🥟', '👵 Granny chipped in +200 🥟')); return; }
+    const pack = el.closest('[data-pack]')?.dataset.pack;
+    if (!pack) return;
+    buzz(20);
+    state.onTap = null;
+    const r = await WALLET.buy(pack);
+    showWallet(r === 'paid' ? t('🎉 Спасибо! Пельмешки зачислены', '🎉 Thank you! Dumplings added') : r === 'error' ? t('Не получилось — попробуй ещё раз', 'Something went wrong — try again') : '');
   };
 }
 
