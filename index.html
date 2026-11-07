@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2b1d14">
-<title>Местный колорит</title>
+<title>Бабкин баттл</title>
 <!-- Установка на экран «Домой»: иконка, имя, запуск без адресной строки -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Колорит">
+<meta name="apple-mobile-web-app-title" content="Бабкин баттл">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
@@ -955,13 +955,13 @@ if (lang !== 'en') lang = 'ru';
 function t(ru, en) { return lang === 'en' ? en : ru; }
 
 // Название игры: в английской версии своё
-const TITLE = t('Местный колорит', 'Babushka Battles');
+const TITLE = t('Бабкин баттл', 'Babushka Battles');
 document.documentElement.lang = lang;
 document.title = TITLE;
-document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
+document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 45;
+const BUILD = 46;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
