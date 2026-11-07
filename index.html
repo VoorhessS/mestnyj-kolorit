@@ -962,7 +962,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 47;
+const BUILD = 48;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -3652,10 +3652,10 @@ const MODES = [
     final: t(['Легенда подъезда 🏃💨', 'Сосед теперь знает тебя в лицо 👴'], ['Legend of the stairwell 🏃💨', 'The neighbor knows your face now 👴']) },
 ];
 
-// Турнир — все мини-игры по одному разу в случайном порядке
+// Марафон — все мини-игры по одному разу в случайном порядке (не путать с турниром Бабки на пельмешки)
 const GAMES = MODES.map(m => m.game);
 const openGames = () => MODES.filter(m => m.game && !(m.premium && isLocked(m.id))).map(m => m.game);
-MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: t('Турнир', 'Tournament'),
+MODES.unshift({ id: 'tour', tour: true, emoji: '🎲', title: t('Марафон', 'Marathon'),
   get sub() { const n = openGames().length; return t(`Все ${n} игр по разу`, `All ${n} games once`); },
   final: t(['Чемпион двора 🏆', 'Есть куда расти 💪'], ['Champion of the block 🏆', 'Room to grow 💪']) });
 
@@ -3878,8 +3878,8 @@ function showTourRules() {
   stage.innerHTML = '<div class="logo">📜</div>';
   say(`<h2>📜 ${t('Правила турнира', 'Tournament rules')}</h2>
     <div class="rules-list"><p>${t(
-      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Лидерборд недели: группа по чистому выигрышу (Бронза, Серебро, Золото, Алмаз). В ночь на понедельник Бабка раздаёт из фонда призы трём лучшим в каждой группе (нужно хотя бы 3 матча за неделю), таблица обнуляется.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
-      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Weekly leaderboard: groups by net winnings. Every Monday the top 3 in each group get prizes from the fund (3+ matches needed), and the board resets.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
+      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Лидерборд недели: группа по чистому выигрышу (Бронза, Серебро, Золото, Алмаз). В ночь на понедельник Бабка раздаёт из фонда призы трём лучшим в каждой группе (нужно хотя бы 3 матча и 2 разных соперника за неделю), таблица обнуляется. С одним и тем же соперником в таблицу идут не больше 3 матчей за неделю.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
+      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Weekly leaderboard: groups by net winnings. Every Monday the top 3 in each group get prizes from the fund (3+ matches with 2+ different rivals), and the board resets. Only 3 matches per week against the same rival count.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } };
 }
@@ -3909,7 +3909,7 @@ async function showBoard() {
   // Топ-5; если я ниже — моя строка отдельно
   const rows = b.top.slice(0, 5).map(row).join('') + (b.me.place > 5 ? row({ name: t('Ты', 'You'), net: b.me.net, me: true }, b.me.place - 1) : '');
   const mine = b.me.games
-    ? `${t('Ты', 'You')}: <b>${b.me.place}-${t('е место', 'th')}</b> · ${sign(b.me.net)} 🥟 · ${t('матчей', 'matches')} ${b.me.games}${b.me.games < b.minGames ? ` (${t('для приза нужно', 'need')} ${b.minGames})` : ''}`
+    ? `${t('Ты', 'You')}: <b>${b.me.place}-${t('е место', 'th')}</b> · ${sign(b.me.net)} 🥟 · ${t('матчей', 'matches')} ${b.me.games}${b.me.games < b.minGames ? ` (${t('для приза нужно', 'need')} ${b.minGames})` : b.me.rivals < (b.minRivals || 0) ? ` (${t('для приза сыграй ещё с кем-то', 'play someone else to qualify')})` : ''}`
     : t('Сыграй турнирный матч — и попадёшь в таблицу', 'Play a tournament match to get on the board');
   const lastMine = b.last?.winners?.length ? `<p class="kb-hint">${t('Прошлая неделя', 'Last week')}: ${b.last.winners.slice(0, 3).map(w => `${G[w.group][0]} ${esc(w.name || '—')} +${fmtN(w.prize)}`).join(' · ')}</p>` : '';
   say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2>
@@ -4043,14 +4043,14 @@ function showRules() {
   say(t(`<h2>Как играть</h2>
     <div class="rules">
       <p>📱 Телефон между вами: синий снизу, красный сверху. Тапай по своей половине, ✕ — в меню.</p>
-      <p>🎮 ${GAMES.length} мини-игр. Выбрали одну — играете в неё до ${WINS_TO} побед. 🎲 Турнир — все игры по разу.</p>
+      <p>🎮 ${GAMES.length} мини-игр. Выбрали одну — играете в неё до ${WINS_TO} побед. 🎲 Марафон — все игры по разу.</p>
       <p>📖 Правило игры показывается перед каждым раундом — успейте прочитать до «3, 2, 1».</p>
       <p>🔘 Если на твоей половине есть кнопки — засчитываются только они, а не тапы мимо.</p>
       <p>▶ Между раундами игра ждёт, пока оба нажмут «Следующий раунд».</p>
     </div>`, `<h2>How to play</h2>
     <div class="rules">
       <p>📱 Phone between you: blue at the bottom, red on top. Tap your own half, ✕ goes to the menu.</p>
-      <p>🎮 ${GAMES.length} mini-games. Pick one and play it to ${WINS_TO} wins. 🎲 Tournament: every game once.</p>
+      <p>🎮 ${GAMES.length} mini-games. Pick one and play it to ${WINS_TO} wins. 🎲 Marathon: every game once.</p>
       <p>📖 The rule shows before every round — read it before “3, 2, 1”.</p>
       <p>🔘 If your half has buttons, only taps on them count, not taps around them.</p>
       <p>▶ Between rounds the game waits until you both tap “Next round”.</p>
