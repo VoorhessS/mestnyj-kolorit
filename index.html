@@ -958,7 +958,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Колорит', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 43;
+const BUILD = 44;
 
 // ---------- реклама ----------
 // Рекламу дают только площадки: Яндекс Игры, VK Mini Apps и Телеграм (через AdsGram).
@@ -1002,6 +1002,8 @@ const ADS = {
       tg.enableClosingConfirmation?.();
       STARS.check();
       if (tg.initDataUnsafe?.start_param === 'tourtest') TOUR.test = true;
+      // Главный экран нарисован до загрузки Телеграма — перерисуем, чтобы появилась кнопка «Турнир»
+      if (document.querySelector('.half.p0 [data-where=local]')) showStart();
       // Пришёл по приглашению: t.me/…/play?startapp=room1234
       const room = /^room(\d{4})$/.exec(tg.initDataUnsafe?.start_param || '')?.[1];
       if (room) joinOnce(room);
@@ -1212,7 +1214,7 @@ const fmtN = n => Math.round(n).toLocaleString('ru-RU');
 // Турнир на пельмешки — только в Телеграме. Пока не запущен (LIVE = false), виден только по ссылке
 // t.me/BabushkaBattlesBot/play?startapp=tourtest — для проверки. До запуска никаких подарков и накоплений.
 const TOUR = {
-  LIVE: false,
+  LIVE: true,   // запущен 07.11 (друг проверил на двух телефонах)
   test: false,
   get on() { return WALLET.on && (this.LIVE || this.test); },
   // Лиги и ставки (те же, что на сервере online/, STAKES)
