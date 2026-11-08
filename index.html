@@ -962,7 +962,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 50;
+const BUILD = 51;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -3908,8 +3908,8 @@ function showTourRules() {
   stage.innerHTML = '<div class="logo">📜</div>';
   say(`<h2>📜 ${t('Правила турнира', 'Tournament rules')}</h2>
     <div class="rules-list"><p>${t(
-      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Лидерборд недели: группа по чистому выигрышу (Бронза, Серебро, Золото, Алмаз). В ночь на понедельник Бабка раздаёт из фонда призы трём лучшим в каждой группе (нужно хотя бы 3 матча и 2 разных соперника за неделю), таблица обнуляется. С одним и тем же соперником в таблицу идут не больше 3 матчей за неделю.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
-      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Weekly leaderboard: groups by net winnings. Every Monday the top 3 in each group get prizes from the fund (3+ matches with 2+ different rivals), and the board resets. Only 3 matches per week against the same rival count.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
+      '• Турнир держит Бабка. Матч до 3 побед, игры выбирает сервер, он же судит и учитывает пинг.<br>• Оба ставят одинаково. Победитель получает банк, Бабка берёт свою долю — 10%: половину кладёт в призовой фонд недели, половину увозит.<br>• Лидерборд недели: группа по чистому выигрышу (Бронза, Серебро, Золото, Алмаз). В ночь на понедельник Бабка раздаёт из фонда призы трём лучшим в каждой группе (нужно хотя бы 3 матча и 2 разных соперника за неделю), таблица обнуляется. С одним и тем же соперником в таблицу идут не больше 3 матчей за неделю.<br>• Призёры всю следующую неделю ходят в лидерборде со значком: 👑 чемпион группы, 🎖️ 2–3 место, 🐋 «Кит недели» — чемпион Алмаза.<br>• Вышел, закрыл игру или пропал интернет посреди матча — поражение.<br>• Ставки возвращаются, если матч не начался или сломался сервер.<br>• Сам с собой (с двух телефонов) сыграть нельзя.<br>• Пельмешки — игровая валюта. На звёзды и деньги не меняются, не выводятся и не передаются.',
+      '• First to 3 wins; the server picks the games, referees and accounts for ping.<br>• Both bet the same. The winner gets the pot minus 10%: half of the fee goes to the weekly prize fund, half is burned.<br>• Weekly leaderboard: groups by net winnings. Every Monday the top 3 in each group get prizes from the fund (3+ matches with 2+ different rivals), and the board resets. Only 3 matches per week against the same rival count.<br>• Winners wear a badge on the leaderboard all next week: 👑 group champion, 🎖️ 2nd–3rd place, 🐋 Whale of the week — the Diamond champion.<br>• Leaving, closing the game or losing connection mid-match counts as a loss.<br>• Stakes are returned if the match never started or the server failed.<br>• You cannot play yourself from two phones.<br>• Dumplings are game currency: they cannot be exchanged for Stars or money, withdrawn or transferred.')}</p></div>
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } };
 }
@@ -3935,16 +3935,22 @@ async function showBoard() {
   const left = Math.max(0, b.end - Date.now());
   const d = Math.floor(left / 86400e3), h = Math.floor(left % 86400e3 / 3600e3);
   const sign = n => (n > 0 ? '+' : '') + fmtN(n);
-  const row = (r, i) => `<div class="${r.me ? 'me' : ''}"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1 + '.'} ${esc(r.name)}</span><b>${sign(r.net)}</b></div>`;
+  const row = (r, i) => `<div class="${r.me ? 'me' : ''}"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1 + '.'} ${esc(r.name)}${r.badge ? ' ' + r.badge : ''}</span><b>${sign(r.net)}</b></div>`;
   // Топ-5; если я ниже — моя строка отдельно
-  const rows = b.top.slice(0, 5).map(row).join('') + (b.me.place > 5 ? row({ name: t('Ты', 'You'), net: b.me.net, me: true }, b.me.place - 1) : '');
+  const rows = b.top.slice(0, 5).map(row).join('') + (b.me.place > 5 ? row({ name: t('Ты', 'You'), net: b.me.net, me: true, badge: b.me.badge?.badge }, b.me.place - 1) : '');
+  // Мой значок за прошлую неделю
+  const bd = b.me.badge;
+  const badgeLine = bd ? `<p class="small">${t('Твой значок на неделю', 'Your badge this week')}: <b>${bd.badge} ${bd.badge === '🐋' ? t('Кит недели', 'Whale of the week') : bd.place === 1 ? t(`Чемпион недели · ${G[bd.group]?.[1] || ''}`, `Champion of the week · ${G[bd.group]?.[1] || ''}`) : t(`Призёр недели · ${G[bd.group]?.[1] || ''}`, `Top 3 of the week · ${G[bd.group]?.[1] || ''}`)}</b></p>` : '';
   const mine = b.me.games
     ? `${t('Ты', 'You')}: <b>${b.me.place}-${t('е место', 'th')}</b> · ${sign(b.me.net)} 🥟 · ${t('матчей', 'matches')} ${b.me.games}${b.me.games < b.minGames ? ` (${t('для приза нужно', 'need')} ${b.minGames})` : b.me.rivals < (b.minRivals || 0) ? ` (${t('для приза сыграй ещё с кем-то', 'play someone else to qualify')})` : ''}`
     : t('Сыграй турнирный матч — и попадёшь в таблицу', 'Play a tournament match to get on the board');
-  const lastMine = b.last?.winners?.length ? `<p class="kb-hint">${t('Прошлая неделя', 'Last week')}: ${b.last.winners.slice(0, 3).map(w => `${G[w.group][0]} ${esc(w.name || '—')} +${fmtN(w.prize)}`).join(' · ')}</p>` : '';
+  // Прошлая неделя: чемпионы групп, сначала старшие
+  const champs = (b.last?.winners || []).filter(w => w.place === 1).reverse();
+  const lastMine = champs.length ? `<p class="kb-hint">${t('Чемпионы прошлой недели', 'Last week’s champions')}: ${champs.slice(0, 3).map(w => `${G[w.group][0]} ${esc(w.name || '—')} ${w.badge || ''}`).join(' · ')}</p>` : '';
   say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2>
     <p class="board">${ico} ${gname}</p>
     <p>${mine}</p>
+    ${badgeLine}
     ${rows ? `<div class="res">${rows}</div>` : ''}
     <p class="small">💰 ${t('Фонд Бабки', 'Granny’s fund')}: <b>${fmtN(b.fund)} 🥟</b> · ${t('призы', 'prizes')} ${g.prizes.map(fmtN).join(' / ')}</p>
     <p class="small">⏳ ${t(`Итоги через ${d} дн. ${h} ч. · группа по чистому выигрышу`, `Results in ${d}d ${h}h · group by net winnings`)}</p>
