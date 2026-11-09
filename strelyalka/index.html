@@ -45,9 +45,11 @@ const T = 16, ROWS = 14, H = ROWS * T;
 let W = 400;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const port = document.getElementById('port');
+const HORROR = !/[?&]light=1/.test(location.search);   // ?light=1 — без темноты
+const dark = document.createElement('canvas'), dctx = dark.getContext('2d');
 function resize() {
   W = Math.max(300, Math.min(520, Math.round(H * innerWidth / innerHeight)));
-  cv.width = W; cv.height = H;
+  cv.width = W; cv.height = H; dark.width = W; dark.height = H;
   ctx.imageSmoothingEnabled = false;
   port.style.display = innerHeight > innerWidth ? 'flex' : 'none';
 }
@@ -174,7 +176,14 @@ function input() {
 
 // ===== Звук: короткие писки WebAudio =====
 let ac = null;
-function audioOn() { if (!ac) try { ac = new AudioContext(); } catch (e) {} }
+function audioOn() { if (!ac) try { ac = new AudioContext(); drone(); } catch (e) {} }
+function drone() {                       // тревожный низкий гул на фоне
+  if (!HORROR) return;
+  const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
+  o.type = 'sawtooth'; o.frequency.value = 46; f.type = 'lowpass'; f.frequency.value = 170; g.gain.value = .03;
+  l.frequency.value = .13; lg.gain.value = 70;
+  l.connect(lg).connect(f.frequency); o.connect(f).connect(g).connect(ac.destination); o.start(); l.start();
+}
 function beep(f0, f1, dur, type = 'square', vol = .05) {
   if (!ac) return;
   const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
@@ -193,7 +202,7 @@ function boom(vol = .12) {
 // ===== Состояние игры =====
 const SPEED = 92, JUMP = 352, GRAV = 900;
 let state = 'title', stateT = 0, cam = 0, time = 0, score = 0, lives = 3, shake = 0, playT = 0;
-let P, bullets, ebullets, enemies, parts, boss, spawnT;
+let P, bullets, ebullets, enemies, parts, boss, spawnT, flick = 0, flickT = 12;
 function newGame() {
   buildLevel();
   lives = 3; score = 0; playT = 0; cam = 0;
@@ -276,6 +285,8 @@ function update(dt) {
   }
   anyTap = false;
   playT += dt;
+  flickT -= dt; flick -= dt;
+  if (flickT <= 0) { flick = 1.4; flickT = 15 + Math.random() * 15; }
   shake = Math.max(0, shake - dt);
   const k = input();
 
@@ -419,6 +430,10 @@ function update(dt) {
     if (!P.dead && b.life > 0 && hit(b, pc)) { b.life = 0; killPlayer(); }
   }
   ebullets = ebullets.filter(b => b.life > 0 && b.x > cam - 20 && b.x < cam + W + 20 && b.y > -20 && b.y < H + 20);
+  if (HORROR && P && !P.dead) {         // шорох лапок, когда жуки рядом
+    const n = enemies.filter(e => Math.abs(e.x - P.x) < 170).length;
+    if (Math.random() < dt * n * 2.5) beep(1600 + Math.random() * 1800, 700, .03, 'square', .012);
+  }
   for (const e of enemies) if (e.hp <= 0 && e.mom) { e.mom.kids--; e.mom = null; }
   enemies = enemies.filter(e => e.hp > 0);
   for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; }
@@ -429,9 +444,10 @@ function update(dt) {
 function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 function drawBg() {
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#1d1240'); g.addColorStop(.6, '#7a2e5c'); g.addColorStop(1, '#ff8a3d');
+  if (HORROR) { g.addColorStop(0, '#05060d'); g.addColorStop(.6, '#141022'); g.addColorStop(1, '#2a1a2a'); }
+  else { g.addColorStop(0, '#1d1240'); g.addColorStop(.6, '#7a2e5c'); g.addColorStop(1, '#ff8a3d'); }
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  rect(W * .72, 40, 26, 26, '#ffd9a0');                      // квадратное солнце, как на старых приставках
+  if (HORROR) ell(W * .72, 46, 9, 9, '#c8d0e0'); else rect(W * .72, 40, 26, 26, '#ffd9a0');                      // квадратное солнце, как на старых приставках
   ctx.fillStyle = '#3b2156';                                 // дальние горы
   for (let i = -1; i < W / 80 + 2; i++) {
     const x = i * 80 - (cam * .15) % 80;
@@ -561,6 +577,43 @@ function drawBoss() {
     }
   }
 }
+function glow(x, y, r, a = 1) {
+  const g = dctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  dctx.fillStyle = g; dctx.beginPath(); dctx.arc(x, y, r, 0, Math.PI * 2); dctx.fill();
+}
+function drawDark() {
+  dctx.globalCompositeOperation = 'source-over';
+  dctx.clearRect(0, 0, W, H);
+  dctx.fillStyle = 'rgba(2,2,9,.9)'; dctx.fillRect(0, 0, W, H);
+  dctx.globalCompositeOperation = 'destination-out';
+  if (P && !P.dead) {
+    const px = P.x - cam + 5, py = P.crouch ? P.y + 5 : P.ay < 0 ? P.y + 4 : P.ay > 0 ? P.y + 12 : P.y + 9;
+    glow(px, py, 40, .55);                                  // слабый свет вокруг героя
+    if (flick <= 0 || Math.random() < .25) {                // фонарь = прицел; иногда глючит
+      const len = Math.hypot(P.ax, P.ay) || 1, a = Math.atan2(P.ay / len, P.ax / len), R = 195;
+      const g = dctx.createRadialGradient(px, py, 4, px, py, R);
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.55, 'rgba(0,0,0,.8)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      dctx.fillStyle = g; dctx.beginPath(); dctx.moveTo(px, py); dctx.arc(px, py, R, a - .4, a + .4); dctx.closePath(); dctx.fill();
+    }
+  }
+  for (const b of bullets) glow(b.x - cam + 2, b.y + 2, 16, .75);          // вспышки выстрелов
+  for (const b of ebullets) glow(b.x - cam + 3, b.y + 3, b.acid ? 13 : 8, .55);
+  for (const p of parts) glow(p.x - cam, p.y, 11, Math.min(.5, p.life));
+  if (boss.on && !boss.dead && PACK !== 1) { const c = boss.parts[0]; glow(c.x - cam + 13, c.y + 25, 42, .3 + .15 * Math.sin(time * 5)); }
+  dctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(dark, 0, 0);
+  for (const e of enemies) {                               // глаза жуков горят в темноте
+    const left = e.vx < 0 || (!e.vx && (e.face || -1) < 0);
+    const c = e.k === 's' ? '#9be22d' : e.k === 'y' ? '#ffb020' : e.k === 'l' ? '#ff8a8a' : '#ff2a2a';
+    const ex = e.x - cam + (left ? 1 : e.w - 4), ey = e.y + Math.round(e.h * .4);
+    rect(ex, ey, 2, 2, c); if (e.w > 12) rect(ex + (left ? 3 : -3), ey, 2, 2, c);
+  }
+  if (boss.on && !boss.dead && PACK === 1) {
+    const b = boss.parts[0], ex = b.x - cam + b.w / 2 + (b.dir > 0 ? 22 : -25);
+    rect(ex, b.y + 18, 3, 2, b.st === 'prep' || b.st === 'charge' ? '#ff2a2a' : '#ffb020');
+  }
+}
 function drawHud() {
   for (let i = 0; i < lives; i++) { rect(8 + i * 10, 8, 6, 9, '#ffd23f'); rect(9 + i * 10, 17, 4, 3, '#c8102e'); }
   ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'right';
@@ -600,6 +653,7 @@ function draw() {
   }
   for (const p of parts) rect(p.x - cam, p.y, 3, 3, p.col);
   ctx.restore();
+  if (HORROR) drawDark();
   drawHud();
   if (state === 'over') centerText([['ИГРА ОКОНЧЕНА', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми, чтобы ещё раз', 10, '#ccc', 140]]);
   if (state === 'win') centerText([[PACK === 1 ? 'НОСОРОГ ПОВЕРЖЕН!' : 'УЛЕЙ УНИЧТОЖЕН!', 22, '#ffd23f', 80], [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 106], ['нажми, чтобы сыграть ещё', 10, '#ccc', 140]]);
