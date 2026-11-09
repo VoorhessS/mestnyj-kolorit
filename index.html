@@ -138,6 +138,10 @@
     text-align: left;
   }
   .mode:active { background: rgba(0,0,0,.4); }
+  /* «Играть сразу»: главная кнопка стартового экрана, жёлтая и чуть пульсирует */
+  .mode.quick { background: #ffd23f; color: #2b1d00; box-shadow: 0 4px 0 #c99a00; animation: quick-pulse 1.8s ease-in-out infinite; }
+  .mode.quick:active { background: #f0c020; }
+  @keyframes quick-pulse { 50% { transform: scale(1.03); } }
   .mode .e { font-size: 28px; }
   .mode b { display: block; font-size: 17px; }
   .mode small { font-size: 13px; opacity: .85; }
@@ -962,7 +966,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 51;
+const BUILD = 52;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1031,6 +1035,7 @@ const ADS = {
       // Пришёл по приглашению: t.me/…/play?startapp=room1234
       const room = /^room(\d{4})$/.exec(tg.initDataUnsafe?.start_param || '')?.[1];
       if (room) joinOnce(room);
+      else firstRun(tg.initDataUnsafe?.start_param || '');
       const blocks = Object.entries(this.ADSGRAM).filter(([, id]) => id);
       if (blocks.length) this.script('https://sad.adsgram.ai/js/sad.min.js', () => {
         this.sdk = Object.fromEntries(blocks.map(([k, id]) => [k, window.Adsgram.init({ blockId: id })]));
@@ -3813,6 +3818,7 @@ const WAITING = t('Ждём соперника…', 'Waiting for rival…');
 
 function enterMenu() {
   stopAll();
+  LEARN = false;
   state.mode = null;
   document.body.classList.remove('rules-open', 'no-stage', 'intro');
   document.body.classList.add('menu');
@@ -3833,6 +3839,7 @@ function showStart() {
   enterMenu();
   say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
     <div class="modes">
+      <div class="mode quick" data-where="quick"><span class="e">▶️</span><span><b>${t('Играть сразу', 'Play now')}</b><small>${t('Бой с роботом, без настроек', 'Versus robot, no setup')}</small></span></div>
       <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
       <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
       ${PORTAL && ADS.kind !== 'tg' && !LINKS_OK ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
@@ -3854,6 +3861,7 @@ function showStart() {
     // Другой язык: запоминаем и перезагружаем — все надписи соберутся заново
     if (where === 'lang') { buzz(20); save('kolorit-lang', t('en', 'ru')); location.reload(); return; }
     buzz(20);
+    if (where === 'quick') { quickPlay(); return; }
     if (where === 'local') showMenu();
     else if (where === 'bot') { BOT.start(); showMenu(); }
     else if (where === 'rules') showRules();
@@ -3864,6 +3872,26 @@ function showStart() {
     else if (where === 'tgtour') window.open('https://t.me/BabushkaBattlesBot/play', '_blank', 'noopener');
     else showOnline();
   };
+}
+
+// «Играть сразу»: одно нажатие — и уже бой с роботом. Первый раз «Пельмень» (его видели в роликах),
+// потом случайная открытая игра. learn — учебный матч при самом первом входе: в интро пометка «Обучение»
+var LEARN = false;
+function quickPlay(learn = false) {
+  const n = load('kolorit-quick', 0);
+  save('kolorit-quick', n + 1);
+  const pool = MODES.filter(m => m.game && !(m.premium && isLocked(m.id)));
+  LEARN = learn;
+  BOT.start();
+  startMode(n ? pick(pool) : MODES.find(m => m.id === 'pelmen'));
+}
+// Самый первый вход (ни быстрой игры, ни рекордов) и не по приглашению — сразу учебный бой
+function firstRun(param = '') {
+  if (param || /[?&]room=/.test(location.search)) return;
+  if (ADS.kind === 'test' && !/[?&]first=1/.test(location.search)) return;  // автотесты ждут стартовый экран
+  if (load('kolorit-quick', null) !== null || Object.keys(load('kolorit-records', {})).length) return;
+  if (!document.querySelector('.half.p0 [data-where=quick]')) return;  // уже ушли со старта
+  quickPlay(true);
 }
 
 // Турнир: баланс, подарок, лиги и ставки. Нажал ставку — ищем соперника с такой же
@@ -4214,7 +4242,8 @@ function showIntro(game, start) {
   const ready = [false, false];
   const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? WAITING : t('▶ Начать', '▶ Start')}</span>`;
   // Номер игры показываем только в турнире: в обычном матче это всегда первый раунд
-  const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>` : '';
+  const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>`
+    : LEARN && state.round === 1 ? `<p class="demo-progress">👋 ${t('Обучение: смотри, куда жать, и сыграй с роботом до 3 побед', 'Tutorial: see where to tap, then beat the robot to 3 wins')}</p>` : '';
   sayEach(p => `${head(p)}<h2>${gameIco(game)} ${game.title}</h2>
     <div class="demo"><div class="demo-pic"></div><div class="demo-bar"><b></b><i></i><s></s></div>
       <div class="grab demo-btn"></div><div class="demo-cap"></div></div>
@@ -4354,6 +4383,8 @@ function joinOnce(code) {
 }
 const invited = new URLSearchParams(location.search).get('room');
 if (/^\d{4}$/.test(invited || '')) joinOnce(invited);
+// В Телеграме ждём его скрипт (язык, приглашение в start_param) — там firstRun зовёт ADS.init
+else if (ADS.kind !== 'tg') firstRun();
 
 // Площадки встраивают игру в окно, которое на iPhone бывает выше экрана: низ уходит под панель
 // браузера. IntersectionObserver видит, какая часть окна правда на экране, — ужимаем игру до неё.
