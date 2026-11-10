@@ -1252,8 +1252,22 @@ function drawDeco() {
   for (const [wx, wy, ww, wh] of wins) {           // окна: днём из них падает свет
     const x = wx * T - cam, y = wy * T, w = ww * T, h = wh * T;
     if (x > W || x + w < 0) continue;
-    if (L.pal.forest) {                            // в норах — дыра наверх, сквозь корни видно небо
-      ell(x + w / 2, y + h / 2, w / 2 + 2, h / 2, '#a8c0a8'); for (let i = 0; i < 4; i++) rect(x + 3 + i * (w / 4), y, 1, h - 2 - (i % 2) * 4, '#3a2a1a');
+    if (L.pal.forest) {                            // в норах — провал в потолке: наверху небо, по краям свисают корни, вниз падает луч
+      const top = y - 2 * T, g = ctx.createLinearGradient(0, top, 0, y);
+      g.addColorStop(0, '#d4e4c8'); g.addColorStop(1, '#6a8460'); ctx.fillStyle = g;
+      for (let i = 0; i < w; i += 2) {                                     // провал-воронка: наверху узкая щель с небом
+        const d = Math.abs(i + 1 - w / 2) / (w / 2), off = Math.min(2 * T - 3, d * d * 2 * T * .95 + hash(wx * 7 + i, wy) % 5);
+        ctx.fillStyle = g; ctx.fillRect(Math.round(x + i), top + off, 2, 2 * T - off + 1);
+        rect(x + i, top + off - 2, 2, 2, '#2a1e14');
+      }
+      rect(x - 2, y - 2, w + 4, 3, '#2a1e14');
+      ctx.fillStyle = 'rgba(220,240,200,.07)'; ctx.beginPath();                    // луч света
+      ctx.moveTo(x + 4, y); ctx.lineTo(x + w - 4, y); ctx.lineTo(x + w + 14, y + 4 * T); ctx.lineTo(x - 14, y + 4 * T); ctx.fill();
+      for (let i = 0; i < 6; i++) {                                        // корни свисают с краёв, середина свободна
+        const side = i % 2, rx = side ? x + w - 3 - hash(wx, i) % 8 : x + 2 + hash(i, wx) % 8, len = 8 + hash(wy + i, wx) % 20;
+        rect(rx, y - 2, 1, len, '#4a3220'); rect(rx + (side ? -1 : 1), y - 2 + len * .6, 1, len * .4, '#4a3220');
+        if (hash(i, wy) % 3 === 0) rect(rx - 1, y + len - 3, 3, 2, '#3e6a2a');
+      }
       continue;
     }
     rect(x - 2, y - 2, w + 4, h + 4, '#2a2420');
@@ -1615,7 +1629,8 @@ function drawDark() {
   for (const [wx, wy, ww, wh] of wins) {               // свет из окон
     const cx = (wx + ww / 2) * T - cam, cy = (wy + wh / 2) * T + oy;
     if (cx < -130 || cx > W + 130) continue;
-    glow(cx, cy + 14, 100, .95); dctx.fillStyle = '#000'; dctx.fillRect(wx * T - cam - 2, wy * T + oy - 2, ww * T + 4, wh * T + 4);
+    glow(cx, cy + 14, 100, .95); dctx.fillStyle = '#000';
+    if (L.pal.forest) glow(cx, cy - 2 * T, 40, .9); else dctx.fillRect(wx * T - cam - 2, wy * T + oy - 2, ww * T + 4, wh * T + 4);
   }
   for (const b of ebullets) glow(b.x - cam + 2, b.y + 2 + oy, 12, .5);
   for (const r of rocks) glow(r.x - cam, r.gy - 4 + oy, 22, .6);
