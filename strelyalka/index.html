@@ -65,11 +65,11 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 // 0 воздух (улица), 1 стена/пол, 2 перекрытие (запрыгнуть снизу), 3 лестница, 4 кислота,
 // 5 комната (стена на фоне), 6 запертая дверь, 7 решётка, 8 лаз (проход внутри стены)
 // 9 вода (плывёшь, течение сносит), 10 валун (твёрдый, разбивается камнем богомола)
-const AIR = 0, SOLID = 1, PLAT = 2, LAD = 3, ACID = 4, BG = 5, DOOR = 6, GRATE = 7, VENT = 8, WATER = 9, ROCK = 10;
+const AIR = 0, SOLID = 1, PLAT = 2, LAD = 3, ACID = 4, BG = 5, DOOR = 6, GRATE = 7, VENT = 8, WATER = 9, ROCK = 10, STICKY = 11, CRUMBLE = 12;
 let grid, COLS = 10, ROWS = 10, MAPW = 160, MAPH = 160;
 const tile = (cx, cy) => (cx < 0 || cx >= COLS || cy >= ROWS ? SOLID : cy < 0 ? AIR : grid[cy][cx]);
-const ROCK_HP = 6; let rockHit = {};            // сколько пуль выдерживает валун
-const isSolid = t => t === SOLID || t === DOOR || t === GRATE || t === ROCK;
+const ROCK_HP = 6; let rockHit = {}, crumb = new Map();   // crumb — осыпающийся пол: ключ клетки → таймеры            // сколько пуль выдерживает валун
+const isSolid = t => t === SOLID || t === DOOR || t === GRATE || t === ROCK || t === STICKY || t === CRUMBLE;
 const solid = (cx, cy) => isSolid(tile(cx, cy));
 const open = t => t === AIR || t === BG || t === LAD || t === VENT || t === WATER;          // сквозь это видно и можно пройти
 const oneWay = (t, cx, cy) => t === PLAT || (t === LAD && tile(cx, cy - 1) !== LAD);   // верх лестницы — как пол
@@ -85,6 +85,7 @@ const PAL = {
   roof: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#4a3834', floor: '#77706a', road: '#3c3c44', earth: '#26242a' },
   shaft: { bg: '#1e2024', bg2: '#26292e', pat: 'block', solid: '#2e3036', floor: '#5a5e66' },
   forest: { forest: 1, bg: '#1c150e', bg2: '#2a2014', pat: 'root', solid: '#3a2a1a', floor: '#4a8a2a', road: '#3a2a1a', earth: '#2a1e12' },
+  nora: { forest: 1, nora: 1, bg: '#140f16', bg2: '#1e1722', pat: 'root', solid: '#2a1f26', floor: '#3a3048', floor2: '#231b2c', blade: '#6a58a8', deep: '#1c141a', road: '#2a1f26', earth: '#1c141a' },
 };
 const LEVELS = [
   { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, day: true, ground: 16, dark: .9,
@@ -337,13 +338,132 @@ const LEVELS = [
       B.rock(28, 15, 28, 15); B.rock(46, 15, 47, 15);
       B.plat(20, 25, 12); B.plat(42, 48, 12);
       B.arena({ gate: 12, l: 13, top: 16, drop: 52, boss: 'mantis' });
-      B.exit(67, 16, 'К ВОЕННЫМ');
+      B.exit(67, 16, 'В НОРУ');
       B.bug(8, 16, 'M');
+      B.start(3, 16); B.save(9, 16);
+    } },
+  // ===================== НОРА =====================
+  { city: 2, name: 'ПРОВАЛ', task: 'Спустись на дно провала', obj: 'reach', ground: 99, dark: .78,
+    cols: 60, rows: 46, base: SOLID, pal: PAL.nora, spawn: ['l', 'm'],
+    tips: ['треснувший пол осыпается под ногами — так и спускайся', 'в фиолетовой слизи вязнешь и прыгаешь ниже', 'личинка лопается кислотой — бей издалека'],
+    build(B) {
+      B.room(2, 2, 40, 5); B.crumble(36, 38, 6);
+      B.room(8, 7, 44, 11); B.slime(20, 26, 12); B.crumble(10, 12, 12);
+      B.room(4, 13, 50, 17); B.acid(26, 28, 18); B.crumble(46, 48, 18);
+      B.room(10, 19, 56, 23); B.slime(30, 36, 24); B.crumble(12, 14, 24);
+      B.room(4, 25, 52, 29); B.crumble(48, 50, 30);
+      B.room(10, 31, 57, 35); B.slime(24, 30, 36); B.crumble(12, 14, 36);
+      B.room(2, 37, 58, 41);
+      for (const [x, y] of [[6, 6], [28, 6], [42, 12], [18, 12], [6, 18], [34, 18], [52, 24], [22, 24], [8, 30], [38, 30], [52, 36], [20, 36], [6, 42], [30, 42], [50, 42]]) B.shroom(x, y);
+      B.bug(22, 6, 'l'); B.bug(30, 12, 'l'); B.bug(40, 18, 'e'); B.bug(20, 18, 'l'); B.bug(28, 24, 'l'); B.bug(40, 24, 'o');
+      B.bug(30, 30, 'e'); B.bug(20, 30, 'l'); B.bug(36, 36, 'o'); B.bug(40, 36, 'l'); B.bug(24, 42, 'l'); B.bug(44, 42, 'e'); B.bug(36, 42, 'l');
+      B.exit(56, 42, 'ГРИБНИЦА');
+      B.start(4, 6); B.save(40, 12); B.save(7, 18); B.save(44, 24); B.save(46, 36);
+    } },
+  { city: 2, name: 'ГРИБНИЦА', task: 'Уничтожь все кладки яиц', obj: 'nests', ground: 99, dark: .8,
+    cols: 120, rows: 28, base: SOLID, pal: PAL.nora, spawn: ['l', 'm', 'l'],
+    tips: ['светятся грибы… и не только грибы: огонёк в темноте может укусить', 'на уступы ведут корни — встань у корня и жми вверх', 'кокон лучше сбить, пока не вылупилась оса'],
+    build(B) {
+      B.room(1, 6, 118, 21);
+      B.fill(20, 6, 24, 8); B.fill(60, 6, 66, 9); B.fill(100, 6, 104, 7);           // сталактиты
+      B.fill(36, 14, 52, 15); B.lad(35, 14, 21);                                    // уступ A
+      B.fill(80, 12, 94, 13); B.lad(79, 12, 21);                                    // уступ B
+      B.slime(56, 62, 22); B.acid(70, 72, 22);
+      B.bigshroom(28, 18, 22); B.bigshroom(66, 17, 22); B.bigshroom(110, 18, 22);
+      for (const [x, y] of [[12, 22], [44, 14], [54, 22], [86, 12], [98, 22], [76, 22]]) B.shroom(x, y);
+      B.nest(20, 22); B.nest(47, 14); B.nest(89, 12); B.nest(106, 22);
+      B.bug(32, 22, 'e'); B.bug(77, 22, 'e'); B.bug(100, 22, 'e');
+      B.bug(48, 22, 'o'); B.bug(96, 22, 'o');
+      B.bug(26, 22, 'l'); B.bug(64, 22, 'l'); B.bug(92, 22, 'l'); B.bug(51, 14, 'l');
+      B.exit(116, 22, 'КОКОНЫ');
+      B.start(3, 22); B.save(40, 22); B.save(82, 22); B.save(102, 22);
+    } },
+  { city: 2, name: 'КОКОНЫ', task: 'Сбей все коконы', obj: 'guards', guard: 'o', guardTxt: 'коконы', guardDone: 'все коконы сбиты! ход наверх открыт', need: 'сначала сбей все коконы',
+    ground: 99, dark: .8, cols: 90, rows: 40, base: SOLID, pal: PAL.nora, spawn: ['l', 'v'],
+    tips: ['коконы висят под потолком — целься вверх: крестовина вверх + B', 'подойдёшь — кокон задрожит, через пару секунд вылетит оса', 'оса кружит, потом пикирует — отходи в сторону'],
+    build(B) {
+      B.room(1, 30, 88, 35);                                                        // нижний ярус
+      B.room(4, 20, 86, 25);                                                        // средний
+      B.room(1, 10, 88, 15);                                                        // верхний
+      B.lad(80, 26, 35); B.lad(8, 16, 25);
+      B.acid(40, 45, 26); B.crumble(42, 43, 24);                                    // кислотная яма и осыпающийся островок
+      B.slime(20, 26, 36); B.slime(60, 66, 16);
+      for (const [x, y] of [[10, 36], [34, 36], [74, 36], [22, 26], [52, 26], [70, 26], [30, 16], [56, 16], [80, 16]]) B.shroom(x, y);
+      B.bug(20, 36, 'o'); B.bug(60, 36, 'o'); B.bug(30, 26, 'o'); B.bug(66, 26, 'o'); B.bug(24, 16, 'o'); B.bug(50, 16, 'o');
+      B.bug(40, 36, 'l'); B.bug(70, 36, 'e'); B.bug(56, 26, 'l'); B.bug(16, 26, 'e'); B.bug(36, 16, 'l'); B.bug(70, 16, 'e');
+      B.exit(86, 16, 'ОЗЕРО');
+      B.start(3, 36); B.save(48, 36); B.save(76, 26); B.save(12, 16);
+    } },
+  { city: 2, name: 'ПОДЗЕМНОЕ ОЗЕРО', task: 'Переберись через озеро', obj: 'reach', ground: 99, dark: .78,
+    cols: 140, rows: 28, base: SOLID, pal: PAL.nora, spawn: ['l'],
+    tips: ['червь-землерой ползёт под землёй — видна только горка', 'горка задрожала — отбегай! вылез — стреляй, пока не зарылся', 'в воду черви и личинки не суются, а на дне что-то блестит…'],
+    build(B) {
+      B.room(1, 6, 138, 17);                                                        // пещера над озером
+      B.water(30, 18, 100, 21);                                                     // озеро, дно — ряд 22
+      B.fill(48, 17, 52, 21); B.fill(70, 17, 74, 21); B.fill(88, 17, 92, 21);       // островки
+      for (const [a, b] of [[33, 35], [39, 41], [45, 46], [56, 58], [62, 64], [67, 68], [78, 80], [84, 85], [95, 97]]) B.plat(a, b, 16);   // корни над водой
+      B.room(64, 22, 68, 23); B.water(64, 22, 68, 23); B.item('life', 66, 24);      // тайник на дне
+      B.fill(38, 6, 42, 10); B.fill(78, 6, 82, 10);                                 // сталактиты с коконами
+      B.bigshroom(20, 13, 18); B.bigshroom(118, 13, 18);
+      for (const [x, y] of [[10, 18], [26, 18], [50, 17], [72, 17], [90, 17], [108, 18], [128, 18]]) B.shroom(x, y);
+      B.bug(14, 18, 'w'); B.bug(24, 18, 'e'); B.bug(40, 18, 'o'); B.bug(80, 18, 'o');
+      B.bug(51, 17, 'l'); B.bug(90, 17, 'e');
+      B.bug(106, 18, 'w'); B.bug(116, 18, 'w'); B.bug(128, 18, 'w'); B.bug(112, 18, 'l');
+      B.exit(136, 18, 'ЧЕРВОТОЧИНЫ');
+      B.start(3, 18); B.save(27, 18); B.save(72, 17); B.save(103, 18);
+    } },
+  { city: 2, name: 'ЧЕРВОТОЧИНЫ', task: 'Перебей червей-землероев', obj: 'guards', guard: 'w', guardTxt: 'черви', guardDone: 'все черви перебиты! путь открыт', need: 'сначала перебей червей',
+    ground: 99, dark: .8, cols: 110, rows: 34, base: SOLID, pal: PAL.nora, spawn: ['l', 'l', 'm'],
+    tips: ['черви ползут к тебе под землёй — стой и жди горку', 'горка задрожала — отбеги на пару шагов, развернись и стреляй', 'по корням можно лазить между ярусами'],
+    build(B) {
+      B.room(1, 4, 108, 8);                                                         // верхний ход, пол 9
+      B.room(1, 14, 108, 18);                                                       // средний, пол 19
+      B.room(1, 24, 108, 28);                                                       // нижний, пол 29
+      B.lad(100, 9, 18); B.lad(10, 9, 18); B.lad(60, 19, 28);
+      B.crumble(80, 84, 29); B.room(80, 30, 84, 30); B.acid(80, 84, 31);           // осыпающийся мост над кислотой
+      B.slime(30, 36, 9); B.slime(70, 76, 19); B.slime(40, 46, 29);
+      B.nest(24, 19);
+      for (const [x, y] of [[20, 9], [55, 9], [85, 9], [35, 19], [95, 19], [15, 29], [66, 29], [100, 29]]) B.shroom(x, y);
+      B.bug(40, 9, 'w'); B.bug(70, 9, 'w'); B.bug(45, 19, 'w'); B.bug(84, 19, 'w'); B.bug(30, 29, 'w');
+      B.bug(90, 9, 'e'); B.bug(52, 19, 'l'); B.bug(20, 29, 'e'); B.bug(96, 29, 'l'); B.bug(56, 9, 'o');
+      B.exit(106, 29, 'КЛАДКА');
+      B.start(3, 9); B.save(62, 9); B.save(92, 19); B.save(52, 29);
+    } },
+  { city: 2, name: 'КЛАДКА', task: 'Уничтожь кладку матки', obj: 'nests', ground: 99, dark: .78, art: 7, under: true,
+    cols: 130, rows: 26, base: SOLID, pal: PAL.nora, spawn: ['l', 'm', 'v'],
+    tips: ['матка ворочается — с потолка сыплются камни, смотри на метки', 'кладки на уступах — забирайся по корням', 'осыпающийся пол долго не держит — не стой'],
+    build(B) {
+      B.room(1, 4, 128, 21);
+      B.fill(20, 15, 34, 16); B.lad(19, 15, 21);                                    // уступ 1
+      B.fill(55, 12, 70, 13); B.lad(54, 12, 21);                                    // уступ 2
+      B.fill(90, 15, 104, 16); B.lad(89, 15, 21);                                   // уступ 3
+      B.crumble(40, 44, 22); B.room(40, 23, 44, 23); B.acid(40, 44, 24);           // осыпающийся мост над кислотой
+      B.slime(74, 80, 22); B.slime(108, 114, 22);
+      B.bigshroom(48, 17, 22); B.bigshroom(84, 18, 22); B.bigshroom(120, 17, 22);
+      for (const [x, y] of [[8, 22], [26, 15], [62, 12], [96, 15], [126, 22], [36, 22], [66, 22]]) B.shroom(x, y);
+      B.nest(10, 22); B.nest(28, 15); B.nest(64, 12); B.nest(78, 22); B.nest(98, 15); B.nest(118, 22);
+      B.bug(30, 22, 'w'); B.bug(110, 22, 'w'); B.bug(60, 22, 'e'); B.bug(100, 22, 'e');
+      B.bug(26, 22, 'o'); B.bug(62, 22, 'o'); B.bug(96, 22, 'o');
+      B.bug(50, 22, 'l'); B.bug(86, 22, 'l'); B.bug(67, 12, 'l');
+      B.exit(126, 22, 'ЛОГОВО');
+      B.start(3, 22); B.save(47, 22); B.save(85, 22); B.save(116, 22);
+    } },
+  { city: 2, name: 'ЛОГОВО МАТКИ', task: 'Победи личинку-матку', obj: 'boss', bossTxt: 'в логово матки', ground: 99, dark: .72,
+    cols: 74, rows: 22, base: SOLID, pal: PAL.nora, spawn: ['l', 'm'],
+    tips: ['матка ныряет под землю, и к тебе ползёт горка. задрожала — прыгай на уступ или беги', 'вынырнула — оглушена, урон двойной', 'плюётся кислотой и откладывает личинок'],
+    build(B) {
+      B.room(1, 5, 72, 15);
+      B.plat(22, 27, 12); B.plat(38, 43, 12); B.plat(54, 59, 12);
+      B.bigshroom(32, 9, 16); B.bigshroom(66, 9, 16);
+      for (const [x, y] of [[6, 16], [16, 16], [48, 16], [62, 16]]) B.shroom(x, y);
+      B.arena({ gate: 12, l: 13, top: 16, drop: 48, boss: 'larva' });
+      B.exit(70, 16, 'К ВОЕННЫМ');
+      B.bug(8, 16, 'l');
       B.start(3, 16); B.save(9, 16);
     } },
 ];
 
-const CITY = ['ГОРОД N1', 'ЛЕС'];
+const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА'];
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
 let L, lvlN = 0, lv;
@@ -383,6 +503,10 @@ function build(def) {
     exit(x, y, txt) { o.exit = [x, y, txt]; },
     heli(x, y) { o.heli = [x, y]; },
     arena(a) { o.arena = a; },
+    slime(x0, x1, y) { B.fill(x0, y, x1, y, STICKY); },
+    crumble(x0, x1, y) { B.fill(x0, y, x1, y, CRUMBLE); },
+    shroom(x, y) { o.lamps.push([x, y, 'shroom']); },
+    bigshroom(x, cap, floor, w = 2) { B.plat(x - w, x + w, cap); o.deco.push({ k: 'bigshroom', x0: x, y0: cap, x1: x, y1: floor - 1, w }); o.lamps.push([x, cap, 'cap']); },
   };
   def.build(B);
   B.fill(0, 0, 0, ROWS - 1); B.fill(COLS - 1, 0, COLS - 1, ROWS - 1); B.fill(0, ROWS - 1, COLS - 1, ROWS - 1);
@@ -540,8 +664,9 @@ let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, la
 let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false;
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
 function diff(i) {
-  const k = i <= 6 ? i / 6 : .8 + (i - 7) / 10;      // лес начинается чуть легче конца города и растёт дальше
-  return { cd: 3.6 - 1.5 * k, kids: 1 + Math.round(1.6 * k), spd: 58 + 26 * k, nhp: 6 + Math.round(4 * k), crack: 5.5 - 2 * k };
+  const k = i <= 6 ? i / 6 : i <= 13 ? .8 + (i - 7) / 10 : 1.3 + (i - 14) / 20;   // лес чуть легче конца города, нора — чуть легче конца леса
+  const s = Math.min(k, 1.4);                          // скорость и частота жуков дальше не растут
+  return { cd: 3.6 - 1.5 * s, kids: 1 + Math.round(1.6 * s), spd: 58 + 26 * s, nhp: 6 + Math.round(4 * k), crack: 5.5 - 2 * s };
 }
 // Виды жуков Города N1: ширина, высота, жизни, скорость (доля), очки
 const BUGS = {
@@ -559,6 +684,12 @@ const BUGS = {
   G: [14, 16, 2, .3, 150],     // метатель: кидает камешки дугой
   F: [16, 10, 1, 1, 150],      // летун: перелетает короткими планированиями
   H: [22, 20, 5, .6, 400],     // щитоносец: закрывается косами, бить, когда атакует
+  // Нора: родня личинки-матки
+  l: [16, 9, 2, .45, 100],     // личинка: ползёт, лопается кислотой
+  w: [12, 22, 3, .7, 250],     // червь-землерой: ползёт под землёй, выныривает рядом
+  o: [12, 18, 3, 0, 150],      // кокон под потолком: из него вылупляется оса
+  v: [14, 10, 1, 1.15, 150],   // оса: кружит и пикирует
+  e: [14, 16, 3, .55, 250],    // светляк-обманка: прикидывается грибом-огоньком
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
@@ -579,9 +710,13 @@ function startLevel(n) {
     const e = mkBug(k, x * T, y * T); e.sleep = true; e.vx = 0;
     if (k === 'c') { let cy = y - 1; while (cy > 0 && !solid(x, cy)) cy--; e.y = (cy + 1) * T; e.hang = true; }
     if (k === 'A') { e.hide = true; e.sleep = false; }
+    if (k === 'o') { let cy = y - 1; while (cy > 0 && !solid(x, cy)) cy--; e.y = (cy + 1) * T; e.sleep = false; e.st = 'wait'; }   // кокон висит под потолком
+    if (k === 'w') { e.burrow = true; e.st = 'under'; }
+    if (k === 'e') { e.lure = true; e.sleep = false; }
+    e.gd = L.obj === 'guards' && k === (L.guard || 's');
     enemies.push(e);
   }
-  guardsAll = enemies.filter(e => e.k === (L.guard || 's')).length;
+  guardsAll = enemies.filter(e => e.gd).length;
   wins = lv.wins; ebullets = [];
   const LF = lv.lift;
   lift = LF ? { k: 'lift', x: LF.x0 * T, w: (LF.x1 - LF.x0 + 1) * T, y: LF.y0 * T, y0: LF.y0 * T, top: LF.y1 * T, dx: 0, dy: 0, go: false } : null;
@@ -590,15 +725,17 @@ function startLevel(n) {
     const span = (g.x1 - g.x0) * T;
     movers.push({ k: 'log', x: g.x0 * T + span * i / g.n, x0: g.x0 * T, x1: g.x1 * T, base: g.y * T - 5, y: g.y * T - 5, w: 40, dx: 0, dy: 0, ph: Math.random() * 6 });
   }
-  rocks = []; rockHit = {}; artT = L.art ? L.art * .6 : 0;
+  rocks = []; rockHit = {}; crumb = new Map(); artT = L.art ? L.art * .6 : 0;
   cracks = lv.cracks.map(([x, y]) => ({ x: x * T, y: y * T, cd: 2 + Math.random() * 3, n: 0 }));
   items = lv.items.map(([k, x, y]) => ({ k, x: x * T + 2, y: y * T - 12, w: 12, h: 12, got: false }));
-  lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
+  lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post: !!post, kind: typeof post === 'string' ? post : null, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
   const A = lv.arena;
-  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'mantis'
+  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'larva'
+    ? [{ k: 'larva', x: A.drop * T, y: A.top * T - 28, w: 84, h: 28, hp: 140, max: 140, fl: 0, st: 'under', t: 1.2, dir: -1, vx: 0, vy: 0, hide: true, on: false }]
+    : A.boss === 'mantis'
     ? [{ k: 'mantis', x: A.drop * T, y: -90, w: 26, h: 60, hp: 100, max: 100, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, arm: 0, on: false }]
     : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 40 + 5 * lvlN, max: 40 + 5 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
   done = L.obj === 'reach';
@@ -606,11 +743,22 @@ function startLevel(n) {
   respawn();
   setState('card');
 }
+function gate(on) {                          // решётка арены: закрыть / открыть
+  const A = lv.arena; A.orig = A.orig || {};
+  for (let y = 0; y < A.top; y++) {
+    const t = grid[y][A.gate];
+    if (on && !isSolid(t)) { A.orig[y] = t; grid[y][A.gate] = GRATE; }
+    else if (!on && t === GRATE) grid[y][A.gate] = A.orig[y] ?? AIR;
+  }
+}
 function respawn() {
   bullets = []; parts = [];
-  if (boss && boss.on && !boss.dead) {          // погиб на арене: носорог ждёт заново, решётка открыта
-    boss.on = false; for (let y = 0; y < lv.arena.top; y++) grid[y][lv.arena.gate] = AIR;
-    Object.assign(boss.parts[0], { x: lv.arena.drop * T, y: -90, st: 'drop', vx: 0, vy: 0, t: 0, arm: 0 });
+  if (boss && boss.on && !boss.dead) {          // погиб на арене: босс ждёт заново, решётка открыта
+    boss.on = false; gate(false);
+    const b = boss.parts[0];
+    if (b.k === 'larva') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'under', t: 1.2, vx: 0, hide: true });
+    else Object.assign(b, { x: lv.arena.drop * T, y: -90, st: 'drop', vx: 0, vy: 0, t: 0, arm: 0 });
+    enemies = enemies.filter(e => !e.boss);
   }
   ebullets = [];
   const onCab = lift && lift.go, sx = onCab ? lift.x + lift.w / 2 - 5 : save.x, sy = onCab ? lift.y - 22 : save.y + 14 - 22;
@@ -644,6 +792,7 @@ const NEED = { key: 'сначала найди ключ', nests: 'сначала
 const ITEM = { key: '🔑 ключ у тебя! дверь открыта', switch: '⚡ ток пошёл! люк открыт', tools: '🧰 инструменты у тебя! чиним лифт',
   radio: '📻 рация цела! но в эфире только шум' };
 NEED.radio = 'сначала найди рацию'; NEED.boss = 'сначала победи богомола';
+const BOSS_NAME = { mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА' };
 
 // Жук-носорог: ходит к игроку, замирает и таранит до стены, оглушён, иногда прыгает
 function rhino(dt, b, pc) {
@@ -731,14 +880,16 @@ function updatePlayer(dt, k) {
   P.crouch = P.on && !wet ? (k.dy === 1 || !canStand(P)) : (P.crouch && !canStand(P));
   P.h = P.crouch ? 12 : 22; P.y = feet - P.h;
   const flow = wet && L.flow && (!L.fx || (P.x > L.fx[0] * T && P.x < L.fx[1] * T)) ? L.flow : 0;   // течение только в реке
-  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (wet ? .6 : 1) + flow;
+  const fr = Math.floor((P.y + P.h + 1) / T), stick = P.on && (tile(Math.floor((P.x + 1) / T), fr) === STICKY || tile(Math.floor((P.x + P.w - 1) / T), fr) === STICKY);
+  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (wet ? .6 : 1) * (stick ? .42 : 1) + flow;   // в слизи вязнешь
+  if (stick && k.dx && Math.random() < .04) beep(90, 60, .08, 'sine', .03);
   if (k.dx) P.face = k.dx;
   if (k.aPressed && wet && !P.on) { P.vy = tile(Math.floor((P.x + 5) / T), Math.floor((P.y + 4) / T)) === WATER ? -250 : -330; beep(200, 500, .1, 'sine', .03); }   // гребок вверх; голова над водой — выпрыгнуть на берег
   else if (k.aPressed && P.on) {
     const below = Math.floor((P.y + P.h + 1) / T), c0 = Math.floor(P.x / T), c1 = Math.floor((P.x + P.w) / T);
     const t0 = tile(c0, below), t1 = tile(c1, below);
     if (k.dy === 1 && oneWay(t0, c0, below) && !isSolid(t1)) { P.drop = .25; P.y += 3; }  // спрыгнуть с перекрытия
-    else if (canStand(P) || !P.crouch) { P.vy = -JUMP; beep(300, 700, .12, 'square', .03); }
+    else if (canStand(P) || !P.crouch) { P.vy = stick ? -JUMP * .7 : -JUMP; beep(300, 700, .12, 'square', .03); }
   }
   if (!k.a && P.vy < -120 && !wet) P.vy = -120;          // отпустил прыжок раньше — прыжок ниже
   P.vy = wet ? Math.min(P.vy + GRAV * .3 * dt, 60) : Math.min(P.vy + GRAV * dt, 520);
@@ -768,7 +919,8 @@ function update(dt) {
     const wait = state === 'title' ? .6 : state === 'card' ? .8 : 1.5;
     shake = Math.max(0, shake - dt);
     if (state === 'cut') {
-      if (!cutHit && stateT > 3) { cutHit = true; shake = .9; boom(.15); beep(800, 80, 1.2, 'sawtooth', .05); }
+      const nora = (LEVELS[lvlN + 1]?.city || 0) === 2;
+      if (!cutHit && stateT > (nora ? 4.8 : 3)) { cutHit = true; shake = .9; boom(.15); beep(nora ? 120 : 800, nora ? 40 : 80, nora ? .6 : 1.2, 'sawtooth', .05); }
       if (stateT > 7.2 || (stateT > 1 && (anyTap || k.aPressed))) startLevel(lvlN + 1);
       anyTap = false; return;
     }
@@ -811,6 +963,12 @@ function update(dt) {
     if (P.dead <= 0) { if (lives < 0) { lives = 0; setState('over'); return; } respawn(); }
   } else {
     updatePlayer(dt, k);
+    if (P.on && !P.mv) {                               // встал на треснувший пол — он скоро осыплется
+      const fr = Math.floor((P.y + P.h + 1) / T);
+      for (const cx of [Math.floor((P.x + 1) / T), Math.floor((P.x + P.w - 1) / T)]) if (tile(cx, fr) === CRUMBLE && !crumb.has(fr * COLS + cx)) {
+        crumb.set(fr * COLS + cx, { cx, cy: fr, t: .45, back: 0 }); beep(160, 90, .25, 'sawtooth', .02);
+      }
+    }
     if (touches(P, ACID)) { P.inv = 0; killPlayer(); }      // кислота
     if (P.y > MAPH) { P.inv = 0; killPlayer(); }
     for (const s of saves) if (!s.on && hit(P, s)) {     // сохранение
@@ -823,9 +981,22 @@ function update(dt) {
     }
     if (exit && hit(P, exit)) {
       if (done) { nextLevel(); return; }
-      if (lockMsgT <= 0) { showToast('🔒 закрыто: ' + NEED[L.obj], 2); lockMsgT = 2.5; beep(160, 120, .2, 'square', .04); }
+      if (lockMsgT <= 0) { showToast('🔒 закрыто: ' + (L.need || NEED[L.obj]), 2); lockMsgT = 2.5; beep(160, 120, .2, 'square', .04); }
     }
     if (heli && boss.dead && boss.deadT > 1 && hit(P, heli)) { nextLevel(); return; }
+  }
+
+  for (const [key, c] of crumb) {                     // осыпается и через 5 с нарастает снова
+    if (c.t > 0) {
+      c.t -= dt;
+      if (c.t <= 0) { grid[c.cy][c.cx] = BG; c.back = 5; explode(c.cx * T + 8, c.cy * T + 8, 7, ['#5a4434', '#3a2a22', '#2a1e14']); boom(.03); }
+    } else {
+      c.back -= dt;
+      if (c.back <= 0) {
+        const box = { x: c.cx * T, y: c.cy * T, w: T, h: T };
+        if (hit(P, box) || enemies.some(e => hit(e, box))) c.back = .5; else { grid[c.cy][c.cx] = CRUMBLE; crumb.delete(key); }
+      }
+    }
   }
 
   // --- Камера: держит героя правее крестовины, по обеим осям ---
@@ -838,7 +1009,7 @@ function update(dt) {
   const A = lv.arena;
   if (A && !boss.on && !boss.dead && P.x > (A.l + 1) * T && P.y < A.top * T) {
     boss.on = true;
-    for (let y = 0; y < A.top; y++) grid[y][A.gate] = GRATE;
+    gate(true);
     boom(.1); shake = .4;
   }
 
@@ -855,7 +1026,7 @@ function update(dt) {
         explode(e.x + 10, e.y + 2, 5, ['#3a2a1a', '#6a5030']);
       }
     } else bugAI(e, dt);
-    if (!P.dead && e.hp > 0 && e.k !== 'n' && !e.hang && hit(pc, e)) killPlayer();
+    if (!P.dead && e.hp > 0 && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && hit(pc, e)) killPlayer();
   }
   for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
@@ -867,7 +1038,7 @@ function update(dt) {
       explode(c.x + 8, c.y + 8, 8, ['#4a4048', '#2a2228', '#6a6068']); beep(120, 60, .2, 'sawtooth', .04);
     }
   }
-  if (boss.on && !boss.dead) (boss.parts[0].k === 'mantis' ? mantis : rhino)(dt, boss.parts[0], pc);
+  if (boss.on && !boss.dead) ({ mantis, rhino, larva })[boss.parts[0].k](dt, boss.parts[0], pc);
   if (L.art && !P.dead && !boss.on && !boss.dead) {     // богомол издалека кидает камни; чем ближе к нему, тем чаще
     artT -= dt;
     if (artT <= 0) { artT = L.art * rnd(.7, 1.3); throwRock(clamp(P.x + 5 + rnd(-40, 150) * (P.face || 1), T * 2, MAPW - T * 2), !!L.under); }
@@ -890,24 +1061,25 @@ function update(dt) {
   // --- Пули ---
   for (const b of bullets) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    for (const e of enemies) if (e.hp > 0 && b.life > 0 && hit(b, e)) {
+    for (const e of enemies) if (e.hp > 0 && !e.burrow && b.life > 0 && hit(b, e)) {
       b.life = 0;
       if (((e.k === 's' && e.st !== 'stun') || (e.k === 'H' && e.st !== 'stun' && e.st !== 'lunge')) && Math.sign(b.vx) === -e.dir && b.vy <= 60) {   // щит спереди
         explode(b.x + 2, b.y + 2, 4, ['#fff', '#aab4c8']); beep(1800, 900, .05, 'square', .02); continue;
       }
       e.hp--; e.fl = .08;
       if (e.sleep || e.hang) { e.sleep = false; e.hang = false; e.vx = (Math.sign(P.x - e.x) || 1) * (e.sp || D.spd); }
+      if (e.lure) { e.lure = false; e.dir = Math.sign(P.x - e.x) || 1; }        // подстреленный светляк бросается в атаку
       if (e.hp <= 0) { score += e.k === 'n' ? SCORE.n : e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, e.k === 'n' ? 24 : e.k === 's' ? 30 : 14, GOO); boom(e.k === 's' ? .1 : .06); }
     }
     const r = boss.parts[0];
-    if (boss.on && !boss.dead && b.life > 0 && hit(b, r)) {
-      b.life = 0; r.hp -= r.st === 'stuck' ? 2 : 1; r.fl = .06; beep(200, 120, .05, 'sawtooth', .03);
+    if (boss.on && !boss.dead && !r.hide && b.life > 0 && hit(b, r)) {
+      b.life = 0; r.hp -= r.st === 'stuck' || r.st === 'dizzy' ? 2 : 1; r.fl = .06; beep(200, 120, .05, 'sawtooth', .03);
       if (r.hp <= 0) {
         boss.dead = true; score += 5000; shake = 1.5; boom();
         explode(r.x + r.w / 2, r.y + r.h / 2, 40, GOO);
         for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
-        for (let y = 0; y < lv.arena.top; y++) grid[y][lv.arena.gate] = AIR;
-        done = true; showToast(r.k === 'mantis' ? 'богомол повержен! лес свободен' : 'носорог убит! к вертолёту!', 3); rocks = [];
+        gate(false);
+        done = true; showToast({ mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! нора затихла', rhino: 'носорог убит! к вертолёту!' }[r.k], 3); rocks = [];
       }
     }
     if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) {
@@ -923,10 +1095,14 @@ function update(dt) {
     if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) { b.life = 0; explode(b.x, b.y, 3, ['#9be22d', '#e6ff7a']); }
   }
   ebullets = ebullets.filter(b => b.life > 0);
+  for (const e of enemies) if (e.k === 'l' && e.hp === 0 && !e.popped) {      // личинка лопается кислотой
+    e.popped = true; beep(220, 80, .2, 'sawtooth', .03);
+    for (let i = 0; i < 4; i++) ebullets.push({ x: e.x + e.w / 2 - 2, y: e.y, w: 4, h: 4, vx: rnd(-90, 90), vy: rnd(-240, -150), g: 600, life: 1.5, k: 'acid' });
+  }
   for (const e of enemies) if (e.hp <= 0 && e.mom) { e.mom.kids--; e.mom = null; }
   enemies = enemies.filter(e => e.hp > 0);
   if (L.obj === 'nests' && !done && !enemies.some(e => e.k === 'n')) complete('все гнёзда уничтожены! дверь открыта');
-  if (L.obj === 'guards' && !done && !enemies.some(e => e.k === (L.guard || 's'))) complete(L.guard ? 'свита богомола разбита! путь к логову открыт' : 'свита перебита! люк на крышу открыт');
+  if (L.obj === 'guards' && !done && !enemies.some(e => e.gd)) complete(L.guardDone || (L.guard ? 'свита богомола разбита! путь к логову открыт' : 'свита перебита! люк на крышу открыт'));
   for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; }
   parts = parts.filter(p => p.life > 0);
 }
@@ -947,7 +1123,7 @@ function impact(r, pc) {
   explode(r.x, r.gy - 4, r.small ? 6 : 22, ['#7a7068', '#5a524a', '#a89a88', '#3a3430']);
   shake = Math.max(shake, r.small ? .15 : .55); boom(r.small ? .04 : .12);
   if (!P.dead && Math.abs(P.x + 5 - r.x) < R && Math.abs(P.y + P.h - r.gy) < R + 6) { P.inv = 0; killPlayer(); }
-  for (const e of enemies) if (e.k !== 'n' && e.hp > 0 && Math.abs(e.x + e.w / 2 - r.x) < R + e.w / 2 && Math.abs(e.y + e.h - r.gy) < R + 8) {   // давит и монстров
+  for (const e of enemies) if (e.k !== 'n' && e.hp > 0 && !e.burrow && Math.abs(e.x + e.w / 2 - r.x) < R + e.w / 2 && Math.abs(e.y + e.h - r.gy) < R + 8) {   // давит и монстров
     e.hp = 0; score += e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, 10, GOO);
   }
   if (!r.small) for (let cx = Math.floor((r.x - 22) / T); cx <= Math.floor((r.x + 22) / T); cx++)
@@ -972,6 +1148,13 @@ function turnTo(e, dt, dyF, dir) {
 }
 function bugAI(e, dt) {
   const dx = P.x + 5 - (e.x + e.w / 2), dyF = P.y + P.h - (e.y + e.h), dir = Math.sign(dx) || 1;
+  if (e.k === 'o') { cocoonAI(e, dt, dx); return; }
+  if (e.k === 'w') wormAI(e, dt, dx, dyF, dir);
+  else if (e.k === 'v') waspAI(e, dt, dx, dir);
+  else if (e.lure) {                               // светляк-обманка: сидит огоньком, кусает вблизи
+    e.vx = 0;
+    if (!P.dead && Math.abs(dx) < 46 && Math.abs(dyF) < 30) { e.lure = false; e.vy = -220; e.vx = dir * 150; e.dir = dir; beep(500, 1600, .2, 'sawtooth', .045); }
+  } else {
   if (e.hang) {                                    // потолочник ждёт, пока герой пройдёт под ним
     if (!P.dead && Math.abs(dx) < 30 && P.y > e.y && P.y - e.y < 170) { e.hang = false; e.sleep = false; e.vy = 30; e.vx = 0; beep(700, 200, .25, 'sawtooth', .03); }
     return;
@@ -1013,7 +1196,8 @@ function bugAI(e, dt) {
     } else turnTo(e, dt, dyF, dir);
   } else if (e.k === 's') guardAI(e, dt, dx, dyF, dir);
   else turnTo(e, dt, dyF, dir);
-  e.vy = Math.min(e.vy + GRAV * dt, 520);
+  }
+  if (!e.fly) e.vy = Math.min(e.vy + GRAV * dt, 520);
   if (e.k === 'F' && !e.on && e.vy > 55) e.vy = 55;      // планирует
   const vx0 = e.vx;
   moveBody(e, dt);
@@ -1022,6 +1206,87 @@ function bugAI(e, dt) {
   e.run += dt;
   if (touches(e, ACID) || touches(e, WATER)) e.hp = -1;     // в кислоте и в воде тонут
   if (e.spawned && (Math.abs(e.x - P.x) > 700 || Math.abs(e.y - P.y) > 400)) e.hp = -1;
+}
+function cocoonAI(e, dt, dx) {             // кокон: задрожал — через 2.4 с вылупится оса
+  e.run += dt;
+  if (e.st === 'wait') { if (!P.dead && Math.abs(dx) < 130 && Math.abs(P.y - e.y) < 160) { e.st = 'shake'; e.t = 2.4; beep(300, 600, .4, 'sawtooth', .025); } return; }
+  e.t -= dt;
+  if (e.t <= 0) {
+    const v = mkBug('v', e.x, e.y + e.h + 10, Math.sign(dx) || 1); v.sleep = false; v.gd = e.gd; v.spawned = !e.gd; v.vy = 60;
+    enemies.push(v); e.hp = -1; explode(e.x + e.w / 2, e.y + e.h / 2, 12, ['#c8bc9c', '#9a8c6c', '#e8c020']); beep(900, 2400, .2, 'square', .03);
+  }
+}
+function waspAI(e, dt, dx, dir) {          // оса: кружит над героем, потом пикирует
+  e.fly = true; e.t -= dt; e.ph = e.ph ?? Math.random() * 6;
+  if (e.sleep) { if (!P.dead && Math.abs(dx) < 240 && Math.abs(P.y - e.y) < 160) e.sleep = false; else { e.vx = 0; e.vy = Math.sin(time * 3 + e.ph) * 10; return; } }
+  const cx = e.x + e.w / 2, cy = e.y + e.h / 2, py = P.y + 8;
+  if (e.st === 'dive') { if (e.t <= 0 || e.wall || e.on) { e.st = 'hover'; e.t = rnd(1.3, 2.3); } return; }
+  e.st = 'hover';
+  const tx = P.x + 5 + Math.sin(time * 1.7 + e.ph) * 60, ty = py - 46 + Math.sin(time * 3.1 + e.ph) * 10;
+  e.vx = clamp((tx - cx) * 2.2, -e.sp, e.sp); e.vy = clamp((ty - cy) * 2.2, -e.sp * .8, e.sp * .8);
+  if (P.dead) return;
+  if (e.t <= 0 && Math.hypot(dx, py - cy) < 210) {
+    const d = Math.hypot(dx, py - cy) || 1; e.st = 'dive'; e.t = .75; e.vx = dx / d * 180; e.vy = (py - cy) / d * 180; e.dir = Math.sign(dx) || 1;
+    beep(1800, 600, .25, 'sawtooth', .025);
+  }
+}
+function wormAI(e, dt, dx, dyF, dir) {     // червь: под землёй ползёт к герою, вблизи горка дрожит — и он выныривает
+  e.t -= dt;
+  if (e.sleep) { e.vx = 0; if (!P.dead && Math.abs(dx) < 240 && Math.abs(dyF) < 60) { e.sleep = false; e.t = .6; } return; }
+  if (e.st === 'under') {
+    e.burrow = true; e.vx = P.dead || Math.abs(dyF) > 40 ? 0 : dir * e.sp;
+    const ax = Math.floor((e.x + (e.vx > 0 ? e.w + 2 : -2)) / T), fr = Math.floor((e.y + e.h + 1) / T);
+    if (e.vx && !isSolid(tile(ax, fr))) e.vx = 0;                 // под землёй через яму и воду не пролезть
+    if (e.t <= 0 && !P.dead && Math.abs(dx) < 14 && Math.abs(dyF) < 24) { e.st = 'rise'; e.t = .75; e.vx = 0; beep(70, 50, .7, 'sawtooth', .04); }
+  } else if (e.st === 'rise') { e.vx = 0; if (e.t <= 0) { e.st = 'up'; e.burrow = false; e.t = 1.5; e.dir = dir; shake = Math.max(shake, .2); explode(e.x + e.w / 2, e.y + e.h, 10, ['#5a4434', '#3a2a22']); beep(200, 900, .2, 'square', .03); } }
+  else if (e.st === 'up') { e.vx = 0; e.dir = dir; if (e.t <= 0) { e.st = 'down'; e.t = .35; } }
+  else { e.vx = 0; if (e.t <= 0) { e.st = 'under'; e.burrow = true; e.t = rnd(1.2, 2); } }
+}
+// Личинка-матка: ныряет под землю и выныривает под героем, ползёт, плюётся кислотой, откладывает личинок
+function larva(dt, b, pc) {
+  b.fl -= dt; b.t -= dt;
+  const A = lv.arena, left = A.l * T, right = (COLS - 1) * T, floor = A.top * T, cx = b.x + b.w / 2, dx = P.x + 5 - cx, dir = Math.sign(dx) || -1;
+  const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1;
+  b.hide = b.st === 'under' || b.st === 'rise';
+  if (b.st === 'under') {
+    b.y = floor - b.h; b.vx = P.dead ? 0 : dir * 85 * sp;
+    if (Math.random() < dt * 14) parts.push({ x: cx + rnd(-14, 14), y: floor - 2, vx: rnd(-30, 30), vy: rnd(-90, -40), life: .4, col: '#4a3624' });
+    if (b.t <= 0 && (Math.abs(dx) < 10 || b.t < -2.5)) { b.st = 'rise'; b.t = 1.1; b.vx = 0; beep(80, 40, 1.1, 'sawtooth', .05); }
+  } else if (b.st === 'rise') {
+    b.vx = 0;
+    if (Math.random() < dt * 30) parts.push({ x: cx + rnd(-30, 30), y: floor - 2, vx: rnd(-40, 40), vy: rnd(-160, -60), life: .5, col: '#5a4434' });
+    if (b.t <= 0) { b.st = 'erupt'; b.t = .7; b.hide = false; shake = .8; boom(.12); explode(cx, floor - 4, 26, ['#5a4434', '#3a2a22', '#e0d4a8']); }
+  } else if (b.st === 'erupt') {
+    b.vx = 0; b.y = floor - b.h - Math.sin(clamp(1 - b.t / .7, 0, 1) * Math.PI) * 30;
+    if (b.t <= 0) { b.y = floor - b.h; b.st = 'dizzy'; b.t = 1.6; }
+  } else if (b.st === 'dizzy') { b.vx = 0; if (b.t <= 0) { b.st = 'crawl'; b.t = rnd(1.6, 2.6); } }
+  else if (b.st === 'crawl') {
+    b.dir = dir; b.vx = dir * 34 * sp;
+    if (b.t <= 0) {
+      const kids = enemies.filter(e => e.boss).length, r = Math.random();
+      if (kids < 3 && r < .3) { b.st = 'eggs'; b.t = .8; }
+      else if (Math.abs(dx) > 110 && r < .75) { b.st = 'spit'; b.t = .6; }
+      else { b.st = 'dive'; b.t = .6; }
+    }
+  } else if (b.st === 'spit') {
+    b.vx = 0;
+    if (b.t <= 0) {
+      const n = rage ? 5 : 3, v = clamp(dx / .8, -240, 240);
+      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * b.w * .45, y: b.y + 4, w: 6, h: 6, vx: v * (.7 + i * .6 / (n - 1)), vy: -260, g: 600, life: 2.2, k: 'spit' });
+      beep(240, 100, .4, 'square', .035); b.st = 'crawl'; b.t = rnd(1.4, 2.2);
+    }
+  } else if (b.st === 'eggs') {
+    b.vx = 0;
+    if (b.t <= 0) {
+      for (const s2 of [-1, 1]) { const e = mkBug('l', clamp(cx + s2 * 34, left + 4, right - 20), floor, s2); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -160; enemies.push(e); }
+      beep(400, 200, .3, 'sine', .04); b.st = 'crawl'; b.t = rnd(1.2, 2);
+    }
+  } else if (b.st === 'dive') {
+    b.vx = 0; b.y += 50 * dt;
+    if (b.t <= 0) { b.st = 'under'; b.t = rnd(2.2, 3.2) / sp; b.y = floor - b.h; }
+  }
+  b.x = clamp(b.x + b.vx * dt, left, right - b.w);
+  if (!b.hide && !P.dead && hit(pc, b)) killPlayer();
 }
 function lunger(e, dt, dx, dyF, dir) {     // богомолы: подбегают и делают выпад косой
   e.cd -= dt;
@@ -1074,14 +1339,14 @@ function target() {                     // куда показывает жёл�
   if (!done) {
     if (ITEM[L.obj]) { const it = items.find(i => !i.got && i.k === L.obj); return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты', radio: 'найди рацию' }[L.obj] }; }
     if (L.obj === 'nests' || L.obj === 'guards') {
-      const k = L.obj === 'nests' ? 'n' : L.guard || 's';
+      const nest = L.obj === 'nests', want = e => nest ? e.k === 'n' : e.gd;
       let best = null, bd = 1e9;
-      for (const e of enemies) if (e.k === k) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
-      const n = enemies.filter(e => e.k === k).length;
-      return { x: best.x + best.w / 2, y: best.y, txt: k === 'n' ? `гнёзда: ${n} из ${nestsAll}` : `свита: ${n} из ${guardsAll}` };
+      for (const e of enemies) if (want(e)) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
+      const n = enemies.filter(want).length;
+      return { x: best.x + best.w / 2, y: best.y, txt: nest ? `${L.pal.nora ? 'кладки' : 'гнёзда'}: ${n} из ${nestsAll}` : `${L.guardTxt || 'свита'}: ${n} из ${guardsAll}` };
     }
     if (L.obj === 'lift') return { x: lift.x + lift.w / 2, y: lift.y - 11, txt: lift.go ? `лифт: ${Math.round(100 * (lift.y0 - lift.y) / (lift.y0 - lift.top))}%` : 'встань в кабину лифта' };
-    if (L.obj === 'boss') return { x: lv.arena.drop * T, y: lv.arena.top * T, txt: L.city ? 'в логово богомола' : 'на вертолётную площадку' };
+    if (L.obj === 'boss') return { x: lv.arena.drop * T, y: lv.arena.top * T, txt: L.bossTxt || (L.city ? 'в логово богомола' : 'на вертолётную площадку') };
   }
   if (heli) return { x: heli.x + 30, y: heli.y + 12, txt: 'к вертолёту!' };
   return { x: exit.x + 8, y: exit.y + 16, txt: 'к выходу: ' + exit.txt.toLowerCase() };
@@ -1143,12 +1408,27 @@ function drawTiles() {
   for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
     const t = grid[cy][cx]; if (t === AIR) continue;
     const x = cx * T - cam, y = cy * T, hs = hash(cx, cy), up = tile(cx, cy - 1);
+    if (t === STICKY) {                             // липкая фиолетовая слизь
+      rect(x, y, T, T, pal.deep || '#22180f'); rect(x, y, T, 5, '#6a2e8a'); rect(x, y + 5, T, 1, '#3a1450');
+      if (hs % 3 === 0) rect(x + hs % 12, y + 5, 2, 2 + (Math.floor(time * 2 + hs) % 3), '#6a2e8a');
+      if ((hs + Math.floor(time * 2)) % 7 === 0) ell(x + 3 + (hs >> 2) % 10, y + 2, 1.5, 1.5, '#c88ae8');
+      continue;
+    }
+    if (t === CRUMBLE) {                            // треснувший пол: осыпается под ногами
+      const c = crumb.get(cy * COLS + cx), j = c && c.t > 0 ? Math.round((Math.random() - .5) * 3) : 0;
+      rect(x, y + j, T, T, '#3a2a22'); rect(x, y + j, T, 3, '#5a4434');
+      rect(x + 3, y + 3 + j, 1, 6, '#120a06'); rect(x + 4, y + 8 + j, 5, 1, '#120a06'); rect(x + 10, y + 2 + j, 1, 9, '#120a06'); rect(x + 7, y + 11 + j, 4, 1, '#120a06');
+      continue;
+    }
     if (pal.forest && t === SOLID) {               // лес: трава сверху, земля, камешки, корни
       const top = open(up) || up === PLAT || up === ACID;
-      rect(x, y, T, T, cy >= L.ground || !L.sky ? '#22180f' : pal.solid);
+      rect(x, y, T, T, cy >= L.ground || !L.sky ? pal.deep || '#22180f' : pal.solid);
       if (hs % 5 === 0) ell(x + hs % 12 + 2, y + (hs >> 3) % 10 + 3, 2, 1.5, '#4a3a2a');
       if (hs % 9 === 0) rect(x + hs % 14, y, 1, T, '#1a120a');
-      if (top) { rect(x, y, T, 4, pal.floor); rect(x, y + 4, T, 1, '#2e5a1a'); for (let i = 1; i < T; i += 3) rect(x + i, y - 1 - (hash(cx * 7 + i, cy) % 3), 1, 2 + hash(cx, i) % 2, '#5aa032'); }
+      if (top) {
+        rect(x, y, T, 4, pal.floor); rect(x, y + 4, T, 1, pal.floor2 || '#2e5a1a'); for (let i = 1; i < T; i += 3) rect(x + i, y - 1 - (hash(cx * 7 + i, cy) % 3), 1, 2 + hash(cx, i) % 2, pal.blade || '#5aa032');
+        if (pal.nora && hs % 7 === 0) rect(x + hs % 13, y - 2, 2, 2, Math.sin(time * 2 + hs) > 0 ? '#7ae8e0' : '#3a8a88');   // светящиеся споры
+      }
       continue;
     }
     if (t === ROCK) {                               // валун: укрытие, разбивается камнем богомола
@@ -1163,13 +1443,14 @@ function drawTiles() {
     if (pal.forest && t === PLAT) {                 // ветка / бревно-мостик
       if (!L.sky && open(tile(cx, cy + 1))) drawBgCell(x, y, cx, cy);
       rect(x, y + 1, T, 5, '#5a3a1e'); rect(x, y + 1, T, 1, '#7a5a32'); if (hs % 3 === 0) rect(x + hs % 12, y + 3, 3, 1, '#3a240e');
-      if (tile(cx - 1, cy) !== PLAT || tile(cx + 1, cy) !== PLAT) { ell(x + 8, y - 2, 7, 4, '#3e7a2a'); ell(x + 5, y - 4, 4, 3, '#4e8a32'); }
+      if (tile(cx - 1, cy) !== PLAT || tile(cx + 1, cy) !== PLAT) { if (pal.nora) { ell(x + 8, y, 6, 3, '#6a5a8a'); ell(x + 6, y - 1, 3, 2, '#9a8ac0'); } else { ell(x + 8, y - 2, 7, 4, '#3e7a2a'); ell(x + 5, y - 4, 4, 3, '#4e8a32'); } }
       continue;
     }
     if (pal.forest && t === LAD) {                  // лиана
       if (!L.sky || cy >= L.ground) drawBgCell(x, y, cx, cy);
       const wv = Math.sin(cy * 1.7 + time) * 1.5;
-      rect(x + 7 + wv, y, 2, T, '#3a6a1e'); rect(x + 5 - wv, y + 4, 4, 3, '#4e9a2e'); rect(x + 9 + wv, y + 11, 4, 3, '#4e9a2e');
+      const lc = pal.nora ? ['#5a3a22', '#7a5232'] : ['#3a6a1e', '#4e9a2e'];   // в норе — корни
+      rect(x + 7 + wv, y, 2, T, lc[0]); rect(x + 5 - wv, y + 4, 4, 3, lc[1]); rect(x + 9 + wv, y + 11, 4, 3, lc[1]);
       continue;
     }
     if (t === SOLID) {
@@ -1199,7 +1480,7 @@ function drawTiles() {
       rect(x, y, T, T, '#3a4048'); rect(x + 1, y, 1, T, '#5a6068'); rect(x + 13, y, 2, T, '#22262c');
       if (tile(cx, cy - 1) !== DOOR) { rect(x, y, T, 2, '#22262c'); rect(x + 6, y + 4, 4, 3, Math.floor(time * 3) % 2 ? '#ff3b3b' : '#7a1010'); }
     } else if (t === GRATE) {
-      rect(x, y, T, T, 'rgba(0,0,0,.3)'); for (let i = 2; i < T; i += 5) rect(x + i, y, 2, T, '#7a7f88');
+      rect(x, y, T, T, 'rgba(0,0,0,.3)'); for (let i = 2; i < T; i += 5) rect(x + i, y, pal.nora ? 3 : 2, T, pal.nora ? '#5a3a22' : '#7a7f88');
     }
   }
 }
@@ -1315,6 +1596,11 @@ function drawDeco() {
       ell(0, 0, w * .38, 12, '#3a4a3a'); ell(10, -3, 10, 7, '#1a2a3a'); rect(w * .3, -4, w * .3, 5, '#3a4a3a'); rect(-w * .4, 10, w * .6, 2, '#555');
       ctx.restore(); rect(x + 6, y + 2, w - 20, 2, '#777');
       for (let i = 0; i < 4; i++) { const t2 = (time * .5 + i / 4) % 1; ell(x + w * .45 + Math.sin(i * 3 + time) * 6, y + 6 - t2 * 70, 5 + t2 * 12, 4 + t2 * 9, `rgba(70,70,70,${.55 * (1 - t2)})`); }
+    } else if (d.k === 'bigshroom') {                  // гигантский светящийся гриб: шляпка — площадка
+      const cx = x + 8, R = (d.w + .5) * T;
+      rect(cx - 4, y + 5, 8, h - 5, '#9a92aa'); rect(cx - 4, y + 5, 2, h - 5, '#c8c0d8'); rect(cx - 7, y + h - 3, 14, 3, '#9a92aa');
+      ell(cx, y + 4, R, 7, '#2a7a7a'); ell(cx, y + 2, R - 3, 5, '#4ab8a8'); rect(cx - R + 3, y + 9, R * 2 - 6, 1, '#1a4a4a');
+      for (let i = 0; i < 4; i++) ell(cx - R + 8 + i * (R * 2 - 16) / 3, y + 1 + (i % 2), 2, 1.5, '#c8fff0');
     } else if (d.k === 'tower') {
       rect(x + 8, y, w - 16, h - 4, '#2a2f30'); rect(x + 8, y, w - 16, 3, '#3a4044');
       for (let i = 0; i < 4; i++) rect(x + 8 + i * (w - 18) / 3, y + h - 4, 2, 6, '#2a2f30');
@@ -1363,6 +1649,13 @@ function drawProps() {
   }
   for (const lm of lamps) {
     const x = lm.x - cam, y = lm.y;
+    if (lm.kind === 'cap') continue;                 // шляпку гриба-гиганта рисует deco
+    if (lm.kind === 'shroom') {                      // светящийся гриб
+      const fy = y - 3;
+      rect(x - 1, fy - 8, 3, 8, '#c8c0d8'); ell(x, fy - 9, 6, 3.5, '#3aa8a0'); ell(x, fy - 10, 4, 2, '#a8fff0');
+      rect(x + 3, fy - 6, 2, 6, '#c8c0d8'); ell(x + 4, fy - 6, 3, 2, '#5ad0c8');
+      continue;
+    }
     if (lm.post) {                                   // фонарный столб
       let fy = Math.floor(y / T); while (fy < ROWS && !solid(Math.floor(lm.x / T), fy)) fy++;
       rect(x - 1, y, 2, fy * T - y, '#2a2a30'); rect(x - 5, y - 2, 8, 3, '#3a3a40');
@@ -1374,8 +1667,16 @@ function drawProps() {
   }
   if (exit) {
     const x = exit.x - cam, y = exit.y;
-    rect(x - 3, y - 2, 22, 34, '#2a2a30'); rect(x, y + 1, 16, 31, '#0a0a0e');
-    rect(x + 3, y + 4, 10, 26, done ? '#14261a' : '#1c1414');
+    if (exit.txt === 'В НОРУ') {                      // вход в нору: земляной холм и чёрная дыра
+      ell(x + 8, y + 30, 20, 9, '#4a3420'); ell(x + 8, y + 31, 13, 6, done ? '#050302' : '#1a120a');
+      for (let i = 0; i < 4; i++) rect(x - 4 + i * 7, y + 24 + (i % 2) * 2, 1, 6, '#2a1a0e');
+    } else if (L.pal.nora) {                          // ход дальше по норе
+      ell(x + 8, y + 8, 13, 9, '#3a2a22'); rect(x - 5, y + 8, 26, 24, '#3a2a22');
+      ell(x + 8, y + 9, 8, 6, '#030202'); rect(x, y + 9, 16, 23, '#030202');
+    } else {
+      rect(x - 3, y - 2, 22, 34, '#2a2a30'); rect(x, y + 1, 16, 31, '#0a0a0e');
+      rect(x + 3, y + 4, 10, 26, done ? '#14261a' : '#1c1414');
+    }
   }
   if (heli) {
     const h = heli, x = h.x - cam, y = h.y;           // вертолёт эвакуации
@@ -1422,6 +1723,11 @@ function drawEnemies() {
   for (const e of enemies) {
     const x = e.x - cam, y = e.y, wh = e.fl > 0, f = e.dir > 0 ? 1 : -1;
     if (x < -40 || x > W + 40) continue;
+    if (e.k === 'n' && L.pal.nora) {                 // кладка яиц матки
+      ell(x + 10, y + 7, 12, 2, '#4a6a2a');
+      for (let i = 0; i < 5; i++) { const ex = x + 2 + i * 4, ey = y + 4 - (i % 2) * 2; ell(ex, ey, 3.5, 4, wh ? '#fff' : '#e0d8b8'); ell(ex + Math.sin(time * 4 + i) * .8, ey + 1, 1.5, 1.5, '#6a5a3a'); }
+      continue;
+    }
     if (e.k === 'n' && L.pal.forest) {               // оотека богомола
       ell(x + 10, y + 4, 11, 6, wh ? '#fff' : '#c8b07a'); for (let i = 0; i < 4; i++) rect(x + 2 + i * 5, y, 1, 8, '#9a8458');
       ell(x + 10, y + 1, 6, 2, '#e0cc98');
@@ -1433,6 +1739,7 @@ function drawEnemies() {
       continue;
     }
     if (e.hide) continue;                              // засадник в кусте не виден
+    if ('lwove'.includes(e.k)) { drawNoraBug(e, x, y, wh, f); continue; }
     const W2 = e.w / 2, run = e.sleep ? time * .1 : e.run;
     if ('MASGFH'.includes(e.k)) { ctx.save(); ctx.translate(Math.round(x + W2), Math.round(y)); ctx.scale(f, 1); ctx.translate(-W2, 0); drawMantisKind(e, wh, run); ctx.restore(); continue; }
     ctx.save(); ctx.translate(Math.round(x + W2), Math.round(y)); ctx.scale(f, 1);   // мордой по ходу
@@ -1501,6 +1808,86 @@ function drawEnemies() {
     if (r.t <= 0) { ell(x, r.y, r.r, r.r * .9, '#6a645a'); ell(x - r.r * .3, r.y - r.r * .3, r.r * .5, r.r * .4, '#8a8478'); if (!r.small) rect(x - 2, r.y - r.r - 16, 4, 14, 'rgba(255,255,255,.25)'); }
   }
 }
+function drawNoraBug(e, x, y, wh, f) {   // жуки норы
+  const k = e.k, w = e.w, h = e.h, run = e.run;
+  if (k === 'w') {                                  // червь-землерой
+    const bx = x + w / 2, by = y + h;
+    if (e.burrow) {
+      const big = e.st === 'rise', sh = big ? (Math.random() - .5) * 3 : 0, wob = e.sleep ? 0 : Math.sin(time * 10) * 1.5;
+      ell(bx + sh, by - 1, (big ? 11 : 8) + wob * .3, big ? 5 : 3, '#4a3624'); ell(bx + sh - 2, by - 2, big ? 5 : 3, big ? 2.5 : 1.5, '#6a5038');
+      if (big) { rect(bx - 6 + sh, by - 4, 1, 3, '#120a06'); rect(bx + 4 + sh, by - 5, 1, 4, '#120a06'); }
+      return;
+    }
+    const q = e.st === 'up' ? clamp((1.5 - e.t) / .2, 0, 1) : clamp(e.t / .35, 0, 1), hh = Math.round(h * q);
+    for (let i = 0; i < hh; i += 4) rect(x + 2 + Math.sin(time * 6 + i) * 1, by - i - 4, w - 4, 4, wh ? '#fff' : (i / 4) % 2 ? '#b07a7a' : '#946060');
+    const hx = x + w / 2 + Math.sin(time * 6 + hh) * 1, hy = by - hh;
+    ell(hx, hy, w / 2, 4, wh ? '#fff' : '#c08a8a'); ell(hx, hy, 3, 2.5, '#200808');
+    for (let i = 0; i < 4; i++) rect(hx - 4 + i * 2.5, hy - 1 - (i % 2), 1, 2, '#f0e8d8');
+    ell(bx, by - 1, 10, 3, '#4a3624');
+    return;
+  }
+  if (k === 'o') {                                  // кокон под потолком
+    const wob = e.st === 'shake' ? Math.sin(time * 34) * 2 : Math.sin(time * 1.4 + e.x) * .6;
+    ell(x + w / 2, y + 1, 5, 2, '#d8d0b8'); rect(x + w / 2, y, 1, 3, '#d8d0b8');
+    ctx.save(); ctx.translate(Math.round(x + w / 2), Math.round(y + 2)); ctx.rotate(wob * .05);
+    ell(0, h / 2, w / 2, h / 2, wh ? '#fff' : '#c8bc9c');
+    for (let i = 0; i < 4; i++) rect(-w / 2 + 2, 3 + i * 4, w - 4, 1, '#9a8c6c');
+    if (e.st === 'shake') { ell(0, h / 2, 3, 5, 'rgba(40,30,10,.7)'); rect(-1, 2, 1, 6, '#3a2a10'); if (e.t < 1) rect(1, h - 7, 1, 5, '#3a2a10'); }
+    ctx.restore();
+    return;
+  }
+  ctx.save(); ctx.translate(Math.round(x + w / 2), Math.round(y)); ctx.scale(f, 1);
+  if (k === 'l') {                                  // личинка
+    for (let i = 0; i < 4; i++) {
+      const sx = -6 + i * 4, sy = 5 - Math.max(0, Math.sin(run * 8 - i * .9)) * 1.5;
+      ell(sx, sy, 3.2, 4, wh ? '#fff' : i % 2 ? '#d8cc98' : '#c4b484'); rect(sx + 2, sy - 3, 1, 6, '#a89868');
+    }
+    ell(9, 5, 3, 3, wh ? '#fff' : '#7a4a2a'); rect(11, 6, 2, 1, '#2a1208');
+  } else if (k === 'v') {                           // оса
+    const fl = Math.sin(time * 70) * 1.5;
+    ell(-1, 1, 5, 2.5 + fl, 'rgba(230,240,255,.55)'); ell(2, 1, 4, 2 - fl * .5, 'rgba(230,240,255,.45)');
+    ell(-3, 6, 5, 3.5, wh ? '#fff' : '#e8b818'); rect(-6, 3, 1.5, 6, '#111'); rect(-3, 3, 1.5, 6, '#111');
+    ell(3, 5, 2.5, 2.5, '#3a2a10'); ell(6, 5, 2.5, 2.5, wh ? '#fff' : '#e8b818'); rect(-9, 6, 2, 1, '#111');
+    ctx.strokeStyle = '#2a1a08'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(1, 7); ctx.lineTo(0, 10); ctx.moveTo(4, 7); ctx.lineTo(4, 10); ctx.stroke();
+  } else if (k === 'e') {                           // светляк-обманка
+    const pulse = Math.sin(time * 3 + e.x) * .8;
+    ctx.strokeStyle = '#4a3a4a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(1, h - 9); ctx.quadraticCurveTo(-2, -2, 5, -8); ctx.stroke();
+    ell(5, -9, 3 + pulse, 3 + pulse, '#c8ffe8'); ell(5, -9, 1.5, 1.5, '#fff');
+    if (e.lure) { ell(0, h - 3, 8, 3.5, wh ? '#fff' : '#1a1418'); }
+    else {
+      legs(-5, h - 5, 3, 4, run, '#2a1830');
+      ell(0, h - 7, 8, 6, wh ? '#fff' : '#3a2440'); ell(5, h - 6, 4, 3.5, '#120408');
+      for (let i = 0; i < 3; i++) { rect(3 + i * 2, h - 9, 1, 2, '#eee'); rect(3 + i * 2, h - 4, 1, 2, '#eee'); }
+    }
+  }
+  ctx.restore();
+}
+function drawLarvaBoss(b) {               // личинка-матка
+  const floor = lv.arena.top * T, cx = b.x - cam + b.w / 2, wh = b.fl > 0;
+  if (b.st === 'under' || b.st === 'rise') {        // под землёй видна только горка
+    const big = b.st === 'rise', sh = big ? (Math.random() - .5) * 5 : 0;
+    ell(cx + sh, floor - 1, big ? 34 : 22, big ? 8 : 5, '#4a3624'); ell(cx + sh - 6, floor - 3, big ? 14 : 9, big ? 4 : 2.5, '#6a5038');
+    if (big && Math.floor(time * 8) % 2) { ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 6, floor - 18); ctx.lineTo(cx + 6, floor - 6); ctx.moveTo(cx + 6, floor - 18); ctx.lineTo(cx - 6, floor - 6); ctx.stroke(); }
+    return;
+  }
+  ctx.save(); ctx.translate(Math.round(cx), Math.round(b.y)); ctx.scale(b.dir > 0 ? 1 : -1, 1);
+  const n = 7, hw = b.w / 2;
+  for (let i = 0; i < n; i++) {                      // сегменты от хвоста к голове
+    const sx = -hw + 8 + i * (b.w - 22) / (n - 1), lift = Math.max(0, Math.sin(time * (b.vx ? 7 : 2) - i * .8)) * 3;
+    const r = 11 + Math.sin(i / (n - 1) * Math.PI) * 3;
+    ell(sx, b.h - r + 1 - lift, 8, r, wh ? '#fff' : i % 2 ? '#e0d4a8' : '#cdbf90');
+    rect(sx + 5, b.h - r * 2 + 4 - lift, 2, r * 2 - 6, '#a89868');
+  }
+  const hx = hw - 8, open = b.st === 'spit' || b.st === 'eggs' ? 1 : 0;
+  ell(hx, b.h - 13, 11, 11, wh ? '#fff' : '#8a5a3a'); ell(hx + 2, b.h - 16, 6, 4, '#a87a52');
+  ctx.strokeStyle = '#2a1208'; ctx.lineWidth = 2.5; ctx.beginPath();                      // жвалы
+  ctx.moveTo(hx + 7, b.h - 10); ctx.lineTo(hx + 15, b.h - 13 - open * 4); ctx.moveTo(hx + 7, b.h - 6); ctx.lineTo(hx + 15, b.h - 3 + open * 4); ctx.stroke();
+  for (let i = 0; i < 3; i++) rect(hx + 1 + i * 3, b.h - 19 + (i % 2), 2, 2, '#ff2a2a');
+  if (b.st === 'spit' && b.t < .3) ell(hx + 14, b.h - 9, 4, 3, '#b8ff40');
+  ctx.restore();
+  if (b.st === 'erupt') for (let i = 0; i < 3; i++) ell(cx - 30 + i * 30, floor - 2, 10, 4, '#4a3624');
+  if (b.st === 'dizzy') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(cx + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
+}
 function drawMantisKind(e, wh, run) {     // богомолы (мордой вправо, в своём прямоугольнике w×h)
   const w = e.w, h = e.h, k = e.k;
   const c = wh ? '#fff' : { M: '#5a9a2a', A: '#7a8a3a', G: '#6a7a2a', F: '#4aa03a', H: '#2e5a1e', S: '#6a4a2a' }[k];
@@ -1551,6 +1938,53 @@ function drawHeli(x, y, rot, spin) {
   ell(0, 0, 22, 10, '#3a4a3a'); ell(10, -2, 9, 6, '#9fd8ff'); rect(-38, -3, 20, 4, '#3a4a3a'); rect(-37, -9, 3, 10, '#3a4a3a');   // нос справа, хвост слева
   rect(-14, 9, 30, 2, '#555'); rect(-1, -15, 2, 4, '#555'); rect(-Math.abs(spin), -16, Math.abs(spin) * 2, 2, '#777');
   ctx.restore();
+}
+function drawHeroMini(x, y, pose) {        // маленький герой для заставок
+  if (pose === 'lie') { rect(x - 6, y + 16, 22, 6, '#35506a'); rect(x + 14, y + 15, 7, 7, '#d8b48d'); rect(x - 10, y + 17, 5, 4, '#2e4d32'); return; }
+  const st = Math.floor(time * 10) % 2;
+  if (pose === 'fall') { rect(x + 1, y + 14, 3, 8, '#2e4d32'); rect(x + 6, y + 13, 3, 8, '#2e4d32'); rect(x - 2, y - 4, 3, 8, '#d8b48d'); rect(x + 9, y - 4, 3, 8, '#d8b48d'); }
+  else { rect(x + 1, y + 14, 3, 8 - st * 2, '#2e4d32'); rect(x + 6, y + 14, 3, 6 + st * 2, '#2e4d32'); }
+  rect(x, y + 6, 10, 9, '#35506a'); rect(x + 2, y, 7, 7, '#d8b48d'); rect(x + 2, y, 7, 2, '#3a3a2a');
+}
+function drawCutNora() {                  // заставка: герой прыгает в нору и долго падает вниз
+  const t = stateT;
+  if (t < 2.3) {
+    const sy = H - 44, hx = W / 2;
+    drawForestBg(sy, 0); ctx.fillStyle = 'rgba(12,8,24,.5)'; ctx.fillRect(0, 0, W, H);
+    rect(0, sy, W, H - sy, '#22180f'); rect(0, sy, W, 4, '#3a6a24');
+    ell(hx, sy + 3, 30, 9, '#4a3420'); ell(hx, sy + 4, 20, 6, '#030202');
+    let px = 30 + Math.min(1, t / 1.5) * (hx - 36), py = sy - 22;
+    if (t > 1.5) { const q = (t - 1.5) / .8; px = hx - 6 + q * 3; py = sy - 22 - Math.sin(Math.min(1, q * 2) * Math.PI) * 16 + Math.max(0, q - .5) * 110; }
+    if (py < sy + 4) drawHeroMini(px, py, t > 1.5 ? 'fall' : 'walk');
+    ell(hx, sy + 4, 20, 6, '#030202'); rect(hx - 20, sy + 4, 40, 8, '#22180f');
+    ctx.fillStyle = `rgba(0,0,0,${clamp((t - 1.9) / .4, 0, 1)})`; ctx.fillRect(0, 0, W, H);
+  } else if (t < 4.8) {
+    rect(0, 0, W, H, '#050304');
+    const off = (t - 2.3) * 430, cx = W / 2;
+    for (let i = -1; i < H / 24 + 2; i++) {
+      const n = i + Math.floor(off / 24), y = i * 24 - off % 24;
+      for (const side of [-1, 1]) {
+        const wx = cx + side * (52 + hash(n, side + 5) % 16);
+        if (side < 0) rect(0, y, wx, 25, '#2a1e16'); else rect(wx, y, W - wx, 25, '#2a1e16');
+        rect(side < 0 ? wx - 3 : wx, y, 3, 25, '#3e2c1e');
+        if (hash(n, side + 9) % 3 === 0) rect(side < 0 ? wx : wx - 12, y + 10, 12, 2, '#5a3a22');
+      }
+    }
+    for (let i = 0; i < 12; i++) rect(cx - 45 + hash(i, 3) % 90, H - ((t * 320 + i * 41) % (H + 20)), 2, 3, '#6a5038');
+    ctx.fillStyle = 'rgba(255,240,200,.07)'; ctx.beginPath(); ctx.arc(cx, H * .42 + 10, 40, 0, 7); ctx.fill();
+    drawHeroMini(cx - 5, H * .42 + Math.sin(t * 9) * 3, 'fall');
+    ctx.fillStyle = `rgba(0,0,0,${clamp(1 - (t - 2.3) / .3, 0, 1)})`; ctx.fillRect(0, 0, W, H);
+  } else {
+    rect(0, 0, W, H, '#050304');
+    rect(0, H - 50, W, 50, '#1c141a'); rect(0, H - 50, W, 3, '#3a3048');
+    for (let i = 0; i < 6; i++) { const q = clamp((t - 4.8) * 1.5, 0, 1); ell(W / 2 - 30 + i * 12, H - 52 - q * 14, 6 + q * 8, 3 + q * 4, `rgba(90,70,60,${.6 * (1 - q)})`); }
+    drawHeroMini(W / 2 - 5, H - 72, 'lie');
+    ctx.fillStyle = `rgba(0,0,0,${clamp((t - 5.2) / .6, 0, 1)})`; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.textAlign = 'center';
+  if (t > 2.6 && t < 4.6) { ctx.font = 'bold 12px monospace'; ctx.fillStyle = '#d8b48d'; ctx.fillText('ААААА!', W / 2, 40); }
+  if (t > 5.8) { ctx.font = 'bold 26px monospace'; ctx.fillStyle = '#9a8ad8'; ctx.fillText(CITY[2], W / 2, H / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#ccc'; ctx.fillText('ты провалился в нору. внизу ворочается что-то огромное…', W / 2, H / 2 + 22); }
+  ctx.textAlign = 'left';
 }
 function drawCut() {                      // заставка: летим над лесом, богомол сбивает вертолёт камнем
   const t = stateT, sy = H - 30;
@@ -1649,10 +2083,12 @@ function drawDark() {
   for (const p of parts) glow(p.x - cam, p.y + oy, 11, Math.min(.5, p.life));
   for (const s of saves) glow(s.x - cam + 6, s.y + 7 + oy, s.on ? 30 : 18, s.on ? .6 : .35);
   for (const e of enemies) if (e.k === 'n') glow(e.x - cam + 10, e.y + 4 + oy, 22, .3);
+    else if (e.k === 'e') glow(e.x - cam + e.w / 2 + (e.dir > 0 ? 5 : -5), e.y - 9 + oy, e.lure ? 50 : 22, e.lure ? .8 : .5);   // огонёк светляка
   for (const lm of lamps) if (lampOn(lm)) {
     const x = lm.x - cam, y = lm.y + oy;
     if (x < -120 || x > W + 120) continue;
-    glow(x, y + (lm.post ? 30 : 20), lm.post ? 75 : 62, L.power || lm.post ? .7 : .9);
+    if (lm.kind === 'shroom') glow(x, y - 13, 60, .75); else if (lm.kind === 'cap') glow(x, y + 1, 100, .85);
+    else glow(x, y + (lm.post ? 30 : 20), lm.post ? 75 : 62, L.power || lm.post ? .7 : .9);
   }
   for (const [sx, sy] of signs) glow(sx * T - cam + 8, sy * T + 8 + oy, 22, .45);
   for (const it of items) if (!it.got || it.k === 'switch') glow(it.x - cam + 6, it.y + 6 + oy, 26, .55);
@@ -1666,6 +2102,7 @@ function drawDark() {
 }
 function drawEyes() {                     // глаза жуков горят в темноте
   for (const e of enemies) if (e.k !== 'n') {
+    if (e.burrow || e.lure || e.k === 'w' || (e.k === 'o' && e.st !== 'shake')) continue;
     const left = e.dir < 0, c = e.k === 's' ? '#ffd23f' : '#ff2a2a';
     if (e.k === 'm') { rect(e.x - cam + (left ? 0 : e.w - 1), e.y + 2, 1, 1, c); continue; }
     const ex = e.x - cam + (left ? 1 : e.w - 4), ey = e.hang ? e.y + e.h - 4 : e.y + Math.round(e.h * .4);
@@ -1687,7 +2124,7 @@ function drawHud() {
   if (boss.on && !boss.dead) {
     const c = boss.parts[0];
     rect(W / 2 - 60, 8, 120, 6, '#222'); rect(W / 2 - 59, 9, 118 * c.hp / c.max, 4, '#c8102e');
-    ctx.fillStyle = '#fff'; ctx.fillText(c.k === 'mantis' ? 'БОГОМОЛ' : 'ЖУК-НОСОРОГ', W / 2, 26);
+    ctx.fillStyle = '#fff'; ctx.fillText(BOSS_NAME[c.k], W / 2, 26);
   } else if (P) {                                   // стрелка: куда идти дальше
     const r = target(), a = Math.atan2(r.y - (P.y + 11), r.x - (P.x + 5));
     ctx.save(); ctx.translate(W / 2 - 60, 12); ctx.rotate(a);
@@ -1709,7 +2146,7 @@ function centerText(lines) {
 function draw() {
   ctx.save();
   if (shake > 0) ctx.translate(Math.round((Math.random() - .5) * 6 * shake), Math.round((Math.random() - .5) * 6 * shake));
-  if (state === 'cut') { drawCut(); ctx.restore(); return; }
+  if (state === 'cut') { ((LEVELS[lvlN + 1]?.city || 0) === 2 ? drawCutNora : drawCut)(); ctx.restore(); return; }
   drawBg();
   if (state === 'title') {
     ctx.restore();
@@ -1722,7 +2159,7 @@ function draw() {
   }
   ctx.translate(0, -Math.round(camY));
   drawTiles(); drawDeco(); drawProps(); drawEnemies();
-  if (boss.on && !boss.dead) (boss.parts[0].k === 'mantis' ? drawMantisBoss : drawRhino)(boss.parts[0]);
+  if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss })[boss.parts[0].k](boss.parts[0]);
   drawPlayer();
   drawWater(); drawFore();
   drawVents();
@@ -1738,7 +2175,7 @@ function draw() {
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
-  if (state === 'win') centerText([[`${CITY[L.city || 0]} ПРОЙДЕН!`, 20, '#ffd23f', 76], ['дальше — к военным. продолжение следует…', 9, '#fff', 98],
+  if (state === 'win') centerText([[`ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, '#ffd23f', 76], ['дальше — к военным. продолжение следует…', 9, '#fff', 98],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 122], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
 }
 
@@ -1746,7 +2183,7 @@ function draw() {
 window.__overview = (n, s = 4) => {
   const o = build(LEVELS[n]), c = document.createElement('canvas'), x = c.getContext('2d');
   c.width = COLS * s; c.height = ROWS * s;
-  const col = ['#5a6a8a', '#666', '#c9a', '#fd4', '#4f4', '#222', '#f44', '#99f', '#a60', '#38c', '#998'];
+  const col = ['#5a6a8a', '#666', '#c9a', '#fd4', '#4f4', '#222', '#f44', '#99f', '#a60', '#38c', '#998', '#a3c', '#c96'];
   for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) { x.fillStyle = col[grid[cy][cx]]; x.fillRect(cx * s, cy * s, s, s); }
   const dot = (cx, cy, c, h = 1) => { x.fillStyle = c; x.fillRect(cx * s, (cy - h) * s, s, h * s); };
   o.saves.forEach(([a, b]) => dot(a, b, '#39f')); o.nests.forEach(([a, b]) => dot(a, b, '#a52')); o.bugs.forEach(([a, b, g]) => dot(a, b, g ? '#f80' : '#f0f'));
