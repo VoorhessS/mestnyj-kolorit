@@ -15,14 +15,14 @@
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
   .ctl { position: fixed; touch-action: none; }
   /* Крестовина как на джойстике: полупрозрачная */
-  #pad { left: calc(env(safe-area-inset-left) + 14px); bottom: calc(env(safe-area-inset-bottom) + 44px); width: 150px; height: 150px; opacity: .42; }
+  #pad { left: calc(env(safe-area-inset-left) + 44px); bottom: calc(env(safe-area-inset-bottom) + 44px); width: 150px; height: 150px; opacity: .42; }
   #pad svg { width: 100%; height: 100%; display: block; }
   .btn { width: 70px; height: 70px; border-radius: 50%; background: #c8102e; border: 3px solid #222;
     box-shadow: inset 0 -5px 0 rgba(0,0,0,.35); color: #fff; font: bold 26px/64px system-ui, sans-serif;
     text-align: center; opacity: .42; }
   .btn.on { opacity: .75; transform: scale(.94); }
-  #b { right: calc(env(safe-area-inset-right) + 104px); bottom: calc(env(safe-area-inset-bottom) + 52px); }
-  #a { right: calc(env(safe-area-inset-right) + 18px); bottom: calc(env(safe-area-inset-bottom) + 88px); }
+  #b { right: calc(env(safe-area-inset-right) + 134px); bottom: calc(env(safe-area-inset-bottom) + 52px); }
+  #a { right: calc(env(safe-area-inset-right) + 48px); bottom: calc(env(safe-area-inset-bottom) + 88px); }
   .lbl { position: absolute; left: 0; right: 0; top: 74px; font: 600 11px system-ui, sans-serif; color: #fff; opacity: .9; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
     justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
