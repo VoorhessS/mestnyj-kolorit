@@ -79,7 +79,7 @@ const PAL = {
   roof: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#2e2422', floor: '#55504c' },
 };
 const LEVELS = [
-  { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, ground: 16, dark: .84,
+  { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, ground: 16, dark: .5,
     cols: 170, rows: 26, base: AIR, pal: PAL.street,
     tips: ['завал поверху не перелезть — ищи спуск в подвал', 'лестница: встань у неё и жми вверх или вниз'],
     build(B) {
@@ -97,7 +97,7 @@ const LEVELS = [
       B.nest(30, 16); B.bug(46, 16); B.nest(118, 16); B.bug(150, 16);
       B.start(4, 16); B.save(101, 16);
     } },
-  { name: 'ПОДЪЕЗД', task: 'Найди ключ от двери на лестницу', obj: 'key', ground: 13, dark: .92,
+  { name: 'ПОДЪЕЗД', task: 'Найди ключ от двери на лестницу', obj: 'key', ground: 13, dark: .6,
     cols: 104, rows: 30, base: SOLID, pal: PAL.lobby,
     tips: ['лаз в стене: зажми вниз и ползи вбок', 'ключ лежит где-то в подвале'],
     build(B) {
@@ -114,7 +114,7 @@ const LEVELS = [
       B.nest(30, 19); B.nest(75, 19); B.nest(20, 27); B.bug(70, 27); B.bug(30, 27, true); B.bug(85, 19);
       B.start(10, 12); B.save(88, 19); B.save(84, 27);
     } },
-  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда на этаже', obj: 'nests', ground: 99, dark: .92,
+  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда на этаже', obj: 'nests', ground: 99, dark: .6,
     cols: 140, rows: 22, base: SOLID, pal: PAL.flat,
     tips: ['пока живо хоть одно гнездо, дверь не откроется', 'квартиры соединены лазами'],
     build(B) {
@@ -129,7 +129,7 @@ const LEVELS = [
       B.bug(45, 18); B.bug(62, 12); B.bug(100, 18, true); B.bug(125, 12); B.bug(36, 12);
       B.start(4, 18); B.save(75, 18); B.save(99, 12);
     } },
-  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Поднимись на последний этаж', obj: 'reach', ground: 99, dark: .93,
+  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Поднимись на последний этаж', obj: 'reach', ground: 99, dark: .62,
     cols: 60, rows: 48, base: SOLID, pal: PAL.upper,
     tips: ['свет почти не работает, держи фонарь перед собой', 'жуки лезут из трещин в стенах'],
     build(B) {
@@ -153,7 +153,7 @@ const LEVELS = [
       B.exit(55, 10, 'ЧЕРДАК'); B.lamp(30, 4); B.bug(30, 10); B.crack(40, 7);
       B.start(4, 46); B.save(53, 40); B.save(6, 34); B.save(6, 22); B.save(53, 16);
     } },
-  { name: 'ЧЕРДАК', task: 'Найди рубильник вертолётной площадки', obj: 'switch', ground: 15, dark: .93,
+  { name: 'ЧЕРДАК', task: 'Найди рубильник вертолётной площадки', obj: 'switch', ground: 15, dark: .62,
     cols: 130, rows: 22, base: SOLID, pal: PAL.attic,
     tips: ['рубильник в дальнем конце чердака', 'люк на крышу откроется, когда дашь ток'],
     build(B) {
@@ -170,7 +170,7 @@ const LEVELS = [
       B.crack(110, 11); B.crack(60, 16); B.crack(47, 11);
       B.start(13, 14); B.save(66, 14); B.save(90, 14);
     } },
-  { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, ground: 24, dark: .8,
+  { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, ground: 24, dark: .45,
     cols: 150, rows: 26, base: AIR, pal: PAL.roof,
     tips: ['прыгай с крыши на крышу, внизу кислота', 'носорог таранит — перепрыгивай его'],
     build(B) {
