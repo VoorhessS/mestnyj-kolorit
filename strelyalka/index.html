@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Город N1">
 <title>Город N1</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none;
@@ -128,7 +132,7 @@ const LEVELS = [
       B.win(16, 9); B.win(30, 9); B.win(58, 9); B.win(74, 9); B.win(104, 9); B.win(121, 9);
       B.vent(41, 49, 11); B.vent(86, 94, 11);
       B.lad(12, 12, 17); B.lad(52, 12, 17); B.lad(80, 12, 17); B.lad(97, 12, 17);
-      B.acid(90, 92, 18); B.door(133, 14, 17); B.exit(136, 18, 'ВВЕРХ');
+      B.acid(90, 91, 18); B.door(133, 14, 17); B.exit(136, 18, 'ВВЕРХ');
       B.sign(38, 10, '>'); B.sign(83, 10, '>'); B.sign(56, 16, '^');
       B.lamp(20, 14); B.lamp(75, 14); B.lamp(110, 14);
       B.nest(25, 18); B.nest(30, 12); B.nest(70, 12); B.nest(105, 18); B.nest(118, 12);
@@ -145,19 +149,19 @@ const LEVELS = [
       B.lad(56, 40, 45); B.lad(3, 34, 39); B.lad(56, 28, 33); B.lad(3, 22, 27); B.lad(56, 16, 21); B.lad(3, 10, 15);
       B.win(10, 42); B.win(46, 42); B.win(35, 36); B.win(50, 24); B.win(12, 12); B.win(48, 12); B.win(20, 5); B.win(44, 5);
       // этаж 1
-      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 36, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46, 'b');
+      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 35, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46, 'b');
       // этаж 2: кислотная лужа с полкой
-      B.acid(20, 27, 40); B.plat(22, 25, 38); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35); B.bug(30, 40, 'c');
+      B.acid(20, 27, 40); B.plat(22, 25, 39); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35); B.bug(30, 40, 'c');
       // этаж 3: низкий потолок — ползком
       B.fill(25, 29, 32, 32); B.deco('rubble', 25, 29, 32, 32); B.vent(25, 32, 33); B.nest(45, 34); B.lamp(40, 29); B.sign(22, 32, '>');
       B.bug(50, 34, 'c');
       // этаж 4
       B.fill(40, 26, 41, 27); B.deco('box', 40, 26, 41, 27); B.fill(20, 25, 22, 27); B.deco('box', 20, 25, 22, 27);
-      B.bug(30, 28, 'R'); B.crack(48, 25); B.acid(10, 12, 28);
+      B.bug(30, 28, 'R'); B.crack(48, 25); B.acid(10, 11, 28);
       // этаж 5: ни окон, ни света, только указатели
       B.sign(20, 19, '>'); B.sign(40, 19, '>'); B.sign(54, 19, '^'); B.bug(25, 22, 'b'); B.bug(35, 22, 'j'); B.nest(50, 22); B.crack(15, 19);
       // этаж 6
-      B.acid(30, 34, 16); B.plat(31, 33, 13); B.crack(45, 13); B.bug(20, 16, 'R'); B.lamp(25, 11); B.sign(6, 13, '^');
+      B.acid(30, 34, 16); B.plat(31, 33, 15); B.crack(45, 13); B.bug(20, 16, 'R'); B.lamp(25, 11); B.sign(6, 13, '^');
       // последний этаж: инструменты, выход к лифту
       B.item('tools', 30, 10); B.exit(55, 10, 'ЛИФТ'); B.lamp(30, 4); B.bug(36, 10, 'b'); B.bug(24, 10, 'c'); B.crack(40, 7);
       B.start(4, 46); B.save(53, 40); B.save(6, 34); B.save(6, 22); B.save(53, 16);
@@ -190,7 +194,7 @@ const LEVELS = [
       B.lamp(20, 9); B.lamp(100, 9); B.lamp(58, 15);
       B.bug(97, 14, 's'); B.bug(112, 14, 's'); B.bug(123, 14, 's');
       B.nest(55, 19); B.nest(95, 14); B.bug(45, 19); B.bug(64, 14, 'b'); B.bug(52, 19, 'c'); B.bug(25, 14, 'c'); B.bug(106, 14, 'j');
-      B.crack(110, 11); B.crack(60, 16); B.crack(47, 11);
+      B.crack(110, 11); B.crack(47, 11);
       B.start(13, 14); B.save(66, 14); B.save(90, 14);
     } },
   { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, day: true, ground: 24, dark: .9,
@@ -441,8 +445,10 @@ function respawn() {
   const onCab = lift && lift.go, sx = onCab ? lift.x + lift.w / 2 - 5 : save.x, sy = onCab ? lift.y - 22 : save.y + 14 - 22;
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
   P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
-  cam = clamp(P.x + 5 - W * .45, 0, MAPW - W); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
+  cam = camX(); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
 }
+// Камера может заехать за край карты: герой у стены не прячется под крестовиной или кнопками
+const camX = () => clamp(P.x + 5 - W * .45, -W * .3, MAPW - W * .75);
 function setState(s) { state = s; stateT = 0; }
 function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) {
   for (let i = 0; i < n; i++) {
@@ -606,7 +612,7 @@ function update(dt) {
 
   // --- Камера: держит героя правее крестовины, по обеим осям ---
   if (!P.dead) {
-    const tx = clamp(P.x + 5 - W * .45, 0, Math.max(0, MAPW - W)), ty = clamp(P.y + 11 - H * .55, 0, Math.max(0, MAPH - H));
+    const tx = camX(), ty = clamp(P.y + 11 - H * .55, 0, Math.max(0, MAPH - H));
     cam += (tx - cam) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7);
   }
 
@@ -817,7 +823,7 @@ function drawBgCell(x, y, cx, cy) {
   else { rect(x, y, T, 1, pal.bg2); rect(x, y, 1, T, pal.bg2); }
 }
 function drawTiles() {
-  const c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(COLS - 1, c0 + Math.ceil(W / T) + 1);
+  const c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(COLS - 1, Math.floor(cam / T) + Math.ceil(W / T) + 1);
   const r0 = Math.max(0, Math.floor(camY / T)), r1 = Math.min(ROWS - 1, r0 + 15);
   const pal = L.pal;
   for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
@@ -856,7 +862,7 @@ function drawTiles() {
 }
 function drawVents() {                    // лаз рисуется поверх героя; когда ты внутри — стена полупрозрачная
   const inside = P && !P.dead && touches(P, VENT);
-  const c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(COLS - 1, c0 + Math.ceil(W / T) + 1);
+  const c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(COLS - 1, Math.floor(cam / T) + Math.ceil(W / T) + 1);
   const r0 = Math.max(0, Math.floor(camY / T)), r1 = Math.min(ROWS - 1, r0 + 15);
   for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
     if (grid[cy][cx] !== VENT) continue;
