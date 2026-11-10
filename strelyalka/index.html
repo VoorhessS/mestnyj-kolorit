@@ -71,17 +71,18 @@ const oneWay = (t, cx, cy) => t === PLAT || (t === LAD && tile(cx, cy - 1) !== L
 // ===== Подуровни города N1 =====
 // Координаты в клетках. Предмет стоит на клетке-полу (x, y).
 const PAL = {
-  street: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#24222a', floor: '#55555e' },
+  street: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#4a3a36', floor: '#77767e', road: '#3c3c44', earth: '#26242a' },
   lobby: { bg: '#18221c', bg2: '#121a15', pat: 'paint', solid: '#2a2a2c', floor: '#5a5048' },
   flat: { bg: '#221a1e', bg2: '#2a2026', pat: 'paper', solid: '#2c2628', floor: '#6a5038' },
   upper: { bg: '#1c1a22', bg2: '#24212c', pat: 'paint', solid: '#29262e', floor: '#4e4a56' },
   attic: { bg: '#24190f', bg2: '#1a1209', pat: 'wood', solid: '#2e2216', floor: '#6a4a2a' },
-  roof: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#2e2422', floor: '#55504c' },
+  roof: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#4a3834', floor: '#77706a', road: '#3c3c44', earth: '#26242a' },
+  shaft: { bg: '#1e2024', bg2: '#26292e', pat: 'block', solid: '#2e3036', floor: '#5a5e66' },
 };
 const LEVELS = [
-  { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, ground: 16, dark: .5,
-    cols: 170, rows: 26, base: AIR, pal: PAL.street,
-    tips: ['завал поверху не перелезть — ищи спуск в подвал', 'лестница: встань у неё и жми вверх или вниз'],
+  { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, day: true, ground: 16, dark: .9,
+    cols: 170, rows: 26, base: AIR, pal: PAL.street, spawn: ['r', 'r', 'm'],
+    tips: ['на улице день, а в подвале света нет', 'завал поверху не перелезть — ищи спуск в подвал', 'лестница: встань у неё и жми вверх или вниз'],
     build(B) {
       B.fill(0, 16, 169, 25);
       B.car(20, 24, 15); B.car(38, 41, 15); B.fill(53, 15, 54, 15); B.deco('box', 53, 15, 54, 15); B.bus(55, 64, 15);
@@ -91,17 +92,19 @@ const LEVELS = [
       B.room(70, 17, 100, 22); B.lad(76, 16, 22); B.lad(98, 16, 22);               // подвал магазина
       B.acid(86, 88, 23); B.sign(73, 19, '>'); B.sign(92, 19, '>'); B.sign(97, 18, '^'); B.lamp(84, 17);
       B.nest(91, 23); B.bug(81, 23);
-      B.car(110, 113, 15); B.fill(125, 13, 126, 15); B.deco("box", 125, 13, 126, 15); B.car(136, 139, 15);
+      B.car(110, 113, 15); B.fill(125, 13, 126, 15); B.deco('box', 125, 13, 126, 15); B.car(136, 139, 15);
       B.fill(155, 2, 168, 13); B.room(156, 14, 168, 15); B.exit(160, 16, 'ПОДЪЕЗД');  // дом
       B.lamp(34, 9, true); B.lamp(108, 9, true); B.lamp(146, 9, true);
       B.nest(30, 16); B.bug(46, 16); B.nest(118, 16); B.bug(150, 16);
+      B.bug(104, 16, 'm'); B.bug(105, 16, 'm'); B.bug(106, 16, 'm'); B.bug(132, 16, 'm'); B.bug(133, 16, 'm');
       B.start(4, 16); B.save(101, 16);
     } },
-  { name: 'ПОДЪЕЗД', task: 'Найди ключ от двери на лестницу', obj: 'key', ground: 13, dark: .6,
-    cols: 104, rows: 30, base: SOLID, pal: PAL.lobby,
-    tips: ['лаз в стене: зажми вниз и ползи вбок', 'ключ лежит где-то в подвале'],
+  { name: 'ПОДЪЕЗД', task: 'Найди ключ от двери на лестницу', obj: 'key', ground: 13, dark: .9,
+    cols: 104, rows: 30, base: SOLID, pal: PAL.lobby, spawn: ['r', 'm', 'R'],
+    tips: ['жуки перегрызли провода: светло только у окон', 'лаз в стене: зажми вниз и ползи вбок', 'берегись потолочников — падают сверху'],
     build(B) {
       B.room(1, 8, 70, 11); B.door(62, 8, 11); B.exit(67, 12, 'ЛЕСТНИЦА');
+      B.win(5, 9); B.win(27, 9); B.win(47, 9);
       B.lamp(14, 8); B.lamp(40, 8); B.lamp(66, 8);
       B.room(4, 15, 96, 18); B.lad(20, 12, 18);                                    // подвал, верхний ярус
       B.fill(56, 15, 60, 17); B.deco('rubble', 56, 15, 60, 17); B.vent(56, 60, 18);
@@ -111,67 +114,87 @@ const LEVELS = [
       B.sign(66, 24, '<'); B.sign(12, 24, '<');
       B.room(3, 25, 3, 26); B.lad(2, 13, 26); B.door(2, 12, 12, LAD);              // шахта с люком в холл
       B.item('key', 40, 27);
-      B.nest(30, 19); B.nest(75, 19); B.nest(20, 27); B.bug(70, 27); B.bug(30, 27, true); B.bug(85, 19);
+      B.nest(30, 19); B.nest(75, 19); B.nest(20, 27);
+      B.bug(70, 27); B.bug(30, 27, 'R'); B.bug(85, 19);
+      B.bug(36, 12, 'c'); B.bug(46, 19, 'c'); B.bug(41, 27, 'c'); B.bug(80, 27, 'c');
       B.start(10, 12); B.save(88, 19); B.save(84, 27);
     } },
-  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда на этаже', obj: 'nests', ground: 99, dark: .6,
-    cols: 140, rows: 22, base: SOLID, pal: PAL.flat,
-    tips: ['пока живо хоть одно гнездо, дверь не откроется', 'квартиры соединены лазами'],
+  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда на этаже', obj: 'nests', ground: 99, dark: .9,
+    cols: 140, rows: 22, base: SOLID, pal: PAL.flat, spawn: ['r', 'm', 'j'],
+    tips: ['у окон светло, в коридоре темнота', 'пока живо хоть одно гнездо, дверь не откроется', 'щелкуны прыгают — стреляй, пока летят'],
     build(B) {
       B.room(1, 14, 59, 17); B.room(67, 14, 138, 17);                              // коридор, посередине обвал
       B.room(10, 8, 40, 11); B.room(50, 8, 85, 11); B.room(95, 8, 130, 11);         // квартиры
+      B.win(16, 9); B.win(30, 9); B.win(58, 9); B.win(74, 9); B.win(104, 9); B.win(121, 9);
       B.vent(41, 49, 11); B.vent(86, 94, 11);
       B.lad(12, 12, 17); B.lad(52, 12, 17); B.lad(80, 12, 17); B.lad(97, 12, 17);
       B.acid(90, 92, 18); B.door(133, 14, 17); B.exit(136, 18, 'ВВЕРХ');
       B.sign(38, 10, '>'); B.sign(83, 10, '>'); B.sign(56, 16, '^');
-      B.lamp(20, 14); B.lamp(75, 14); B.lamp(110, 14); B.lamp(65, 8); B.lamp(115, 8);
+      B.lamp(20, 14); B.lamp(75, 14); B.lamp(110, 14);
       B.nest(25, 18); B.nest(30, 12); B.nest(70, 12); B.nest(105, 18); B.nest(118, 12);
-      B.bug(45, 18); B.bug(62, 12); B.bug(100, 18, true); B.bug(125, 12); B.bug(36, 12);
+      B.bug(45, 18, 'j'); B.bug(62, 12); B.bug(100, 18, 'R'); B.bug(125, 12, 'j'); B.bug(36, 12);
+      B.bug(18, 18, 'c'); B.bug(66, 12, 'c'); B.bug(115, 18, 'c');
       B.start(4, 18); B.save(75, 18); B.save(99, 12);
     } },
-  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Поднимись на последний этаж', obj: 'reach', ground: 99, dark: .62,
-    cols: 60, rows: 48, base: SOLID, pal: PAL.upper,
-    tips: ['свет почти не работает, держи фонарь перед собой', 'жуки лезут из трещин в стенах'],
+  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Найди инструменты, чтобы починить лифт', obj: 'tools', ground: 99, dark: .9,
+    cols: 60, rows: 48, base: SOLID, pal: PAL.upper, spawn: ['r', 'j', 'b', 'R', 'm'],
+    tips: ['ящик с инструментами — на последнем этаже', 'бомбардир брызгает кислотой — не подходи близко', 'жуки лезут из трещин в стенах'],
     build(B) {
       for (const f of [46, 40, 34, 28, 22, 16]) B.room(1, f - 5, 58, f - 1);
       B.room(1, 4, 58, 9);
       B.lad(56, 40, 45); B.lad(3, 34, 39); B.lad(56, 28, 33); B.lad(3, 22, 27); B.lad(56, 16, 21); B.lad(3, 10, 15);
+      B.win(10, 42); B.win(46, 42); B.win(35, 36); B.win(50, 24); B.win(12, 12); B.win(48, 12); B.win(20, 5); B.win(44, 5);
       // этаж 1
-      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 36, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46);
+      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 36, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46, 'b');
       // этаж 2: кислотная лужа с полкой
-      B.acid(20, 27, 40); B.plat(22, 25, 38); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35);
+      B.acid(20, 27, 40); B.plat(22, 25, 38); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35); B.bug(30, 40, 'c');
       // этаж 3: низкий потолок — ползком
       B.fill(25, 29, 32, 32); B.deco('rubble', 25, 29, 32, 32); B.vent(25, 32, 33); B.nest(45, 34); B.lamp(40, 29); B.sign(22, 32, '>');
+      B.bug(50, 34, 'c');
       // этаж 4
       B.fill(40, 26, 41, 27); B.deco('box', 40, 26, 41, 27); B.fill(20, 25, 22, 27); B.deco('box', 20, 25, 22, 27);
-      B.bug(30, 28, true); B.crack(48, 25); B.acid(10, 12, 28);
-      // этаж 5: свет не горит, только указатели
-      B.sign(20, 19, '>'); B.sign(40, 19, '>'); B.sign(54, 19, '^'); B.bug(25, 22); B.bug(35, 22); B.nest(50, 22); B.crack(15, 19);
+      B.bug(30, 28, 'R'); B.crack(48, 25); B.acid(10, 12, 28);
+      // этаж 5: ни окон, ни света, только указатели
+      B.sign(20, 19, '>'); B.sign(40, 19, '>'); B.sign(54, 19, '^'); B.bug(25, 22, 'b'); B.bug(35, 22, 'j'); B.nest(50, 22); B.crack(15, 19);
       // этаж 6
-      B.acid(30, 34, 16); B.plat(31, 33, 13); B.crack(45, 13); B.bug(20, 16, true); B.lamp(25, 11); B.sign(6, 13, '^');
-      // последний этаж
-      B.exit(55, 10, 'ЧЕРДАК'); B.lamp(30, 4); B.bug(30, 10); B.crack(40, 7);
+      B.acid(30, 34, 16); B.plat(31, 33, 13); B.crack(45, 13); B.bug(20, 16, 'R'); B.lamp(25, 11); B.sign(6, 13, '^');
+      // последний этаж: инструменты, выход к лифту
+      B.item('tools', 30, 10); B.exit(55, 10, 'ЛИФТ'); B.lamp(30, 4); B.bug(36, 10, 'b'); B.bug(24, 10, 'c'); B.crack(40, 7);
       B.start(4, 46); B.save(53, 40); B.save(6, 34); B.save(6, 22); B.save(53, 16);
     } },
-  { name: 'ЧЕРДАК', task: 'Найди рубильник вертолётной площадки', obj: 'switch', ground: 15, dark: .62,
-    cols: 130, rows: 22, base: SOLID, pal: PAL.attic,
-    tips: ['рубильник в дальнем конце чердака', 'люк на крышу откроется, когда дашь ток'],
+  { name: 'ГРУЗОВОЙ ЛИФТ', task: 'Продержись, пока лифт едет наверх', obj: 'lift', ground: 999, dark: .5, power: true,
+    cols: 42, rows: 112, base: SOLID, pal: PAL.shaft, spawn: ['r', 'm', 'j', 'b', 'R'], crackCd: 1.2, crackN: 2, crackRange: 110,
+    tips: ['ты починил свет! встань в кабину — лифт поедет вверх', 'кабина открытая: жуки прыгают в неё из стен', 'стреляй и вверх: крестовина вверх + B'],
+    build(B) {
+      B.room(1, 103, 28, 108);                                                     // машинный зал и низ шахты
+      B.room(13, 3, 28, 102);                                                      // шахта
+      B.room(29, 3, 38, 6); B.exit(36, 7, 'ЧЕРДАК');                               // выход наверху
+      B.lift(13, 28, 109, 7);
+      for (let r = 98; r > 10; r -= 12) { B.deco('ldoor', 12, r - 3, 12, r - 1); B.deco('ldoor', 29, r - 3, 29, r - 1); B.lamp(r % 24 ? 14 : 27, r - 9); }
+      for (let r = 99, i = 0; r >= 12; r -= 7, i++) B.crack(i % 2 ? 28 : 13, r);
+      B.lamp(5, 103); B.lamp(20, 103); B.sign(10, 105, '>');
+      B.start(4, 109);
+    } },
+  { name: 'ЧЕРДАК', task: 'Перебей свиту носорога', obj: 'guards', ground: 15, dark: .9,
+    cols: 130, rows: 22, base: SOLID, pal: PAL.attic, spawn: ['r', 'R', 'j', 'b', 'm'],
+    tips: ['свита — охрана носорога: щит спереди, рывок, плевок', 'бей стража, когда он оглушён после рывка, или сзади', 'перебей свиту — откроется люк на крышу'],
     build(B) {
       B.room(1, 9, 128, 13); B.door(9, 9, 13); B.exit(5, 14, 'КРЫША');
+      B.win(17, 10); B.win(91, 10); B.win(117, 10);
       B.fill(30, 9, 40, 12); B.deco('beam', 30, 9, 40, 12); B.vent(30, 40, 13);
       B.fill(55, 9, 62, 13); B.deco('rubble', 55, 9, 62, 13);
       B.room(42, 15, 68, 18); B.lad(49, 14, 18); B.lad(66, 14, 18);               // обход завала через квартиру под чердаком
       B.fill(72, 9, 86, 12); B.deco('beam', 72, 9, 86, 12); B.vent(72, 86, 13);
       B.plat(100, 104, 11); B.plat(108, 112, 11);
-      B.item('switch', 124, 14);
       B.sign(28, 12, '>'); B.sign(46, 16, '>'); B.sign(70, 12, '>'); B.sign(115, 11, '<'); B.sign(88, 11, '<'); B.sign(20, 11, '<');
       B.lamp(20, 9); B.lamp(100, 9); B.lamp(58, 15);
-      B.nest(55, 19); B.nest(95, 14); B.nest(118, 14); B.bug(45, 19); B.bug(105, 14, true); B.bug(64, 14); B.bug(92, 14, true);
+      B.bug(97, 14, 's'); B.bug(112, 14, 's'); B.bug(123, 14, 's');
+      B.nest(55, 19); B.nest(95, 14); B.bug(45, 19); B.bug(64, 14, 'b'); B.bug(52, 19, 'c'); B.bug(25, 14, 'c'); B.bug(106, 14, 'j');
       B.crack(110, 11); B.crack(60, 16); B.crack(47, 11);
       B.start(13, 14); B.save(66, 14); B.save(90, 14);
     } },
-  { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, ground: 24, dark: .45,
-    cols: 150, rows: 26, base: AIR, pal: PAL.roof,
+  { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, day: true, ground: 24, dark: .9,
+    cols: 150, rows: 26, base: AIR, pal: PAL.roof, spawn: ['r', 'R'],
     tips: ['прыгай с крыши на крышу, внизу кислота', 'носорог таранит — перепрыгивай его'],
     build(B) {
       B.acid(1, 148, 24); B.fill(0, 25, 149, 25);
@@ -183,8 +206,7 @@ const LEVELS = [
       B.fill(104, 9, 148, 23);
       B.arena({ gate: 106, l: 107, top: 9, drop: 135 }); B.heli(138, 9);
       B.nest(40, 10); B.nest(63, 10); B.nest(85, 11);
-      B.bug(20, 12); B.bug(45, 10, true); B.bug(70, 14); B.bug(90, 11); B.bug(95, 11, true);
-      B.lamp(12, 7, true); B.lamp(112, 4, true); B.lamp(126, 4, true); B.lamp(144, 4, true);   // прожекторы площадки
+      B.bug(20, 12); B.bug(45, 10, 'R'); B.bug(70, 14); B.bug(90, 11); B.bug(95, 11, 'R');
       B.start(3, 12); B.save(36, 10); B.save(82, 11); B.save(105, 9);
     } },
 ];
@@ -193,7 +215,7 @@ let L, lvlN = 0, lv;
 function build(def) {
   COLS = def.cols; ROWS = def.rows; MAPW = COLS * T; MAPH = ROWS * T;
   grid = [...Array(ROWS)].map(() => new Uint8Array(COLS).fill(def.base));
-  const o = { saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], start: [3, 3], exit: null, heli: null, arena: null };
+  const o = { saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], wins: [], start: [3, 3], exit: null, heli: null, arena: null, lift: null };
   const set = (x, y, t) => { if (x >= 0 && x < COLS && y >= 0 && y < ROWS) grid[y][x] = t; };
   const B = {
     fill(x0, y0, x1, y1, t = SOLID) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); },
@@ -209,7 +231,9 @@ function build(def) {
     start(x, y) { o.start = [x, y]; },
     save(x, y) { o.saves.push([x, y]); },
     nest(x, y) { o.nests.push([x, y]); },
-    bug(x, y, big = false) { o.bugs.push([x, y, big]); },
+    bug(x, y, kind = 'r') { o.bugs.push([x, y, kind]); },
+    win(x, y, w = 2, h = 2) { o.wins.push([x, y, w, h]); },
+    lift(x0, x1, y0, y1) { o.lift = { x0, x1, y0, y1 }; },
     crack(x, y) { o.cracks.push([x, y]); },
     lamp(x, y, post = false) { o.lamps.push([x, y, post]); },
     sign(x, y, s) { o.signs.push([x, y, s]); },
@@ -225,6 +249,7 @@ function build(def) {
 
 // Движение тела по клеткам: сначала по X, потом по Y
 function moveBody(b, dt, oneway = true) {
+  if (b.onLift && lift) b.y += lift.dy;              // стоит в кабине — едет вместе с ней
   b.x += b.vx * dt;
   let x0 = Math.floor(b.x / T), x1 = Math.floor((b.x + b.w - .01) / T);
   let y0 = Math.floor(b.y / T), y1 = Math.floor((b.y + b.h - .01) / T);
@@ -234,9 +259,12 @@ function moveBody(b, dt, oneway = true) {
     if (b.vx < 0 && solid(x0, cy)) { b.x = (x0 + 1) * T; b.wall = true; break; }
   }
   const prevBottom = b.y + b.h;
-  b.y += b.vy * dt; b.on = false;
+  b.y += b.vy * dt; b.on = false; b.onLift = false;
   x0 = Math.floor(b.x / T); x1 = Math.floor((b.x + b.w - .01) / T);
   y0 = Math.floor(b.y / T); y1 = Math.floor((b.y + b.h - .01) / T);
+  if (b.vy >= 0 && lift && b.x + b.w > lift.x && b.x < lift.x + lift.w && prevBottom <= lift.y + 1.5 && b.y + b.h >= lift.y) {
+    b.y = lift.y - b.h; b.vy = 0; b.on = true; b.onLift = true; return;
+  }
   if (b.vy > 0) {
     for (let cx = x0; cx <= x1; cx++) {
       const t = tile(cx, y1);
@@ -350,16 +378,27 @@ const SCORE = { r: 100, n: 500 };
 const GOO = ['#9be22d', '#4f8a10', '#e6ff7a', '#fff'];
 let state = 'title', stateT = 0, cam = 0, camY = 0, time = 0, score = 0, lives = 3, shake = 0, playT = 0;
 let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, lamps, signs, deco, toast = 0, toastTxt = '', flick = 0, flickT = 12;
-let D, done = false, nestsAll = 0, lockMsgT = 0;
+let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, wins = [];
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
 function diff(i) {
-  const k = i / 5;
-  return { cd: 3.6 - 1.5 * k, kids: 1 + Math.round(1.6 * k), big: .08 + .3 * k, spd: 58 + 26 * k, nhp: 6 + Math.round(4 * k), crack: 5.5 - 2 * k };
+  const k = i / 6;
+  return { cd: 3.6 - 1.5 * k, kids: 1 + Math.round(1.6 * k), spd: 58 + 26 * k, nhp: 6 + Math.round(4 * k), crack: 5.5 - 2 * k };
 }
-function runner(x, y, dir, big) {
-  return big
-    ? { k: 'r', big: 1, x, y: y - 18, w: 24, h: 18, vx: dir * D.spd * .62, vy: 0, hp: 3, fl: 0, run: 0, turn: 0 }
-    : { k: 'r', x, y: y - 14, w: 18, h: 14, vx: dir * D.spd, vy: 0, hp: 1, fl: 0, run: 0, turn: 0 };
+// Виды жуков Города N1: ширина, высота, жизни, скорость (доля), очки
+const BUGS = {
+  r: [18, 14, 1, 1, 100],      // бегун
+  R: [24, 18, 3, .62, 200],    // бронированный
+  m: [8, 6, 1, 1.45, 30],      // мелюзга, ходит роем
+  c: [16, 12, 2, .9, 150],     // потолочник: висит и падает сверху
+  j: [16, 12, 2, 1, 150],      // щелкун: прыгает на героя
+  b: [20, 14, 3, .5, 200],     // бомбардир: брызгает едкой струёй
+  s: [28, 20, 10, .5, 1000],   // свита носорога: щит спереди, рывок, плевок
+};
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
+  const [w, h, hp, sp, sc] = BUGS[k], HP = k === 's' ? hp + lvlN : hp;
+  return { k, x, y: y - h, w, h, hp: HP, max: HP, sp: D.spd * sp, sc, vx: dir * D.spd * sp, vy: 0, fl: 0, run: 0, turn: 0,
+    cd: 1 + Math.random() * 2, st: 'walk', t: 1 + Math.random(), dir };
 }
 function showToast(t, d = 2) { toastTxt = t; toast = d; }
 
@@ -370,10 +409,18 @@ function startLevel(n) {
   save = { x: lv.start[0] * T, y: lv.start[1] * T - 14, w: 12, h: 14, on: true, hidden: true };
   enemies = lv.nests.map(([x, y]) => ({ k: 'n', x: x * T - 2, y: y * T - 8, w: 20, h: 8, hp: D.nhp, fl: 0, cd: 1 + Math.random() * 2, kids: 0 }));
   nestsAll = enemies.length;
-  for (const [x, y, big] of lv.bugs) { const r = runner(x * T, y * T, -1, big); r.sleep = true; r.vx = 0; enemies.push(r); }
+  for (const [x, y, k] of lv.bugs) {
+    const e = mkBug(k, x * T, y * T); e.sleep = true; e.vx = 0;
+    if (k === 'c') { let cy = y - 1; while (cy > 0 && !solid(x, cy)) cy--; e.y = (cy + 1) * T; e.hang = true; }
+    enemies.push(e);
+  }
+  guardsAll = enemies.filter(e => e.k === 's').length;
+  wins = lv.wins; ebullets = [];
+  const LF = lv.lift;
+  lift = LF ? { x: LF.x0 * T, w: (LF.x1 - LF.x0 + 1) * T, y: LF.y0 * T, y0: LF.y0 * T, top: LF.y1 * T, dy: 0, go: false } : null;
   cracks = lv.cracks.map(([x, y]) => ({ x: x * T, y: y * T, cd: 2 + Math.random() * 3, n: 0 }));
   items = lv.items.map(([k, x, y]) => ({ k, x: x * T + 2, y: y * T - 12, w: 12, h: 12, got: false }));
-  lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post, bad: !post && Math.random() < .4, ph: Math.random() * 9 }));
+  lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
@@ -390,8 +437,10 @@ function respawn() {
     boss.on = false; for (let y = 0; y < lv.arena.top; y++) grid[y][lv.arena.gate] = AIR;
     Object.assign(boss.parts[0], { x: lv.arena.drop * T, y: -60, st: 'drop', vx: 0, vy: 0, t: 0 });
   }
-  enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - save.x, e.y - save.y) > 220);   // жуков у сохранения убираем
-  P = { x: save.x, y: save.y + 14 - 22, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
+  ebullets = [];
+  const onCab = lift && lift.go, sx = onCab ? lift.x + lift.w / 2 - 5 : save.x, sy = onCab ? lift.y - 22 : save.y + 14 - 22;
+  enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
+  P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
   cam = clamp(P.x + 5 - W * .45, 0, MAPW - W); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
 }
 function setState(s) { state = s; stateT = 0; }
@@ -413,7 +462,9 @@ function complete(msg) {                 // задание выполнено: �
   for (const d of lv.doors) grid[d.y][d.x] = d.to;
   showToast(msg, 2.6); beep(500, 1400, .4, 'triangle', .06); shake = .2;
 }
-const NEED = { key: 'сначала найди ключ', nests: 'сначала уничтожь все гнёзда', switch: 'сначала включи рубильник' };
+const NEED = { key: 'сначала найди ключ', nests: 'сначала уничтожь все гнёзда', switch: 'сначала включи рубильник',
+  tools: 'сначала найди инструменты', guards: 'сначала перебей свиту', lift: 'лифт ещё едет' };
+const ITEM = { key: '🔑 ключ у тебя! дверь открыта', switch: '⚡ ток пошёл! люк открыт', tools: '🧰 инструменты у тебя! чиним лифт' };
 
 // Жук-носорог: ходит к игроку, замирает и таранит до стены, оглушён, иногда прыгает
 function rhino(dt, b, pc) {
@@ -520,6 +571,17 @@ function update(dt) {
   if (flickT <= 0) { flick = 1.4; flickT = 15 + Math.random() * 15; }
   const k = input();
 
+  // --- Грузовой лифт: едет вверх, как только встал в кабину ---
+  if (lift) {
+    lift.dy = 0;
+    if (!lift.go && P.onLift && !P.dead) { lift.go = true; showToast('лифт поехал! отстреливайся', 2.2); boom(.08); shake = .3; }
+    if (lift.go && lift.y > lift.top) {
+      lift.dy = -Math.min(30 * dt, lift.y - lift.top); lift.y += lift.dy;
+      if (Math.random() < dt * 3) beep(55, 50, .15, 'sawtooth', .015);
+      if (lift.y <= lift.top) { shake = .4; boom(.08); complete('приехали! выходи из лифта'); }
+    }
+  }
+
   // --- Игрок ---
   if (P.dead > 0) {
     P.dead -= dt;
@@ -533,7 +595,7 @@ function update(dt) {
     }
     for (const it of items) if (!it.got && hit(P, it)) {
       it.got = true;
-      complete(it.k === 'key' ? '🔑 ключ у тебя! дверь открыта' : '⚡ ток пошёл! люк на крышу открыт');
+      complete(ITEM[it.k]);
     }
     if (exit && hit(P, exit)) {
       if (done) { nextLevel(); return; }
@@ -560,40 +622,24 @@ function update(dt) {
   const pc = { x: P.x + 2, y: P.y + 3, w: P.w - 4, h: P.h - 5 };   // хитбокс игрока чуть меньше картинки
   for (const e of enemies) {
     e.fl -= dt;
-    if (e.k === 'n') {                                // гнездо: выпускает бегунов, когда герой рядом
+    if (e.k === 'n') {                                // гнездо: выпускает жуков, когда герой рядом
       const near = Math.abs(P.x - e.x) < 300 && Math.abs(P.y - e.y) < 120;
       e.cd -= dt;
       if (near && !P.dead && e.cd <= 0 && e.kids < D.kids) {
-        e.cd = D.cd + Math.random() * 1.6; e.kids++;
-        const r = runner(e.x + 1, e.y + 8, Math.sign(P.x - e.x) || -1, Math.random() < D.big);
-        r.vy = -200; r.mom = e; r.spawned = true; enemies.push(r);
+        e.cd = D.cd + Math.random() * 1.6;
+        hatch(pick(L.spawn), e.x + 1, e.y + 8, Math.sign(P.x - e.x) || -1, -200, e);
         explode(e.x + 10, e.y + 2, 5, ['#3a2a1a', '#6a5030']);
       }
-    } else if (e.k === 'r') {
-      if (e.sleep) {
-        if (!P.dead && Math.abs(P.x - e.x) < 240 && Math.abs(P.y - e.y) < 80) { e.sleep = false; e.vx = (Math.sign(P.x - e.x) || 1) * D.spd * (e.big ? .62 : 1); }
-      } else {
-        e.turn -= dt;
-        if (e.turn <= 0) {                           // поворачивается к герою, если он на том же этаже
-          e.turn = .8 + Math.random() * .5;
-          if (!P.dead && Math.abs(P.y + P.h - e.y - e.h) < 40) e.vx = (Math.sign(P.x - e.x) || 1) * Math.abs(e.vx || D.spd);
-        }
-      }
-      e.vy = Math.min(e.vy + GRAV * dt, 520);
-      moveBody(e, dt);
-      if (e.wall) e.vx = -e.vx;
-      e.run += dt;
-      if (touches(e, ACID)) e.hp = -1;
-      if (e.spawned && (Math.abs(e.x - P.x) > 700 || Math.abs(e.y - P.y) > 400)) e.hp = -1;
-    }
-    if (!P.dead && e.hp > 0 && e.k !== 'n' && hit(pc, e)) killPlayer();
+    } else bugAI(e, dt);
+    if (!P.dead && e.hp > 0 && e.k !== 'n' && !e.hang && hit(pc, e)) killPlayer();
   }
   for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
-    if (!P.dead && c.cd <= 0 && c.n < 3 && Math.abs(P.x - c.x) < 230 && Math.abs(P.y - c.y) < 60) {
-      c.cd = D.crack + Math.random() * 2; c.n++;
-      const r = runner(c.x - 1, c.y + 14, Math.sign(P.x - c.x) || -1, Math.random() < D.big * .7);
-      r.vy = -60; r.spawned = true; enemies.push(r);
+    if (!P.dead && c.cd <= 0 && c.n < (L.crackN || 3) && Math.abs(P.x - c.x) < 230 && Math.abs(P.y - c.y) < (L.crackRange || 60)) {
+      c.cd = (L.crackCd || D.crack) + Math.random() * 1.5; c.n++;
+      const k = pick(L.spawn), w = BUGS[k][0], cx = Math.floor(c.x / T), row = Math.floor(c.y / T);
+      const x = c.x + (solid(cx + 1, row) ? T - w - 1 : solid(cx - 1, row) ? 1 : (T - w) / 2);
+      hatch(k, x, c.y + 14, Math.sign(P.x - c.x) || -1, -60, null);
       explode(c.x + 8, c.y + 8, 8, ['#4a4048', '#2a2228', '#6a6068']); beep(120, 60, .2, 'sawtooth', .04);
     }
   }
@@ -603,7 +649,7 @@ function update(dt) {
     if (boss.deadT < 2 && Math.random() < .3) { const c = boss.parts[0]; explode(c.x + Math.random() * c.w, c.y + Math.random() * c.h, 8, GOO); }
   }
   if (HORROR && !P.dead) {                           // шорох лапок, когда жуки рядом
-    const n = enemies.filter(e => e.k === 'r' && !e.sleep && Math.abs(e.x - P.x) < 170 && Math.abs(e.y - P.y) < 100).length;
+    const n = enemies.filter(e => e.k !== 'n' && !e.sleep && !e.hang && Math.abs(e.x - P.x) < 170 && Math.abs(e.y - P.y) < 100).length;
     if (Math.random() < dt * n * 2.5) beep(1600 + Math.random() * 1800, 700, .03, 'square', .012);
   }
 
@@ -611,9 +657,13 @@ function update(dt) {
   for (const b of bullets) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     for (const e of enemies) if (e.hp > 0 && b.life > 0 && hit(b, e)) {
-      b.life = 0; e.hp--; e.fl = .08;
-      if (e.sleep) { e.sleep = false; e.vx = (Math.sign(P.x - e.x) || 1) * D.spd; }
-      if (e.hp <= 0) { score += SCORE[e.k] || 100; explode(e.x + e.w / 2, e.y + e.h / 2, e.k === 'n' ? 24 : 14, GOO); boom(.06); }
+      b.life = 0;
+      if (e.k === 's' && e.st !== 'stun' && Math.sign(b.vx) === -e.dir && b.vy <= 60) {   // свита: щит спереди
+        explode(b.x + 2, b.y + 2, 4, ['#fff', '#aab4c8']); beep(1800, 900, .05, 'square', .02); continue;
+      }
+      e.hp--; e.fl = .08;
+      if (e.sleep || e.hang) { e.sleep = false; e.hang = false; e.vx = (Math.sign(P.x - e.x) || 1) * (e.sp || D.spd); }
+      if (e.hp <= 0) { score += e.k === 'n' ? SCORE.n : e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, e.k === 'n' ? 24 : e.k === 's' ? 30 : 14, GOO); boom(e.k === 's' ? .1 : .06); }
     }
     const r = boss.parts[0];
     if (boss.on && !boss.dead && b.life > 0 && hit(b, r)) {
@@ -621,7 +671,7 @@ function update(dt) {
       if (r.hp <= 0) {
         boss.dead = true; score += 5000; shake = 1.5; boom();
         explode(r.x + r.w / 2, r.y + r.h / 2, 40, GOO);
-        for (const e of enemies) if (e.k === 'r') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
+        for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
         for (let y = 0; y < lv.arena.top; y++) grid[y][lv.arena.gate] = AIR;
         done = true; showToast('носорог убит! к вертолёту!', 3);
       }
@@ -629,11 +679,90 @@ function update(dt) {
     if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) { b.life = 0; explode(b.x, b.y, 3, ['#fff', '#ffd23f']); }
   }
   bullets = bullets.filter(b => b.life > 0);
+  for (const b of ebullets) {                         // едкие брызги и плевки жуков
+    b.vy += (b.g || 0) * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    if (!P.dead && hit(pc, b)) { b.life = 0; killPlayer(); }
+    if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) { b.life = 0; explode(b.x, b.y, 3, ['#9be22d', '#e6ff7a']); }
+  }
+  ebullets = ebullets.filter(b => b.life > 0);
   for (const e of enemies) if (e.hp <= 0 && e.mom) { e.mom.kids--; e.mom = null; }
   enemies = enemies.filter(e => e.hp > 0);
   if (L.obj === 'nests' && !done && !enemies.some(e => e.k === 'n')) complete('все гнёзда уничтожены! дверь открыта');
+  if (L.obj === 'guards' && !done && !enemies.some(e => e.k === 's')) complete('свита перебита! люк на крышу открыт');
   for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; }
   parts = parts.filter(p => p.life > 0);
+}
+function hatch(k, x, y, dir, vy, mom) {     // новый жук из гнезда или трещины (мелюзга — сразу стайкой)
+  const n = k === 'm' ? 4 : 1;
+  for (let i = 0; i < n; i++) {
+    const e = mkBug(k, x + i * 3, y, dir); e.vy = vy - i * 30; e.vx *= 1 - i * .12; e.spawned = true;
+    if (mom) { e.mom = mom; mom.kids++; }
+    enemies.push(e);
+  }
+}
+function turnTo(e, dt, dyF, dir) {
+  e.turn -= dt;
+  if (e.turn <= 0) { e.turn = .8 + Math.random() * .5; if ((!P.dead && Math.abs(dyF) < 40) || !e.vx) e.vx = dir * e.sp; }
+}
+function bugAI(e, dt) {
+  const dx = P.x + 5 - (e.x + e.w / 2), dyF = P.y + P.h - (e.y + e.h), dir = Math.sign(dx) || 1;
+  if (e.hang) {                                    // потолочник ждёт, пока герой пройдёт под ним
+    if (!P.dead && Math.abs(dx) < 30 && P.y > e.y && P.y - e.y < 170) { e.hang = false; e.sleep = false; e.vy = 30; e.vx = 0; beep(700, 200, .25, 'sawtooth', .03); }
+    return;
+  }
+  if (e.sleep) {
+    if (!P.dead && Math.abs(dx) < 240 && Math.abs(dyF) < 80) { e.sleep = false; e.vx = dir * e.sp; e.dir = dir; }
+  } else if (e.k === 'j') {                        // щелкун: замирает и прыгает на героя
+    if (e.on) {
+      e.vx = 0; e.t -= dt;
+      if (e.t <= 0 && !P.dead && Math.abs(dx) < 230 && Math.abs(dyF) < 100) { e.vy = -300; e.vx = dir * 125; e.dir = dir; e.t = rnd(.7, 1.3); beep(1400, 2600, .06, 'square', .02); }
+    }
+  } else if (e.k === 'b') {                        // бомбардир: подходит и брызгает
+    e.cd -= dt;
+    if (e.st === 'spray') {
+      e.vx = 0; e.t -= dt;
+      if (Math.random() < dt * 16) ebullets.push({ x: e.x + (e.dir > 0 ? e.w : -4), y: e.y + 5, w: 4, h: 4, vx: e.dir * rnd(110, 170), vy: rnd(-80, -20), g: 280, life: .6, k: 'acid' });
+      if (e.t <= 0) { e.st = 'walk'; e.vx = e.dir * e.sp; }
+    } else if (e.on && !P.dead && Math.abs(dx) < 105 && Math.abs(dyF) < 30 && e.cd <= 0) {
+      e.st = 'spray'; e.t = .6; e.dir = dir; e.cd = 2.6; beep(300, 140, .45, 'sawtooth', .03);
+    } else turnTo(e, dt, dyF, dir);
+  } else if (e.k === 's') guardAI(e, dt, dx, dyF, dir);
+  else turnTo(e, dt, dyF, dir);
+  e.vy = Math.min(e.vy + GRAV * dt, 520);
+  const vx0 = e.vx;
+  moveBody(e, dt);
+  if (e.wall && e.k !== 's') e.vx = -vx0;
+  if (e.vx && e.st !== 'stun') e.dir = Math.sign(e.vx);
+  e.run += dt;
+  if (touches(e, ACID)) e.hp = -1;
+  if (e.spawned && (Math.abs(e.x - P.x) > 700 || Math.abs(e.y - P.y) > 400)) e.hp = -1;
+}
+// Страж из свиты: щит спереди, рывок (после него оглушён), плевок кислотой дугой
+function guardAI(e, dt, dx, dyF, dir) {
+  e.t -= dt;
+  if (e.st === 'walk') {
+    e.dir = dir; e.vx = dir * e.sp;
+    if (e.t <= 0 && !P.dead && Math.abs(dyF) < 60 && Math.abs(dx) < 260) {
+      if (Math.abs(dx) > 80 && Math.random() < .5) { e.st = 'spit'; e.t = .45; } else { e.st = 'prep'; e.t = .55; }
+    }
+  } else if (e.st === 'prep') {
+    e.vx = 0;
+    if (e.t <= 0) { e.st = 'dash'; e.t = .9; beep(110, 60, .35, 'sawtooth', .045); }
+  } else if (e.st === 'dash') {
+    e.vx = e.dir * 215;
+    if (e.t <= 0 || e.wall) { e.st = 'stun'; e.t = 1.4; e.vx = 0; if (e.wall) { shake = .3; boom(.06); } }
+  } else if (e.st === 'spit') {
+    e.vx = 0;
+    if (e.t <= 0) {
+      const v = clamp(dx / .77, -230, 230);
+      for (let i = 0; i < 3; i++) ebullets.push({ x: e.x + e.w / 2, y: e.y + 2, w: 5, h: 5, vx: v * (.8 + i * .2), vy: -230, g: 600, life: 2, k: 'spit' });
+      beep(260, 120, .3, 'square', .03);
+      e.st = 'walk'; e.t = rnd(1.3, 2.3);
+    }
+  } else if (e.st === 'stun') {
+    e.vx = 0;
+    if (e.t <= 0) { e.st = 'walk'; e.t = rnd(1.1, 2); }
+  }
 }
 function nextLevel() {
   beep(300, 900, .3, 'triangle', .05);
@@ -642,13 +771,15 @@ function nextLevel() {
 }
 function target() {                     // куда показывает жёлтая стрелка
   if (!done) {
-    if (L.obj === 'key' || L.obj === 'switch') { const it = items.find(i => !i.got); return { x: it.x + 6, y: it.y + 6, txt: L.obj === 'key' ? 'найди ключ' : 'найди рубильник' }; }
-    if (L.obj === 'nests') {
+    if (ITEM[L.obj]) { const it = items.find(i => !i.got); return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты' }[L.obj] }; }
+    if (L.obj === 'nests' || L.obj === 'guards') {
+      const k = L.obj === 'nests' ? 'n' : 's';
       let best = null, bd = 1e9;
-      for (const e of enemies) if (e.k === 'n') { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
-      const n = enemies.filter(e => e.k === 'n').length;
-      return { x: best.x + 10, y: best.y, txt: `гнёзда: ${n} из ${nestsAll}` };
+      for (const e of enemies) if (e.k === k) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
+      const n = enemies.filter(e => e.k === k).length;
+      return { x: best.x + best.w / 2, y: best.y, txt: k === 'n' ? `гнёзда: ${n} из ${nestsAll}` : `свита: ${n} из ${guardsAll}` };
     }
+    if (L.obj === 'lift') return { x: lift.x + lift.w / 2, y: lift.y - 11, txt: lift.go ? `лифт: ${Math.round(100 * (lift.y0 - lift.y) / (lift.y0 - lift.top))}%` : 'встань в кабину лифта' };
     if (L.obj === 'boss') return { x: lv.arena.drop * T, y: lv.arena.top * T, txt: 'на вертолётную площадку' };
   }
   if (heli) return { x: heli.x + 30, y: heli.y + 12, txt: 'к вертолёту!' };
@@ -662,14 +793,18 @@ const hash = (a, b) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
 function drawBg() {
   if (!L || !L.sky) { rect(0, 0, W, H, '#050508'); return; }
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#05060d'); g.addColorStop(.7, '#141022'); g.addColorStop(1, '#2a1a2a');
+  g.addColorStop(0, '#6f7d8a'); g.addColorStop(.7, '#a3a49e'); g.addColorStop(1, '#bdb6a6');   // пасмурный день
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ell(W * .75, 28, 8, 8, '#c8d0e0');                // луна
+  ell(W * .72, 34, 16, 16, 'rgba(255,250,232,.55)');
   const sy = Math.min(H + 40, L.ground * T - camY);  // уровень земли на экране
-  for (let i = -1; i < W / 26 + 2; i++) {          // силуэты дальних домов
-    const n = i + Math.floor(cam * .25 / 26), x = i * 26 - (cam * .25) % 26, h = 70 + hash(n, 7) % 130;
-    rect(x, sy - h, 24, h + 60, '#0c0b15');
-    if (hash(n, 3) % 4 === 0) rect(x + 6 + hash(n, 5) % 10, sy - h + 12 + hash(n, 9) % 30, 3, 4, '#3a3420');   // редкое горящее окно
+  for (let i = -1; i < W / 30 + 2; i++) {          // дальние дома в дымке
+    const n = i + Math.floor(cam * .15 / 30), x = i * 30 - (cam * .15) % 30, h = 90 + hash(n, 11) % 120;
+    rect(x, sy - h, 28, h + 60, '#8a8e94');
+  }
+  for (let i = -1; i < W / 26 + 2; i++) {          // ближние дома
+    const n = i + Math.floor(cam * .3 / 26), x = i * 26 - (cam * .3) % 26, h = 60 + hash(n, 7) % 110;
+    rect(x, sy - h, 24, h + 60, '#5e636c');
+    for (let w = 0; w < 4; w++) if (hash(n, w) % 3) rect(x + 4 + (w % 2) * 10, sy - h + 8 + Math.floor(w / 2) * 14, 5, 7, '#454a52');
   }
 }
 function drawBgCell(x, y, cx, cy) {
@@ -692,12 +827,12 @@ function drawTiles() {
       const top = open(up) || up === PLAT || up === ACID;
       if (L.sky && cy < L.ground) {                 // дома снаружи: кирпич и окна
         rect(x, y, T, T, pal.solid);
-        if (hs % 3 === 0) rect(x + 4, y + 4, 7, 8, hs % 23 === 0 ? '#4a4020' : '#120e10');
+        if (hs % 3 === 0) rect(x + 4, y + 4, 7, 8, hs % 23 === 0 ? '#5a5a50' : '#1c2028');
         if (top) rect(x, y, T, 3, pal.floor);
       } else if (top) {
-        rect(x, y, T, T, L.sky ? '#2c2c33' : pal.solid); rect(x, y, T, 3, pal.floor); rect(x, y + 3, T, 1, '#0004');
+        rect(x, y, T, T, L.sky ? pal.road : pal.solid); rect(x, y, T, 3, pal.floor); rect(x, y + 3, T, 1, '#0004');
         if (L.sky && cy === L.ground && cx % 4 === 0) rect(x + 2, y + 6, 8, 1, '#6a6a40');
-      } else { rect(x, y, T, T, L.sky ? '#1a181f' : pal.solid); rect(x + hs % 12, y + (hs >> 4) % 12, 3, 2, '#0003'); }
+      } else { rect(x, y, T, T, L.sky ? pal.earth : pal.solid); rect(x + hs % 12, y + (hs >> 4) % 12, 3, 2, '#0003'); }
     } else if (t === BG) drawBgCell(x, y, cx, cy);
     else if (t === PLAT) {
       if (!L.sky && open(tile(cx, cy + 1))) drawBgCell(x, y, cx, cy);
@@ -736,6 +871,15 @@ function drawVents() {                    // лаз рисуется повер�
   }
 }
 function drawDeco() {
+  for (const [wx, wy, ww, wh] of wins) {           // окна: днём из них падает свет
+    const x = wx * T - cam, y = wy * T, w = ww * T, h = wh * T;
+    if (x > W || x + w < 0) continue;
+    rect(x - 2, y - 2, w + 4, h + 4, '#2a2420');
+    const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#a8bccc'); g.addColorStop(1, '#d8d4c4');
+    ctx.fillStyle = g; ctx.fillRect(Math.round(x), y, w, h);
+    rect(x + 2, y + h - 7, w - 4, 5, '#7a828a'); rect(x + w / 2 - 1, y, 2, h, '#2a2420'); rect(x, y + h / 2 - 1, w, 2, '#2a2420');
+    rect(x - 3, y + h + 2, w + 6, 2, '#4a4038');
+  }
   for (const d of deco) {
     const x = d.x0 * T - cam, y = d.y0 * T, w = (d.x1 - d.x0 + 1) * T, h = (d.y1 - d.y0 + 1) * T;
     if (x > W || x + w < 0) continue;
@@ -763,6 +907,9 @@ function drawDeco() {
       ctx.fillStyle = '#7a3a2a'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.fillText('ПРОДУКТЫ', x + w / 2, y + h / 2 + 3); ctx.textAlign = 'left';
     } else if (d.k === 'hut') {
       rect(x, y, w, h, '#2a2628'); rect(x, y, w, 3, '#55504c'); rect(x + 30, y + 16, 14, h - 16, '#16141a'); rect(x + 8, y + 10, 10, 8, '#0c0d14');
+    } else if (d.k === 'ldoor') {                      // закрытые двери шахты на этажах
+      rect(x, y, w, h, '#3a3e46'); rect(x + w / 2 - 1, y, 2, h, '#1a1c20'); rect(x, y, w, 2, '#5a5e66');
+      rect(x + 3, y + 6, 3, 3, Math.floor(time * 2 + d.y0) % 3 ? '#401010' : '#ff3b3b');
     } else if (d.k === 'tower') {
       rect(x + 8, y, w - 16, h - 4, '#2a2f30'); rect(x + 8, y, w - 16, 3, '#3a4044');
       for (let i = 0; i < 4; i++) rect(x + 8 + i * (w - 18) / 3, y + h - 4, 2, 6, '#2a2f30');
@@ -777,7 +924,11 @@ function drawProps() {
   }
   for (const it of items) {
     const x = it.x - cam, y = it.y + (it.k === 'key' && !it.got ? Math.sin(time * 3) * 1.5 : 0);
-    if (it.k === 'key') {
+    if (it.k === 'tools') {                          // ящик с инструментами
+      if (it.got) continue;
+      rect(x - 2, y + 2, 16, 10, '#c8382a'); rect(x - 2, y + 2, 16, 2, '#e8584a'); rect(x + 3, y - 1, 6, 3, '#555');
+      rect(x + 1, y + 6, 10, 1, '#7a1a12'); rect(x + 10, y + 3, 3, 2, '#ddd');
+    } else if (it.k === 'key') {
       if (it.got) continue;
       ell(x + 3, y + 4, 3, 3, '#ffd23f'); ell(x + 3, y + 4, 1, 1, '#000'); rect(x + 5, y + 3, 7, 2, '#ffd23f'); rect(x + 9, y + 5, 2, 3, '#ffd23f'); rect(x + 11, y + 5, 1, 2, '#ffd23f');
     } else {                                         // рубильник
@@ -786,6 +937,14 @@ function drawProps() {
       ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 6, y + 5); ctx.lineTo(x + (it.got ? 10 : 2), y - 5); ctx.stroke();
       rect(x + 4, y - 6, 4, 3, it.got ? '#3dff7a' : (Math.floor(time * 3) % 2 ? '#ff3b3b' : '#601010'));
     }
+  }
+  if (lift) {                                      // открытая кабина грузового лифта
+    const x = lift.x - cam, y = lift.y, w = lift.w;
+    rect(x + w / 2 - 9, 2 * T, 1, y - 34 - 2 * T, '#4a4e56'); rect(x + w / 2 + 8, 2 * T, 1, y - 34 - 2 * T, '#4a4e56');   // тросы
+    rect(x + 16, y - 36, w - 32, 3, '#6a6e78'); rect(x + 16, y - 36, 2, 36, '#5a5e66'); rect(x + w - 18, y - 36, 2, 36, '#5a5e66');
+    rect(x, y, w, 5, '#6a6e78'); rect(x, y + 5, w, 4, '#2a2d33');
+    for (let i = 6; i < w; i += 16) rect(x + i, y + 1, 2, 2, '#9aa0aa');
+    rect(x, y - 14, 2, 14, '#7a7f88'); rect(x, y - 14, 10, 2, '#7a7f88'); rect(x + w - 2, y - 14, 2, 14, '#7a7f88'); rect(x + w - 10, y - 14, 10, 2, '#7a7f88');
   }
   for (const lm of lamps) {
     const x = lm.x - cam, y = lm.y;
@@ -846,21 +1005,69 @@ function legs(x, y, n, span, t, col) {
 }
 function drawEnemies() {
   for (const e of enemies) {
-    const x = e.x - cam, y = e.y, wh = e.fl > 0, f = e.vx > 0 ? 1 : -1;
+    const x = e.x - cam, y = e.y, wh = e.fl > 0, f = e.dir > 0 ? 1 : -1;
     if (x < -40 || x > W + 40) continue;
-    if (e.k === 'r') {                                  // жук-бегун (большой — бронированный)
-      ctx.save(); ctx.translate(Math.round(x), Math.round(y)); if (e.big) ctx.scale(1.33, 1.3);
-      legs(3, 9, 3, 5, e.sleep ? time * .1 : e.run, '#1d2b12');
-      ell(9, 7, 9, 6, wh ? '#fff' : e.big ? '#5a3d1e' : '#3d6b1f'); ell(9, 5, 7, 3, wh ? '#fff' : e.big ? '#8a6a3a' : '#5c9a2e');
-      rect(9, 1, 1, 11, '#1d2b12');
-      ell(f < 0 ? 1 : 17, 8, 3, 3, '#1d2b12');
-      rect(f < 0 ? -4 : 19, 9, 4, 1, '#e6e0a0'); rect(f < 0 ? -4 : 19, 11, 4, 1, '#e6e0a0');
-      ctx.restore();
-    } else if (e.k === 'n') {                           // гнездо
+    if (e.k === 'n') {                                 // гнездо
       ell(x + 10, y + 6, 12, 7, wh ? '#fff' : '#3a2a1a'); ell(x + 10, y + 5, 7, 4, '#120a06');
       for (let i = 0; i < 3; i++) ell(x + 5 + i * 5, y + 4 + Math.sin(time * 3 + i) * .7, 2, 2.5, '#d8e8a0');
+      continue;
+    }
+    const W2 = e.w / 2, run = e.sleep ? time * .1 : e.run;
+    ctx.save(); ctx.translate(Math.round(x + W2), Math.round(y)); ctx.scale(f, 1);   // мордой по ходу
+    if (e.k === 'r' || e.k === 'R') {               // бегун / бронированный
+      if (e.k === 'R') ctx.scale(1.33, 1.3);
+      ctx.translate(-9, 0);
+      legs(3, 9, 3, 5, run, '#1d2b12');
+      ell(9, 7, 9, 6, wh ? '#fff' : e.k === 'R' ? '#5a3d1e' : '#3d6b1f'); ell(9, 5, 7, 3, wh ? '#fff' : e.k === 'R' ? '#8a6a3a' : '#5c9a2e');
+      rect(9, 1, 1, 11, '#1d2b12'); ell(17, 8, 3, 3, '#1d2b12');
+      rect(19, 9, 4, 1, '#e6e0a0'); rect(19, 11, 4, 1, '#e6e0a0');
+      if (e.k === 'R') { rect(3, 3, 12, 1, '#b89a60'); rect(4, 6, 10, 1, '#b89a60'); }
+    } else if (e.k === 'm') {                       // мелюзга
+      ctx.translate(-4, 0);
+      legs(1, 4, 3, 2, run, '#111');
+      ell(4, 3, 4, 3, wh ? '#fff' : '#2e4a1a'); ell(8, 3.5, 1.6, 1.6, '#111');
+    } else if (e.k === 'c') {                       // потолочник
+      ctx.translate(-8, 0);
+      if (e.hang) {
+        ctx.strokeStyle = '#ccc8'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, -2); ctx.lineTo(8, 4); ctx.stroke();
+        ctx.strokeStyle = '#1a0e20'; ctx.lineWidth = 1.5; ctx.beginPath();
+        for (let i = 0; i < 3; i++) { const k = Math.sin(time * 3 + i) * 1; ctx.moveTo(3 + i * 5, 4); ctx.lineTo(2 + i * 5 + k, -1); }
+        ctx.stroke();
+        ell(8, 6, 8, 5, wh ? '#fff' : '#4a2a5a'); ell(8, 8, 6, 2.5, '#6a4a7a'); ell(8, 11, 3, 2.5, '#2a1430');
+      } else {
+        legs(3, 9, 3, 5, run, '#1a0e20');
+        ell(8, 7, 8, 5, wh ? '#fff' : '#4a2a5a'); ell(8, 5, 6, 2.5, '#6a4a7a'); ell(15, 8, 3, 3, '#2a1430');
+        rect(17, 9, 3, 1, '#d0c0e0');
+      }
+    } else if (e.k === 'j') {                       // щелкун
+      ctx.translate(-8, 0);
+      if (e.on) legs(3, 9, 3, 4, run, '#3a2a10');
+      else { ctx.strokeStyle = '#3a2a10'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(3 + i * 5, 9); ctx.lineTo(i * 6 - 1, 13); } ctx.stroke(); }
+      ell(8, 7, 8, 4.5, wh ? '#fff' : '#7a5a20'); ell(7, 5.5, 6, 2, '#a8823a'); rect(7, 3, 1, 8, '#3a2a10');
+      ell(15, 7, 2.5, 2.5, '#3a2a10'); rect(17, 5, 3, 1, '#c8a050'); rect(17, 8, 3, 1, '#c8a050');
+    } else if (e.k === 'b') {                       // бомбардир
+      ctx.translate(-10, 0);
+      legs(4, 10, 3, 5, run, '#111');
+      ell(9, 8, 9, 6, wh ? '#fff' : '#1a2440'); ell(6, 6, 2, 2, '#e07a1a'); ell(12, 7, 2, 1.5, '#e07a1a'); ell(9, 10, 1.5, 1.2, '#e07a1a');
+      ell(18, 9, 4, 3.5, wh ? '#fff' : '#c84a1a'); rect(21, 8, 3, 1, '#ffd0a0');
+      if (e.st === 'spray') { ell(24, 9, 3 + Math.random() * 2, 2, '#c8ff6a'); }
+    } else if (e.k === 's') {                       // страж из свиты
+      const sh = e.st === 'prep' ? (Math.random() - .5) * 3 : 0;
+      ctx.translate(-14 + sh, 0);
+      legs(4, 15, 4, 6, run, '#200808');
+      ell(13, 12, 13, 8, wh ? '#fff' : '#5a1414'); ell(12, 9, 10, 4, '#8a2a2a');
+      rect(6, 2, 2, 4, '#c8a0a0'); rect(12, 1, 2, 4, '#c8a0a0'); rect(18, 2, 2, 4, '#c8a0a0');
+      ell(24, 13, 4, 4, '#300a0a');
+      ctx.fillStyle = e.st === 'stun' ? '#555a60' : '#c8ccd4'; ctx.fillRect(26, 4, 4, 15);             // щит спереди
+      ctx.fillStyle = '#e0d6b0'; ctx.beginPath(); ctx.moveTo(27, 6); ctx.lineTo(35, 1); ctx.lineTo(30, 8); ctx.fill();
+    }
+    ctx.restore();
+    if (e.k === 's') {
+      rect(x, y - 6, e.w, 2, '#300'); rect(x, y - 6, e.w * e.hp / e.max, 2, '#f44');
+      if (e.st === 'stun') for (let i = 0; i < 3; i++) { const a = time * 6 + i * 2.1; rect(x + e.w / 2 + Math.cos(a) * 10, y - 10 + Math.sin(a) * 3, 2, 2, '#ffd23f'); }
     }
   }
+  for (const b of ebullets) { rect(b.x - cam, b.y, b.w, b.h, b.k === 'spit' ? '#b8ff40' : '#d8ff7a'); rect(b.x - cam + 1, b.y + 1, b.w - 2, b.h - 2, '#4caf1a'); }
 }
 function drawRhino(b) {
   const x = b.x - cam, wh = b.fl > 0, sx = b.st === 'prep' ? Math.round((Math.random() - .5) * 3) : 0;
@@ -881,7 +1088,9 @@ function glow(x, y, r, a = 1) {
   g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
   dctx.fillStyle = g; dctx.beginPath(); dctx.arc(x, y, r, 0, Math.PI * 2); dctx.fill();
 }
-const lampOn = lm => !lm.bad || Math.sin(time * 7 + lm.ph) + Math.sin(time * 13.7 + lm.ph * 2) > -.3;
+// Провода перегрызены: без тока лампы лишь искрят. После ремонта (L.power) горят, некоторые мигают
+const lampOn = lm => (L.power || lm.post) ? (!lm.bad || Math.sin(time * 7 + lm.ph) + Math.sin(time * 13.7 + lm.ph * 2) > -.3)
+  : Math.sin(time * 1.3 + lm.ph * 3) > .985;
 function drawSigns() {                    // светодиодные указатели — видно и в темноте
   for (const [sx, sy, s] of signs) {
     const x = sx * T - cam, y = sy * T + 3;
@@ -908,6 +1117,17 @@ function drawDark() {
   dctx.clearRect(0, 0, W, H);
   dctx.fillStyle = `rgba(2,2,9,${L.dark})`; dctx.fillRect(0, 0, W, H);
   dctx.globalCompositeOperation = 'destination-out';
+  if (L.day) {                                         // днём снаружи светло, темно только под землёй
+    const gy = L.ground * T - camY;
+    if (gy > 0) { dctx.fillStyle = '#000'; dctx.fillRect(0, 0, W, Math.min(H, gy + 2)); }
+  }
+  for (const [wx, wy, ww, wh] of wins) {               // свет из окон
+    const cx = (wx + ww / 2) * T - cam, cy = (wy + wh / 2) * T + oy;
+    if (cx < -130 || cx > W + 130) continue;
+    glow(cx, cy + 14, 100, .95); dctx.fillStyle = '#000'; dctx.fillRect(wx * T - cam - 2, wy * T + oy - 2, ww * T + 4, wh * T + 4);
+  }
+  for (const b of ebullets) glow(b.x - cam + 2, b.y + 2 + oy, 12, .5);
+  if (lift) glow(lift.x - cam + lift.w / 2, lift.y - 10 + oy, 90, .5);
   if (P && !P.dead) {
     const px = P.x - cam + 5, py = (P.crouch ? P.y + 5 : P.ay < 0 ? P.y + 4 : P.ay > 0 ? P.y + 12 : P.y + 9) + oy;
     glow(px, py, 42, .6);                                   // слабый свет вокруг героя
@@ -925,7 +1145,7 @@ function drawDark() {
   for (const lm of lamps) if (lampOn(lm)) {
     const x = lm.x - cam, y = lm.y + oy;
     if (x < -120 || x > W + 120) continue;
-    glow(x, y + (lm.post ? 30 : 20), lm.post ? 75 : 62, .7);
+    glow(x, y + (lm.post ? 30 : 20), lm.post ? 75 : 62, L.power || lm.post ? .7 : .9);
   }
   for (const [sx, sy] of signs) glow(sx * T - cam + 8, sy * T + 8 + oy, 22, .45);
   for (const it of items) if (!it.got || it.k === 'switch') glow(it.x - cam + 6, it.y + 6 + oy, 26, .55);
@@ -938,11 +1158,13 @@ function drawDark() {
   ctx.drawImage(dark, 0, 0);
 }
 function drawEyes() {                     // глаза жуков горят в темноте
-  for (const e of enemies) if (e.k === 'r') {
-    const left = e.vx < 0 || (!e.vx && P.x < e.x), ex = e.x - cam + (left ? 1 : e.w - 4), ey = e.y + Math.round(e.h * .4);
-    rect(ex, ey, 2, 2, '#ff2a2a'); rect(ex + (left ? 3 : -3), ey, 2, 2, '#ff2a2a');
+  for (const e of enemies) if (e.k !== 'n') {
+    const left = e.dir < 0, c = e.k === 's' ? '#ffd23f' : '#ff2a2a';
+    if (e.k === 'm') { rect(e.x - cam + (left ? 0 : e.w - 1), e.y + 2, 1, 1, c); continue; }
+    const ex = e.x - cam + (left ? 1 : e.w - 4), ey = e.hang ? e.y + e.h - 4 : e.y + Math.round(e.h * .4);
+    rect(ex, ey, 2, 2, c); rect(ex + (left ? 3 : -3), ey, 2, 2, c);
   }
-  for (const c of cracks) if (c.n < 3 && Math.sin(time * 2 + c.x) > .3) { rect(c.x - cam + 5, c.y + 6, 2, 2, '#ff2a2a'); rect(c.x - cam + 9, c.y + 6, 2, 2, '#ff2a2a'); }
+  for (const c of cracks) if (c.n < (L.crackN || 3) && Math.sin(time * 2 + c.x) > .3) { rect(c.x - cam + 5, c.y + 6, 2, 2, '#ff2a2a'); rect(c.x - cam + 9, c.y + 6, 2, 2, '#ff2a2a'); }
   if (boss.on && !boss.dead) {
     const b = boss.parts[0], ex = b.x - cam + b.w / 2 + (b.dir > 0 ? 22 : -25);
     rect(ex, b.y + 18, 3, 2, b.st === 'prep' || b.st === 'charge' ? '#ff2a2a' : '#ffb020');
@@ -1039,7 +1261,7 @@ requestAnimationFrame(frame);
 window.__lvl = tile;
 window.__game = { get P() { return P; }, get state() { return state; }, get cam() { return cam; }, get camY() { return camY; }, get boss() { return boss; },
   get enemies() { return enemies; }, get lvl() { return lvlN; }, get done() { return done; }, get exit() { return exit; }, get items() { return items; },
-  get heli() { return heli; }, get L() { return L; }, get lv() { return lv; }, startLevel, setState, T };
+  get heli() { return heli; }, get L() { return L; }, get lv() { return lv; }, get lift() { return lift; }, startLevel, setState, T };
 </script>
 </body>
 </html>
