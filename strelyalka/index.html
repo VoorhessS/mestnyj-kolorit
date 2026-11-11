@@ -178,9 +178,9 @@ const LEVELS = [
       B.item('tools', 30, 10); B.exit(55, 10, 'ЛИФТ'); B.lamp(30, 4); B.bug(36, 10, 'b'); B.bug(24, 10, 'c'); B.crack(40, 7);
       B.start(4, 46); B.save(53, 40); B.save(6, 34); B.save(6, 22); B.save(53, 16);
     } },
-  { name: 'ГРУЗОВОЙ ЛИФТ', task: 'Продержись, пока лифт едет наверх', obj: 'lift', ground: 999, dark: .5, power: true,
+  { name: 'ГРУЗОВОЙ ЛИФТ', task: 'Почини лифт и продержись, пока он едет наверх', obj: 'lift', fix: 40, ground: 999, dark: .5, power: true,
     cols: 42, rows: 112, base: SOLID, pal: PAL.shaft, spawn: ['r', 'm', 'j', 'b', 'R'], crackCd: 1.2, crackN: 2, crackRange: 110,
-    tips: ['ты починил свет! встань в кабину — лифт поедет вверх', 'кабина открытая: жуки прыгают в неё из стен', 'стреляй и вверх: крестовина вверх + B'],
+    tips: ['встань в кабину: 40 секунд чиню лифт — отбивайся!', 'кабина открытая: жуки прыгают в неё из стен', 'стреляй и вверх: крестовина вверх + B'],
     build(B) {
       B.room(1, 103, 28, 108);                                                     // машинный зал и низ шахты
       B.room(13, 3, 28, 102);                                                      // шахта
@@ -245,9 +245,9 @@ const LEVELS = [
       B.exit(137, 16, 'ЧАЩА');
       B.start(3, 16); B.save(55, 16); B.save(101, 16);
     } },
-  { city: 1, name: 'ЧАЩА', task: 'Пройди через чащу к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 12, flow: 22,
+  { city: 1, name: 'ЧАЩА', task: 'Убегай от стаи богомолов к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 12, flow: 22, chase: 72,
     cols: 170, rows: 28, base: AIR, pal: PAL.forest, spawn: ['M', 'A', 'S'],
-    tips: ['в воде жми прыжок — гребёшь вверх', 'под упавшим стволом можно проползти', 'палочник притворяется веткой и оживает рядом'],
+    tips: ['за тобой несётся стая богомолов — не останавливайся!', 'под упавшим стволом — подкат: бег + вниз', 'в воде жми прыжок — гребёшь вверх'],
     build(B) {
       B.ground(0, 169, 16);
       B.tree(12, 4, 15); B.tree(40, 5, 15); B.tree(73, 4, 15); B.tree(132, 5, 15); B.tree(158, 4, 15);
@@ -417,8 +417,28 @@ const LEVELS = [
       B.bug(14, 18, 'w'); B.bug(24, 18, 'e'); B.bug(40, 18, 'o'); B.bug(80, 18, 'o');
       B.bug(51, 17, 'l'); B.bug(90, 17, 'e');
       B.bug(106, 18, 'w'); B.bug(116, 18, 'w'); B.bug(128, 18, 'w'); B.bug(112, 18, 'l');
-      B.exit(136, 18, 'ЧЕРВОТОЧИНЫ');
+      B.exit(136, 18, 'ШАХТА');
       B.start(3, 18); B.save(27, 18); B.save(72, 17); B.save(103, 18);
+    } },
+  { city: 2, name: 'СТАРАЯ ШАХТА', task: 'Прокатись на вагонетке через шахту', obj: 'reach', ground: 99, dark: .62, power: true, cartV: 110,
+    cols: 200, rows: 24, base: SOLID, pal: PAL.nora, spawn: ['v'], crackCd: 3, crackN: 2, crackRange: 170,
+    tips: ['нора вышла в заброшенную шахту. встань в вагонетку — покатит сама', 'балка впереди — пригнись (вниз)! стоя расшибёшься', 'осы пикируют сверху: крестовина вверх + B'],
+    build(B) {
+      const R = 18;
+      B.room(1, 8, 198, R);                                                         // штольня, рельсы в ряду 18, пол — 19
+      for (const [a, b] of [[22, 34], [48, 56], [84, 92], [116, 126], [150, 158], [166, 172]]) B.room(a, 4, b, 7);   // высокие своды
+      for (const [a, b] of [[30, 33], [58, 62], [95, 99], [128, 133], [160, 164]]) { B.fill(a, R + 1, b, 23, BG); B.acid(a, b, 23); }   // провалы под рельсами
+      for (const x of [44, 76, 110, 145, 178]) { B.beam(x, 8, R - 2); B.sign(x - 4, 12, '!'); }   // балки: стоя не проехать
+      B.fill(189, R - 1, 189, R);                                                   // упор в конце пути
+      for (let x = 12; x < 190; x += 16) B.lamp(x, 9);
+      B.cart(7, 189, R);
+      B.bug(28, 5, 'o'); B.bug(52, 5, 'o'); B.bug(88, 5, 'o'); B.bug(121, 5, 'o'); B.bug(154, 5, 'o'); B.bug(169, 5, 'o');
+      B.bug(68, 12, 'v'); B.bug(104, 11, 'v'); B.bug(140, 12, 'v'); B.bug(184, 11, 'v');
+      B.bug(40, R + 1, 'w'); B.bug(72, R + 1, 'w'); B.bug(114, R + 1, 'w'); B.bug(142, R + 1, 'w'); B.bug(175, R + 1, 'w');
+      B.bug(66, R + 1, 'e'); B.bug(137, R + 1, 'e');
+      B.crack(100, 8); B.crack(160, 8);
+      B.exit(195, R + 1, 'ЧЕРВОТОЧИНЫ');
+      B.start(3, R + 1); B.save(70, R + 1); B.save(120, R + 1); B.save(152, R + 1);
     } },
   { city: 2, name: 'ЧЕРВОТОЧИНЫ', task: 'Перебей червей-землероев', obj: 'guards', guard: 'w', guardTxt: 'черви', guardDone: 'все черви перебиты! путь открыт', need: 'сначала перебей червей',
     ground: 99, dark: .8, cols: 110, rows: 34, base: SOLID, pal: PAL.nora, spawn: ['l', 'l', 'm'],
@@ -478,7 +498,7 @@ let L, lvlN = 0, lv;
 function build(def) {
   COLS = def.cols; ROWS = def.rows; MAPW = COLS * T; MAPH = ROWS * T;
   grid = [...Array(ROWS)].map(() => new Uint8Array(COLS).fill(def.base));
-  const o = { saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], wins: [], logs: [], start: [3, 3], exit: null, heli: null, arena: null, lift: null };
+  const o = { saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], wins: [], logs: [], start: [3, 3], exit: null, heli: null, arena: null, lift: null, beams: [] };
   const set = (x, y, t) => { if (x >= 0 && x < COLS && y >= 0 && y < ROWS) grid[y][x] = t; };
   const B = {
     fill(x0, y0, x1, y1, t = SOLID) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); },
@@ -497,6 +517,8 @@ function build(def) {
     bug(x, y, kind = 'r') { o.bugs.push([x, y, kind]); },
     win(x, y, w = 2, h = 2) { o.wins.push([x, y, w, h]); },
     lift(x0, x1, y0, y1) { o.lift = { x0, x1, y0, y1 }; },
+    cart(x0, x1, y) { o.cart = { x0, x1, y }; },
+    beam(x, y0, y1) { B.fill(x, y0, x, y1); o.beams.push([x, y0, y1]); },
     ground(x0, x1, top) { B.fill(x0, top, x1, ROWS - 1); },
     rock(x0, y0, x1, y1) { B.fill(x0, y0, x1, y1, ROCK); },
     water(x0, y0, x1, y1) { B.fill(x0, y0, x1, y1, WATER); },
@@ -691,7 +713,7 @@ function resetGear(n) {
   for (const [l, g] of Object.entries(GUN_AT)) if (n > +l) { owned[g] = true; ammo[g] = WPN[g].give; }   // начали с середины — оружие уже есть
 }
 let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, lamps, signs, deco, toast = 0, toastTxt = '', flick = 0, flickT = 12;
-let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false;
+let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, cart = null, swarm = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false;
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
 function diff(i) {
   const k = i <= 6 ? i / 6 : i <= 13 ? .8 + (i - 7) / 10 : 1.3 + (i - 14) / 20;   // лес чуть легче конца города, нора — чуть легче конца леса
@@ -751,6 +773,10 @@ function startLevel(n) {
   const LF = lv.lift;
   lift = LF ? { k: 'lift', x: LF.x0 * T, w: (LF.x1 - LF.x0 + 1) * T, y: LF.y0 * T, y0: LF.y0 * T, top: LF.y1 * T, dx: 0, dy: 0, go: false } : null;
   movers = lift ? [lift] : [];
+  const CR = lv.cart;
+  cart = CR ? { k: 'cart', x: CR.x0 * T, x0: CR.x0 * T, end: CR.x1 * T, y: CR.y * T + 4, w: 40, dx: 0, dy: 0, v: 0, go: false, stop: false, wait: 1.2 } : null;
+  if (cart) movers.push(cart);
+  swarm = L.chase ? { x: 0, on: false, t: 1.2 } : null;
   for (const g of lv.logs) for (let i = 0; i < g.n; i++) {          // брёвна плывут по течению
     const span = (g.x1 - g.x0) * T;
     movers.push({ k: 'log', x: g.x0 * T + span * i / g.n, x0: g.x0 * T, x1: g.x1 * T, base: g.y * T - 5, y: g.y * T - 5, w: 40, dx: 0, dy: 0, ph: Math.random() * 6 });
@@ -799,7 +825,9 @@ function respawn() {
     enemies = enemies.filter(e => !e.boss);
   }
   ebullets = [];
-  const onCab = lift && lift.go, sx = onCab ? lift.x + lift.w / 2 - 5 : save.x, sy = onCab ? lift.y - 22 : save.y + 14 - 22;
+  if (cart) Object.assign(cart, { x: clamp(save.x - 14, cart.x0, cart.end - cart.w), go: false, stop: false, v: 0, dx: 0, wait: 1.2 });   // вагонетка ждёт у сохранения
+  if (swarm) Object.assign(swarm, { x: save.x - 170, on: false, t: 1.2 });
+  const cab = lift && lift.go ? lift : cart, sx = cab ? cab.x + cab.w / 2 - 5 : save.x, sy = cab ? cab.y - 22 : save.y + 14 - 22;
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
   P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
   cam = camX(); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
@@ -1138,7 +1166,21 @@ function update(dt) {
   // --- Грузовой лифт: едет вверх, как только встал в кабину ---
   if (lift) {
     lift.dy = 0;
-    if (!lift.go && P.mv === lift && !P.dead) { lift.go = true; showToast('лифт поехал! отстреливайся', 2.2); boom(.08); shake = .3; }
+    if (!lift.go && !P.dead) {
+      if (P.mv === lift) {                          // оборона: пока чиню лифт, жуки лезут со всех сторон
+        if (lift.fix === undefined) { lift.fix = 0; if (L.fix) { showToast(`🔧 чиню лифт — продержись ${L.fix} с!`, 2.4); boom(.06); } }
+        lift.fix += dt; lift.away = 0; lift.spawn = (lift.spawn ?? 1.5) - dt;
+        if (L.fix && lift.spawn <= 0 && enemies.filter(e => e.hp > 0 && e.k !== 'n').length < 9) {
+          lift.spawn = 2.3 - 1.3 * lift.fix / L.fix;
+          const k = pick(L.spawn);
+          if (Math.random() < .4) hatch(k, lift.x + 8 + Math.random() * (lift.w - 30), lift.y - 150, Math.sign(P.x - lift.x) || 1, 40, null);   // падают из шахты
+          else { hatch(k, 2 * T + 2, lift.y, 1, -60, null); explode(2 * T + 8, lift.y - 8, 8, ['#4a4048', '#2a2228']); }   // лезут из машинного зала
+          if (Math.random() < .3) beep(120, 60, .2, 'sawtooth', .04);
+        }
+        if (lift.fix >= (L.fix || 0)) { lift.go = true; showToast(L.fix ? 'лифт починен! поехали — отстреливайся' : 'лифт поехал! отстреливайся', 2.2); boom(.08); shake = .3; }
+        else if (Math.random() < dt * 4) beep(rnd(300, 900), rnd(200, 600), .05, 'square', .015);   // стук ключа
+      } else if (lift.fix !== undefined && (lift.away = (lift.away || 0) + dt) > .4 && lockMsgT <= 0) { showToast('вернись в кабину — ремонт стоит', 1.6); lockMsgT = 2; }
+    }
     if (lift.go && lift.y > lift.top) {
       lift.dy = -Math.min(30 * dt, lift.y - lift.top); lift.y += lift.dy;
       if (Math.random() < dt * 3) beep(55, 50, .15, 'sawtooth', .015);
@@ -1146,6 +1188,17 @@ function update(dt) {
     }
   }
 
+  if (cart) {                                          // вагонетка: едет сама, пока не упрётся
+    cart.dx = 0;
+    if (!cart.go && !cart.stop && P.mv === cart && !P.dead && (cart.wait -= dt) <= 0) { cart.go = true; showToast('поехали! балка — пригнись', 2); boom(.06); }
+    if (cart.go) {
+      cart.v = Math.min(L.cartV || 110, cart.v + 120 * dt);
+      cart.dx = Math.min(cart.v * dt, cart.end - cart.w - cart.x); cart.x += cart.dx;
+      if (Math.random() < dt * 7) beep(70 + Math.random() * 30, 50, .06, 'square', .012);
+      if (!P.dead && !P.on && !P.climb && Math.abs(P.x - cart.x - 15) < 60) P.x += cart.dx;   // в прыжке летишь вместе с ней
+      if (cart.x >= cart.end - cart.w - .1) { cart.go = false; cart.stop = true; shake = .4; boom(.08); showToast('приехали! к выходу', 2); }
+    }
+  }
   for (const m of movers) if (m.k === 'log') {          // брёвна: плывут и качаются
     const nx = m.x + (L.flow || 30) * dt, ny = m.base + Math.sin(time * 2 + m.ph) * 1.2;
     if (nx > m.x1 - m.w) { m.x = m.x0; m.dx = 0; m.y = ny; m.dy = 0; }
@@ -1165,6 +1218,21 @@ function update(dt) {
       }
     }
     if (touches(P, ACID) && good?.k !== 'noclip') { P.inv = 0; killPlayer(); }      // кислота
+    if (cart && cart.go && !P.dead && good?.k !== 'noclip') {
+      if (inSolid(P)) { P.inv = 0; killPlayer(); if (P.dead) showToast('💥 балка! пригибайся', 1.8); }
+      else if (P.on && P.mv !== cart && P.x < cart.x - 50) { P.inv = 0; killPlayer(); if (P.dead) showToast('отстал от вагонетки!', 1.8); }
+    }
+    if (swarm && P.dead <= 0) {                    // погоня: стая догоняет, если отстаёшь — подтягивается
+      if (!swarm.on) { if ((swarm.t -= dt) <= 0) { swarm.on = true; showToast('🦗 СТАЯ! БЕГИ!', 2); boom(.12); shake = .5; } }
+      else {
+        const gap = P.x - swarm.x;
+        swarm.x = Math.min(MAPW, swarm.x + (L.chase + Math.max(0, gap - 240) * 1.5) * dt * (good?.k === 'lag' ? .25 : 1));
+        if (Math.random() < dt * 10) beep(rnd(1200, 2600), 600, .03, 'square', .012);
+        for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w < swarm.x) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, GOO); }   // стая жрёт всех на пути
+        if (gap < 130) shake = Math.max(shake, .06);
+        if (P.x < swarm.x + 2) { P.inv = 0; killPlayer(); if (P.dead) showToast('стая догнала!', 1.8); }
+      }
+    }
     if (P.y > MAPH) { P.inv = 0; killPlayer(); }
     for (const s of saves) if (!s.on && hit(P, s)) {     // сохранение
       saves.forEach(o => o.on = false); s.on = true; save = s; showToast('💾 СОХРАНЕНО', 1.6); beep(600, 1200, .2, 'triangle', .05);
@@ -1547,7 +1615,7 @@ function target() {                     // куда показывает жёл�
       const n = enemies.filter(want).length;
       return { x: best.x + best.w / 2, y: best.y, txt: nest ? `${L.pal.nora ? 'кладки' : 'гнёзда'}: ${n} из ${nestsAll}` : `${L.guardTxt || 'свита'}: ${n} из ${guardsAll}` };
     }
-    if (L.obj === 'lift') return { x: lift.x + lift.w / 2, y: lift.y - 11, txt: lift.go ? `лифт: ${Math.round(100 * (lift.y0 - lift.y) / (lift.y0 - lift.top))}%` : 'встань в кабину лифта' };
+    if (L.obj === 'lift') return { x: lift.x + lift.w / 2, y: lift.y - 11, txt: lift.go ? `лифт: ${Math.round(100 * (lift.y0 - lift.y) / (lift.y0 - lift.top))}%` : lift.fix !== undefined && L.fix ? `ремонт: ${Math.min(99, Math.floor(100 * lift.fix / L.fix))}%` : 'встань в кабину лифта' };
     if (L.obj === 'boss') return { x: lv.arena.drop * T, y: lv.arena.top * T, txt: L.bossTxt || (L.city ? 'в логово богомола' : 'на вертолётную площадку') };
   }
   if (heli) return { x: heli.x + 30, y: heli.y + 12, txt: 'к вертолёту!' };
@@ -1855,6 +1923,21 @@ function drawProps() {
     for (let i = 6; i < w; i += 16) rect(x + i, y + 1, 2, 2, '#9aa0aa');
     rect(x, y - 14, 2, 14, '#7a7f88'); rect(x, y - 14, 10, 2, '#7a7f88'); rect(x + w - 2, y - 14, 2, 14, '#7a7f88'); rect(x + w - 10, y - 14, 10, 2, '#7a7f88');
   }
+  if (cart) {                                       // рельсы и вагонетка
+    const R = lv.cart.y, ry = R * T + 15, c0 = Math.max(lv.cart.x0 - 2, Math.floor(cam / T)), c1 = Math.min(lv.cart.x1, Math.floor(cam / T) + Math.ceil(W / T) + 1);
+    for (let cx = c0; cx <= c1; cx++) { const x = cx * T - cam; rect(x, ry, T, 1, '#8a8a90'); rect(x + 3, ry + 1, 4, 1, '#4a3424'); rect(x + 11, ry + 1, 4, 1, '#4a3424'); }
+    for (const [bx, b0, b1] of lv.beams) {          // деревянные балки с жёлто-чёрной полосой внизу
+      const x = bx * T - cam; if (x < -T || x > W) continue;
+      rect(x + 1, b0 * T, 14, (b1 - b0 + 1) * T, '#5a3e22'); rect(x + 3, b0 * T, 2, (b1 - b0 + 1) * T, '#7a5632'); rect(x + 11, b0 * T, 1, (b1 - b0 + 1) * T, '#3a2612');
+      for (let i = 0; i < 4; i++) rect(x + 1 + i * 4 - 0, (b1 + 1) * T - 5, 2, 5, i % 2 ? '#111' : '#ffd23f');
+    }
+    const x = cart.x - cam, y = cart.y, w = cart.w;
+    rect(x, y, w, 9, '#4a4048'); rect(x, y, w, 2, '#7a6a70'); rect(x + 2, y + 4, w - 4, 1, '#2a2228'); rect(x + 6, y + 2, 1, 7, '#2a2228'); rect(x + w - 7, y + 2, 1, 7, '#2a2228');
+    const rot = cart.x / 3;
+    for (const wx of [8, w - 8]) { ell(x + wx, y + 11, 3.5, 3.5, '#1a1a1e'); rect(x + wx + Math.cos(rot) * 2 - .5, y + 11 + Math.sin(rot) * 2 - .5, 1, 1, '#999'); }
+    rect(x + w - 3, y - 7, 2, 7, '#555'); rect(x + w - 4, y - 9, 4, 3, '#ffd23f');
+    if (cart.go && Math.random() < .3) parts.push({ x: cart.x + 8 + Math.random() * (w - 16), y: y + 14, vx: rnd(-40, -10), vy: rnd(-40, -10), life: .2, col: '#ffb020' });   // искры из-под колёс
+  }
   for (const lm of lamps) {
     const x = lm.x - cam, y = lm.y;
     if (lm.kind === 'cap') continue;                 // шляпку гриба-гиганта рисует deco
@@ -1930,6 +2013,16 @@ function drawHero() {
   const len = Math.hypot(P.ax, P.ay) || 1, gn = [[9, 2, '#bbb'], [11, 3, '#8a6a4a'], [13, 2, '#ccd'], [10, 4, '#6a8a3a']][wpn];
   ctx.strokeStyle = gn[2]; ctx.lineWidth = gn[1]; ctx.beginPath();
   ctx.moveTo(Math.round(cx), Math.round(cy)); ctx.lineTo(Math.round(cx + P.ax / len * gn[0]), Math.round(cy + P.ay / len * gn[0])); ctx.stroke();
+}
+function drawSwarm() {                           // стая богомолов: тёмная стена с глазами и лапами-косами
+  const fx = swarm.x - cam; if (fx < -30) return;
+  ctx.fillStyle = 'rgba(8,14,6,.9)'; ctx.fillRect(-20, camY - 10, fx + 12, H + 20);
+  for (let i = 0; i < 34; i++) {
+    const yy = camY + ((i * 53 + 17) % (H + 20)) - 10, ph = time * 8 + i * 1.7, xx = fx + 6 - (i % 6) * 9 + Math.sin(ph) * 4;
+    ctx.strokeStyle = i % 3 ? '#2e4a22' : '#4a6a2a'; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(xx, yy); ctx.lineTo(xx + 9, yy - 5 + Math.sin(ph * 1.3) * 4); ctx.lineTo(xx + 13, yy + 2); ctx.stroke();
+    rect(xx - 3, yy - 2, 2, 2, Math.sin(ph * .7) > -.6 ? '#ff3b3b' : '#401010'); rect(xx, yy - 2, 2, 2, Math.sin(ph * .7) > -.6 ? '#ff3b3b' : '#401010');
+  }
 }
 function legs(x, y, n, span, t, col) {
   ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
@@ -2289,6 +2382,7 @@ function drawDark() {
   for (const b of blasts) glow(b.x - cam, b.y + oy, 80, .95);
   for (const r of rocks) glow(r.x - cam, r.gy - 4 + oy, 22, .6);
   if (lift) glow(lift.x - cam + lift.w / 2, lift.y - 10 + oy, 90, .5);
+  if (cart) { glow(cart.x - cam + cart.w + 30, cart.y - 8 + oy, 100, .9); glow(cart.x - cam + cart.w / 2, cart.y + oy, 50, .6); }
   if (P && !P.dead) {
     const px = P.x - cam + 5, py = (P.crouch ? P.y + 5 : P.ay < 0 ? P.y + 4 : P.ay > 0 ? P.y + 12 : P.y + 9) + oy;
     glow(px, py, 42, .6);                                   // слабый свет вокруг героя
@@ -2338,6 +2432,7 @@ function drawHud() {
   for (let i = 0; i < lives; i++) { rect(8 + i * 10, 8, 6, 9, '#ffd23f'); rect(9 + i * 10, 17, 4, 3, '#c8102e'); }
   ctx.font = 'bold 8px monospace'; ctx.fillStyle = '#8a8a9a'; ctx.textAlign = 'left';
   ctx.fillText(`${lvlN - cityStart(L.city || 0) + 1}/${cityCount(L.city || 0)} ${L.name}`, 8, 32);
+  if (swarm && swarm.on && P) { const g = P.x - swarm.x; if (g < 240) { ctx.fillStyle = `rgba(255,30,30,${(1 - g / 240) * (.45 + .25 * Math.sin(time * 12))})`; ctx.fillRect(0, 0, 8, H); } }
   rect(8, 37, 52, 4, '#222'); rect(8, 37, 52 * energy / 100, 4, energy >= 100 ? (Math.floor(time * 6) % 2 ? '#e0a0ff' : '#9b3dff') : '#6a2a9a');
   ctx.fillStyle = '#b48aff'; ctx.font = 'bold 7px monospace'; ctx.fillText('БАГ', 63, 42);
   const ow = owned.filter(Boolean).length > 1;
@@ -2395,6 +2490,7 @@ function draw() {
   if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss })[boss.parts[0].k](boss.parts[0]);
   drawPlayer();
   drawWater(); drawFore();
+  if (swarm) drawSwarm();
   drawVents();
   for (const b of bullets) {
     const x = b.x - cam;
@@ -2457,7 +2553,7 @@ window.__gear = { get wpn() { return wpn; }, set wpn(v) { wpn = v; }, get ammo()
   get good() { return good; }, get bad() { return bad; }, get blasts() { return blasts; }, get bullets() { return bullets; }, startGood, startBad(k) { bad = { k, warn: 1, t: BAD[k].d }; } };
 window.__game = { get P() { return P; }, get state() { return state; }, get cam() { return cam; }, get camY() { return camY; }, get boss() { return boss; },
   get enemies() { return enemies; }, get lvl() { return lvlN; }, get done() { return done; }, get exit() { return exit; }, get items() { return items; },
-  get heli() { return heli; }, get L() { return L; }, get lv() { return lv; }, get lift() { return lift; }, get rocks() { return rocks; }, get ebullets() { return ebullets; }, get movers() { return movers; },
+  get heli() { return heli; }, get L() { return L; }, get lv() { return lv; }, get lift() { return lift; }, get cart() { return cart; }, get swarm() { return swarm; }, get rocks() { return rocks; }, get ebullets() { return ebullets; }, get movers() { return movers; },
   startLevel, setState, T, cityStart };
 </script>
 </body>
