@@ -30,6 +30,19 @@
   #g.full { background: #9b3dff; opacity: .85; animation: pulse .5s infinite alternate; }
   @keyframes pulse { to { transform: scale(1.1); } }
   .lbl { position: absolute; left: 0; right: 0; top: 74px; font: 600 11px system-ui, sans-serif; color: #fff; opacity: .9; }
+  /* Меню разработки: выбор уровня и бессмертие */
+  #m { position: fixed; top: calc(env(safe-area-inset-top) + 40px); right: calc(env(safe-area-inset-right) + 10px); width: 40px; height: 32px;
+    border-radius: 8px; background: #2a2a34; border: 2px solid #555; color: #fff; font: bold 18px/28px system-ui, sans-serif; text-align: center; opacity: .55; }
+  #menu { position: fixed; inset: 0; background: rgba(8,8,12,.94); color: #fff; display: none; overflow-y: auto; touch-action: pan-y;
+    font: 600 14px system-ui, sans-serif; padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 16px) 20px calc(env(safe-area-inset-left) + 16px); box-sizing: border-box; }
+  #menu .top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  #menu h2 { margin: 0; font-size: 18px; color: #ffd23f; flex: 1; min-width: 160px; }
+  #menu h3 { margin: 8px 0 5px; font-size: 13px; color: #9a9aaa; letter-spacing: 1px; }
+  #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  #menu button { font: 600 12px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 10px; }
+  #menu button.cur { border-color: #ffd23f; }
+  #menu #god.on { background: #1f6a2a; border-color: #4f4; }
+  #menu #close { background: #5a1a22; border-color: #c8102e; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
     justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
   #port .ic { font-size: 54px; animation: rot 1.6s ease-in-out infinite; }
@@ -49,6 +62,8 @@
 <div id="a" class="ctl btn" data-z="a">A<div class="lbl">прыжок</div></div>
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
+<div id="m">☰</div>
+<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
 <div id="port"><div class="ic">📱</div>Поверни телефон боком</div>
 <script>
 'use strict';
@@ -845,7 +860,7 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
   }
 }
 function killPlayer() {
-  if (P.dead || P.inv > 0 || window.__god || good?.k === 'noclip') return;
+  if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
   P.dead = 1.2; lives--; shake = .3; P.climb = false;
   explode(P.x + 5, P.y + 10, 22, ['#4aa3ff', '#fff', '#ffd23f']);
   boom(); navigator.vibrate?.(120);
@@ -1131,6 +1146,7 @@ function updGlitch(dt, k) {
 
 // ===== Обновление =====
 function update(dt) {
+  if (menuOpen) return;                    // открыто меню уровней — игра стоит
   time += dt; stateT += dt;
   if (state !== 'play') {
     const k = input();
@@ -2438,6 +2454,7 @@ function drawHud() {
   if (swarm && swarm.on && P) { const g = P.x - swarm.x; if (g < 240) { ctx.fillStyle = `rgba(255,30,30,${(1 - g / 240) * (.45 + .25 * Math.sin(time * 12))})`; ctx.fillRect(0, 0, 8, H); } }
   rect(8, 37, 52, 4, '#222'); rect(8, 37, 52 * energy / 100, 4, energy >= 100 ? (Math.floor(time * 6) % 2 ? '#e0a0ff' : '#9b3dff') : '#6a2a9a');
   ctx.fillStyle = '#b48aff'; ctx.font = 'bold 7px monospace'; ctx.fillText('БАГ', 63, 42);
+  if (IMMORTAL) { ctx.fillStyle = '#4f4'; ctx.fillText('БЕССМЕРТИЕ', 8, 66); }
   const ow = owned.filter(Boolean).length > 1;
   if (ow) { ctx.fillStyle = wpn ? WPN[wpn].col : '#ccc'; ctx.font = 'bold 8px monospace'; ctx.fillText(`${WPN[wpn].n} ${wpn ? ammo[wpn] : '∞'}`, 8, 54); }
   if (ow !== wShown) { wShown = ow; wEl.style.display = ow ? 'block' : 'none'; }
@@ -2485,7 +2502,7 @@ function draw() {
       ['A — прыжок, B — огонь, крестовина — бег и прицел', 9, '#ccc', 102], ['вверх/вниз у лестницы — лезть, вниз+вбок — ползти', 9, '#ccc', 116],
       ['вниз + A на перекрытии — спрыгнуть', 9, '#ccc', 130], ['💾 дискеты — сохранения, гнёзда можно расстрелять', 9, '#ccc', 144],
       ['в прыжке у стены A — от стены · бег + вниз — подкат', 9, '#ccc', 158],
-      [blink ? 'жми A или B, чтобы начать' : '', 11, '#fff', 176]]);
+      [blink ? 'жми A или B, чтобы начать' : '', 11, '#fff', 176], ['☰ справа вверху — выбрать уровень, бессмертие', 8, '#8a8a9a', 192]]);
     return;
   }
   ctx.translate(0, -Math.round(camY));
@@ -2537,6 +2554,32 @@ window.__overview = (n, s = 4) => {
   if (o.exit) dot(o.exit[0], o.exit[1], '#0f8', 2); dot(o.start[0], o.start[1], '#fff', 2); if (o.heli) dot(o.heli[0], o.heli[1], '#0ff', 2);
   return c.toDataURL();
 };
+
+// ===== Меню разработки: выбор уровня и бессмертие (пока делаем игру) =====
+let menuOpen = false, IMMORTAL = false;
+try { IMMORTAL = localStorage.getItem('strel-god') === '1'; } catch (e) {}
+const menuEl = document.getElementById('menu'), mBtn = document.getElementById('m'), godBtn = document.getElementById('god');
+function godLabel() { godBtn.textContent = `БЕССМЕРТИЕ: ${IMMORTAL ? 'ВКЛ' : 'ВЫКЛ'}`; godBtn.classList.toggle('on', IMMORTAL); }
+function openMenu(on) {
+  menuOpen = on; menuEl.style.display = on ? 'block' : 'none'; releaseAll();
+  if (!on) return;
+  const box = document.getElementById('lvls'); box.innerHTML = '';
+  CITY.forEach((name, c) => {
+    const h = document.createElement('h3'); h.textContent = name; box.appendChild(h);
+    const row = document.createElement('div'); row.className = 'row'; box.appendChild(row);
+    for (let i = 0; i < cityCount(c); i++) {
+      const n = cityStart(c) + i, b = document.createElement('button');
+      b.textContent = `${i + 1}. ${LEVELS[n].name}`; if (n === lvlN && state !== 'title') b.className = 'cur';
+      b.onclick = () => { openMenu(false); score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n); };
+      row.appendChild(b);
+    }
+  });
+  godLabel();
+}
+for (const el of [menuEl, mBtn]) for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend']) el.addEventListener(t, e => e.stopPropagation());   // мимо управления игрой
+mBtn.onclick = () => openMenu(true);
+document.getElementById('close').onclick = () => openMenu(false);
+godBtn.onclick = () => { IMMORTAL = !IMMORTAL; try { localStorage.setItem('strel-god', IMMORTAL ? '1' : '0'); } catch (e) {} godLabel(); };
 
 // ===== Цикл: физика с фиксированным шагом =====
 const QC = location.search.match(/[?&]city=(\d+)/), QL = +(location.search.match(/[?&]lvl=(\d+)/)?.[1] || 1);
