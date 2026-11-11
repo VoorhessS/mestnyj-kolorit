@@ -155,6 +155,7 @@ const LEVELS = [
       B.acid(50, 62, 27); B.plat(51, 54, 25); B.plat(56, 59, 25); B.plat(61, 62, 25);
       B.sign(66, 24, '<'); B.sign(16, 24, '<');
       B.shaft(2, 13, 26); B.room(4, 25, 4, 26); B.door(2, 12, 12); B.door(3, 12, 12);   // вентшахта в холл, люк заперт до тока
+      B.item('life', 2, 15);                                                        // награда наверху шахты (друг, 11.11)
       B.item('switch', 9, 27);
       B.nest(30, 19); B.nest(75, 19); B.nest(22, 27); B.nest(45, 12);
       B.bug(70, 27); B.bug(30, 27, 'R'); B.bug(85, 19); B.bug(52, 12); B.bug(14, 27, 'R'); B.bug(66, 19);
@@ -222,6 +223,8 @@ const LEVELS = [
       B.room(13, 3, 28, 102);                                                      // шахта
       B.room(29, 3, 38, 6); B.exit(36, 7, 'ЧЕРДАК');                               // выход наверху
       B.lift(13, 28, 109, 7);
+      B.room(29, 107, 30, 108); B.shaft(31, 7, 108); B.plat(31, 32, 7);           // вентшахта справа: выпал из лифта — лезь прыжками от стен
+      for (let r = 96; r > 12; r -= 12) B.plat(31, 32, r);                         // полки — передохнуть
       for (let r = 98; r > 10; r -= 12) { B.deco('ldoor', 12, r - 3, 12, r - 1); B.deco('ldoor', 29, r - 3, 29, r - 1); B.lamp(r % 24 ? 14 : 27, r - 9); }
       for (let r = 99, i = 0; r >= 12; r -= 7, i++) B.crack(i % 2 ? 28 : 13, r);
       B.lamp(5, 103); B.lamp(20, 103); B.sign(10, 105, '>');
@@ -415,37 +418,42 @@ const LEVELS = [
     } },
   { city: 2, name: 'ГРИБНИЦА', task: 'Уничтожь все кладки яиц', obj: 'nests', ground: 99, dark: .8,
     cols: 120, rows: 28, base: SOLID, pal: PAL.nora, spawn: ['l', 'm', 'l'],
-    tips: ['светятся грибы… и не только грибы: огонёк в темноте может укусить', 'на уступы ведут корни — встань у корня и жми вверх', 'кокон лучше сбить, пока не вылупилась оса'],
+    tips: ['кладки везде: на уступах, у дальней стены и в ходе над пещерой', 'в ход наверху — по щели между столбами у дальней стены, прыжками от стены к стене', 'выход дальше — там, где начал. назад из хода — спрыгни в дыру'],
     build(B) {
       B.room(1, 6, 118, 21);
       B.fill(20, 6, 24, 8); B.fill(60, 6, 66, 9); B.fill(100, 6, 104, 7);           // сталактиты
       B.fill(36, 14, 52, 15); B.lad(35, 14, 21);                                    // уступ A
       B.fill(80, 12, 94, 13); B.lad(79, 12, 21);                                    // уступ B
       B.slime(56, 62, 22); B.acid(70, 72, 22);
-      B.bigshroom(28, 18, 22); B.bigshroom(66, 17, 22); B.bigshroom(110, 18, 22);
-      for (const [x, y] of [[12, 22], [44, 14], [54, 22], [86, 12], [98, 22], [76, 22]]) B.shroom(x, y);
-      B.nest(20, 22); B.nest(47, 14); B.nest(89, 12); B.nest(106, 22);
+      B.bigshroom(28, 18, 22); B.bigshroom(66, 17, 22); B.bigshroom(116, 18, 22);
+      B.fill(110, 6, 110, 19); B.fill(113, 6, 113, 19); B.room(111, 2, 112, 5);    // щель между столбами — наверх прыжками от стен
+      B.room(74, 2, 110, 4); B.room(76, 5, 77, 5);                                 // ход над пещерой, дыра вниз
+      for (const [x, y] of [[12, 22], [44, 14], [54, 22], [86, 12], [98, 22], [76, 22], [100, 5], [82, 5]]) B.shroom(x, y);
+      B.nest(20, 22); B.nest(47, 14); B.nest(89, 12); B.nest(106, 22); B.nest(90, 5);
+      B.bug(96, 5, 'l'); B.bug(84, 5, 'e'); B.bug(116, 22, 'l'); 
       B.bug(32, 22, 'e'); B.bug(77, 22, 'e'); B.bug(100, 22, 'e');
       B.bug(48, 22, 'o'); B.bug(96, 22, 'o');
       B.bug(26, 22, 'l'); B.bug(64, 22, 'l'); B.bug(92, 22, 'l'); B.bug(51, 14, 'l');
-      B.exit(116, 22, 'КОКОНЫ');
-      B.start(3, 22); B.save(40, 22); B.save(82, 22); B.save(102, 22);
+      B.exit(2, 22, 'КОКОНЫ');
+      B.start(6, 22); B.save(40, 22); B.save(82, 22); B.save(102, 22);
     } },
   { city: 2, name: 'КОКОНЫ', task: 'Сбей все коконы', obj: 'guards', guard: 'o', guardTxt: 'коконы', guardDone: 'все коконы сбиты! ход наверх открыт', need: 'сначала сбей все коконы',
     ground: 99, dark: .8, cols: 90, rows: 40, base: SOLID, pal: PAL.nora, spawn: ['l', 'v'],
-    tips: ['коконы висят под потолком — целься вверх: крестовина вверх + B', 'подойдёшь — кокон задрожит, через пару секунд вылетит оса', 'оса кружит, потом пикирует — отходи в сторону'],
+    tips: ['коконы висят под потолком — целься вверх: крестовина вверх + B', 'ход дальше — внизу, где начал. с верхнего яруса туда ведёт колодец у левой стены', 'по колодцу и наверх можно: прыжками от стены к стене'],
     build(B) {
       B.room(1, 30, 88, 35);                                                        // нижний ярус
       B.room(4, 20, 86, 25);                                                        // средний
       B.room(1, 10, 88, 15);                                                        // верхний
       B.lad(80, 26, 35); B.lad(8, 16, 25);
+      B.room(1, 16, 2, 29);                                                         // колодец у левой стены: сверху вниз до старта
+      B.bug(84, 16, 'o'); B.bug(10, 36, 'l');
       B.acid(40, 45, 26); B.crumble(42, 43, 24);                                    // кислотная яма и осыпающийся островок
       B.slime(20, 26, 36); B.slime(60, 66, 16);
       for (const [x, y] of [[10, 36], [34, 36], [74, 36], [22, 26], [52, 26], [70, 26], [30, 16], [56, 16], [80, 16]]) B.shroom(x, y);
       B.bug(20, 36, 'o'); B.bug(60, 36, 'o'); B.bug(30, 26, 'o'); B.bug(66, 26, 'o'); B.bug(24, 16, 'o'); B.bug(50, 16, 'o');
       B.bug(40, 36, 'l'); B.bug(70, 36, 'e'); B.bug(56, 26, 'l'); B.bug(16, 26, 'e'); B.bug(36, 16, 'l'); B.bug(70, 16, 'e');
-      B.exit(86, 16, 'ОЗЕРО');
-      B.start(3, 36); B.save(48, 36); B.save(76, 26); B.save(12, 16);
+      B.exit(2, 36, 'ОЗЕРО');
+      B.start(6, 36); B.save(48, 36); B.save(76, 26); B.save(12, 16);
     } },
   { city: 2, name: 'ПОДЗЕМНОЕ ОЗЕРО', task: 'Переберись через озеро', obj: 'reach', ground: 99, dark: .78,
     cols: 140, rows: 28, base: SOLID, pal: PAL.nora, spawn: ['l'],
@@ -487,7 +495,7 @@ const LEVELS = [
     } },
   { city: 2, name: 'ЧЕРВОТОЧИНЫ', task: 'Перебей червей-землероев', obj: 'guards', guard: 'w', guardTxt: 'черви', guardDone: 'все черви перебиты! путь открыт', need: 'сначала перебей червей',
     ground: 99, dark: .8, cols: 110, rows: 34, base: SOLID, pal: PAL.nora, spawn: ['l', 'l', 'm'],
-    tips: ['черви ползут к тебе под землёй — стой и жди горку', 'горка задрожала — отбеги на пару шагов, развернись и стреляй', 'по корням можно лазить между ярусами'],
+    tips: ['черви ползут к тебе под землёй — стой и жди горку', 'горка задрожала — отбеги на пару шагов, развернись и стреляй', 'путь дальше — наверху, где начал. по корням можно лазить между ярусами'],
     build(B) {
       B.room(1, 4, 108, 8);                                                         // верхний ход, пол 9
       B.room(1, 14, 108, 18);                                                       // средний, пол 19
@@ -499,17 +507,19 @@ const LEVELS = [
       for (const [x, y] of [[20, 9], [55, 9], [85, 9], [35, 19], [95, 19], [15, 29], [66, 29], [100, 29]]) B.shroom(x, y);
       B.bug(40, 9, 'w'); B.bug(70, 9, 'w'); B.bug(45, 19, 'w'); B.bug(84, 19, 'w'); B.bug(30, 29, 'w');
       B.bug(90, 9, 'e'); B.bug(52, 19, 'l'); B.bug(20, 29, 'e'); B.bug(96, 29, 'l'); B.bug(56, 9, 'o');
-      B.exit(106, 29, 'КЛАДКА');
-      B.start(3, 9); B.save(62, 9); B.save(92, 19); B.save(52, 29);
+      B.bug(104, 19, 'l'); B.bug(74, 29, 'e'); B.bug(16, 19, 'o');
+      B.exit(2, 9, 'КЛАДКА');
+      B.start(6, 9); B.save(62, 9); B.save(92, 19); B.save(52, 29);
     } },
   { city: 2, name: 'КЛАДКА', task: 'Уничтожь кладку матки', obj: 'nests', ground: 99, dark: .78, art: 7, under: true,
     cols: 130, rows: 26, base: SOLID, pal: PAL.nora, spawn: ['l', 'm', 'v'],
-    tips: ['матка ворочается — с потолка сыплются камни, смотри на метки', 'кладки на уступах — забирайся по корням', 'осыпающийся пол долго не держит — не стой'],
+    tips: ['матка ворочается — с потолка сыплются камни, смотри на метки', 'кладки на уступах и у дальней стены — забирайся по корням', 'ход к логову — там, где начал. осыпающийся пол долго не держит'],
     build(B) {
       B.room(1, 4, 128, 21);
       B.fill(20, 15, 34, 16); B.lad(19, 15, 21);                                    // уступ 1
       B.fill(55, 12, 70, 13); B.lad(54, 12, 21);                                    // уступ 2
       B.fill(90, 15, 104, 16); B.lad(89, 15, 21);                                   // уступ 3
+      B.fill(112, 10, 124, 11); B.lad(111, 10, 21); B.nest(120, 10); B.bug(116, 10, 'l');   // уступ 4 у дальней стены
       B.crumble(40, 44, 22); B.room(40, 23, 44, 23); B.acid(40, 44, 24);           // осыпающийся мост над кислотой
       B.slime(74, 80, 22); B.slime(108, 114, 22);
       B.bigshroom(48, 17, 22); B.bigshroom(84, 18, 22); B.bigshroom(120, 17, 22);
@@ -518,8 +528,8 @@ const LEVELS = [
       B.bug(30, 22, 'w'); B.bug(110, 22, 'w'); B.bug(60, 22, 'e'); B.bug(100, 22, 'e');
       B.bug(26, 22, 'o'); B.bug(62, 22, 'o'); B.bug(96, 22, 'o');
       B.bug(50, 22, 'l'); B.bug(86, 22, 'l'); B.bug(67, 12, 'l');
-      B.exit(126, 22, 'ЛОГОВО');
-      B.start(3, 22); B.save(47, 22); B.save(85, 22); B.save(116, 22);
+      B.exit(2, 22, 'ЛОГОВО');
+      B.start(6, 22); B.save(47, 22); B.save(85, 22); B.save(116, 22);
     } },
   { city: 2, name: 'ЛОГОВО МАТКИ', task: 'Победи личинку-матку', obj: 'boss', bossTxt: 'в логово матки', ground: 99, dark: .72,
     cols: 74, rows: 22, base: SOLID, pal: PAL.nora, spawn: ['l', 'm'],
@@ -558,8 +568,8 @@ const LEVELS = [
       B.start(5, 17);
     } },
   { city: 3, name: 'ГЕНЕРАТОРНАЯ', task: 'Дай аварийный ток: найди рубильник', obj: 'switch', itemTxt: '⚡ ток пошёл! свет есть, дверь открыта', ground: 99, dark: .88,
-    cols: 112, rows: 34, base: SOLID, pal: PAL.lab, spawn: ['k', 'h', 'x'],
-    tips: ['света нет: мутанты перегрызли кабели', 'разрядник наелся проводов: засветился — сейчас ударит током по полу, прыгай', 'рубильник на верхнем ярусе. дашь ток — загорится свет'],
+    cols: 116, rows: 34, base: SOLID, pal: PAL.lab, spawn: ['k', 'h', 'x'],
+    tips: ['рубильник на верхнем ярусе, а дверь в виварий — внизу, где начал', 'справа вентшахта: вниз — просто прыгай, наверх — прыжками от стены к стене', 'разрядник засветился — сейчас ударит током по полу, прыгай'],
     build(B) {
       B.room(1, 24, 110, 29);                                                       // нижний зал, пол — 30
       B.room(1, 14, 110, 19);                                                       // средний ярус, пол — 20
@@ -571,18 +581,19 @@ const LEVELS = [
       B.acid(70, 72, 20); B.fill(88, 18, 90, 19); B.deco('box', 88, 18, 90, 19);
       B.plat(40, 46, 7); B.fill(56, 8, 58, 9); B.deco('box', 56, 8, 58, 9);
       B.deco('pipe', 1, 24, 110, 24); B.deco('pipe', 1, 14, 110, 14); B.deco('bio', 96, 5, 97, 6);
-      B.item('switch', 92, 10); B.door(100, 4, 9); B.exit(107, 10, 'ВИВАРИЙ');
+      B.item('switch', 92, 10); B.door(5, 24, 29); B.exit(2, 30, 'ВИВАРИЙ');         // дверь внизу у старта
+      B.shaft(112, 4, 29); B.room(111, 8, 111, 9); B.room(111, 28, 111, 29); B.sign(108, 7, '>');   // вентшахта справа во всю высоту
       for (const x of [10, 30, 50, 70, 90]) { B.lamp(x, 24); B.lamp(x + 6, 14); B.lamp(x + 3, 4); }
       B.sign(98, 27, '^'); B.sign(12, 17, '^'); B.sign(80, 7, '>');
       B.bug(30, 30, 'k'); B.bug(52, 30, 'h'); B.bug(70, 30, 'k'); B.bug(90, 30, 'x');
       B.bug(80, 20, 'h'); B.bug(60, 20, 'k'); B.bug(20, 20, 'x'); B.bug(45, 20, 'k');
       B.bug(30, 10, 'k'); B.bug(64, 10, 'h'); B.bug(80, 10, 'k');
       B.crack(40, 26); B.crack(95, 16); B.crack(50, 6);
-      B.start(3, 30);
+      B.start(8, 30);
     } },
   { city: 3, name: 'ВИВАРИЙ', task: 'Разбей все инкубаторы', obj: 'nests', nestTxt: 'инкубаторы', nestDone: 'все инкубаторы разбиты! дверь открыта', ground: 99, dark: .86,
     cols: 124, rows: 28, base: SOLID, pal: PAL.lab, spawn: ['k', 'x', 'k'],
-    tips: ['в колбах сидят мутанты: подойдёшь — стекло лопнет', 'газовик раздувается и пускает ядовитое облако — не лезь в него', 'лопнет газовик — тоже облако. бей издалека'],
+    tips: ['инкубаторы в зале, на галереях и в вентиляции над залом', 'в вентиляцию — по щели между колоннами у дальней стены, прыжками от стены к стене', 'дверь дальше — там, где начал. газовик лопается облаком — бей издалека'],
     build(B) {
       B.room(1, 6, 122, 21);                                                        // зал, пол — 22
       B.fill(28, 14, 46, 15); B.lad(27, 14, 21);                                    // галерея A
@@ -590,17 +601,20 @@ const LEVELS = [
       B.acid(56, 58, 22);
       B.fill(16, 21, 19, 21); B.deco('desk', 16, 21, 19, 21); B.fill(100, 21, 103, 21); B.deco('desk', 100, 21, 103, 21);
       for (const [x, y] of [[12, 22], [40, 14], [64, 22], [84, 12], [106, 22]]) B.flask(x, y);
-      for (const [x, y] of [[22, 22], [32, 14], [76, 12], [116, 22]]) B.tube(x, y);
+      for (const [x, y] of [[22, 22], [32, 14], [76, 12], [112, 22]]) B.tube(x, y);
+      B.fill(116, 6, 116, 19); B.fill(119, 6, 119, 19); B.room(117, 2, 118, 5);    // щель между колоннами — в вентиляцию
+      B.room(96, 2, 116, 4); B.room(98, 5, 99, 5); B.deco('duct', 96, 2, 116, 4);   // вентиляция над залом, дыра вниз
+      B.nest(106, 5); B.bug(110, 5, 'k');
       B.deco('pipe', 1, 6, 122, 6); B.deco('bio', 50, 8, 51, 9);
       for (const x of [10, 30, 52, 74, 96, 114]) B.lamp(x, 6);
       B.nest(26, 22); B.nest(44, 14); B.nest(72, 12); B.nest(88, 22); B.nest(110, 22);
       B.bug(50, 22, 't'); B.bug(96, 22, 't'); B.bug(36, 22, 'k'); B.bug(80, 22, 'k'); B.bug(68, 22, 'x'); B.bug(31, 14, 'k');
-      B.exit(120, 22, 'ГЕНЕТИКА');
-      B.start(3, 22);
+      B.exit(2, 22, 'ГЕНЕТИКА');
+      B.start(6, 22);
     } },
   { city: 3, name: 'ОТДЕЛ ГЕНЕТИКИ', task: 'Найди пропуск в карантин', obj: 'card', ground: 99, dark: .9,
     cols: 132, rows: 28, base: SOLID, pal: PAL.lab, spawn: ['k', 'u', 'x'],
-    tips: ['тут бродят невидимки: их видно только в луче фонаря', 'фонарь светит туда, куда целишься — води прицелом', 'коридор завален — иди через кабинеты и вентиляцию'],
+    tips: ['пропуск — в дальнем кабинете, а дверь в карантин — там, где начал', 'коридор завален — иди через кабинеты и вентиляцию', 'невидимок видно только в луче фонаря: води прицелом'],
     build(B) {
       B.room(1, 16, 130, 21);                                                       // коридор, пол — 22
       B.fill(40, 16, 46, 21); B.deco('rubble', 40, 16, 46, 21); B.fill(86, 16, 92, 21); B.deco('rubble', 86, 16, 92, 21);   // завалы
@@ -610,14 +624,14 @@ const LEVELS = [
       B.fill(20, 10, 23, 10); B.deco('desk', 20, 10, 23, 10); B.fill(54, 10, 57, 10); B.deco('desk', 54, 10, 57, 10); B.fill(100, 10, 103, 10); B.deco('desk', 100, 10, 103, 10);
       B.flask(28, 11); B.flask(76, 11); B.tube(118, 11); B.tube(14, 11);
       B.acid(74, 76, 22); B.item('life', 82, 22);                                   // тупик в середине коридора: секрет
-      B.item('card', 124, 11); B.door(120, 16, 21); B.exit(127, 22, 'ЛЕСТНИЦА');
+      B.item('card', 124, 11); B.door(5, 16, 21); B.exit(2, 22, 'ЛЕСТНИЦА');        // дверь — у старта
       B.deco('pipe', 1, 16, 130, 16); B.deco('bio', 60, 7, 61, 8);
       for (const x of [12, 30, 56, 78, 100, 120]) B.lamp(x, 6);
       for (const x of [20, 70, 116]) B.lamp(x, 16);
       B.sign(36, 9, '>'); B.sign(82, 9, '>'); B.sign(112, 14, 'v'); B.sign(14, 19, '^');
       B.bug(30, 11, 'u'); B.bug(56, 11, 'u'); B.bug(100, 11, 'u'); B.bug(70, 22, 'u'); B.bug(116, 22, 'u');
       B.bug(24, 22, 'k'); B.bug(62, 11, 'x'); B.bug(82, 11, 'k'); B.bug(122, 11, 'k'); B.bug(56, 22, 'k');
-      B.start(3, 22);
+      B.start(8, 22);
     } },
   { city: 3, name: 'ВЫБРОС ГАЗА', task: 'Убегай наверх от ядовитого газа', obj: 'reach', ground: 99, dark: .72, power: true, alarm: true, fume: 13,
     cols: 32, rows: 80, base: SOLID, pal: PAL.lab, spawn: ['k', 'h'],
@@ -973,6 +987,10 @@ function diff(i) {
   return { cd: 3.6 - 1.5 * s, kids: 1 + Math.round(1.6 * s), spd: 58 + 26 * s, nhp: 6 + Math.round(4 * k), crack: 5.5 - 2 * s };
 }
 // Виды жуков Города N1: ширина, высота, жизни, скорость (доля), очки
+// Урон героя при касании (из 100 HP): сильные выносят шкалу за 3–4 удара, боссы — за 2
+const DMG = { m: 8, y: 10, r: 12, l: 12, F: 12, M: 15, v: 15, k: 15, G: 15, c: 18, j: 18, S: 18, b: 18, A: 20, e: 20, q: 20, h: 20, t: 20,
+  R: 22, u: 22, w: 25, x: 25, s: 30, H: 30, Z: 34 };
+const EDMG = { acid: 15, spit: 20, stone: 15, glob: 34, zap: 25, wave: 50, gas: 20 }, HP_MAX = 100, BOSS_DMG = 50;
 const BUGS = {
   r: [18, 14, 1, 1, 100],      // бегун
   R: [24, 18, 3, .62, 200],    // бронированный
@@ -1122,6 +1140,7 @@ function respawn() {
   if (fume) Object.assign(fume, { y: Math.min(MAPH + 40, save.y + 14 + 170), on: false, t: 2 });   // газ снова внизу
   const cab = lift && lift.go ? lift : cart, sx = cab ? cab.x + cab.w / 2 - 5 : save.x, sy = cab ? cab.y - 22 : save.y + 14 - 22;
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
+  hp = HP_MAX; hurtT = 9;
   P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
   cam = camX(); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
 }
@@ -1133,6 +1152,14 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
     const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 120;
     parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30, life: .4 + Math.random() * .4, col: col[i % col.length] });
   }
+}
+let hp = HP_MAX, hurtT = 9, hpFlash = 0;
+function hurt(d) {                       // удар снимает часть шкалы, на нуле — минус жизнь
+  if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
+  hp -= d; hurtT = 0; hpFlash = .35;
+  if (hp <= 0) { hp = 0; killPlayer(); return; }
+  P.inv = .9; shake = Math.max(shake, .15); beep(220, 90, .15, 'square', .04); navigator.vibrate?.(40);
+  explode(P.x + 5, P.y + 10, 6, ['#c8102e', '#fff', '#ff7a7a']);
 }
 function killPlayer() {
   if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
@@ -1152,7 +1179,7 @@ function spawnWave() {
   const spots = proto.filter(e => e.k !== 'n' && e.k !== 'o' && e.k !== 'w' && !e.gd && !e.jar && !e.hang && Math.hypot(e.x - P.x, e.y - P.y) > 220).map(e => [e.x + e.w / 2, e.y + e.h]);
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
   if (!spots.length) return;
-  const n = clamp(Math.round(spots.length * .8) + 2, 5, 12);       // мест мало — по двое на место
+  const n = clamp(Math.round(spots.length * .5) + 1, 4, 8);       // мест мало — по двое на место
   for (let i = 0; i < n; i++) {
     const k = pick(L.spawn), [sx, sy] = spots[i % spots.length], e = mkBug(k, sx - BUGS[k][0] / 2 + (i >= spots.length ? 10 : 0), sy);
     e.sleep = true; e.vx = 0; e.id = proto.length; proto.push(structuredClone(e)); enemies.push(e);
@@ -1161,7 +1188,7 @@ function spawnWave() {
   showToast('⚠ НОВАЯ ВОЛНА! пробивайся назад', 2.6); boom(.1); shake = .4; beep(140, 60, .6, 'sawtooth', .05);
 }
 const NEED = { key: 'сначала найди ключ', nests: 'сначала уничтожь все гнёзда', switch: 'сначала включи рубильник',
-  tools: 'сначала найди инструменты', guards: 'сначала перебей свиту', lift: 'лифт ещё едет' };
+  tools: 'сначала найди инструменты', guards: 'сначала перебей свиту', lift: 'сначала почини лифт' };
 const ITEM = { key: '🔑 ключ у тебя! дверь открыта', switch: '⚡ ток пошёл! люк открыт', tools: '🧰 инструменты у тебя! чиним лифт',
   radio: '📻 рация цела! но в эфире только шум' };
 NEED.radio = 'сначала найди рацию'; NEED.boss = 'сначала победи богомола';
@@ -1193,7 +1220,7 @@ function rhino(dt, b, pc) {
   if (b.x + b.w > right) { b.x = right - b.w; b.wall = true; }
   if (b.on && air && (b.st === 'drop' || b.st === 'hop')) { b.st = 'walk'; b.t = 1.2; shake = .6; boom(.1); }
   if (b.st === 'charge' && b.wall) { b.st = 'stun'; b.t = 1.3; b.vx = 0; shake = .6; boom(.1); explode(b.dir > 0 ? b.x + b.w : b.x, b.y + 10, 10, ['#8a6a4a', '#5a4030', '#fff']); }
-  if (!P.dead && hit(pc, b)) killPlayer();
+  if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
 
 // Богомол: держит дистанцию и кидает валуны (с меткой), вблизи бьёт косами в землю — косы застревают, тут его и бей
@@ -1223,7 +1250,7 @@ function mantis(dt, b, pc) {
   if (b.x < left) b.x = left;
   if (b.x + b.w > right) b.x = right - b.w;
   if (b.on && air && (b.st === 'drop' || b.st === 'leap')) { b.st = 'walk'; b.t = 1; shake = .5; boom(.1); }
-  if (!P.dead && hit(pc, b)) killPlayer();
+  if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
 
 // ===== Игрок: бег, прыжок, лестницы, ползком =====
@@ -1241,6 +1268,7 @@ function wallSide() {                       // стена вплотную сл�
 }
 function updatePlayer(dt, k) {
   P.inv = Math.max(0, P.inv - dt); P.cd -= dt; P.drop -= dt; P.slideCd = (P.slideCd || 0) - dt;
+  hurtT += dt; hpFlash -= dt; if (hurtT > 1.5 && hp < HP_MAX && !P.dead) hp = Math.min(HP_MAX, hp + 2.5 * dt);   // шкала сама восстанавливается
   const pdy = P.pdy; P.pdy = k.dy;
   if (good?.k === 'noclip') {               // баг-ноклип: летаешь сквозь стены в любую сторону
     P.climb = false; P.crouch = false; P.h = 22; P.on = false; P.slide = 0;
@@ -1392,11 +1420,8 @@ function endGood() {
   good = null; clone = null;
 }
 function endBad() {
-  if (bad.k === 'lag' && !P.dead && !(bad.mv && bad.mv.k === 'log')) {   // откат: тебя возвращает туда, где был секунды назад
-    const cab = bad.mv || ((lift && lift.go) || (cart && cart.go) ? (P.mv || null) : null);
-    P.x = bad.x + (bad.mv ? cab.x : 0); P.y = bad.y + (bad.mv ? cab.y : 0);
-    if (!bad.mv && cab) { P.x = clamp(P.x, cab.x, cab.x + cab.w - P.w); P.y = cab.y - 22; }   // откатился мимо кабины — всё равно в кабину
-    P.h = 22; P.vx = 0; P.vy = 0; P.climb = false; P.inv = Math.max(P.inv, .8);
+  if (bad.k === 'lag' && !P.dead) {             // откат: тебя возвращает туда, где был секунды назад (с лифта выкидывает — это фишка)
+    P.x = bad.x; P.y = bad.y; P.h = 22; P.vx = 0; P.vy = 0; P.climb = false; P.inv = Math.max(P.inv, .8);
     explode(P.x + 5, P.y + 11, 14, ['#f0f', '#0ff', '#fff']); showToast('↩ откат!', 1.2); beep(1800, 200, .3, 'square', .04);
   }
   cv.style.transform = ''; bad = null;
@@ -1432,7 +1457,7 @@ function updGlitch(dt, k) {
       bad.warn -= dt; if (Math.random() < .5) beep(rnd(80, 3000), rnd(80, 3000), .03, 'sawtooth', .015);
       if (bad.warn <= 0) {
         showToast('💀 БАГ: ' + BAD[bad.k].n, 2); beep(1200, 60, .5, 'sawtooth', .05); shake = .3;
-        if (bad.k === 'lag') { bad.x = P.x; bad.y = P.y + P.h - 22; bad.mv = P.mv; if (P.mv) { bad.x -= P.mv.x; bad.y -= P.mv.y; } }   // на лифте/вагонетке — место внутри кабины
+        if (bad.k === 'lag') { bad.x = P.x; bad.y = P.y + P.h - 22; }
         cv.style.transform = bad.k === 'flip' ? 'rotate(180deg)' : '';
       }
     } else { bad.t -= dt; if (bad.t <= 0) endBad(); }
@@ -1499,11 +1524,8 @@ function update(dt) {
         else if (Math.random() < dt * 4) beep(rnd(300, 900), rnd(200, 600), .05, 'square', .015);   // стук ключа
       } else if (lift.fix !== undefined && (lift.away = (lift.away || 0) + dt) > .4 && lockMsgT <= 0) { showToast('вернись в кабину — ремонт стоит', 1.6); lockMsgT = 2; }
     }
-    const fell = lift.go && !P.dead && P.on && !P.mv && P.y + P.h > lift.y + 40;   // выпал из кабины — лифт спускается за тобой
-    if (fell) {
-      lift.dy = Math.min(120 * dt, P.y + P.h - lift.y, lift.y0 - lift.y); lift.y += lift.dy;
-      if (lockMsgT <= 0) { showToast('лифт спускается за тобой…', 1.6); lockMsgT = 2.5; }
-    } else if (lift.go && lift.y > lift.top) {
+    if (lift.go && !done && !P.dead && P.on && !P.mv && P.y + P.h <= lift.top + 2) complete('выбрался по вентшахте!');   // обогнал лифт по шахте
+    if (lift.go && lift.y > lift.top) {
       lift.dy = -Math.min(30 * dt, lift.y - lift.top); lift.y += lift.dy;
       if (Math.random() < dt * 3) beep(55, 50, .15, 'sawtooth', .015);
       if (lift.y <= lift.top) { shake = .4; boom(.08); complete('приехали! выходи из лифта'); }
@@ -1628,7 +1650,7 @@ function update(dt) {
         explode(e.x + 10, e.y + 2, 5, ['#3a2a1a', '#6a5030']);
       }
     } else bugAI(e, edt);
-    if (!P.dead && e.hp > 0 && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && !e.jar && !(P.slide > 0) && hit(pc, e)) killPlayer();
+    if (!P.dead && e.hp > 0 && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && !e.jar && !(P.slide > 0) && hit(pc, e)) hurt(DMG[e.k] || 15);
   }
   for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
@@ -1694,8 +1716,8 @@ function update(dt) {
   bullets = bullets.filter(b => b.life > 0);
   for (const b of ebullets) {                         // едкие брызги и плевки жуков
     b.vy += (b.g || 0) * edt; b.x += b.vx * edt; b.y += b.vy * edt; b.life -= edt;
-    if (b.k === 'gas') { b.age += edt; if (!P.dead && b.age > .3 && b.life > .3 && hit(pc, b)) killPlayer(); continue; }   // ядовитое облако висит на месте
-    if (!P.dead && hit(pc, b)) { b.life = 0; killPlayer(); }
+    if (b.k === 'gas') { b.age += edt; if (!P.dead && b.age > .3 && b.life > .3 && hit(pc, b)) hurt(EDMG.gas); continue; }   // ядовитое облако висит на месте
+    if (!P.dead && hit(pc, b)) { b.life = 0; hurt(EDMG[b.k] || 15); }
     if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) {
       b.life = 0;
       if (b.k === 'glob') gasCloud(b.x + 3, Math.floor((b.y + 2) / T) * T); else explode(b.x, b.y, 3, ['#9be22d', '#e6ff7a']);
@@ -1737,7 +1759,7 @@ function impact(r, pc) {
   const R = r.small ? 13 : 30;
   explode(r.x, r.gy - 4, r.small ? 6 : 22, ['#7a7068', '#5a524a', '#a89a88', '#3a3430']);
   shake = Math.max(shake, r.small ? .15 : .55); boom(r.small ? .04 : .12);
-  if (!P.dead && Math.abs(P.x + 5 - r.x) < R && Math.abs(P.y + P.h - r.gy) < R + 6) { P.inv = 0; killPlayer(); }
+  if (!P.dead && Math.abs(P.x + 5 - r.x) < R && Math.abs(P.y + P.h - r.gy) < R + 6) hurt(r.small ? 15 : BOSS_DMG);
   for (const e of enemies) if (e.k !== 'n' && e.hp > 0 && !e.burrow && Math.abs(e.x + e.w / 2 - r.x) < R + e.w / 2 && Math.abs(e.y + e.h - r.gy) < R + 8) {   // давит и монстров
     e.hp = 0; score += e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, 10, GOO);
   }
@@ -1905,7 +1927,7 @@ function larva(dt, b, pc) {
     if (b.t <= 0) { b.st = 'under'; b.t = rnd(2.2, 3.2) / sp; b.y = floor - b.h; }
   }
   b.x = clamp(b.x + b.vx * dt, left, right - b.w);
-  if (!b.hide && !P.dead && hit(pc, b)) killPlayer();
+  if (!b.hide && !P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
 // ===== Мутанты лаборатории =====
 function hopper(e, dt, dx, dyF, dir) {     // крысожук (и колбовик, и половинка делителя): бегает и прыгает на героя
@@ -1979,7 +2001,7 @@ function chimera(dt, b, pc) {
     for (const sd of [-1, 1]) ebullets.push({ x: cx + sd * 26 - 5, y: b.y + b.h - 8, w: 10, h: 8, vx: sd * 180, vy: 0, g: 0, life: 1, k: 'wave' });
     explode(cx, b.y + b.h, 16, ['#5a6266', '#8a9296', '#fff']);
   }
-  if (!P.dead && hit(pc, b)) killPlayer();
+  if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
 function lunger(e, dt, dx, dyF, dir) {     // богомолы: подбегают и делают выпад косой
   e.cd -= dt;
@@ -3105,6 +3127,9 @@ function drawEyes() {                     // глаза жуков горят в
 }
 function drawHud() {
   for (let i = 0; i < lives; i++) { rect(8 + i * 10, 8, 6, 9, '#ffd23f'); rect(9 + i * 10, 17, 4, 3, '#c8102e'); }
+  const hx = 8 + Math.max(3, lives) * 10 + 4, hw = 64, hf = hp / HP_MAX;                // шкала здоровья
+  rect(hx, 9, hw + 2, 8, '#222'); rect(hx + 1, 10, hw * hf, 6, hpFlash > 0 && Math.floor(time * 20) % 2 ? '#fff' : hf > .5 ? '#3fd25a' : hf > .25 ? '#ffd23f' : '#ff3b3b');
+  ctx.font = 'bold 7px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.fillText(Math.ceil(hp) + ' HP', hx + hw + 7, 17); ctx.fillStyle = '#fff'; ctx.fillText(Math.ceil(hp) + ' HP', hx + hw + 6, 16);
   ctx.font = 'bold 8px monospace'; ctx.fillStyle = '#8a8a9a'; ctx.textAlign = 'left';
   ctx.fillText(`${lvlN - cityStart(L.city || 0) + 1}/${cityCount(L.city || 0)} ${L.name}`, 8, 32);
   if (swarm && swarm.on && P) { const g = P.x - swarm.x; if (g < 240) { ctx.fillStyle = `rgba(255,30,30,${(1 - g / 240) * (.45 + .25 * Math.sin(time * 12))})`; ctx.fillRect(0, 0, 8, H); } }
