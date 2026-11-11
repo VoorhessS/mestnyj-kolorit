@@ -2595,6 +2595,102 @@ function legs(x, y, n, span, t, col) {
   for (let i = 0; i < n; i++) { const lx = x + i * span, k = Math.sin(t * 22 + i * 2) * 2; ctx.moveTo(lx, y); ctx.lineTo(lx - 2 + k, y + 5); }
   ctx.stroke();
 }
+// ===== Монстры в стиле 1 (пиксели, 3 тона, свет сверху-слева; контур добавляет outlined) =====
+function PixSpr(w, h) {
+  const px = Array.from({ length: h }, () => Array(w).fill(null));
+  const set = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < w && y < h) px[y][x] = c; };
+  const p = { w, h, px, set,
+    blob(cx, cy, rx, ry, ramp, cut) {
+      for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        const nx = (x + .5 - cx) / rx, ny = (y + .5 - cy) / ry, d = nx * nx + ny * ny;
+        if (d > 1 || (cut && cut(x, y))) continue;
+        const l = -nx * .55 - ny * .8 + (1 - d) * .6;
+        set(x, y, ramp[l > .55 ? 3 : l > .05 ? 2 : l > -.45 ? 1 : 0]);
+      }
+    },
+    line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) set(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); },
+    poly(pts, c) { for (let i = 0; i < pts.length - 1; i++) p.line(...pts[i], ...pts[i + 1], c); },
+    rect(x, y, ww, hh, c) { for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) set(x + i, y + j, c); },
+    eye(x, y, c = '#ff2a2a', big) { set(x, y, c); if (big) { set(x + 1, y, c); set(x, y + 1, '#7a0a0a'); set(x + 1, y + 1, '#7a0a0a'); set(x, y, '#ffd0d0'); } },
+    teeth(x, y, n, c = '#e8e0c8') { for (let i = 0; i < n; i++) { set(x + i * 2, y, c); set(x + i * 2, y + 1, c); set(x + i * 2 + 1, y, '#3a0a10'); } },
+  };
+  return p;
+}
+function bakeSpr(p) {
+  const c = document.createElement('canvas'); c.width = p.w; c.height = p.h; const g = c.getContext('2d');
+  p.px.forEach((r, y) => r.forEach((col, x) => { if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } }));
+  const wc = document.createElement('canvas'); wc.width = p.w; wc.height = p.h; const wg = wc.getContext('2d');
+  wg.drawImage(c, 0, 0); wg.globalCompositeOperation = 'source-in'; wg.fillStyle = '#fff'; wg.fillRect(0, 0, p.w, p.h);
+  return { img: c, wh: wc };
+}
+const LEG = '#3a2e34';
+const MON_DEF = {
+  r: ph => {                                       // бегун А: многоглазый
+    const p = PixSpr(26, 15), R = ['#1a1418', '#3a2430', '#5a3446', '#8a5068'];
+    for (let i = 0; i < 4; i++) { const lx = 6 + i * 4, k = (i + ph) % 2; p.poly([[lx, 9], [lx - 3 + k * 2, 12], [lx - 4 + k * 3, 14]], LEG); }
+    p.blob(11, 7, 9, 5.5, R); p.blob(20, 8, 4, 3.5, R);
+    for (const [x, y] of [[6, 4], [9, 3], [12, 3], [15, 4], [8, 6], [13, 6]]) p.eye(x, y);
+    p.eye(21, 7, '#ff2a2a', true);
+    p.poly([[23, 9], [25, 11 - ph], [24, 13]], '#d8c8a8'); p.poly([[23, 10], [24, 12]], '#d8c8a8');
+    return p; },
+  R: ph => {                                       // бронированный А: костяной панцирь
+    const p = PixSpr(32, 21), R = ['#1a1612', '#3a3024', '#6a5a40', '#a89068'];
+    for (let i = 0; i < 4; i++) { const lx = 7 + i * 5, k = (i + ph) % 2; p.poly([[lx, 15], [lx - 2 + k * 2, 18], [lx - 1 + k * 2, 20]], LEG); }
+    p.blob(14, 11, 12, 7.5, R);
+    for (let i = 0; i < 5; i++) p.line(6 + i * 4, 6 + Math.abs(2 - i), 8 + i * 4, 16, '#2a2218');
+    for (const x of [8, 13, 18, 23]) p.poly([[x, 5], [x + 1, 1], [x + 2, 5]], '#d8c8a0');
+    p.blob(27, 13, 4, 4, ['#1a1010', '#3a1c1c', '#5a2a2a', '#7a3a3a']); p.eye(28, 12, '#ff2a2a', true); p.teeth(27, 15, 2);
+    return p; },
+  c: ph => {                                       // потолочник А: паук-младенец (ползёт)
+    const p = PixSpr(24, 16), R = ['#1a1418', '#3a2a34', '#5a4250', '#8a6a7a'];
+    for (let i = 0; i < 4; i++) { const s2 = i < 2 ? -1 : 1, k = (i + ph) % 2; p.poly([[12, 8], [12 + s2 * (6 + k * 2), 3 + k], [12 + s2 * (9 + k), 15]], LEG); }
+    p.blob(12, 8, 6, 5.5, R); p.blob(14, 9, 3.5, 3, ['#4a3a30', '#8a6a58', '#b89078', '#d8b098']);
+    p.set(13, 8, '#000'); p.set(15, 8, '#000'); p.rect(13, 10, 3, 1, '#3a0a10');
+    return p; },
+  ch: ph => {                                      // потолочник висит: лицом к нам, лапы вверх
+    const p = PixSpr(24, 18), R = ['#1a1418', '#3a2a34', '#5a4250', '#8a6a7a'];
+    for (let i = 0; i < 4; i++) { const s2 = i < 2 ? -1 : 1, k = i % 2; p.poly([[12, 8], [12 + s2 * (6 + k * 3), 2 + k * 2 + ph], [12 + s2 * (9 + k * 2), 12 + k * 4]], LEG); }
+    p.blob(12, 9, 6, 6, R); p.blob(12, 10, 3.5, 3, ['#4a3a30', '#8a6a58', '#b89078', '#d8b098']);
+    p.set(11, 9, '#000'); p.set(13, 9, '#000'); p.rect(11, 11, 3, 1, '#3a0a10');
+    return p; },
+  m: ph => {                                       // мелюзга А: клещи
+    const p = PixSpr(10, 8); p.poly([[2, 5], [0 + ph, 7]], LEG); p.poly([[7, 5], [9 - ph, 7]], LEG);
+    p.blob(5, 4, 4, 3, ['#2a0a0a', '#5a1414', '#8a2424', '#c84040']); p.eye(7, 3, '#ffd23f'); return p; },
+  j: ph => {                                       // щелкун А: кузнечик-скелет
+    const p = PixSpr(24, 16), R = ['#1a1814', '#3a3428', '#6a6048', '#a89c78'];
+    p.poly([[6, 9], [2, 3], [0 + ph, 14]], '#d8d0b0'); p.poly([[8, 10], [5, 5], [3 + ph, 15]], '#8a8268');
+    p.blob(10, 9, 7, 3.5, R); p.blob(18, 8, 4, 3.5, ['#3a3830', '#8a8470', '#c8c0a8', '#e8e0c8']);
+    p.set(18, 7, '#000'); p.set(20, 7, '#000'); p.eye(18, 7, '#ff2a2a'); p.teeth(18, 10, 2);
+    p.poly([[13, 12], [15 - ph, 15]], LEG); p.poly([[10, 12], [9 + ph, 15]], LEG);
+    return p; },
+  ja: () => {                                      // щелкун в прыжке: ноги вытянуты назад
+    const p = PixSpr(26, 14), R = ['#1a1814', '#3a3428', '#6a6048', '#a89c78'];
+    p.poly([[7, 7], [3, 9], [0, 13]], '#d8d0b0'); p.poly([[9, 8], [5, 11], [2, 13]], '#8a8268');
+    p.blob(12, 7, 7, 3.5, R); p.blob(20, 6, 4, 3.5, ['#3a3830', '#8a8470', '#c8c0a8', '#e8e0c8']);
+    p.set(20, 5, '#000'); p.set(22, 5, '#000'); p.eye(20, 5, '#ff2a2a'); p.teeth(20, 8, 2);
+    p.poly([[15, 9], [19, 12]], LEG); p.poly([[12, 10], [15, 13]], LEG);
+    return p; },
+  b: ph => {                                       // бомбардир Б: огненный жук
+    const p = PixSpr(26, 16), R = ['#0e1018', '#1a2030', '#2a3448', '#3e4a66'];
+    for (let i = 0; i < 3; i++) { const lx = 7 + i * 5, k = (i + ph) % 2; p.poly([[lx, 11], [lx - 2 + k * 2, 15]], LEG); }
+    p.blob(11, 8, 9, 6, R); for (const [x, y] of [[7, 6], [12, 5], [10, 9], [15, 8]]) { p.set(x, y, '#ff8a2a'); p.set(x + 1, y, '#ffb050'); }
+    p.blob(21, 9, 3.5, 3, ['#3a1408', '#7a2a10', '#c84a1a', '#ff7a3a']); p.eye(22, 8, '#ffd23f');
+    return p; },
+};
+const MON = {};
+for (const k in MON_DEF) MON[k] = [0, 1].map(ph => bakeSpr(MON_DEF[k](ph)));
+function drawMon(e, x, y, wh, f, run) {             // мордой по ходу; спрайты смотрят вправо
+  let key = e.k, ph = Math.floor(run * 8) % 2;
+  if (e.k === 'c' && e.hang) { key = 'ch'; ph = Math.floor(time * 2) % 2; }
+  if (e.k === 'j' && !e.on) { key = 'ja'; ph = 0; }
+  if (e.sleep) ph = 0;
+  const fr = MON[key][ph], im = wh ? fr.wh : fr.img;
+  const dx = Math.round(x + e.w / 2 - im.width / 2), dy = Math.round(e.k === 'c' && e.hang ? y - 2 : y + e.h - im.height + 1);
+  if (e.k === 'c' && e.hang) { rect(Math.round(x + e.w / 2), dy - 8, 1, 9, 'rgba(210,210,220,.5)'); }
+  spr(im, dx, dy, f < 0);
+  if (e.k === 'b' && e.st === 'spray') { const sx = f > 0 ? dx + im.width : dx - 4; ell(sx + 2, dy + 9, 3 + Math.random() * 2, 2, '#ffb050'); ell(sx + 2, dy + 9, 1.5, 1, '#fff2c0'); }
+  if (e.k === 'b' && e.st === 'prep') for (const [px2, py2] of [[7, 6], [12, 5], [10, 9], [15, 8]]) rect(f > 0 ? dx + px2 : dx + im.width - 1 - px2, dy + py2, 2, 1, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
+}
 function drawEnemies() {
   const NT = badOn('notex');
   for (const e of enemies) {
@@ -2629,6 +2725,7 @@ function drawEnemies() {
     if ('lwove'.includes(e.k)) { drawNoraBug(e, x, y, wh, f); continue; }
     if ('kqxyuhtZ'.includes(e.k)) { drawLabBug(e, x, y, wh, f); continue; }
     const W2 = e.w / 2, run = e.sleep ? time * .1 : e.run;
+    if (MON[e.k]) { drawMon(e, x, y, wh, f, run); continue; }   // город 1: новые монстры (друг, 12.11)
     if ('MASGFH'.includes(e.k)) { ctx.save(); ctx.translate(Math.round(x + W2), Math.round(y)); ctx.scale(f, 1); ctx.translate(-W2, 0); drawMantisKind(e, wh, run); ctx.restore(); continue; }
     ctx.save(); ctx.translate(Math.round(x + W2), Math.round(y)); ctx.scale(f, 1);   // мордой по ходу
     if (e.k === 'r' || e.k === 'R') {               // бегун / бронированный
