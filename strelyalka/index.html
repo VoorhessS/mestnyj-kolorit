@@ -123,6 +123,7 @@ const PAL = {
   nora: { forest: 1, nora: 1, bg: '#140f16', bg2: '#1e1722', pat: 'root', solid: '#2a1f26', floor: '#3a3048', floor2: '#231b2c', blade: '#6a58a8', deep: '#1c141a', road: '#2a1f26', earth: '#1c141a' },
   tunnel: { lab: 1, bg: '#16171a', bg2: '#1e2024', pat: 'block', solid: '#34353a', floor: '#5e5f64' },
   lab: { lab: 1, bg: '#151b1d', bg2: '#1c2427', pat: 'tile', solid: '#283034', floor: '#56666a' },
+  base: { base: 1, bg: '#17181a', bg2: '#202226', pat: 'conc', solid: '#2c2e28', floor: '#55574c' },
 };
 const LEVELS = [
   { name: 'УЛИЦА', task: 'Найди ключ от подъезда — он где-то под землёй', obj: 'key', sky: true, day: true, ground: 16, dark: .9,
@@ -704,9 +705,176 @@ const LEVELS = [
       B.bug(8, 16, 'k');
       B.start(3, 16); B.save(9, 16);
     } },
+  // ===================== ВОЕННАЯ БАЗА (друг, 12.11) =====================
+  { city: 4, name: 'КПП', task: 'Пройди через КПП на базу', obj: 'reach', ground: 99, dark: .84,
+    cols: 160, rows: 24, base: SOLID, pal: PAL.base, spawn: ['D', 'r', 'N'],
+    tips: ['тут военные держали оборону — и проиграли', 'покусанный солдат — носитель: убьёшь — из спины полезет мелюзга', 'собака-мутант прыгает на тебя — встречай пулей'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 9, 158, 16);                                                        // проходная, пол — ряд 17
+      B.deco('gate', 1, 9, 3, 16); B.deco('wire', 4, 9, 158, 9);
+      for (const x of [8, 26, 42, 66, 96, 112, 130, 150]) gore(x, 10 + x % 3);
+      B.acid(22, 24, 17);
+      B.fill(36, 15, 39, 16); B.deco('sandbag', 36, 15, 39, 16);
+      B.fill(56, 9, 63, 15); B.deco('rubble', 56, 9, 63, 15); B.vent(56, 63, 16);   // обвал — ползком
+      B.acid(78, 93, 17); B.plat(80, 82, 14); B.plat(86, 88, 13); B.plat(91, 92, 14);
+      B.fill(106, 14, 108, 16); B.deco('crate', 106, 14, 108, 16);
+      B.crumble(118, 124, 17); B.room(118, 18, 124, 20); B.acid(118, 124, 21);      // пол проломлен над ямой
+      B.fill(138, 15, 140, 16); B.deco('sandbag', 138, 15, 140, 16);
+      for (const x of [12, 30, 44, 70, 100, 112, 132, 148]) body(x, 17);
+      for (const x of [16, 48, 74, 128, 144]) body(x, 17, 'bugbody');
+      for (let x = 10; x < 156; x += 18) B.lamp(x, 9);
+      B.sign(50, 14, '>'); B.sign(70, 14, '>'); B.sign(112, 14, '>'); B.sign(146, 14, '>');
+      B.bug(30, 17, 'D'); B.bug(46, 17, 'N'); B.bug(70, 17, 'r'); B.bug(100, 17, 'D'); B.bug(103, 17, 'N');
+      B.bug(130, 17, 'N'); B.bug(134, 17, 'D'); B.bug(146, 17, 'r'); B.bug(152, 17, 'N');
+      B.crack(48, 12); B.crack(128, 12);
+      B.exit(156, 17, 'КАЗАРМЫ');
+      B.start(5, 17);
+    } },
+  { city: 4, name: 'КАЗАРМЫ', task: 'Найди ключ-карту от склада', obj: 'card', itemTxt: '💳 ключ-карта у тебя! дверь открыта', ground: 99, dark: .9,
+    cols: 132, rows: 28, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'C'],
+    tips: ['ключ-карта — в дальнем кубрике, а дверь на склад — там, где начал', 'коридор завален — иди через кубрики и вентиляцию', 'противогаз выпускает из фильтра мелюзгу — бей издалека'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 16, 130, 21);                                                       // коридор, пол — 22
+      B.fill(40, 16, 46, 21); B.deco('rubble', 40, 16, 46, 21); B.fill(86, 16, 92, 21); B.deco('rubble', 86, 16, 92, 21);   // баррикады
+      B.room(4, 6, 38, 10); B.room(48, 6, 84, 10); B.room(94, 6, 128, 10);          // кубрики, пол — 11
+      B.vent(39, 47, 10); B.vent(85, 93, 10);
+      B.lad(8, 11, 21); B.lad(66, 11, 21); B.lad(110, 11, 21);
+      for (const x of [20, 54, 100]) { B.fill(x, 10, x + 3, 10); B.deco('bunk', x, 8, x + 3, 10); }
+      for (const x of [28, 76, 118, 14]) B.deco('locker', x, 8, x + 1, 10);
+      for (const [x, y] of [[12, 7], [32, 7], [60, 7], [80, 7], [104, 7], [124, 7], [24, 17], [58, 17], [100, 17], [120, 17]]) gore(x, y);
+      for (const [x, f] of [[16, 11], [36, 11], [70, 11], [96, 11], [114, 11], [18, 22], [34, 22], [62, 22], [96, 22], [124, 22]]) body(x, f, (x * 7 + f) % 3 ? 'body' : 'bugbody');
+      B.acid(74, 76, 22); B.item('life', 82, 22);                                   // тупик в середине коридора: секрет
+      B.item('card', 124, 11); B.door(5, 16, 21); B.exit(2, 22, 'СКЛАД');           // дверь — у старта
+      B.deco('wire', 1, 16, 130, 16);
+      for (const x of [12, 30, 56, 78, 100, 120]) B.lamp(x, 6);
+      for (const x of [20, 70, 116]) B.lamp(x, 16);
+      B.sign(36, 9, '>'); B.sign(82, 9, '>'); B.sign(112, 14, 'v'); B.sign(14, 19, '^');
+      B.bug(30, 11, 'C'); B.bug(56, 11, 'P'); B.bug(100, 11, 'C'); B.bug(70, 22, 'P'); B.bug(116, 22, 'N');
+      B.bug(24, 22, 'D'); B.bug(62, 11, 'N'); B.bug(82, 11, 'D'); B.bug(122, 11, 'D'); B.bug(56, 22, 'D');
+      B.start(8, 22);
+    } },
+  { city: 4, name: 'ОРУЖЕЙНЫЙ СКЛАД', task: 'Уничтожь кладки жуков среди ящиков', obj: 'nests', nestTxt: 'кладки', nestDone: 'все кладки уничтожены! дверь открыта', ground: 99, dark: .86,
+    cols: 124, rows: 28, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'r'],
+    tips: ['жуки отложили яйца прямо в оружейке: в зале, на стеллажах и в вентиляции', 'в вентиляцию — по щели между колоннами у дальней стены, прыжками от стены к стене', 'дверь дальше — там, где начал'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 6, 122, 21);                                                        // зал, пол — 22
+      B.fill(28, 14, 46, 15); B.lad(27, 14, 21);                                    // стеллаж A
+      B.fill(70, 12, 90, 13); B.lad(91, 12, 21);                                    // стеллаж B
+      B.acid(56, 58, 22);
+      B.fill(16, 21, 19, 21); B.deco('crate', 16, 21, 19, 21); B.fill(100, 21, 103, 21); B.deco('crate', 100, 21, 103, 21);
+      for (const [x, y] of [[12, 22], [64, 22], [106, 22]]) B.deco('barrel', x, y - 2, x, y - 1);
+      for (const [x, y] of [[32, 14], [40, 14], [76, 12], [84, 12]]) B.deco('rack', x, y - 2, x + 1, y - 1);
+      for (const [x, y] of [[6, 8], [22, 9], [50, 8], [62, 10], [94, 8], [110, 9]]) gore(x, y);
+      for (const [x, f] of [[8, 22], [30, 22], [48, 22], [78, 22], [94, 22], [114, 22], [36, 14], [80, 12]]) body(x, f, (x + f) % 3 ? 'body' : 'bugbody');
+      B.fill(116, 6, 116, 19); B.fill(119, 6, 119, 19); B.room(117, 2, 118, 5);    // щель между колоннами — в вентиляцию
+      B.room(96, 2, 116, 4); B.room(98, 5, 99, 5); B.deco('duct', 96, 2, 116, 4);
+      B.nest(106, 5); B.bug(110, 5, 'D');
+      B.deco('wire', 1, 6, 122, 6);
+      for (const x of [10, 30, 52, 74, 96, 114]) B.lamp(x, 6);
+      B.nest(26, 22); B.nest(44, 14); B.nest(72, 12); B.nest(88, 22); B.nest(110, 22);
+      B.bug(50, 22, 'P'); B.bug(96, 22, 'N'); B.bug(36, 22, 'D'); B.bug(80, 22, 'D'); B.bug(68, 22, 'N'); B.bug(31, 14, 'D');
+      B.exit(2, 22, 'МЕДБЛОК');
+      B.start(6, 22);
+    } },
+  { city: 4, name: 'МЕДБЛОК', task: 'Дай свет в медблоке: найди рубильник', obj: 'switch', itemTxt: '⚡ свет дали! дверь открыта', ground: 99, dark: .88,
+    cols: 116, rows: 34, base: SOLID, pal: PAL.base, spawn: ['C', 'N', 'D'],
+    tips: ['рубильник на верхнем ярусе, а дверь в гараж — внизу, где начал', 'справа вентшахта: вниз — просто прыгай, наверх — прыжками от стены к стене', 'учёные спрятались здесь от жуков. не помогло — их замотало в коконы'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 24, 110, 29);                                                       // нижний зал, пол — 30
+      B.room(1, 14, 110, 19);                                                       // средний ярус, пол — 20
+      B.room(1, 4, 110, 9);                                                         // верхний ярус, пол — 10
+      B.lad(104, 20, 29); B.lad(6, 10, 19);
+      for (const x of [18, 44, 78]) { B.fill(x, 27, x + 5, 29); B.deco('medcab', x, 27, x + 5, 29); }
+      B.acid(60, 64, 30); B.plat(60, 64, 27);
+      B.fill(30, 14, 34, 18); B.deco('rubble', 30, 14, 34, 18); B.vent(30, 34, 19);
+      B.acid(70, 72, 20); B.fill(88, 18, 90, 19); B.deco('crate', 88, 18, 90, 19);
+      B.plat(40, 46, 7); B.fill(56, 8, 58, 9); B.deco('crate', 56, 8, 58, 9);
+      for (const [x, y] of [[12, 25], [36, 25], [70, 25], [94, 25], [20, 15], [52, 15], [84, 15], [16, 5], [70, 5], [100, 5]]) gore(x, y);
+      for (const [x, f] of [[14, 30], [38, 30], [72, 30], [96, 30], [24, 20], [56, 20], [82, 20], [22, 10], [48, 10], [74, 10]]) body(x, f, (x + f) % 3 ? 'body' : 'bugbody');
+      B.deco('wire', 1, 24, 110, 24); B.deco('wire', 1, 14, 110, 14);
+      B.item('switch', 92, 10); B.door(5, 24, 29); B.exit(2, 30, 'ГАРАЖ');
+      B.shaft(112, 4, 29); B.room(111, 8, 111, 9); B.room(111, 28, 111, 29); B.sign(108, 7, '>');
+      for (const x of [10, 30, 50, 70, 90]) { B.lamp(x, 24); B.lamp(x + 6, 14); B.lamp(x + 3, 4); }
+      B.sign(98, 27, '^'); B.sign(12, 17, '^'); B.sign(80, 7, '>');
+      B.bug(30, 30, 'D'); B.bug(52, 30, 'C'); B.bug(70, 30, 'N'); B.bug(90, 30, 'C');
+      B.bug(80, 20, 'C'); B.bug(60, 20, 'D'); B.bug(20, 20, 'N'); B.bug(45, 20, 'P');
+      B.bug(30, 10, 'D'); B.bug(64, 10, 'C'); B.bug(80, 10, 'N');
+      B.crack(40, 26); B.crack(95, 16); B.crack(50, 6);
+      B.start(8, 30);
+    } },
+  { city: 4, name: 'ГАРАЖ', task: 'Перебей броню в гараже', obj: 'guards', guard: 'Z', guardTxt: 'броня', guardDone: 'броня перебита! дверь в бункер открыта', need: 'сначала перебей броню',
+    ground: 99, dark: .86, cols: 132, rows: 24, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'P'],
+    tips: ['жук сожрал солдата изнутри и носит его бронежилет: щит спереди — бей сзади или когда оглушён', 'ворота боксов подняты наполовину — под ними ползком', 'винтовка пробивает щит насквозь'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 9, 130, 15); B.door(10, 9, 15); B.exit(5, 16, 'БУНКЕР');           // пол — 16
+      for (const x of [34, 70, 100]) { B.fill(x, 9, x + 1, 14); B.deco('shutter', x, 9, x + 1, 14); B.vent(x, x + 1, 15); }
+      B.plat(50, 62, 12); B.lad(49, 12, 15); B.lad(63, 12, 15);
+      B.acid(80, 83, 16); B.plat(80, 83, 13);
+      B.fill(20, 15, 23, 15); B.deco('crate', 20, 15, 23, 15); B.fill(110, 15, 113, 15); B.deco('crate', 110, 15, 113, 15);
+      for (const x of [28, 56, 90, 118]) B.deco('barrel', x, 14, x, 15);
+      for (const x of [14, 40, 60, 86, 106, 122]) gore(x, 10 + x % 2);
+      for (const x of [16, 30, 44, 66, 76, 94, 116, 126]) body(x, 16, x % 3 ? 'body' : 'bugbody');
+      B.deco('wire', 1, 9, 130, 9);
+      for (const x of [16, 44, 76, 106, 124]) B.lamp(x, 9);
+      B.sign(30, 14, '>'); B.sign(96, 14, '>'); B.sign(16, 12, '<');
+      B.bug(60, 16, 'Z'); B.bug(94, 16, 'Z'); B.bug(124, 16, 'Z');
+      B.bug(28, 16, 'D'); B.bug(46, 16, 'N'); B.bug(66, 16, 'N'); B.bug(106, 16, 'P'); B.bug(114, 16, 'N'); B.bug(56, 12, 'D'); B.bug(118, 16, 'D');
+      B.crack(40, 12); B.crack(96, 12);
+      B.start(14, 16);
+    } },
+  { city: 4, name: 'БУНКЕР', task: 'Газ в бункере! Лезь наверх, к штабу', obj: 'reach', ground: 99, dark: .72, power: true, alarm: true, fume: 13,
+    cols: 32, rows: 80, base: SOLID, pal: PAL.base, spawn: ['D', 'N'],
+    tips: ['☣ военные пустили газ против жуков — и не успели уйти сами', 'лезь наверх и не задерживайся — газ ждать не будет', 'газ душит и мутантов'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1);
+      for (let i = 0; i < 12; i++) {                                                 // 12 этажей, пол i-го — ряд 76 - 6i
+        const f = 76 - 6 * i;
+        B.room(1, f - 5, 30, f - 1);
+        if (i < 11) B.lad(i % 2 ? 3 : 28, f - 6, f - 1);
+        B.lamp(i % 2 ? 22 : 9, f - 5);
+        B.deco('gore', i % 2 ? 12 : 16, f - 5, i % 2 ? 14 : 18, f - 3);
+        if (i % 3 !== 1) body(i % 2 ? 24 : 6, f, i % 2 ? 'bugbody' : 'body');
+      }
+      B.acid(13, 15, 70);
+      B.fill(15, 62, 16, 63); B.deco('crate', 15, 62, 16, 63);
+      B.acid(16, 18, 58);
+      B.fill(12, 47, 18, 50); B.deco('rubble', 12, 47, 18, 50); B.vent(12, 18, 51);
+      B.acid(9, 11, 46); B.acid(19, 21, 46);
+      B.acid(10, 20, 40); B.plat(12, 13, 37); B.plat(17, 18, 37);
+      B.fill(10, 32, 11, 33); B.deco('crate', 10, 32, 11, 33); B.fill(20, 32, 21, 33); B.deco('crate', 20, 32, 21, 33);
+      B.acid(14, 16, 28);
+      B.fill(10, 17, 16, 20); B.deco('rubble', 10, 17, 16, 20); B.vent(10, 16, 21);
+      B.acid(8, 10, 16); B.acid(18, 20, 16);
+      B.bug(8, 64, 'D'); B.bug(10, 58, 'N'); B.bug(15, 46, 'D'); B.bug(16, 34, 'N'); B.bug(22, 28, 'D'); B.bug(8, 28, 'D');
+      B.bug(22, 22, 'P'); B.bug(14, 16, 'N'); B.bug(16, 10, 'D');
+      B.exit(4, 10, 'ШТАБ');
+      B.start(4, 76);
+    } },
+  { city: 4, name: 'ШТАБ', task: 'Победи человека-таракана', obj: 'boss', bossTxt: 'в штаб', need: 'сначала победи человека-таракана', ground: 99, dark: .8, power: true,
+    cols: 78, rows: 22, base: SOLID, pal: PAL.base, spawn: ['r', 'D'],
+    tips: ['это был командир базы. жуки его не съели — он стал одним из них', 'присел — сейчас взлетит и рухнет на тебя. приземлился — по полу волна, прыгай, а он оглушён: урон двойной', 'плюётся кислотой и зовёт тараканов'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 5, 76, 15);
+      B.plat(24, 29, 12); B.plat(40, 45, 12); B.plat(60, 65, 12);
+      B.deco('mapboard', 50, 7, 56, 10);
+      for (const [x, y] of [[6, 7], [16, 9], [34, 7], [68, 8]]) gore(x, y);
+      for (const x of [12, 22, 36, 48, 58, 70]) body(x, 16, x % 3 ? 'body' : 'bugbody');
+      B.deco('wire', 1, 5, 76, 5);
+      B.lamp(20, 5); B.lamp(40, 5); B.lamp(62, 5);
+      B.arena({ gate: 12, l: 13, top: 16, drop: 52, boss: 'roach' });
+      B.exit(74, 16, 'НАРУЖУ');
+      B.bug(8, 16, 'D');
+      B.start(3, 16); B.save(9, 16);
+    } },
 ];
 
-const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ'];
+const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА'];
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
 let L, lvlN = 0, lv;
@@ -1001,7 +1169,7 @@ function diff(i) {
 // Виды жуков Города N1: ширина, высота, жизни, скорость (доля), очки
 // Урон героя при касании (из 100 HP): сильные выносят шкалу за 3–4 удара, боссы — за 2
 const DMG = { m: 8, y: 10, r: 12, l: 12, F: 12, M: 15, v: 15, k: 15, G: 15, c: 18, j: 18, S: 18, b: 18, A: 20, e: 20, q: 20, h: 20, t: 20,
-  R: 22, u: 22, w: 25, x: 25, s: 30, H: 30, Z: 34 };
+  R: 22, u: 22, w: 25, x: 25, s: 30, H: 30, Z: 34, N: 22, D: 18, C: 15, P: 20 };
 const EDMG = { acid: 15, spit: 20, stone: 15, glob: 34, zap: 25, wave: 50, gas: 20 }, HP_MAX = 100, BOSS_DMG = 50;
 const BUGS = {
   r: [18, 14, 1, 1, 100],      // бегун
@@ -1033,6 +1201,11 @@ const BUGS = {
   h: [20, 14, 4, .45, 250],    // разрядник: наелся проводов, бьёт током вдоль пола
   t: [20, 18, 3, .35, 200],    // газовик: пускает ядовитое облако
   Z: [24, 22, 12, .5, 1000],   // охранник-мутант: щит спереди, рывок, плевок
+  // Военная база: покусанные люди и звери (друг, 12.11)
+  N: [16, 24, 4, .55, 300],    // солдат-носитель: бросается; убьёшь — из спины лезет мелюзга
+  D: [22, 14, 2, 1.25, 150],   // собака-мутант: быстрая, прыгает
+  C: [22, 12, 3, .35, 150],    // учёный-кокон: ползёт
+  P: [16, 24, 4, .45, 250],    // рой в противогазе: выпускает мелюзгу из фильтра
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
@@ -1090,7 +1263,9 @@ function startLevel(n) {
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
   const A = lv.arena;
-  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'chimera'
+  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'roach'
+    ? [{ k: 'roach', x: A.drop * T, y: A.top * T - 52, w: 30, h: 52, hp: 200, max: 200, fl: 0, st: 'sleep', t: 0, dir: -1, vx: 0, vy: 0, on: false }]
+    : A.boss === 'chimera'
     ? [{ k: 'chimera', x: A.drop * T, y: A.top * T - 44, w: 56, h: 44, hp: 170, max: 170, fl: 0, st: 'sleep', t: 0, dir: -1, vx: 0, vy: 0, on: false }]
     : A.boss === 'larva'
     ? [{ k: 'larva', x: A.drop * T, y: A.top * T - 28, w: 84, h: 28, hp: 140, max: 140, fl: 0, st: 'under', t: 1.2, dir: -1, vx: 0, vy: 0, hide: true, on: false }]
@@ -1116,7 +1291,7 @@ function takeSnap() {
   snap = { grid: grid.map(r => r.slice()), items: structuredClone(items.filter(i => i.k !== 'ammo')), done, score, wpn, ammo: ammo.slice(), owned: owned.slice(), energy,
     rockHit: { ...rockHit }, cracks: structuredClone(cracks), alive: enemies.filter(e => e.id !== undefined && e.hp > 0).map(e => e.id) };
 }
-const FREE = 'rRmjbMSlFvkxuht';                      // эти жуки после смерти героя встают в случайные места
+const FREE = 'rRmjbMSlFvkxuhtNDCP';                      // эти жуки после смерти героя встают в случайные места
 function restoreSnap(rx, ry) {
   const S = snap;
   grid = S.grid.map(r => r.slice()); items = structuredClone(S.items); done = S.done; score = S.score;
@@ -1142,7 +1317,7 @@ function respawn() {
     boss.on = false; gate(false);
     const b = boss.parts[0];
     if (b.k === 'larva') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'under', t: 1.2, vx: 0, hide: true });
-    else if (b.k === 'chimera') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'sleep', vx: 0, vy: 0, t: 0 });
+    else if (b.k === 'chimera' || b.k === 'roach') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'sleep', vx: 0, vy: 0, t: 0 });
     else Object.assign(b, { x: lv.arena.drop * T, y: -90, st: 'drop', vx: 0, vy: 0, t: 0, arm: 0 });
     enemies = enemies.filter(e => !e.boss);
   }
@@ -1206,7 +1381,7 @@ const ITEM = { key: '🔑 ключ у тебя! дверь открыта', swit
 NEED.radio = 'сначала найди рацию'; NEED.boss = 'сначала победи богомола';
 ITEM.card = '💳 пропуск у тебя! дверь открыта'; NEED.card = 'сначала найди пропуск';
 ITEM.flare = '🎆 сигнал подан! теперь вниз — к каменоломне'; NEED.flare = 'сначала достань ракетницу';
-const BOSS_NAME = { mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА', chimera: 'ХИМЕРА' };
+const BOSS_NAME = { mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА', chimera: 'ХИМЕРА', roach: 'ЧЕЛОВЕК-ТАРАКАН' };
 
 // Жук-носорог: ходит к игроку, замирает и таранит до стены, оглушён, иногда прыгает
 function rhino(dt, b, pc) {
@@ -1407,7 +1582,7 @@ function hurtBoss(r, d) {
     explode(r.x + r.w / 2, r.y + r.h / 2, 40, GOO);
     for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
     gate(false);
-    done = true; showToast({ mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! за ней — старый тоннель', rhino: 'носорог убит! к вертолёту!', chimera: 'химера повержена! путь на базу открыт' }[r.k], 3); rocks = [];
+    done = true; showToast({ mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! за ней — старый тоннель', rhino: 'носорог убит! к вертолёту!', chimera: 'химера повержена! путь на базу открыт', roach: 'человек-таракан повержен! база зачищена' }[r.k], 3); rocks = [];
   }
 }
 function blast(x, y) {                          // взрыв гранаты
@@ -1674,7 +1849,7 @@ function update(dt) {
       explode(c.x + 8, c.y + 8, 8, ['#4a4048', '#2a2228', '#6a6068']); beep(120, 60, .2, 'sawtooth', .04);
     }
   }
-  if (boss.on && !boss.dead) ({ mantis, rhino, larva, chimera })[boss.parts[0].k](edt, boss.parts[0], pc);
+  if (boss.on && !boss.dead) ({ mantis, rhino, larva, chimera, roach: chimera })[boss.parts[0].k](edt, boss.parts[0], pc);
   if (L.art && !P.dead && !boss.on && !boss.dead) {     // богомол издалека кидает камни; чем ближе к нему, тем чаще
     artT -= edt;
     if (artT <= 0) { artT = L.art * rnd(.7, 1.3); throwRock(clamp(P.x + 5 + rnd(-40, 150) * (P.face || 1), T * 2, MAPW - T * 2), !!L.under); }
@@ -1740,9 +1915,10 @@ function update(dt) {
     e.popped = true; beep(220, 80, .2, 'sawtooth', .03);
     for (let i = 0; i < 4; i++) ebullets.push({ x: e.x + e.w / 2 - 2, y: e.y, w: 4, h: 4, vx: rnd(-90, 90), vy: rnd(-240, -150), g: 600, life: 1.5, k: 'acid' });
   }
-  for (const e of enemies) if (e.hp === 0 && !e.popped && !boss.dead && (e.k === 'x' || e.k === 't')) {
+  for (const e of enemies) if (e.hp === 0 && !e.popped && !boss.dead && (e.k === 'x' || e.k === 't' || e.k === 'N')) {
     e.popped = true;
-    if (e.k === 't') gasCloud(e.x + e.w / 2, e.y + e.h);                          // газовик лопается облаком
+    if (e.k === 'N') swarmOut(e, 3);                                              // из спины носителя лезет мелюзга
+    else if (e.k === 't') gasCloud(e.x + e.w / 2, e.y + e.h);                     // газовик лопается облаком
     else {                                                                        // делитель распадается надвое
       for (const s2 of [-1, 1]) { const c = mkBug('y', e.x + e.w / 2 - 6 + s2 * 4, e.y + e.h, s2); c.spawned = true; c.vy = -200; c.vx = s2 * 100; enemies.push(c); }
       beep(300, 900, .2, 'sawtooth', .03);
@@ -1816,10 +1992,10 @@ function bugAI(e, dt) {
   if (e.sleep) {
     const wake = e.k === 'S' ? 44 : e.k === 'u' ? 100 : 160;   // радиус обнаружения меньше в 1.5 раза (друг, 11.11)
     if (!P.dead && Math.abs(dx) < wake && Math.abs(dyF) < 54) { e.sleep = false; e.vx = dir * e.sp; e.dir = dir; }
-  } else if (e.k === 'M' || e.k === 'A' || e.k === 'S' || e.k === 'u') lunger(e, dt, dx, dyF, dir);
-  else if (e.k === 'k' || e.k === 'q' || e.k === 'y') hopper(e, dt, dx, dyF, dir);
+  } else if (e.k === 'M' || e.k === 'A' || e.k === 'S' || e.k === 'u' || e.k === 'N') lunger(e, dt, dx, dyF, dir);
+  else if (e.k === 'k' || e.k === 'q' || e.k === 'y' || e.k === 'D') hopper(e, dt, dx, dyF, dir);
   else if (e.k === 'h') zapAI(e, dt, dx, dyF, dir);
-  else if (e.k === 't') gasAI(e, dt, dx, dyF, dir);
+  else if (e.k === 't' || e.k === 'P') gasAI(e, dt, dx, dyF, dir);
   else if (e.k === 'G') {                          // метатель: стоит и кидает камешки дугой
     e.vx = 0; e.dir = dir; e.cd -= dt; e.t -= dt;
     if (e.cd <= 0 && !P.dead && Math.abs(dx) < 260 && Math.abs(dyF) < 150) {
@@ -1963,9 +2139,14 @@ function zapAI(e, dt, dx, dyF, dir) {      // разрядник: засвети
 }
 function gasAI(e, dt, dx, dyF, dir) {      // газовик: раздувается и пускает ядовитое облако
   e.cd -= dt;
-  if (e.st === 'puff') { e.vx = 0; e.t -= dt; if (e.t <= 0) { gasCloud(e.x + e.w / 2, e.y + e.h); e.st = 'walk'; e.vx = e.dir * e.sp; } }
+  if (e.st === 'puff') { e.vx = 0; e.t -= dt; if (e.t <= 0) { if (e.k === 'P') swarmOut(e, 2); else gasCloud(e.x + e.w / 2, e.y + e.h); e.st = 'walk'; e.vx = e.dir * e.sp; } }
   else if (e.on && !P.dead && Math.abs(dx) < 85 && Math.abs(dyF) < 40 && e.cd <= 0) { e.st = 'puff'; e.t = .7; e.dir = dir; e.cd = 3.6; beep(150, 70, .6, 'sawtooth', .03); }
   else turnTo(e, dt, dyF, dir);
+}
+function swarmOut(e, n) {                 // из носителя / фильтра противогаза лезет мелюзга
+  if (enemies.filter(b => b.k === 'm' && b.spawned).length > 12) return;
+  for (let i = 0; i < n; i++) { const s2 = i % 2 ? 1 : -1, c = mkBug('m', e.x + e.w / 2 - 4 + s2 * 3, e.y + e.h, s2); c.spawned = true; c.sleep = false; c.vy = -180 - i * 30; c.vx = s2 * (70 + i * 20); enemies.push(c); }
+  explode(e.x + e.w / 2, e.y + 8, 8, ['#5a2a10', '#3a1a0a', '#9be22d']); beep(700, 1600, .15, 'sawtooth', .03);
 }
 function gasCloud(x, yb) { ebullets.push({ x: x - 22, y: yb - 26, w: 44, h: 26, vx: 0, vy: 0, g: 0, life: 2.6, k: 'gas', age: 0 }); beep(120, 60, .5, 'sawtooth', .03); }
 function breakJar(e) {                      // стекло колбы лопается — мутант выскакивает
@@ -1993,13 +2174,13 @@ function chimera(dt, b, pc) {
     b.vx = 0;
     if (b.t <= 0) {
       const n = rage ? 4 : 3, v = clamp(dx / .85, -250, 250);
-      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * 20, y: b.y + 6, w: 7, h: 7, vx: v * (.6 + i * .7 / (n - 1)), vy: -280, g: 620, life: 2.4, k: 'glob' });
+      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * 20, y: b.y + 6, w: 7, h: 7, vx: v * (.6 + i * .7 / (n - 1)), vy: -280, g: 620, life: 2.4, k: b.k === 'roach' ? 'spit' : 'glob' });
       beep(200, 90, .45, 'square', .04); b.st = 'walk'; b.t = rnd(1.2, 2) / sp;
     }
   } else if (b.st === 'birth') {
     b.vx = 0;
     if (b.t <= 0) {
-      for (const s2 of [-1, 1]) { const e = mkBug('y', clamp(cx + s2 * 30, left + 4, right - 16), b.y + b.h, s2); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -220; e.vx = s2 * 90; enemies.push(e); }
+      for (const s2 of [-1, 1]) { const e = mkBug(b.k === 'roach' ? 'r' : 'y', clamp(cx + s2 * 30, left + 4, right - 16), b.y + b.h, s2); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -220; e.vx = s2 * 90; enemies.push(e); }
       beep(500, 150, .35, 'sawtooth', .04); explode(cx, b.y + 8, 12, GOO); b.st = 'walk'; b.t = rnd(1.2, 2) / sp;
     }
   } else if (b.st === 'dizzy') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.8, 1.5) / sp; } }
@@ -2125,6 +2306,12 @@ function drawBgCell(x, y, cx, cy) {
   rect(x, y, T, T, pal.bg);
   if (pal.pat === 'paper') { if (cx % 2 === 0) rect(x + 4, y, 2, T, pal.bg2); if (hs % 13 === 0) rect(x + 2, y + 6, 6, 5, '#140e10'); }
   else if (pal.pat === 'paint') { if (tile(cx, cy + 1) !== BG && tile(cx, cy + 1) !== LAD) rect(x, y, T, T, pal.bg2); if (hs % 11 === 0) rect(x + hs % 10, y + 3, 1, 9, '#0c0e0c'); }
+  else if (pal.pat === 'conc') {                   // бетон базы: плиты, следы пуль, кровь (друг, 12.11)
+    rect(x, y, T, 1, pal.bg2); if (cx % 2 === 0) rect(x, y, 1, T, pal.bg2);
+    if (hs % 17 === 0) rect(x + hs % 12 + 2, y + (hs >> 4) % 12 + 2, 2, 2, '#0a0a0c');
+    if (hs % 29 === 0) { ell(x + 8, y + 6, 4, 3, '#2a0a0e'); rect(x + 7, y + 8, 1, 7, '#2a0a0e'); }
+    if (hs % 37 === 0) rect(x + 2, y + 10, 12, 1, '#26281e');
+  }
   else if (pal.pat === 'tile') {                   // кафель лаборатории: швы, пятна жижи, трещины
     rect(x, y, T, 1, pal.bg2); rect(x, y, 1, T, pal.bg2); rect(x, y + 8, T, 1, pal.bg2); rect(x + 8, y, 1, T, pal.bg2);
     if (hs % 19 === 0) ell(x + 4 + hs % 8, y + 6 + (hs >> 3) % 6, 3, 2, '#16301a');
@@ -2355,6 +2542,66 @@ function drawDeco() {
       ctx.fillStyle = '#c8a020'; ctx.beginPath(); ctx.moveTo(cx, y + 1); ctx.lineTo(x + w - 1, y + h - 2); ctx.lineTo(x + 1, y + h - 2); ctx.fill();
       ell(cx, cy, 4, 4, '#111'); ell(cx, cy, 2, 2, '#c8a020');
       for (const a of [-1.57, .52, 2.62]) ell(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5, 2, 2, '#111');
+    } else if (d.k === 'body') {                       // останки солдата (друг: «везде останки и тех и других»)
+      const v = hash(d.x0, d.y0) % 3, fy = y + h;
+      ell(x + w / 2, fy - 1, w / 2 + 4, 2.5, '#3a0608'); ell(x + w / 2 - 3, fy - 1, w / 3, 1.5, '#5a0a10');
+      if (v === 0) { rect(x + 2, fy - 5, 9, 4, '#26301c'); rect(x + 11, fy - 5, 8, 4, '#3e4a2c'); rect(x + 19, fy - 6, 5, 5, '#9a7058'); rect(x + 19, fy - 7, 6, 2, '#3a4430'); rect(x + 13, fy - 3, 3, 2, '#5a0a10'); }
+      else if (v === 1) { rect(x + 8, fy - 6, 10, 5, '#3e4a2c'); rect(x + 7, fy - 6, 2, 5, '#7a1018'); rect(x + 18, fy - 6, 5, 5, '#9a7058'); rect(x + 1, fy - 3, 6, 2, '#9a7058'); rect(x, fy - 3, 2, 2, '#7a1018'); ell(x + 28, fy - 3, 3, 2.5, '#3a4430'); }
+      else { rect(x + 2, fy - 3, 12, 3, '#26301c'); rect(x + 14, fy - 14, 5, 12, '#3e4a2c'); rect(x + 13, fy - 19, 5, 5, '#9a7058'); rect(x + 12, fy - 20, 6, 2, '#3a4430'); rect(x + 15, fy - 32, 2, 13, '#4a0a10'); rect(x + 16, fy - 9, 2, 3, '#7a1018'); }
+    } else if (d.k === 'bugbody') {                    // дохлый жук на спине, зелёная жижа
+      const v = hash(d.x0, d.y0) % 2, fy = y + h;
+      ell(x + 16, fy - 1, 16, 2.5, '#1e3a10'); ell(x + 12, fy - 1, 8, 1.5, '#3a6a1a');
+      ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(x + 9 + i * 6, fy - 6); ctx.lineTo(x + 7 + i * 6 + (i % 2) * 4, fy - 14); ctx.lineTo(x + 10 + i * 6, fy - 17); } ctx.stroke();
+      ell(x + 15, fy - 5, 11, 5, '#3a2a1a'); ell(x + 13, fy - 6, 7, 2, '#5a4428');
+      if (v) { rect(x + 20, fy - 10, 2, 10, '#1e3a10'); ell(x + 27, fy - 4, 4, 3, '#2a1a10'); rect(x + 21, fy - 8, 1, 6, '#9be22d'); }
+      else { ell(x + 26, fy - 4, 4, 3.5, '#2a1a10'); rect(x + 28, fy - 5, 2, 1, '#ff2a2a'); }
+    } else if (d.k === 'gore') {                       // стена после боя: кровь, потёки, дыры от пуль, разорванные останки
+      const v = hash(d.x0 * 3, d.y0 * 7) % 4;
+      for (let i = 0; i < 5; i++) { const q = hash(d.x0 + i * 13, d.y0 + i); ell(x + 6 + q % (w - 12), y + 6 + (q >> 4) % (h - 12), 2 + q % 5, 1.5 + (q >> 3) % 3, i % 2 ? '#4a0a10' : '#6a0e16'); }
+      for (let i = 0; i < 4; i++) { const q = hash(d.y0 + i * 7, d.x0 + i); rect(x + 4 + q % (w - 8), y + h / 2 + (q >> 5) % 6, 1, 6 + q % 12, '#4a0a10'); }
+      for (let i = 0; i < 6; i++) { const q = hash(d.x0 + i * 5, d.y0 * 3 + i); rect(x + q % w, y + (q >> 6) % h, 2, 2, '#08080a'); }
+      if (v === 0) { rect(x + w / 2 - 1, y + 6, 2, 3, '#555'); rect(x + w / 2 - 3, y + 9, 6, 8, '#3e4a2c'); rect(x + w / 2 - 2, y + 17, 3, 9, '#9a7058'); rect(x + w / 2 - 2, y + 26, 3, 2, '#7a1018'); }   // на крюке — оторванная рука в рукаве
+      else if (v === 1) { ell(x + w / 2, y + h / 2, 10, 7, '#2a4a12'); ell(x + w / 2, y + h / 2, 6, 4, '#3a2a1a'); for (let i = 0; i < 4; i++) rect(x + w / 2 - 10 + i * 6, y + h / 2 + 3, 1, 7, '#1a1410'); rect(x + w / 2 + 4, y + h / 2 - 2, 2, 2, '#ff2a2a'); }   // жука размазало по стене
+      else if (v === 2) { for (let i = 0; i < 4; i++) rect(x + 8 + i * 4, y + 8, 2, 16 + (i % 2) * 6, '#5a0a10'); }   // следы пальцев сползают вниз
+    } else if (d.k === 'sandbag') {                    // мешки с песком
+      rect(x, y, w, h, '#2a2618');
+      for (let r = 0; r < h / 6; r++) for (let i = 0; i <= w / 10; i++) { const bx = x + i * 10 - (r % 2) * 5; if (bx < x - 2 || bx > x + w - 6) continue; ell(bx + 5, y + h - 3 - r * 6, 5, 3, '#6a6040'); ell(bx + 4, y + h - 4 - r * 6, 3, 1.5, '#8a8058'); }
+    } else if (d.k === 'crate') {                      // армейский ящик со звездой
+      rect(x, y, w, h, '#2e3420'); rect(x + 1, y + 1, w - 2, 2, '#4a5434'); rect(x + 1, y + h - 3, w - 2, 2, '#1a1e12');
+      for (let i = 12; i < w - 4; i += 16) rect(x + i, y + 2, 2, h - 4, '#1a1e12');
+      const sx = x + w / 2, sy = y + h / 2; ctx.fillStyle = '#6a2018'; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2 : 5; ctx.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r); } ctx.fill();
+    } else if (d.k === 'bunk') {                       // двухъярусная койка, матрас в крови
+      rect(x + 1, y, 2, h, '#4a4c50'); rect(x + w - 3, y, 2, h, '#4a4c50');
+      rect(x + 1, y + 6, w - 2, 4, '#5a5a4a'); rect(x + 1, y + h - 6, w - 2, 4, '#5a5a4a'); rect(x + 6, y + 6, 10, 3, '#5a0a10'); rect(x + w - 14, y + h - 6, 8, 2, '#4a0a10');
+      rect(x + 3, y + 5, 6, 2, '#8a8a7a');
+    } else if (d.k === 'locker') {                     // шкафчики, дверца сорвана
+      rect(x, y, w, h, '#2a3036'); for (let i = 0; i < w; i += 8) { rect(x + i, y, 1, h, '#1a1e22'); rect(x + i + 3, y + 6, 3, 1, '#4a5258'); }
+      rect(x + 8, y + 1, 7, h - 2, '#0c0e10'); rect(x + 16, y + 2, 3, h - 4, '#3a4046'); rect(x + 10, y + h - 8, 4, 6, '#3e4a2c');
+    } else if (d.k === 'shutter') {                    // ворота бокса гаража подняты наполовину — под ними ползком
+      rect(x - 2, y, w + 4, 3, '#3a3c40'); rect(x, y + 3, w, h - 3, '#4a4c48');
+      for (let i = 6; i < h; i += 4) rect(x, y + i, w, 1, '#2a2c28');
+      rect(x, y + h - 3, w, 3, '#c8a020'); for (let i = 0; i < w; i += 6) rect(x + i, y + h - 3, 3, 3, '#1a1a1a');
+    } else if (d.k === 'barrel') {                     // бочка с горючим
+      rect(x + 2, y + h - 22, 12, 22, '#3a4a2a'); rect(x + 2, y + h - 18, 12, 2, '#c8a020'); rect(x + 2, y + h - 8, 12, 2, '#2a3420'); rect(x + 4, y + h - 21, 2, 18, '#4e6036');
+    } else if (d.k === 'rack') {                       // пирамида для оружия — почти пустая
+      rect(x, y + h - 4, w, 4, '#3a3226'); rect(x, y + 4, w, 2, '#3a3226');
+      for (let i = 4; i < w; i += 8) { rect(x + i, y + 6, 2, h - 10, '#4a4238'); if (hash(d.x0 + i, d.y0) % 3 === 0) rect(x + i - 1, y + 3, 3, h - 6, '#1e1e1e'); }
+    } else if (d.k === 'medcab') {                     // медицинский шкаф с красным крестом, забрызган
+      rect(x, y, w, h, '#3a3e3c'); rect(x + 1, y + 1, w - 2, h - 2, '#565a58');
+      for (let i = 0; i < w; i += 16) { rect(x + i, y, 1, h, '#2a2e2c'); rect(x + i + 12, y + h / 2 - 2, 1, 4, '#8a8e8c'); if ((i / 16) % 2 === 0) { rect(x + i + 4, y + 9, 7, 2, '#a01818'); rect(x + i + 6, y + 7, 3, 6, '#a01818'); } }
+      for (let i = 0; i < 3; i++) { const q = hash(d.x0 + i, d.y0); ell(x + 6 + q % (w - 12), y + 10 + (q >> 4) % (h - 14), 3, 2, '#6a0e16'); }
+    } else if (d.k === 'gate') {                       // ворота базы позади: колючка, жёлто-чёрная полоса
+      rect(x, y, w, h, '#1e2024'); for (let i = 4; i < w; i += 8) rect(x + i, y, 2, h, '#3a3c40');
+      ctx.strokeStyle = '#6a6c70'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < w; i += 4) { ctx.moveTo(x + i, y + 4 + (i % 8 ? 2 : -2)); ctx.lineTo(x + i + 4, y + 4 + (i % 8 ? -2 : 2)); } ctx.stroke();
+      rect(x + 4, y + h / 2, w - 8, 10, '#c8a020'); for (let i = 0; i < w - 8; i += 8) rect(x + 4 + i, y + h / 2, 4, 10, '#1a1a1a');
+    } else if (d.k === 'wire') {                       // колючая проволока под потолком, с неё капает
+      ctx.strokeStyle = '#5a5c60'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < w; i += 6) { ctx.moveTo(x + i, y + 13); ctx.lineTo(x + i + 3, y + 10); ctx.lineTo(x + i + 6, y + 13); } ctx.stroke();
+      for (let i = 0; i < w; i += 12) { rect(x + i + 2, y + 9, 1, 3, '#7a7c80'); if (hash(d.x0 + i, 5) % 7 === 0) rect(x + i + 2, y + 13, 1, 4 + hash(i, d.x0) % 6, '#5a0a10'); }
+    } else if (d.k === 'mapboard') {                   // карта обороны в штабе
+      rect(x, y, w, h, '#3a3424'); rect(x + 2, y + 2, w - 4, h - 4, '#8a8468');
+      for (let i = 0; i < 6; i++) { const q = hash(d.x0 + i, 9); rect(x + 4 + q % (w - 10), y + 4 + (q >> 4) % (h - 10), 3, 3, i % 2 ? '#c81e1e' : '#2a2a2a'); }
+      ctx.strokeStyle = '#c81e1e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 8, y + h - 10); ctx.lineTo(x + w / 2, y + h / 2); ctx.lineTo(x + w - 10, y + 10); ctx.stroke();
+      ell(x + w - 20, y + h - 18, 9, 6, '#4a0a10'); rect(x + w - 24, y + h - 14, 2, 12, '#4a0a10');
     } else if (d.k === 'desk') {                       // лабораторный стол с пробирками
       rect(x, y, w, h, '#2e3438'); rect(x, y, w, 3, '#6a7276'); rect(x + 2, y + 4, 3, h - 4, '#1a1e20'); rect(x + w - 5, y + 4, 3, h - 4, '#1a1e20');
       for (let i = 0; i < w / 6; i++) { const hs = hash(d.x0 * 5 + i, d.y0); if (hs % 3) { const fx = x + 3 + i * 6; rect(fx, y - 6, 3, 6, 'rgba(200,230,230,.5)'); rect(fx, y - 3, 3, 3, ['#4fd08a', '#c84a6a', '#8a6ad8'][hs % 3]); } }
@@ -2745,6 +2992,46 @@ const MON_DEF = {
     for (const [x, y] of [[78, 15], [82, 14], [85, 16], [80, 17]]) p.eye(x, y);
     return p; },
   LBo: ph => MON_DEF.LB(ph, true),
+  // --- военная база (друг, 12.11) ---
+  N: (ph, atk) => {                                // солдат-носитель: сгорбился, из спины лезет панцирь с яйцами
+    const p = PixSpr(22, 26), UNI = ['#141a10', '#26301c', '#3e4a2c', '#5a6a40'], ROT = ['#1a1a10', '#3a3a20', '#6a6a3a', '#9a9a5a'];
+    p.rect(9, 17, 2, 7 - ph, '#26301c'); p.rect(12, 17, 2, 6 + ph, '#141a10'); p.rect(8, 24 - ph, 3, 1, '#1a1410'); p.rect(12, 23 + ph, 3, 1, '#1a1410');
+    p.blob(10, 13, 5, 5, UNI); for (const [x, y] of [[9, 15], [12, 12], [11, 17]]) p.set(x, y, '#5a0a10');
+    p.blob(6, 10, 5.5, 5.5, ['#1a1014', '#3a2028', '#6a3440', '#9a5060']);
+    for (const [x, y] of [[4, 8], [7, 7], [5, 11], [8, 10]]) { p.set(x, y, '#e8e0b0'); p.set(x + 1, y, '#c8c090'); }
+    p.blob(15, 11, 3.5, 4, ROT); p.eye(16, 10, '#ffd23f'); p.eye(17, 12, '#ffd23f'); p.rect(15, 13, 3, 1, '#2a0a10');
+    if (atk) { p.poly([[14, 14], [18, 13], [21, 11]], '#9a7058'); p.set(21, 10, '#d8c8a8'); p.poly([[13, 15], [17, 16], [20, 15]], '#26301c'); }
+    else { p.rect(14, 15, 2, 5, '#26301c'); p.rect(15, 20, 3, 1, '#9a7058'); }
+    return p; },
+  Nl: ph => MON_DEF.N(ph, true),
+  D: ph => {                                       // собака-мутант: служебная овчарка, на спине лапы жука
+    const p = PixSpr(26, 18), FUR = ['#1a140e', '#3a2a1a', '#6a4a2a', '#8a6a3a'];
+    for (const [i, x] of [[0, 5], [1, 9], [2, 15], [3, 19]]) p.poly([[x, 12], [x - 1 + ((i + ph) % 2) * 2, 17]], '#2a2018');
+    p.blob(12, 10, 9, 4, FUR); p.blob(21, 8, 4, 3.5, FUR); p.set(11, 9, '#5a0a10'); p.set(14, 11, '#5a0a10');
+    p.rect(23, 9, 3, 2, '#4a0a14'); p.teeth(23, 9, 2); p.eye(22, 7, '#ffd23f');
+    for (const x of [8, 12, 16]) p.poly([[x, 6], [x - 2, 1 + ph], [x - 4, 3]], '#3a2e34');
+    p.poly([[3, 9], [0, 6 + ph]], '#3a2a1a');
+    return p; },
+  C: ph => {                                       // учёный-кокон: халат прорван, весь в нитях, ползёт
+    const p = PixSpr(26, 16);
+    p.blob(11, 10, 9, 4.5, ['#3a3a40', '#7a7a84', '#b8b8c0', '#e0e0e8']);
+    for (let i = 0; i < 6; i++) p.line(4 + i * 3, 6 + (i % 2), 6 + i * 3 + ph, 14, '#9a9aa4');
+    for (const [x, y] of [[8, 9], [14, 11]]) p.set(x, y, '#6a0e16');
+    p.blob(21, 9, 3.5, 3.5, ['#3a2a24', '#6a4a3a', '#9a7058', '#c09078']); p.eye(22, 8, '#ff2a2a'); p.eye(23, 10, '#ff2a2a');
+    p.poly([[18, 13], [21, 15], [24 + ph, 15]], '#9a7058');
+    return p; },
+  P: (ph, puff) => {                               // рой в противогазе: из фильтра лезут жуки
+    const p = PixSpr(20, 28), UNI = ['#141a10', '#26301c', '#3e4a2c', '#5a6a40'];
+    p.rect(7, 20, 2, 7 - ph, '#26301c'); p.rect(10, 20, 2, 6 + ph, '#141a10'); p.rect(6, 27 - ph, 3, 1, '#1a1410'); p.rect(10, 26 + ph, 3, 1, '#1a1410');
+    p.blob(9, 15, 4.5, 6, UNI); p.rect(12, 14, 2, 5, '#26301c');
+    p.blob(10, 6, 4.5, 4.5, ['#141414', '#2a2a2a', '#444', '#606060']); p.eye(11, 5, '#9adfff'); p.eye(13, 5, '#9adfff');
+    p.blob(13, 9, 2, 2, ['#1a1a1a', '#333', '#555', '#777']);
+    const bugs = puff ? [[15, 10], [17, 8], [16, 12], [18, 11], [19, 9], [17, 13]] : [[15, 10], [17, 9], [16, 12]];
+    for (const [x, y] of bugs) { p.set(x, y, '#3a1a0a'); p.set(x + 1, y, '#5a2a10'); }
+    return p; },
+  Pp: ph => MON_DEF.P(ph, true),
+  RM: ph => { const p = PixSpr(40, 56); roachMan(p, 2, 4, { drop: ph }); return p; },     // босс: человек-таракан, крылья сложены
+  RMo: ph => { const p = PixSpr(44, 56); roachMan(p, 6, 4, { open: true, drop: ph }); return p; },   // взлетел: крылья раскрыты
   // --- нора (друг, 12.11) ---
   l: ph => {                                       // личинка А: рот-мешок
     const p = PixSpr(22, 11), PALE = ['#4a4438', '#7a7060', '#aea48c', '#ddd4bc'];
@@ -2848,6 +3135,8 @@ function drawMon(e, x, y, wh, f, run) {             // мордой по ход�
   if (e.k === 't' && e.st === 'puff') key = 'tp';
   if (e.k === 'u') ctx.globalAlpha = wh ? 1 : !HORROR ? .35 : litAt(e.x + e.w / 2, y + e.h / 2) ? .9 : e.st === 'lunge' ? .3 : .06;   // невидимка
   if (e.k === 'Z' && e.st === 'prep') x += (Math.random() - .5) * 3;
+  if (e.k === 'N' && e.st === 'lunge') key = 'Nl';
+  if (e.k === 'P' && e.st === 'puff') key = 'Pp';
   if (e.k === 'c' && e.hang) { key = 'ch'; ph = Math.floor(time * 2) % 2; }
   if (e.k === 'j' && !e.on) { key = 'ja'; ph = 0; }
   if (e.k === 'M' && e.st === 'lunge') key = 'Ma';
@@ -3272,6 +3561,58 @@ function drawLabBug(e, x, y, wh, f) {     // мутанты лаборатори
     if (e.st === 'stun') for (let i = 0; i < 3; i++) { const a = time * 6 + i * 2.1; rect(x + w / 2 + Math.cos(a) * 10, y - 10 + Math.sin(a) * 3, 2, 2, '#ffd23f'); }
   }
 }
+function roachMan(p, ox, oy, o) {         // человек-таракан по описанию друга: тело человека, тараканьи лапы и крылья, голова — месиво
+  const ROACH = ['#140a06', '#2e160c', '#5a2c16', '#8a4a26'], SKN = ['#3a2a24', '#6a4a3a', '#9a7058', '#c09078'], UNIF = ['#141a10', '#26301c', '#3e4a2c', '#5a6a40'], WING = ['#2a1408', '#5a2e12', '#8a4a20', '#b87038'];
+  p.rect(ox + 13, oy + 38, 3, 12, '#26301c'); p.rect(ox + 18, oy + 38, 3, 12, '#141a10'); p.rect(ox + 12, oy + 50, 5, 2, '#1a1410'); p.rect(ox + 18, oy + 50, 5, 2, '#1a1410');
+  if (o.open) { p.blob(ox + 6, oy + 18, 8, 15, WING); p.blob(ox + 2, oy + 22, 6, 13, ['#1a0c04', '#3a1e0c', '#6a3818', '#9a5a2c']); for (let i = 0; i < 4; i++) p.line(ox + 8, oy + 8, ox + 1 + i * 2, oy + 32, '#2a1408'); }
+  else { p.blob(ox + 11, oy + 28, 6, 14, WING); p.line(ox + 11, oy + 15, ox + 11, oy + 41, '#2a1408'); }
+  p.blob(ox + 17, oy + 28, 7, 10, UNIF); p.blob(ox + 19, oy + 24, 3, 3, SKN, (x, y) => (x + y) % 3 === 0);
+  for (const [x, y] of [[ox + 15, oy + 30], [ox + 20, oy + 33], [ox + 17, oy + 26]]) p.set(x, y, '#5a0a10');
+  for (const [ax, ay, bx, by, cx2, cy2] of [[22, 24, 30, 18, 34, 28], [22, 30, 31, 30, 33, 40], [12, 25, 5, 20, 1, 30], [12, 31, 4, 34, 2, 44]])
+    { p.poly([[ox + ax, oy + ay], [ox + bx, oy + by], [ox + cx2, oy + cy2]], '#6a3418'); p.set(ox + cx2, oy + cy2, '#d8c8a8'); p.set(ox + bx, oy + by - 1, '#d8c8a8'); }
+  p.poly([[ox + 23, oy + 21], [ox + 26, oy + 30], [ox + 25, oy + 36]], '#9a7058');
+  const hx = ox + 19 + (o.tilt || 0), hy = oy + 11 + (o.drop || 0);
+  p.blob(hx, hy, 6, 6.5, ROACH); p.blob(hx + 2, hy + 1, 4, 5, SKN, (x, y) => x < hx);
+  p.set(hx + 3, hy - 1, '#ffffff'); p.set(hx + 4, hy - 1, '#202020');
+  p.blob(hx - 2, hy - 1, 2.5, 2.5, ['#000000', '#1a1a1a', '#3a1010', '#7a2020']); p.eye(hx - 2, hy - 1, '#ff2a2a');
+  p.rect(hx + 1, hy + 3, 4, 1, '#3a0a10'); p.teeth(hx + 1, hy + 2, 2);
+  p.poly([[hx - 3, hy + 3], [hx - 6, hy + 6], [hx - 4, hy + 8]], '#d8c8a8');
+  p.poly([[hx - 2, hy - 5], [hx - 6, hy - 11], [hx - 2, hy - 15]], '#8a4a26'); p.poly([[hx, hy - 6], [hx + 4, hy - 13], [hx + 10, hy - 15]], '#5a2c16');
+  for (const [x, y] of [[hx - 4, hy + 1], [hx, hy + 5]]) p.set(x, y, '#c06070');
+}
+function drawRoach(b) {                   // босс базы: человек-таракан (друг, 12.11)
+  const wh = b.fl > 0, sh = b.st === 'wake' ? (Math.random() - .5) * 4 : 0, fly = b.st === 'leap';
+  const fr = MON[fly ? 'RMo' : 'RM'][Math.floor(time * (fly ? 12 : 2)) % 2], im = wh ? fr.wh : fr.img;
+  const dx = Math.round(b.x - cam + b.w / 2 - im.width / 2 + sh), dy = Math.round(b.y + b.h - im.height + 3 + (b.st === 'crouch' ? 4 : 0));
+  spr(im, dx, dy, b.dir < 0);
+  const f = b.dir > 0 ? 1 : -1, mx = f > 0 ? dx + 24 : dx + im.width - 24;
+  if (b.st === 'spit' && b.t < .35) ell(mx + f * 3, dy + 20, 3, 2, '#9be22d');
+  if (b.st === 'crouch') for (let i = 0; i < 3; i++) rect(dx + 8 + i * 9, dy + 50, 2, 2, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
+  if (b.st === 'dizzy') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(b.x - cam + b.w / 2 + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
+}
+function drawCutBase() {                  // заставка: из лаборатории — к воротам военной базы, ночь, прожектор, тела на земле
+  const t = stateT, fy = H - 44, gx = W * .55;
+  rect(0, 0, W, H, '#0c0e14'); for (let i = 0; i < 40; i++) rect(hash(i, 3) % W, hash(i, 11) % (fy - 60), 1, 1, '#8a8aa0');
+  rect(0, fy, W, H - fy, '#1a1c16'); rect(0, fy, W, 2, '#2e3226');
+  for (let i = 0; i < W - gx; i += 10) rect(gx + i, fy - 50, 2, 50, '#2a2c30');                                   // забор
+  rect(gx, fy - 52, W - gx, 2, '#3a3c40'); ctx.strokeStyle = '#4a4c50'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < W - gx; i += 5) { ctx.moveTo(gx + i, fy - 55); ctx.lineTo(gx + i + 5, fy - 51); } ctx.stroke();
+  rect(gx + 30, fy - 90, 6, 90, '#2a2c30'); rect(gx + 22, fy - 96, 22, 8, '#3a3c40');                              // вышка с прожектором
+  const a = Math.sin(t * 1.3) * .6 + 2.2; ctx.fillStyle = 'rgba(255,250,210,.12)'; ctx.beginPath(); ctx.moveTo(gx + 33, fy - 92);
+  ctx.lineTo(gx + 33 + Math.cos(a - .12) * 300, fy - 92 + Math.sin(a - .12) * 300); ctx.lineTo(gx + 33 + Math.cos(a + .12) * 300, fy - 92 + Math.sin(a + .12) * 300); ctx.fill();
+  rect(gx + 60, fy - 40, 56, 14, '#3a3424'); ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#c8b878'; ctx.fillText('ВОЕННАЯ ЧАСТЬ', gx + 88, fy - 30); ctx.textAlign = 'left';
+  for (const [bx, k] of [[W * .2, 1], [W * .3, 0], [W * .42, 1], [gx - 20, 0]]) {                                // тела на земле
+    ell(bx, fy, 13, 2, '#3a0608');
+    if (k) { ell(bx, fy - 3, 9, 4, '#2a2010'); rect(bx - 6, fy - 10, 1, 7, '#1a1410'); rect(bx + 4, fy - 11, 1, 8, '#1a1410'); rect(bx - 1, fy - 12, 1, 9, '#1a1410'); }
+    else { rect(bx - 8, fy - 4, 14, 4, '#26301c'); rect(bx + 6, fy - 5, 4, 4, '#6a4a3a'); rect(bx - 12, fy - 3, 4, 2, '#6a4a3a'); }
+  }
+  drawHeroMini(10 + Math.min(1, t / 3.2) * (gx - 60), fy - 22, 'walk');
+  if (t > 3 && t < 3.25) { ctx.fillStyle = 'rgba(255,240,200,.45)'; ctx.fillRect(0, 0, W, H); }
+  ctx.fillStyle = `rgba(0,0,0,${clamp((t - 4.4) / .6, 0, 1)})`; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  if (t > 3.1 && t < 4.4) { ctx.font = 'bold 12px monospace'; ctx.fillStyle = '#ff5a5a'; ctx.fillText('ТУТ БЫЛА БОЙНЯ…', W / 2, 40); }
+  if (t > 5.2) { ctx.font = 'bold 26px monospace'; ctx.fillStyle = '#c8b878'; ctx.fillText(CITY[4], W / 2, H / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#ccc'; ctx.fillText('военные держали оборону до последнего. жуки оказались сильнее…', W / 2, H / 2 + 22); }
+  ctx.textAlign = 'left';
+}
 function drawChimera(b) {                 // химера Б: скорпион-хирург — панцирь из лабораторного металла, хвост-шприц, клешни-скальпели (друг, 12.11)
   const x = b.x - cam + b.w / 2, wh = b.fl > 0, rage = b.hp < b.max / 2;
   const sy = b.st === 'crouch' ? 6 : !b.on ? -3 : 0, sh = b.st === 'wake' ? (Math.random() - .5) * 4 : 0;
@@ -3461,7 +3802,7 @@ function drawEyes() {                     // глаза жуков горят в
   for (const c of cracks) if (c.n < (L.crackN || 3) && Math.sin(time * 2 + c.x) > .3) { rect(c.x - cam + 5, c.y + 6, 2, 2, '#ff2a2a'); rect(c.x - cam + 9, c.y + 6, 2, 2, '#ff2a2a'); }
   if (boss.on && !boss.dead && boss.parts[0].k === 'chimera') {
     const b = boss.parts[0], f = b.dir > 0 ? 1 : -1, cx = b.x - cam + b.w / 2, sy = b.st === 'crouch' ? 6 : 0;
-    for (const [ex, ey] of [[20, 10], [25, 9], [29, 12], [17, 13]]) rect(cx + f * ex - (f < 0 ? 2 : 0), b.y + ey + sy, 2, 2, b.st === 'crouch' ? '#ffd23f' : '#ff2a2a');
+    for (const [ex, ey] of [[20, 20], [27, 21], [32, 22]]) rect(cx + f * ex - (f < 0 ? 1 : 0), b.y + ey + sy, 1, 1, b.st === 'crouch' ? '#ffd23f' : '#ff2a2a');
   }
   if (boss.on && !boss.dead && boss.parts[0].k === 'rhino') {
     const b = boss.parts[0], ex = b.x - cam + b.w / 2 + (b.dir > 0 ? 22 : -25);
@@ -3518,7 +3859,7 @@ function centerText(lines) {
 function draw() {
   ctx.save();
   if (shake > 0) ctx.translate(Math.round((Math.random() - .5) * 6 * shake), Math.round((Math.random() - .5) * 6 * shake));
-  if (state === 'cut') { ({ 2: drawCutNora, 3: drawCutLab }[LEVELS[lvlN + 1]?.city || 0] || drawCut)(); ctx.restore(); return; }
+  if (state === 'cut') { ({ 2: drawCutNora, 3: drawCutLab, 4: drawCutBase }[LEVELS[lvlN + 1]?.city || 0] || drawCut)(); ctx.restore(); return; }
   drawBg();
   if (state === 'title') {
     ctx.restore();
@@ -3532,7 +3873,7 @@ function draw() {
   }
   ctx.translate(0, -Math.round(camY));
   drawTiles(); drawDeco(); drawProps();
-  outlined(() => { drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera })[boss.parts[0].k](boss.parts[0]); });
+  outlined(() => { drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera, roach: drawRoach })[boss.parts[0].k](boss.parts[0]); });
   drawPlayer();
   if (fume) drawFume();
   drawWater(); drawFore();
@@ -3565,7 +3906,7 @@ function draw() {
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
-  if (state === 'win') centerText([[`ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, '#ffd23f', 76], ['дальше — военная база. продолжение следует…', 9, '#fff', 98],
+  if (state === 'win') centerText([[`ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, '#ffd23f', 76], ['база зачищена. продолжение следует…', 9, '#fff', 98],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 122], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
 }
 
