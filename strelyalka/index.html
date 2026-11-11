@@ -70,14 +70,26 @@
 // ===== Экран: высота фиксирована, ширина по пропорциям телефона =====
 const T = 16, H = 14 * T;
 let W = 400;
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const cv = document.getElementById('c'), ctx0 = cv.getContext('2d');
+let ctx = ctx0;                                   // рисуем сюда; outlined() на время подменяет слой
 const port = document.getElementById('port');
 const HORROR = !/[?&]light=1/.test(location.search);   // ?light=1 — без темноты
 const dark = document.createElement('canvas'), dctx = dark.getContext('2d');
+const OL = document.createElement('canvas'), olx = OL.getContext('2d'), OS = document.createElement('canvas'), osx = OS.getContext('2d');
+function outlined(fn) {                        // стиль 1: всё, что нарисует fn, получает чёрный контур в 1 пиксель
+  const t = ctx.getTransform();
+  olx.setTransform(1, 0, 0, 1, 0, 0); olx.clearRect(0, 0, OL.width, OL.height); olx.setTransform(t);
+  const keep = ctx; ctx = olx; try { fn(); } finally { ctx = keep; }
+  osx.globalCompositeOperation = 'copy'; osx.drawImage(OL, 0, 0);
+  osx.globalCompositeOperation = 'source-in'; osx.fillStyle = '#0a0a0e'; osx.fillRect(0, 0, OS.width, OS.height); osx.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) ctx.drawImage(OS, dx, dy);
+  ctx.drawImage(OL, 0, 0); ctx.restore();
+}
 function resize() {
   W = Math.max(300, Math.min(520, Math.round(H * innerWidth / innerHeight)));
-  cv.width = W; cv.height = H; dark.width = W; dark.height = H;
-  ctx.imageSmoothingEnabled = false;
+  cv.width = W; cv.height = H; dark.width = W; dark.height = H; OL.width = OS.width = W; OL.height = OS.height = H;
+  ctx.imageSmoothingEnabled = false; olx.imageSmoothingEnabled = false;
   port.style.display = innerHeight > innerWidth ? 'flex' : 'none';
 }
 addEventListener('resize', resize); resize();
@@ -1794,7 +1806,7 @@ function bugAI(e, dt) {
     if (!P.dead && Math.abs(dx) < 46 && Math.abs(dyF) < 30) { e.lure = false; e.vy = -220; e.vx = dir * 150; e.dir = dir; beep(500, 1600, .2, 'sawtooth', .045); }
   } else {
   if (e.hang) {                                    // потолочник ждёт, пока герой пройдёт под ним
-    if (!P.dead && Math.abs(dx) < 30 && P.y > e.y && P.y - e.y < 170) { e.hang = false; e.sleep = false; e.vy = 30; e.vx = 0; beep(700, 200, .25, 'sawtooth', .03); }
+    if (!P.dead && Math.abs(dx) < 24 && P.y > e.y && P.y - e.y < 113) { e.hang = false; e.sleep = false; e.vy = 30; e.vx = 0; beep(700, 200, .25, 'sawtooth', .03); }
     return;
   }
   if (e.hide) {                                    // засадник в кусте
@@ -1802,8 +1814,8 @@ function bugAI(e, dt) {
     else return;
   }
   if (e.sleep) {
-    const wake = e.k === 'S' ? 64 : e.k === 'u' ? 150 : 240;
-    if (!P.dead && Math.abs(dx) < wake && Math.abs(dyF) < 80) { e.sleep = false; e.vx = dir * e.sp; e.dir = dir; }
+    const wake = e.k === 'S' ? 44 : e.k === 'u' ? 100 : 160;   // радиус обнаружения меньше в 1.5 раза (друг, 11.11)
+    if (!P.dead && Math.abs(dx) < wake && Math.abs(dyF) < 54) { e.sleep = false; e.vx = dir * e.sp; e.dir = dir; }
   } else if (e.k === 'M' || e.k === 'A' || e.k === 'S' || e.k === 'u') lunger(e, dt, dx, dyF, dir);
   else if (e.k === 'k' || e.k === 'q' || e.k === 'y') hopper(e, dt, dx, dyF, dir);
   else if (e.k === 'h') zapAI(e, dt, dx, dyF, dir);
@@ -1850,7 +1862,7 @@ function bugAI(e, dt) {
 }
 function cocoonAI(e, dt, dx) {             // кокон: задрожал — через 2.4 с вылупится оса
   e.run += dt;
-  if (e.st === 'wait') { if (!P.dead && Math.abs(dx) < 130 && Math.abs(P.y - e.y) < 160) { e.st = 'shake'; e.t = 2.4; beep(300, 600, .4, 'sawtooth', .025); } return; }
+  if (e.st === 'wait') { if (!P.dead && Math.abs(dx) < 87 && Math.abs(P.y - e.y) < 107) { e.st = 'shake'; e.t = 2.4; beep(300, 600, .4, 'sawtooth', .025); } return; }
   e.t -= dt;
   if (e.t <= 0) {
     const v = mkBug('v', e.x, e.y + e.h + 10, Math.sign(dx) || 1); v.sleep = false; v.gd = e.gd; v.spawned = !e.gd; v.vy = 60;
@@ -1859,7 +1871,7 @@ function cocoonAI(e, dt, dx) {             // кокон: задрожал — �
 }
 function waspAI(e, dt, dx, dir) {          // оса: кружит над героем, потом пикирует
   e.fly = true; e.t -= dt; e.ph = e.ph ?? Math.random() * 6;
-  if (e.sleep) { if (!P.dead && Math.abs(dx) < 240 && Math.abs(P.y - e.y) < 160) e.sleep = false; else { e.vx = 0; e.vy = Math.sin(time * 3 + e.ph) * 10; return; } }
+  if (e.sleep) { if (!P.dead && Math.abs(dx) < 160 && Math.abs(P.y - e.y) < 107) e.sleep = false; else { e.vx = 0; e.vy = Math.sin(time * 3 + e.ph) * 10; return; } }
   const cx = e.x + e.w / 2, cy = e.y + e.h / 2, py = P.y + 8;
   if (e.st === 'dive') { if (e.t <= 0 || e.wall || e.on) { e.st = 'hover'; e.t = rnd(1.3, 2.3); } return; }
   e.st = 'hover';
@@ -1873,7 +1885,7 @@ function waspAI(e, dt, dx, dir) {          // оса: кружит над гер
 }
 function wormAI(e, dt, dx, dyF, dir) {     // червь: под землёй ползёт к герою, вблизи горка дрожит — и он выныривает
   e.t -= dt;
-  if (e.sleep) { e.vx = 0; if (!P.dead && Math.abs(dx) < 240 && Math.abs(dyF) < 60) { e.sleep = false; e.t = .6; } return; }
+  if (e.sleep) { e.vx = 0; if (!P.dead && Math.abs(dx) < 160 && Math.abs(dyF) < 40) { e.sleep = false; e.t = .6; } return; }
   if (e.st === 'under') {
     e.burrow = true; e.vx = P.dead || Math.abs(dyF) > 40 ? 0 : dir * e.sp;
     const ax = Math.floor((e.x + (e.vx > 0 ? e.w + 2 : -2)) / T), fr = Math.floor((e.y + e.h + 1) / T);
@@ -2508,40 +2520,65 @@ function drawPlayer() {
   ctx.globalAlpha = good?.k === 'noclip' ? .4 + Math.random() * .3 : 1;
   drawHero(); ctx.globalAlpha = 1;
 }
+// ===== Спрайты героя (стиль 1: чёрный контур, 3 тона) =====
+const HERO_SPR = (() => {
+  const pal = { o: '#0a0a0e', h: '#3a2a20', H: '#5a4030', s: '#d8a47a', S: '#9a6a4a', e: '#141414', j: '#3a5a3a', J: '#24382a', k: '#5a7a4a',
+    b: '#2a2018', B: '#c8a040', p: '#2e3440', P: '#1e222a', q: '#46506a' };
+  const mk = rows => { const w = Math.max(...rows.map(r => r.length)), c = document.createElement('canvas'); c.width = w; c.height = rows.length;
+    const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; };
+  const TOP = ['....ooooo.....', '...oHHhhho....', '..oHhhhhhho...', '..ohhhhsssoo..', '..ohhsssseso..', '..ohSssssssoo.', '...oSSssssoo..', '....oSsso.....',
+    '...ookkjjoo...', '..okkjjjjjjo..', '..okjjjjjjJo..', '..okjjjjjjJo..', '..okjjjjjJJo..', '..ojjjjjjJJo..', '..oobbBbbboo..'];
+  const LEGS = {
+    stand: ['...oqppppPo...', '...oqppoPPo...', '...oqpo.oPPo..', '...oqpo.oPPo..', '...oqpo.oPPo..', '...oppo.oPPo..', '...obbo.obbo..', '...obbbo.obbbo', '...oooo..oooo.'],
+    r1: ['...oqppppPo...', '..oqppooPPPo..', '..oqpo..oPPPo.', '.oqpo....oPPo.', '.oqpo.....oPo.', 'oqpo......oPo.', 'obbo......obbo', 'obbo.....obbbo', 'oooo.....oooo.'],
+    r2: ['...oqppppPo...', '...oqppPPPo...', '...oqpoPPo....', '...oqpooPPo...', '...oqpo.obbo..', '...oqpo.oboo..', '...oppo.oo....', '...obbbo......', '...ooooo......'],
+    r3: ['...oqppppPo...', '..oPPPooqppo..', '..oPPo..oqppo.', '.oPPo....oqpo.', '.oPo.....oqpo.', 'oPo......oqpo.', 'obbo......obbo', 'obbo.....obbbo', 'oooo.....oooo.'],
+    r4: ['...oqppppPo...', '...oqqpPPPo...', '...oPPoqpo....', '...oPPooqpo...', '...oPo.obbo...', '...oPo.oboo...', '...oPPo.oo....', '...obbbo......', '...ooooo......'],
+    jump: ['...oqppppPo...', '..oqpppPPPPo..', '..oqpoooPPo...', '..obbo.oPPo...', '..obbo..obbo..', '..oooo..obbbo.', '........oooo..', '..............', '..............'],
+  };
+  const fr = {};
+  for (const k in LEGS) fr[k] = mk([...TOP, ...LEGS[k]]);
+  fr.crouch = mk(['.........oooo...', '........oHhhho..', '..ooooooohhssso.', '.okkjjjjjoSsseo.', '.okjjjjjjjoSsso.', '.ojjjjjjjJJooo..', '.ojjjjjjJJJo....',
+    '.oobbbbBbbbo....', 'oqpppppPPPPo....', 'oqppoooooPPPo...', 'obbo.....oPPo...', 'obbbo....obbbo..', 'ooooo....ooooo..']);
+  fr.climb = mk(['....oooooo....', '...ohhhhhho...', '..ohhhhhhhho..', '..ohhhhhhhho..', '..oHhhhhhhHo..', '...ohhhhhho...', 'oo..oSSSSo..oo', 'oso.okkjjo.oso',
+    'osooojjjjoooso', '.oojjjjjjjjoo.', '..ojjjjjjjJo..', '..okjjjjjjJo..', '..okjjjjjJJo..', '..ojjjjjjJJo..', '..oobbbbbboo..', '...oqpppPPo...',
+    '...oqpo.oPo...', '...oqpo.oPo...', '...oqpo.oPo...', '...oqpo.oPo...', '...obbo.oPo...', '...obbo.obbo..', '...oooo.obbo..', '........oooo..']);
+  return fr;
+})();
+function spr(img, x, y, flip) {
+  x = Math.round(x); y = Math.round(y);
+  if (!flip) { ctx.drawImage(img, x, y); return; }
+  ctx.save(); ctx.translate(x + img.width, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0); ctx.restore();
+}
 function drawHero() {
   if (P.dead > 0 || (P.inv > 0 && Math.floor(time * 20) % 2)) return;
   const x = P.x - cam, y = P.y, f = P.face;
   if (P.flip) {                                     // сальто: сгруппировался и крутится, ствол — по прицелу
     ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot - P.rot0); ctx.scale(P.spin, 1);
-    rect(-5, -4, 10, 8, '#35506a'); rect(-4, -10, 7, 6, '#d8b48d'); rect(-4, -10, 7, 2, '#3a3a2a');
-    rect(1, 3, 6, 3, '#2e4d32'); rect(4, -1, 3, 6, '#2e4d32');
+    rect(-6, -5, 12, 10, '#0a0a0e'); rect(-5, -11, 9, 8, '#0a0a0e'); rect(0, 2, 8, 5, '#0a0a0e'); rect(3, -2, 5, 8, '#0a0a0e');   // контур
+    rect(-5, -4, 10, 8, '#3a5a3a'); rect(-5, -4, 10, 2, '#5a7a4a'); rect(-4, -10, 7, 6, '#d8a47a'); rect(-4, -10, 7, 2, '#3a2a20');
+    rect(1, 3, 6, 3, '#2e3440'); rect(4, -1, 3, 6, '#2e3440');
     ctx.restore();
     ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(Math.round(x + 5), Math.round(y + 11)); ctx.lineTo(Math.round(x + 5 + Math.cos(P.rot) * 10), Math.round(y + 11 + Math.sin(P.rot) * 10)); ctx.stroke();   // ствол крутится
     return;
   }
-  if (P.climb) {                                    // лезет по лестнице: спиной к нам
-    const st = Math.floor(P.run * 8) % 2;
-    rect(x + 1, y + 14 + st * 2, 3, 8 - st * 2, '#2e4d32'); rect(x + 6, y + 14 + (1 - st) * 2, 3, 8 - (1 - st) * 2, '#2e4d32');
-    rect(x, y + 6, 10, 9, '#35506a'); rect(x + 2, y + 7, 6, 6, '#2a4058');
-    rect(x - 1, y + 4 + st * 3, 3, 4, '#d8b48d'); rect(x + 8, y + 7 - st * 3, 3, 4, '#d8b48d');
-    rect(x + 2, y, 7, 7, '#3a3a2a');
+  if (P.climb) {                                    // лезет по лестнице: спиной к нам, руки-ноги по очереди
+    const img = HERO_SPR.climb; spr(img, x - 2, y + P.h - img.height, Math.floor(P.run * 8) % 2 === 1);
     return;
   }
-  if (P.crouch) {
-    rect(x - 2, y + 6, 14, 6, '#2e4d32'); rect(x - 2, y + 2, 10, 5, '#35506a');
-    rect(x + (f > 0 ? 6 : -4), y, 6, 6, '#d8b48d'); rect(x + (f > 0 ? 6 : -4), y, 6, 2, '#3a3a2a');
-  } else {
-    const step = P.on && P.vx ? Math.floor(P.run * 10) % 2 : 0;
-    rect(x + 1, y + 14, 3, 8 - step * 2, '#2e4d32'); rect(x + 6, y + 14, 3, 6 + step * 2, '#2e4d32');
-    rect(x, y + 6, 10, 9, '#35506a'); rect(x + 1, y + 7, 8, 2, '#4a6a88');
-    rect(x + 2, y, 7, 7, '#d8b48d'); rect(x + 2, y, 7, 2, '#3a3a2a');
-    rect(x + (f > 0 ? 7 : 0), y + 3, 2, 1, '#222');
-    if (badOn('tpose')) { rect(x - 8, y + 7, 26, 2, '#d8b48d'); rect(x - 8, y + 7, 26, 1, '#35506a'); return; }   // баг: Т-поза
+  if (P.crouch) { const img = HERO_SPR.crouch; spr(img, x - 3, y + P.h - img.height, f < 0); }
+  else {
+    const runF = ['r1', 'r2', 'r3', 'r4'][Math.floor(P.run * 10) % 4];
+    const img = HERO_SPR[!P.on && !P.wet ? 'jump' : P.on && P.vx ? runF : 'stand'];
+    spr(img, x - 2, y + P.h - img.height + (P.on && P.vx && (runF === 'r2' || runF === 'r4') ? 1 : 0), f < 0);
+    if (badOn('tpose')) { rect(x - 8, y + 7, 26, 3, '#0a0a0e'); rect(x - 8, y + 8, 26, 1, '#d8a47a'); return; }   // баг: Т-поза
   }
   const cx = x + 5, cy = P.crouch ? y + 5 : P.ay < 0 ? y + 4 : P.ay > 0 ? y + 12 : y + 9;
   const len = Math.hypot(P.ax, P.ay) || 1, gn = [[9, 2, '#bbb'], [11, 3, '#8a6a4a'], [13, 2, '#ccd'], [10, 4, '#6a8a3a']][wpn];
-  ctx.strokeStyle = gn[2]; ctx.lineWidth = gn[1]; ctx.beginPath();
-  ctx.moveTo(Math.round(cx), Math.round(cy)); ctx.lineTo(Math.round(cx + P.ax / len * gn[0]), Math.round(cy + P.ay / len * gn[0])); ctx.stroke();
+  const gx = Math.round(cx + P.ax / len * gn[0]), gy = Math.round(cy + P.ay / len * gn[0]), hx = Math.round(cx + P.ax / len * 3), hy = Math.round(cy + P.ay / len * 3);
+  ctx.lineCap = 'square'; ctx.strokeStyle = '#0a0a0e'; ctx.lineWidth = gn[1] + 2; ctx.beginPath(); ctx.moveTo(Math.round(cx), Math.round(cy)); ctx.lineTo(gx, gy); ctx.stroke();   // контур ствола
+  ctx.strokeStyle = gn[2]; ctx.lineWidth = gn[1]; ctx.beginPath(); ctx.moveTo(Math.round(cx), Math.round(cy)); ctx.lineTo(gx, gy); ctx.stroke(); ctx.lineCap = 'butt';
+  rect(hx - 1, hy - 1, 4, 4, '#0a0a0e'); rect(hx, hy, 2, 2, '#d8a47a');   // кисть
 }
 function drawSwarm() {                           // стая богомолов: тёмная стена с глазами и лапами-косами
   const fx = swarm.x - cam; if (fx < -30) return;
@@ -3188,8 +3225,8 @@ function draw() {
     return;
   }
   ctx.translate(0, -Math.round(camY));
-  drawTiles(); drawDeco(); drawProps(); drawEnemies();
-  if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera })[boss.parts[0].k](boss.parts[0]);
+  drawTiles(); drawDeco(); drawProps();
+  outlined(() => { drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera })[boss.parts[0].k](boss.parts[0]); });
   drawPlayer();
   if (fume) drawFume();
   drawWater(); drawFore();
