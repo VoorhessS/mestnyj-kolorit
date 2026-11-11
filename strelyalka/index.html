@@ -558,7 +558,64 @@ function build(def) {
   for (let cy = 0; cy < ROWS - 1; cy++) for (let cx = 0; cx < COLS; cx++)
     if (grid[cy][cx] === ACID && open(grid[cy + 1][cx])) grid[cy + 1][cx] = SOLID;
   B.fill(0, 0, 0, ROWS - 1); B.fill(COLS - 1, 0, COLS - 1, ROWS - 1); B.fill(0, ROWS - 1, COLS - 1, ROWS - 1);
+  if (!o.lift && !o.cart) o.saves = autoSaves(o, def) || o.saves;   // в лифте и вагонетке — ручные
   return o;
+}
+// Сохранения (друг, 11.11): путь от старта до выхода делим на 4 равные части,
+// дискеты — на 1/4, 2/4 и 3/4, четвёртая «точка» — сам переход на следующий уровень.
+// Путь ищем поиском в ширину по свободным клеткам, потом опускаем точку на пол.
+function autoSaves(o, def) {
+  const pass = t => t !== ACID && (!isSolid(t) || t === DOOR || t === GRATE || t === ROCK || t === CRUMBLE);
+  const A = o.arena, g = o.exit || o.heli;
+  if (!A && !g) return null;
+  const bfs = ([sx, sy], isGoal) => {                // кратчайший путь по свободным клеткам
+    const prev = new Int32Array(COLS * ROWS).fill(-1), q = [sy * COLS + sx]; let end = -1; prev[q[0]] = q[0];
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], cx = c % COLS, cy = (c / COLS) | 0;
+      if (isGoal(cx, cy)) { end = c; break; }
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, n = ny * COLS + nx;
+        if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || prev[n] >= 0 || !pass(grid[ny][nx])) continue;
+        prev[n] = c; q.push(n);
+      }
+    }
+    if (end < 0) return null;
+    const p = []; for (let c = end; ; c = prev[c]) { p.push([c % COLS, (c / COLS) | 0]); if (c === prev[c]) break; }
+    return p.reverse();
+  };
+  // путь: старт → цель задания (предмет или дальний из свиты) → выход
+  const pts = [[o.start[0], o.start[1] - 1]];
+  const it = o.items.find(i => i[0] === def.obj); if (it) pts.push([it[1], it[2] - 1]);
+  if (def.obj === 'guards') {
+    const gs = o.bugs.filter(b => b[2] === (def.guard || 's')).sort((a, b) => Math.abs(b[0] - o.start[0]) - Math.abs(a[0] - o.start[0]));
+    if (gs[0]) pts.push([gs[0][0], gs[0][1] - 1]);
+  }
+  let path = [];
+  for (let i = 0; i < pts.length; i++) {
+    const last = i === pts.length - 1, t = pts[i + 1];
+    const seg = bfs(pts[i], last ? (cx, cy) => A ? cx === A.gate - 1 : Math.abs(cx - g[0]) <= 1 && cy === g[1] - 1
+      : (cx, cy) => Math.abs(cx - t[0]) <= 1 && Math.abs(cy - t[1]) <= 1);
+    if (!seg) return null;
+    path = path.concat(path.length ? seg.slice(1) : seg);
+  }
+  if (path.length < 30) return null;               // короткий путь (арена босса сразу у старта) — без дискет
+  const air = t => open(t) && t !== WATER && t !== VENT && t !== LAD;
+  const land = ([cx, cy]) => {                       // опускаемся на пол
+    let y = cy;
+    while (y < ROWS - 2 && y - cy < 12 && pass(grid[y + 1][cx]) && !isSolid(grid[y + 1][cx]) && grid[y + 1][cx] !== PLAT) y++;
+    const f = grid[y + 1]?.[cx];
+    if (!(f === SOLID || f === STICKY || f === PLAT) || !air(grid[y][cx]) || !air(grid[y - 1]?.[cx])) return null;
+    return [cx, y + 1];
+  };
+  const out = [], far = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) >= 8;
+  for (let k = 1; k <= 3; k++) {
+    const i0 = Math.round(path.length * k / 4), span = Math.round(path.length / 8);
+    for (let d = 0; d <= span; d++) {
+      const p = path[i0 + d] && land(path[i0 + d]) || path[i0 - d] && land(path[i0 - d]);
+      if (p && far(p, o.start) && out.every(s => far(p, s))) { out.push(p); break; }
+    }
+  }
+  return out;
 }
 
 // Движение тела по клеткам: сначала по X, потом по Y
@@ -787,6 +844,7 @@ function startLevel(n) {
     enemies.push(e);
   }
   guardsAll = enemies.filter(e => e.gd).length;
+  enemies.forEach((e, i) => e.id = i); proto = structuredClone(enemies);   // какими жуки были в начале уровня
   wins = lv.wins; ebullets = [];
   const LF = lv.lift;
   lift = LF ? { k: 'lift', x: LF.x0 * T, w: (LF.x1 - LF.x0 + 1) * T, y: LF.y0 * T, y0: LF.y0 * T, top: LF.y1 * T, dx: 0, dy: 0, go: false } : null;
@@ -821,7 +879,7 @@ function startLevel(n) {
     : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 40 + 5 * lvlN, max: 40 + 5 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
   done = L.obj === 'reach';
   lives = Math.max(lives, 3);
-  respawn();
+  snap = null; respawn(); takeSnap();
   setState('card');
 }
 function gate(on) {                          // решётка арены: закрыть / открыть
@@ -832,7 +890,32 @@ function gate(on) {                          // решётка арены: за�
     else if (!on && t === GRATE) grid[y][A.gate] = A.orig[y] ?? AIR;
   }
 }
+// Снимок на сохранении: после смерти всё, что было позже, сбрасывается (друг, 11.11)
+let snap = null, proto = [];
+function takeSnap() {
+  snap = { grid: grid.map(r => r.slice()), items: structuredClone(items.filter(i => i.k !== 'ammo')), done, score, wpn, ammo: ammo.slice(), owned: owned.slice(), energy,
+    rockHit: { ...rockHit }, cracks: structuredClone(cracks), alive: enemies.filter(e => e.id !== undefined && e.hp > 0).map(e => e.id) };
+}
+const FREE = 'rRmjbMSlFv';                      // эти жуки после смерти героя встают в случайные места
+function restoreSnap(rx, ry) {
+  const S = snap;
+  grid = S.grid.map(r => r.slice()); items = structuredClone(S.items); done = S.done; score = S.score;
+  wpn = S.wpn; ammo = S.ammo.slice(); owned = S.owned.slice(); energy = S.energy;
+  rockHit = { ...S.rockHit }; cracks = structuredClone(S.cracks); crumb = new Map(); rocks = [];
+  enemies = S.alive.map(id => structuredClone(proto[id]));
+  const fly = e => e.k === 'F' || e.k === 'v', far = e => Math.hypot(e.x - rx, e.y - ry) > 200;
+  for (const f of [true, false]) {                // места берём из начальной расстановки жуков того же рода (летун / ходок)
+    const spots = proto.filter(e => FREE.includes(e.k) && !e.gd && fly(e) === f && far(e)).map(e => [e.x, e.y]);
+    for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+    for (const e of enemies) if (FREE.includes(e.k) && !e.gd && fly(e) === f) {
+      const sp = spots.pop(); if (sp) { e.x = sp[0]; e.y = sp[1]; }
+    }
+  }
+  for (const e of enemies) if (!e.gd && FREE.includes(e.k) && !far(e)) e.hp = 0;   // свободного места не хватило — у точки возрождения жуков нет
+  enemies = enemies.filter(e => e.hp > 0);
+}
 function respawn() {
+  if (snap && !boss.dead) restoreSnap(save.x, save.y);
   bullets = []; parts = []; good = null; clone = null; roul = 0;
   if (bad) { bad = null; cv.style.transform = ''; }
   if (boss && boss.on && !boss.dead) {          // погиб на арене: босс ждёт заново, решётка открыта
@@ -1254,7 +1337,7 @@ function update(dt) {
     }
     if (P.y > MAPH) { P.inv = 0; killPlayer(); }
     for (const s of saves) if (!s.on && hit(P, s)) {     // сохранение
-      saves.forEach(o => o.on = false); s.on = true; save = s; showToast('💾 СОХРАНЕНО', 1.6); beep(600, 1200, .2, 'triangle', .05);
+      saves.forEach(o => o.on = false); s.on = true; save = s; takeSnap(); showToast('💾 СОХРАНЕНО', 1.6); beep(600, 1200, .2, 'triangle', .05);
     }
     for (const it of items) if (!it.got && hit(P, it)) {
       it.got = true;
@@ -2549,7 +2632,7 @@ window.__overview = (n, s = 4) => {
   const col = ['#5a6a8a', '#666', '#c9a', '#fd4', '#4f4', '#222', '#f44', '#99f', '#a60', '#38c', '#998', '#a3c', '#c96'];
   for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) { x.fillStyle = col[grid[cy][cx]]; x.fillRect(cx * s, cy * s, s, s); }
   const dot = (cx, cy, c, h = 1) => { x.fillStyle = c; x.fillRect(cx * s, (cy - h) * s, s, h * s); };
-  o.saves.forEach(([a, b]) => dot(a, b, '#39f')); o.nests.forEach(([a, b]) => dot(a, b, '#a52')); o.bugs.forEach(([a, b, g]) => dot(a, b, g ? '#f80' : '#f0f'));
+  o.saves.forEach(([a, b]) => { x.fillStyle = '#ff0'; x.fillRect((a - 1) * s, (b - 3) * s, 3 * s, 3 * s); x.fillStyle = '#00f'; x.fillRect(a * s, (b - 2) * s, s, s); }); o.nests.forEach(([a, b]) => dot(a, b, '#a52')); o.bugs.forEach(([a, b, g]) => dot(a, b, g ? '#f80' : '#f0f'));
   o.items.forEach(([k, a, b]) => dot(a, b, '#ff0', 2)); o.cracks.forEach(([a, b]) => { x.fillStyle = '#f0f'; x.fillRect(a * s, b * s, s, s); });
   if (o.exit) dot(o.exit[0], o.exit[1], '#0f8', 2); dot(o.start[0], o.start[1], '#fff', 2); if (o.heli) dot(o.heli[0], o.heli[1], '#0ff', 2);
   return c.toDataURL();
