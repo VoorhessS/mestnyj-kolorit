@@ -113,88 +113,106 @@ const PAL = {
   lab: { lab: 1, bg: '#151b1d', bg2: '#1c2427', pat: 'tile', solid: '#283034', floor: '#56666a' },
 };
 const LEVELS = [
-  { name: 'УЛИЦА', task: 'Доберись до дома в конце улицы', obj: 'reach', sky: true, day: true, ground: 16, dark: .9,
-    cols: 170, rows: 26, base: AIR, pal: PAL.street, spawn: ['r', 'r', 'm'],
-    tips: ['на улице день, а в подвале света нет', 'завал поверху не перелезть — ищи спуск в подвал', 'лестница: встань у неё и жми вверх или вниз'],
+  { name: 'УЛИЦА', task: 'Найди ключ от подъезда — он где-то под землёй', obj: 'key', sky: true, day: true, ground: 16, dark: .9,
+    cols: 170, rows: 34, base: AIR, pal: PAL.street, spawn: ['r', 'r', 'm'],
+    tips: ['дверь подъезда заперта: ключ уронили в коллектор под улицей', 'завал поверху не перелезть — спускайся в подвал магазина', 'взял ключ — по пути назад жди новую волну'],
     build(B) {
-      B.fill(0, 16, 169, 25);
+      B.fill(0, 16, 169, 33);
       B.car(20, 24, 15); B.car(38, 41, 15); B.fill(53, 15, 54, 15); B.deco('box', 53, 15, 54, 15); B.bus(55, 64, 15);
-      B.fill(68, 7, 79, 7); B.fill(68, 7, 68, 12); B.room(69, 8, 79, 15);            // магазин
-      B.deco('sign', 70, 9, 77, 10);
-      B.fill(80, 3, 85, 15); B.deco('rubble', 80, 3, 85, 15);                       // завал перекрыл улицу
-      B.room(70, 17, 100, 22); B.lad(76, 16, 22); B.lad(98, 16, 22);               // подвал магазина
-      B.acid(86, 88, 23); B.sign(73, 19, '>'); B.sign(92, 19, '>'); B.sign(97, 18, '^'); B.lamp(84, 17);
-      B.nest(91, 23); B.bug(81, 23);
-      B.car(110, 113, 15); B.fill(125, 13, 126, 15); B.deco('box', 125, 13, 126, 15); B.car(136, 139, 15);
-      B.fill(155, 2, 168, 13); B.room(156, 14, 168, 15); B.exit(160, 16, 'ПОДЪЕЗД');  // дом
-      B.lamp(34, 9, true); B.lamp(108, 9, true); B.lamp(146, 9, true);
       B.fill(44, 3, 49, 15); B.room(44, 13, 49, 15); B.shaft(46, 3, 12); B.item('life', 44, 3); B.sign(46, 12, '^');   // дом с вентшахтой: секрет на крыше
+      B.fill(68, 7, 79, 7); B.fill(68, 7, 68, 12); B.room(69, 8, 79, 15); B.deco('sign', 70, 9, 77, 10);   // магазин
+      B.fill(80, 3, 85, 15); B.deco('rubble', 80, 3, 85, 15);                       // завал перекрыл улицу
+      B.room(70, 17, 100, 22); B.lad(76, 16, 22); B.lad(98, 16, 22);               // подвал магазина, пол — 23
+      B.acid(86, 88, 23); B.sign(73, 19, '>'); B.sign(92, 21, 'v'); B.lamp(84, 17);
+      B.room(58, 25, 132, 30); B.lad(94, 23, 30);                                   // коллектор под улицей, пол — 31
+      B.acid(66, 70, 31); B.plat(66, 70, 28);
+      B.fill(102, 25, 108, 29); B.deco('rubble', 102, 25, 108, 29); B.vent(102, 108, 30);   // труба просела — ползком
+      B.acid(115, 117, 31);
+      B.item('key', 124, 31);
+      B.lad(128, 16, 30); B.sign(126, 28, '^');                                      // люк на улицу у самого дома
+      for (const x of [62, 80, 98, 112, 126]) B.lamp(x, 25);
+      B.sign(112, 28, '>');
+      B.car(110, 113, 15); B.fill(124, 13, 125, 15); B.deco('box', 124, 13, 125, 15); B.car(136, 139, 15);
+      B.fill(155, 2, 168, 13); B.room(156, 14, 168, 15); B.door(157, 14, 15); B.exit(163, 16, 'ПОДЪЕЗД');   // дом: дверь заперта
+      B.lamp(34, 9, true); B.lamp(108, 9, true); B.lamp(146, 9, true);
       B.nest(30, 16); B.bug(53, 16); B.nest(118, 16); B.bug(150, 16);
-      B.bug(104, 16, 'm'); B.bug(105, 16, 'm'); B.bug(106, 16, 'm'); B.bug(132, 16, 'm'); B.bug(133, 16, 'm');
-      B.start(4, 16); B.save(101, 16);
+      B.bug(104, 16, 'm'); B.bug(105, 16, 'm'); B.bug(132, 16, 'm'); B.bug(133, 16, 'm');
+      B.nest(91, 23); B.bug(81, 23);
+      B.nest(60, 31); B.bug(64, 31); B.bug(84, 31, 'm'); B.bug(85, 31, 'm'); B.bug(111, 31); B.bug(121, 31); B.crack(99, 27);
+      B.start(4, 16);
     } },
-  { name: 'ПОДЪЕЗД', task: 'Найди ключ от двери на лестницу', obj: 'key', ground: 13, dark: .9,
+  { name: 'ПОДЪЕЗД', task: 'Дай ток: дверь на лестницу на электрозамке', obj: 'switch', itemTxt: '⚡ ток пошёл! замок щёлкнул — дверь открыта', ground: 13, dark: .9,
     cols: 104, rows: 30, base: SOLID, pal: PAL.lobby, spawn: ['r', 'm', 'R'],
-    tips: ['жуки перегрызли провода: светло только у окон', 'лаз в стене: зажми вниз и ползи вбок', 'берегись потолочников — падают сверху'],
+    tips: ['рубильник в самом низу подвала, за кислотой', 'дашь ток — откроется люк: вентшахта прямо в холл. наверх — прыжками от стены к стене', 'лаз в стене: зажми вниз и ползи вбок'],
     build(B) {
       B.room(1, 8, 70, 11); B.door(62, 8, 11); B.exit(67, 12, 'ЛЕСТНИЦА');
       B.win(5, 9); B.win(27, 9); B.win(47, 9);
       B.lamp(14, 8); B.lamp(40, 8); B.lamp(66, 8);
-      B.room(4, 15, 96, 18); B.lad(20, 12, 18);                                    // подвал, верхний ярус
+      B.room(5, 15, 96, 18); B.lad(20, 12, 18);                                    // подвал, верхний ярус
       B.fill(56, 15, 60, 17); B.deco('rubble', 56, 15, 60, 17); B.vent(56, 60, 18);
       B.acid(40, 41, 19); B.sign(51, 17, '>'); B.lamp(30, 15);
-      B.room(4, 20, 100, 26); B.fill(39, 20, 42, 20); B.lad(92, 19, 26);            // нижний ярус, затоплен кислотой; потолок выше
+      B.room(5, 20, 100, 26); B.fill(39, 20, 42, 20); B.lad(92, 19, 26);            // нижний ярус, затоплен кислотой
       B.acid(50, 62, 27); B.plat(51, 54, 25); B.plat(56, 59, 25); B.plat(61, 62, 25);
-      B.sign(66, 24, '<'); B.sign(12, 24, '<');
-      B.room(3, 25, 3, 26); B.lad(2, 13, 26); B.door(2, 12, 12, LAD);              // шахта с люком в холл
-      B.item('key', 40, 27);
-      B.nest(30, 19); B.nest(75, 19); B.nest(20, 27);
-      B.bug(70, 27); B.bug(30, 27, 'R'); B.bug(85, 19);
+      B.sign(66, 24, '<'); B.sign(16, 24, '<');
+      B.shaft(2, 13, 26); B.room(4, 25, 4, 26); B.door(2, 12, 12); B.door(3, 12, 12);   // вентшахта в холл, люк заперт до тока
+      B.item('switch', 9, 27);
+      B.nest(30, 19); B.nest(75, 19); B.nest(22, 27); B.nest(45, 12);
+      B.bug(70, 27); B.bug(30, 27, 'R'); B.bug(85, 19); B.bug(52, 12); B.bug(14, 27, 'R'); B.bug(66, 19);
       B.bug(36, 12, 'c'); B.bug(46, 19, 'c'); B.bug(41, 27, 'c'); B.bug(80, 27, 'c');
-      B.start(10, 12); B.save(88, 19); B.save(84, 27);
+      B.crack(30, 9); B.crack(88, 16);
+      B.start(10, 12);
     } },
-  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда на этаже', obj: 'nests', ground: 99, dark: .9,
-    cols: 140, rows: 22, base: SOLID, pal: PAL.flat, spawn: ['r', 'm', 'j'],
-    tips: ['у окон светло, в коридоре темнота', 'пока живо хоть одно гнездо, дверь не откроется', 'щелкуны прыгают — стреляй, пока летят'],
+  { name: 'ВТОРОЙ ЭТАЖ', task: 'Уничтожь все гнёзда: на этаже, в квартирах и внизу', obj: 'nests', ground: 99, dark: .9,
+    cols: 140, rows: 28, base: SOLID, pal: PAL.flat, spawn: ['r', 'm', 'j'],
+    tips: ['гнёзда везде: в квартирах наверху и на первом этаже', 'гнилой пол в коридоре — провалишься вниз', 'дверь на лестницу — там, где начал. зачисти всё и возвращайся'],
     build(B) {
-      B.room(1, 14, 59, 17); B.room(67, 14, 138, 17);                              // коридор, посередине обвал
-      B.room(10, 8, 40, 11); B.room(50, 8, 85, 11); B.room(95, 8, 130, 11);         // квартиры
-      B.win(16, 9); B.win(30, 9); B.win(58, 9); B.win(74, 9); B.win(104, 9); B.win(121, 9);
+      B.room(1, 14, 131, 17);                                                       // коридор, пол — 18
+      B.fill(62, 14, 66, 17); B.deco('rubble', 62, 14, 66, 17);                     // обвал посреди коридора
+      B.crumble(56, 60, 18);                                                        // гнилой пол — провал на первый этаж
+      B.room(1, 20, 131, 24); B.room(132, 23, 135, 24);                             // первый этаж, пол — 25
+      B.room(10, 8, 40, 11); B.room(50, 8, 85, 11); B.room(95, 8, 133, 11);         // квартиры, пол — 12
+      B.shaft(134, 8, 22);                                                          // вентшахта с первого этажа к дальней квартире
+      B.win(16, 9); B.win(30, 9); B.win(58, 9); B.win(74, 9); B.win(104, 9); B.win(121, 9); B.win(40, 21); B.win(100, 21);
       B.vent(41, 49, 11); B.vent(86, 94, 11);
-      B.lad(12, 12, 17); B.lad(52, 12, 17); B.lad(80, 12, 17); B.lad(97, 12, 17);
-      B.acid(90, 91, 18); B.door(133, 14, 17); B.exit(136, 18, 'ВВЕРХ');
-      B.sign(38, 10, '>'); B.sign(83, 10, '>'); B.sign(56, 16, '^');
-      B.lamp(20, 14); B.lamp(75, 14); B.lamp(110, 14);
-      B.nest(25, 18); B.nest(30, 12); B.nest(70, 12); B.nest(105, 18); B.nest(118, 12);
+      B.lad(14, 12, 17); B.lad(52, 12, 17); B.lad(80, 12, 17); B.lad(97, 12, 17); B.lad(12, 18, 24); B.lad(72, 18, 24);
+      B.acid(90, 91, 18); B.acid(31, 33, 25); B.acid(110, 112, 25);
+      B.door(5, 14, 17); B.exit(2, 18, 'ВВЕРХ');                                    // дверь на лестницу — у старта
+      B.sign(38, 10, '>'); B.sign(83, 10, '>'); B.sign(58, 16, 'v'); B.sign(131, 22, '^');
+      B.lamp(20, 14); B.lamp(75, 14); B.lamp(110, 14); B.lamp(50, 20); B.lamp(90, 20);
+      B.nest(25, 18); B.nest(30, 12); B.nest(70, 12); B.nest(118, 12); B.nest(126, 18); B.nest(45, 25); B.nest(95, 25);
       B.bug(45, 18, 'j'); B.bug(62, 12); B.bug(100, 18, 'R'); B.bug(125, 12, 'j'); B.bug(36, 12);
       B.bug(18, 18, 'c'); B.bug(66, 12, 'c'); B.bug(115, 18, 'c');
-      B.start(4, 18); B.save(75, 18); B.save(99, 12);
+      B.bug(60, 25); B.bug(80, 25, 'm'); B.bug(81, 25, 'm'); B.bug(120, 25, 'j'); B.bug(20, 25, 'R');
+      B.crack(90, 16); B.crack(40, 22);
+      B.start(9, 18);
     } },
-  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Найди инструменты, чтобы починить лифт', obj: 'tools', ground: 99, dark: .9,
-    cols: 60, rows: 48, base: SOLID, pal: PAL.upper, spawn: ['r', 'j', 'b', 'R', 'm'],
-    tips: ['ящик с инструментами — на последнем этаже', 'бомбардир брызгает кислотой — не подходи близко', 'жуки лезут из трещин в стенах'],
+  { name: 'ВЕРХНИЕ ЭТАЖИ', task: 'Принеси инструменты с последнего этажа к лифту', obj: 'tools', ground: 99, dark: .9,
+    cols: 64, rows: 48, base: SOLID, pal: PAL.upper, spawn: ['r', 'j', 'b', 'R', 'm'],
+    tips: ['грузовой лифт внизу, у старта. а инструменты — на последнем этаже', 'вентшахта справа: наверх — прыжками от стены к стене, вниз — просто прыгай', 'бомбардир брызгает кислотой — не подходи близко'],
     build(B) {
       for (const f of [46, 40, 34, 28, 22, 16]) B.room(1, f - 5, 58, f - 1);
       B.room(1, 4, 58, 9);
       B.lad(56, 40, 45); B.lad(3, 34, 39); B.lad(56, 28, 33); B.lad(3, 22, 27); B.lad(56, 16, 21); B.lad(3, 10, 15);
-      B.win(10, 42); B.win(46, 42); B.win(35, 36); B.win(50, 24); B.win(12, 12); B.win(48, 12); B.win(20, 5); B.win(44, 5);
+      B.shaft(60, 4, 45); B.room(59, 44, 59, 45); B.room(59, 8, 59, 9);             // вентшахта во всю высоту
+      B.door(5, 41, 45); B.exit(2, 46, 'ЛИФТ');                                      // лифт — внизу, за дверью
+      B.win(12, 42); B.win(46, 42); B.win(35, 36); B.win(50, 24); B.win(12, 12); B.win(48, 12); B.win(20, 5); B.win(44, 5);
       // этаж 1
-      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 35, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46, 'b');
+      B.fill(20, 44, 21, 45); B.deco('box', 20, 44, 21, 45); B.acid(34, 35, 46); B.crack(28, 43); B.lamp(15, 41); B.bug(44, 46, 'b'); B.sign(57, 44, '>');
       // этаж 2: кислотная лужа с полкой
-      B.acid(20, 27, 40); B.plat(22, 25, 39); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35); B.bug(30, 40, 'c');
+      B.acid(20, 27, 40); B.plat(22, 25, 39); B.crack(10, 37); B.bug(40, 40); B.lamp(48, 35); B.bug(30, 40, 'c'); B.bug(12, 40, 'j');
       // этаж 3: низкий потолок — ползком
       B.fill(25, 29, 32, 32); B.deco('rubble', 25, 29, 32, 32); B.vent(25, 32, 33); B.nest(45, 34); B.lamp(40, 29); B.sign(22, 32, '>');
-      B.bug(50, 34, 'c');
+      B.bug(50, 34, 'c'); B.bug(12, 34, 'R');
       // этаж 4
       B.fill(40, 26, 41, 27); B.deco('box', 40, 26, 41, 27); B.fill(20, 25, 22, 27); B.deco('box', 20, 25, 22, 27);
-      B.bug(30, 28, 'R'); B.crack(48, 25); B.acid(10, 11, 28);
+      B.bug(30, 28, 'R'); B.crack(48, 25); B.acid(10, 11, 28); B.bug(50, 28, 'j');
       // этаж 5: ни окон, ни света, только указатели
       B.sign(20, 19, '>'); B.sign(40, 19, '>'); B.sign(54, 19, '^'); B.bug(25, 22, 'b'); B.bug(35, 22, 'j'); B.nest(50, 22); B.crack(15, 19);
       // этаж 6
-      B.acid(30, 34, 16); B.plat(31, 33, 15); B.crack(45, 13); B.bug(20, 16, 'R'); B.lamp(25, 11); B.sign(6, 13, '^');
-      // последний этаж: инструменты, выход к лифту
-      B.item('tools', 30, 10); B.exit(55, 10, 'ЛИФТ'); B.lamp(30, 4); B.bug(36, 10, 'b'); B.bug(24, 10, 'c'); B.crack(40, 7);
-      B.start(4, 46); B.save(53, 40); B.save(6, 34); B.save(6, 22); B.save(53, 16);
+      B.acid(30, 34, 16); B.plat(31, 33, 15); B.crack(45, 13); B.bug(20, 16, 'R'); B.lamp(25, 11); B.sign(6, 13, '^'); B.bug(50, 16, 'm'); B.bug(51, 16, 'm');
+      // последний этаж: инструменты
+      B.item('tools', 30, 10); B.lamp(30, 4); B.bug(36, 10, 'b'); B.bug(24, 10, 'c'); B.crack(40, 7); B.nest(14, 10); B.sign(56, 7, '>');
+      B.start(8, 46);
     } },
   { name: 'ГРУЗОВОЙ ЛИФТ', task: 'Почини лифт и продержись, пока он едет наверх', obj: 'lift', fix: 40, ground: 999, dark: .5, power: true,
     cols: 42, rows: 112, base: SOLID, pal: PAL.shaft, spawn: ['r', 'm', 'j', 'b', 'R'], crackCd: 1.2, crackN: 2, crackRange: 110,
@@ -1265,11 +1283,11 @@ function updatePlayer(dt, k) {
     const below = Math.floor((P.y + P.h + 1) / T), c0 = Math.floor(P.x / T), c1 = Math.floor((P.x + P.w) / T);
     const t0 = tile(c0, below), t1 = tile(c1, below);
     if (k.dy === 1 && oneWay(t0, c0, below) && !isSolid(t1)) { P.drop = .25; P.y += 3; }  // спрыгнуть с перекрытия
-    else if (canStand(P) || !P.crouch) { P.vy = stick ? -JUMP * .7 : -JUMP; P.slide = 0; P.flip = !!k.dx && !stick; P.rot = 0; beep(300, 700, .12, 'square', .03); }   // с разбега — сальто
+    else if (canStand(P) || !P.crouch) { P.vy = stick ? -JUMP * .7 : -JUMP; P.slide = 0; P.flip = !!k.dx && !stick; P.rot = P.rot0 = P.face > 0 ? 0 : Math.PI; P.spin = P.face; beep(300, 700, .12, 'square', .03); }   // с разбега — сальто
   } else if (k.aPressed && !P.on && !wet) {   // в воздухе у стены — прыжок от стены (от одной и той же два раза подряд нельзя)
     const ws = wallSide();
     if (ws && P.wj !== ws) {
-      P.vy = -JUMP * .9; P.kick = .17; P.kx = -ws; P.face = -ws; P.wj = ws; P.flip = true; P.rot = 0;
+      P.vy = -JUMP * .9; P.kick = .17; P.kx = -ws; P.face = -ws; P.wj = ws; P.flip = true; P.rot = P.rot0 = P.face > 0 ? 0 : Math.PI; P.spin = P.face;
       beep(350, 800, .1, 'square', .03); explode(P.x + (ws > 0 ? P.w : 0), P.y + 12, 4, ['#aaa', '#777']);
     }
   }
@@ -1279,7 +1297,7 @@ function updatePlayer(dt, k) {
   if (slideWall && slideWall === k.dx && P.vy > 75) P.vy = 75;   // прижался к стене — сползаешь медленно
   moveBody(P, dt, P.drop <= 0);
   if (P.on || wet) P.wj = 0;
-  if (P.flip) { P.rot += dt * 10.5 * P.face; if (P.on || wet) P.flip = false; }   // крутится, пока в воздухе
+  if (P.flip) { P.rot += dt * 10.5 * P.spin; if (P.on || wet) P.flip = false; }   // крутится, пока в воздухе
   P.runT = P.on && Math.abs(P.vx) > SPEED * .85 && !P.crouch ? (P.runT || 0) + dt : 0;
   if (P.vx && P.on) P.run += dt;
   let ax = P.face, ay = 0;                        // куда смотрит ствол
@@ -1301,21 +1319,22 @@ function shoot(k) {
   if (!k.b || P.cd > 0 || badOn('tpose')) return;
   if (wpn && ammo[wpn] <= 0) wpn = 0;
   const ax = P.ax, ay = P.ay, len = Math.hypot(ax, ay) || 1, ux = ax / len, uy = ay / len, a0 = Math.atan2(uy, ux);
-  const ox = P.x + P.w / 2 + ax * 9, oy = P.crouch ? P.y + 5 : ay < 0 ? P.y + 3 : ay > 0 ? P.y + 15 : P.y + 9;
+  const sp = P.flip;                               // в сальто ствол крутится вместе с героем — пули летят по кругу (друг, 11.11)
+  const ox = sp ? P.x + 5 + Math.cos(P.rot) * 8 : P.x + P.w / 2 + ax * 9, oy = sp ? P.y + 11 + Math.sin(P.rot) * 8 : P.crouch ? P.y + 5 : ay < 0 ? P.y + 3 : ay > 0 ? P.y + 15 : P.y + 9;
   const g4 = good?.k === 'b404';                  // баг: пули 404 — сквозь стены, урон ×2
   const shot = (a, sp, o) => bullets.push(Object.assign({ x: ox - 2, y: oy - 2, w: 4, h: 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1.1, dmg: g4 ? 2 : 1, bd: g4 ? 2 : 1, ghost: g4 }, o));
-  const fan = P.flip ? [-.3, 0, .3] : [0];        // в сальто — веером (друг, 11.11)
+  const aim = sp ? P.rot : a0;
   if (wpn === 1) {                                 // дробовик: веер дроби вблизи
-    for (let i = -2; i <= 2; i++) shot(a0 + i * (P.flip ? .2 : .1) + rnd(-.03, .03), rnd(250, 300), { w: 3, h: 3, life: .3, k: 'pel' });
+    for (let i = -2; i <= 2; i++) shot(aim + i * .1 + rnd(-.03, .03), rnd(250, 300), { w: 3, h: 3, life: .3, k: 'pel' });
     beep(160, 60, .18, 'sawtooth', .06); shake = Math.max(shake, .12);
   } else if (wpn === 2) {                          // винтовка: насквозь, через щиты
-    for (const f of fan) shot(a0 + f, 560, { life: 1, dmg: g4 ? 6 : 3, bd: g4 ? 4 : 2, pierce: 4, hitL: [], k: 'rifle', shield: true });
+    shot(aim, 560, { life: 1, dmg: g4 ? 6 : 3, bd: g4 ? 4 : 2, pierce: 4, hitL: [], k: 'rifle', shield: true });
     beep(1400, 200, .14, 'square', .05); shake = Math.max(shake, .08);
   } else if (wpn === 3) {                          // гранатомёт: дугой, взрыв
     bullets.push({ x: ox - 3, y: oy - 3, w: 5, h: 5, vx: ux * 260, vy: uy * 260 - 170, g: 560, life: 2.2, k: 'gren' });
     beep(220, 90, .2, 'square', .05);
-  } else { for (const f of fan) shot(a0 + f, 280, {}); beep(900, 300, .06, 'square', .025); }
-  P.cd = WPN[wpn].cd;
+  } else { shot(aim, 280, {}); beep(900, 300, .06, 'square', .025); }
+  P.cd = sp && wpn !== 3 ? Math.min(WPN[wpn].cd, wpn ? .2 : .07) : WPN[wpn].cd;   // в сальто стреляет чаще
   if (wpn) { ammo[wpn]--; if (ammo[wpn] <= 0) { showToast(WPN[wpn].n + ': пусто — пистолет', 1.6); wpn = 0; } }
 }
 function hurtEnemy(e, d) {
@@ -2451,12 +2470,11 @@ function drawHero() {
   if (P.dead > 0 || (P.inv > 0 && Math.floor(time * 20) % 2)) return;
   const x = P.x - cam, y = P.y, f = P.face;
   if (P.flip) {                                     // сальто: сгруппировался и крутится, ствол — по прицелу
-    ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot);
+    ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot - P.rot0); ctx.scale(P.spin, 1);
     rect(-5, -4, 10, 8, '#35506a'); rect(-4, -10, 7, 6, '#d8b48d'); rect(-4, -10, 7, 2, '#3a3a2a');
     rect(1, 3, 6, 3, '#2e4d32'); rect(4, -1, 3, 6, '#2e4d32');
     ctx.restore();
-    const len = Math.hypot(P.ax, P.ay) || 1;
-    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(Math.round(x + 5), Math.round(y + 11)); ctx.lineTo(Math.round(x + 5 + P.ax / len * 10), Math.round(y + 11 + P.ay / len * 10)); ctx.stroke();
+    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(Math.round(x + 5), Math.round(y + 11)); ctx.lineTo(Math.round(x + 5 + Math.cos(P.rot) * 10), Math.round(y + 11 + Math.sin(P.rot) * 10)); ctx.stroke();   // ствол крутится
     return;
   }
   if (P.climb) {                                    // лезет по лестнице: спиной к нам
@@ -3120,7 +3138,7 @@ function draw() {
     centerText([['СУДНЫЙ ДЕНЬ', 26, '#ffd23f', 52], ['из-под земли вылезли древние насекомые. пробейся!', 9, '#fff', 76],
       ['A — прыжок, B — огонь, крестовина — бег и прицел', 9, '#ccc', 102], ['вверх/вниз у лестницы — лезть, вниз+вбок — ползти', 9, '#ccc', 116],
       ['вниз + A на перекрытии — спрыгнуть · у стены в прыжке A — отскок', 9, '#ccc', 130], ['💾 дискеты — сохранения, гнёзда можно расстрелять', 9, '#ccc', 144],
-      ['с разбега A — сальто, пули веером · бег + вниз — подкат', 9, '#ccc', 158],
+      ['с разбега A — сальто, стреляешь по кругу · бег + вниз — подкат', 9, '#ccc', 158],
       [blink ? 'жми A или B, чтобы начать' : '', 11, '#fff', 176], ['☰ справа вверху — выбрать уровень, бессмертие', 8, '#8a8a9a', 192]]);
     return;
   }
