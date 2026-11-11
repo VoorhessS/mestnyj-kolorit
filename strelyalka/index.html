@@ -539,6 +539,9 @@ function build(def) {
     bigshroom(x, cap, floor, w = 2) { B.plat(x - w, x + w, cap); o.deco.push({ k: 'bigshroom', x0: x, y0: cap, x1: x, y1: floor - 1, w }); o.lamps.push([x, cap, 'cap']); },
   };
   def.build(B);
+  // у луж кислоты всегда есть дно: иначе герой в прыжке задевает её головой снизу
+  for (let cy = 0; cy < ROWS - 1; cy++) for (let cx = 0; cx < COLS; cx++)
+    if (grid[cy][cx] === ACID && open(grid[cy + 1][cx])) grid[cy + 1][cx] = SOLID;
   B.fill(0, 0, 0, ROWS - 1); B.fill(COLS - 1, 0, COLS - 1, ROWS - 1); B.fill(0, ROWS - 1, COLS - 1, ROWS - 1);
   return o;
 }
