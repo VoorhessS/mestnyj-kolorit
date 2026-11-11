@@ -2676,6 +2676,60 @@ const MON_DEF = {
     p.blob(11, 8, 9, 6, R); for (const [x, y] of [[7, 6], [12, 5], [10, 9], [15, 8]]) { p.set(x, y, '#ff8a2a'); p.set(x + 1, y, '#ffb050'); }
     p.blob(21, 9, 3.5, 3, ['#3a1408', '#7a2a10', '#c84a1a', '#ff7a3a']); p.eye(22, 8, '#ffd23f');
     return p; },
+  // --- лес (друг, 12.11) ---
+  M: (ph, atk) => {                                // богомолёнок Б: безликий, вместо головы пасть-цветок
+    const p = PixSpr(26, 22), GR = ['#10160c', '#1e2c16', '#34482a', '#566e40'];
+    for (const [i, a, b2] of [[0, [8, 12], [4, 21]], [1, [11, 12], [10, 21]], [2, [14, 12], [18, 21]]]) p.poly([a, [b2[0] + ((i + ph) % 2) * 2 - 1, b2[1]]], '#5a6e40');
+    p.blob(11, 10, 6, 3.5, GR); p.blob(16, 6, 2.5, 3.5, GR);
+    const open = atk ? 5 : 4;
+    for (let a = -1.4; a <= 1.4; a += .7) p.line(19, 4, 19 + Math.cos(a) * open, 4 + Math.sin(a) * open, '#d8c8a8');
+    p.rect(19, 3, 2, 2, '#4a0a14'); p.eye(18, 2, '#ffd23f');
+    if (atk) { p.poly([[15, 7], [22, 9], [25, 13]], '#c8bc98'); p.poly([[25, 13], [23, 15]], '#c8bc98'); }
+    else p.poly([[15, 7], [20, 11], [22, 9]], '#c8bc98');
+    return p; },
+  Ma: ph => MON_DEF.M(ph, true),
+  A: ph => {                                       // засадник Б: сколопендра
+    const p = PixSpr(30, 12);
+    for (let i = 0; i < 8; i++) { const x = 3 + i * 3, k = (i + ph) % 2; p.poly([[x, 7], [x - 1 + k, 11]], '#a85a2a'); p.poly([[x + 1, 5], [x + k, 1]], '#a85a2a'); }
+    for (let i = 0; i < 8; i++) p.blob(3 + i * 3, 6 + ((i + ph) % 2 ? .5 : 0), 2, 2.5, ['#2a0e06', '#5a1e0c', '#8a3416', '#b84e24']);
+    p.blob(27, 6, 2.5, 2.5, ['#1a0806', '#3a1008', '#6a1c0c', '#9a2e14']); p.eye(28, 5, '#ffd23f'); p.poly([[29, 7], [29 + ph, 9]], '#e8d8b8');
+    return p; },
+  S: ph => {                                       // палочник Б: жердь ростом с человека
+    const p = PixSpr(14, 32), DK = ['#0e0c10', '#1c1820', '#2e2834', '#48404e'];
+    p.rect(6, 6, 2, 14, '#3a3026'); p.poly([[6, 20], [4 + ph, 31]], '#3a3026'); p.poly([[7, 20], [9 - ph, 31]], '#3a3026');
+    p.poly([[7, 8], [12, 14], [12 - ph, 26]], '#3a3026'); p.poly([[6, 8], [2, 14], [1 + ph, 25]], '#3a3026');
+    p.blob(7, 3, 2.5, 3, DK); p.eye(8, 3, '#ffffff'); p.set(9, 3, '#ffffff');
+    return p; },
+  Ss: () => {                                      // палочник притворился веткой: глаза закрыты
+    const p = PixSpr(14, 32), DK = ['#0e0c10', '#1c1820', '#2e2834', '#48404e'];
+    p.rect(6, 6, 2, 14, '#3a3026'); p.poly([[6, 20], [5, 31]], '#3a3026'); p.poly([[7, 20], [8, 31]], '#3a3026');
+    p.poly([[7, 8], [9, 4], [11, 1]], '#3a3026'); p.poly([[6, 9], [3, 6]], '#3a3026'); p.blob(7, 3, 2, 2.5, DK);
+    return p; },
+  G: (ph, load) => {                               // метатель А: жук-катапульта
+    const p = PixSpr(28, 18), BN = ['#1a1610', '#3a3022', '#6a5a3e', '#a8946a'], ST = ['#4a4844', '#6a6862', '#8a8882', '#aaa8a0'];
+    for (let i = 0; i < 3; i++) p.poly([[8 + i * 5, 13], [6 + i * 5 + ((i + ph) % 2) * 2, 17]], '#3a2e34');
+    p.blob(13, 9, 9, 5.5, BN); for (const [x, y] of [[9, 7], [12, 6], [15, 8]]) p.blob(x, y, 1.5, 1.5, ST);
+    if (load) { p.poly([[4, 8], [6, 2], [12, 0]], '#6a5a3e'); p.blob(13, 1, 1.8, 1.8, ST); }
+    else { p.poly([[4, 8], [1, 3], [3, 0]], '#6a5a3e'); p.blob(3, 1, 1.5, 1.5, ST); }
+    p.blob(23, 10, 3.5, 3, BN); p.eye(24, 9);
+    return p; },
+  Gl: ph => MON_DEF.G(ph, true),
+  F: ph => {                                       // летун А: моль-череп, машет крыльями
+    const p = PixSpr(28, 16), DK = ['#0e0c10', '#1c1820', '#2e2834', '#48404e'], SK = ['#6a6460', '#a8a098', '#d8d0c0', '#f0e8d8'];
+    const ry = ph ? 4 : 6, cy = ph ? 6 : 7;
+    p.blob(8, cy, 7.5, ry, DK); p.blob(20, cy, 7.5, ry, DK);
+    for (const cx of [8, 20]) { p.blob(cx, cy - 1, 3, ph ? 2 : 3, SK); p.set(cx - 1, cy - 1, '#000'); p.set(cx + 1, cy - 1, '#000'); }
+    p.blob(14, 9, 2, 5, ['#140e0a', '#2a1c14', '#4a3424', '#6a4a34']); p.eye(14, 5, '#ff2a2a');
+    return p; },
+  H: (ph, stun) => {                               // щитоносец А: броненосец, косы щитом перед мордой
+    const p = PixSpr(30, 26), BN = ['#1a1610', '#3a3022', '#6a5a3e', '#a8946a'];
+    for (let i = 0; i < 3; i++) p.poly([[8 + i * 5, 19], [6 + i * 5 + ((i + ph) % 2) * 2, 25]], '#3a2e34');
+    p.blob(13, 15, 10, 6, BN); for (let i = 0; i < 4; i++) p.line(6 + i * 4, 10, 8 + i * 4, 20, '#2a2218');
+    p.blob(22, 10, 4, 4, BN); p.eye(24, 9); p.eye(23, 11);
+    if (stun) { p.poly([[23, 13], [27, 18], [28, 24]], '#d8c8a0'); p.poly([[24, 14], [29, 20], [29, 25]], '#a89870'); }   // косы опущены — бей!
+    else { p.poly([[23, 13], [27, 4], [28, 1]], '#d8c8a0'); p.poly([[24, 14], [28, 8], [29, 3]], '#a89870'); p.poly([[25, 15], [29, 12], [29, 22]], '#d8c8a0'); }
+    return p; },
+  Hs: ph => MON_DEF.H(ph, true),
 };
 const MON = {};
 for (const k in MON_DEF) MON[k] = [0, 1].map(ph => bakeSpr(MON_DEF[k](ph)));
@@ -2683,12 +2737,18 @@ function drawMon(e, x, y, wh, f, run) {             // мордой по ход�
   let key = e.k, ph = Math.floor(run * 8) % 2;
   if (e.k === 'c' && e.hang) { key = 'ch'; ph = Math.floor(time * 2) % 2; }
   if (e.k === 'j' && !e.on) { key = 'ja'; ph = 0; }
+  if (e.k === 'M' && e.st === 'lunge') key = 'Ma';
+  if (e.k === 'S' && e.sleep) key = 'Ss';
+  if (e.k === 'G' && e.cd < .8) key = 'Gl';
+  if (e.k === 'H' && e.st === 'stun') key = 'Hs';
+  if (e.k === 'F') ph = e.on ? 0 : Math.floor(time * 10) % 2;
   if (e.sleep) ph = 0;
   const fr = MON[key][ph], im = wh ? fr.wh : fr.img;
   const dx = Math.round(x + e.w / 2 - im.width / 2), dy = Math.round(e.k === 'c' && e.hang ? y - 2 : y + e.h - im.height + 1);
   if (e.k === 'c' && e.hang) { rect(Math.round(x + e.w / 2), dy - 8, 1, 9, 'rgba(210,210,220,.5)'); }
   spr(im, dx, dy, f < 0);
   if (e.k === 'b' && e.st === 'spray') { const sx = f > 0 ? dx + im.width : dx - 4; ell(sx + 2, dy + 9, 3 + Math.random() * 2, 2, '#ffb050'); ell(sx + 2, dy + 9, 1.5, 1, '#fff2c0'); }
+  if (e.k === 'H' && e.st === 'stun') for (let i = 0; i < 3; i++) { const a = time * 6 + i * 2.1; rect(dx + im.width / 2 + Math.cos(a) * 8, dy - 6 + Math.sin(a) * 3, 2, 2, '#ffd23f'); }
   if (e.k === 'b' && e.st === 'prep') for (const [px2, py2] of [[7, 6], [12, 5], [10, 9], [15, 8]]) rect(f > 0 ? dx + px2 : dx + im.width - 1 - px2, dy + py2, 2, 1, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
 }
 function drawEnemies() {
