@@ -128,7 +128,8 @@ const LEVELS = [
       B.car(110, 113, 15); B.fill(125, 13, 126, 15); B.deco('box', 125, 13, 126, 15); B.car(136, 139, 15);
       B.fill(155, 2, 168, 13); B.room(156, 14, 168, 15); B.exit(160, 16, 'ПОДЪЕЗД');  // дом
       B.lamp(34, 9, true); B.lamp(108, 9, true); B.lamp(146, 9, true);
-      B.nest(30, 16); B.bug(46, 16); B.nest(118, 16); B.bug(150, 16);
+      B.fill(44, 3, 49, 15); B.room(44, 13, 49, 15); B.shaft(46, 3, 12); B.item('life', 44, 3); B.sign(46, 12, '^');   // дом с вентшахтой: секрет на крыше
+      B.nest(30, 16); B.bug(53, 16); B.nest(118, 16); B.bug(150, 16);
       B.bug(104, 16, 'm'); B.bug(105, 16, 'm'); B.bug(106, 16, 'm'); B.bug(132, 16, 'm'); B.bug(133, 16, 'm');
       B.start(4, 16); B.save(101, 16);
     } },
@@ -698,6 +699,7 @@ function build(def) {
     crumble(x0, x1, y) { B.fill(x0, y, x1, y, CRUMBLE); },
     shroom(x, y) { o.lamps.push([x, y, 'shroom']); },
     bigshroom(x, cap, floor, w = 2) { B.plat(x - w, x + w, cap); o.deco.push({ k: 'bigshroom', x0: x, y0: cap, x1: x, y1: floor - 1, w }); o.lamps.push([x, cap, 'cap']); },
+    shaft(x, y0, y1) { B.fill(x, y0, x + 1, y1, BG); o.deco.push({ k: 'duct', x0: x, y0, x1: x + 1, y1 }); },   // вентшахта 2 клетки шириной
     tube(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1 }); o.lamps.push([x, y - 2, 'tube']); },          // колба с жижей
     flask(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1, mut: true }); o.lamps.push([x, y - 2, 'tube']); o.bugs.push([x, y, 'q']); },   // колба с мутантом
   };
@@ -936,7 +938,7 @@ function resetGear(n) {
   for (const [l, g] of Object.entries(GUN_AT)) if (n > +l) { owned[g] = true; ammo[g] = WPN[g].give; }   // начали с середины — оружие уже есть
 }
 let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, lamps, signs, deco, toast = 0, toastTxt = '', flick = 0, flickT = 12;
-let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, cart = null, swarm = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false, fume = null;
+let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, cart = null, swarm = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false, fume = null, waveT = 0;
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
 function diff(i) {
   const k = i <= 6 ? i / 6 : i <= 13 ? .8 + (i - 7) / 10 : 1.3 + (i - 14) / 20;   // лес чуть легче конца города, нора — чуть легче конца леса
@@ -1025,7 +1027,7 @@ function startLevel(n) {
     for (const d of [3, 2, 4, 1, 5, -2]) if (!solid(sx0 + d, sy0 - 1) && !solid(sx0 + d, sy0 - 2)) { gx = sx0 + d; break; }
     items.push({ k: 'gun', g: gi, x: gx * T + 2, y: sy0 * T - 34, w: 12, h: 10, vx: 0, vy: 0, fall: true, got: false });
   }
-  blasts = []; lvT = 0;
+  blasts = []; lvT = 0; waveT = 0;
   lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post: !!post, kind: typeof post === 'string' ? post : null, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
@@ -1077,7 +1079,7 @@ function restoreSnap(rx, ry) {
 }
 function respawn() {
   if (snap && !boss.dead) restoreSnap(save.x, save.y);
-  bullets = []; parts = []; good = null; clone = null; roul = 0;
+  bullets = []; parts = []; good = null; clone = null; roul = 0; waveT = 0;
   if (bad) { bad = null; cv.style.transform = ''; }
   if (boss && boss.on && !boss.dead) {          // погиб на арене: босс ждёт заново, решётка открыта
     boss.on = false; gate(false);
@@ -1116,6 +1118,20 @@ function complete(msg) {                 // задание выполнено: �
   done = true;
   for (const d of lv.doors) grid[d.y][d.x] = d.to;
   showToast(msg, 2.6); beep(500, 1400, .4, 'triangle', .06); shake = .2;
+  if (!['reach', 'boss', 'lift'].includes(L.obj)) waveT = 2.2;   // через пару секунд — новая волна
+}
+// Задание сделано — на обратном пути новая волна (друг, 11.11): жуки встают в начальные места подальше от героя
+function spawnWave() {
+  const spots = proto.filter(e => e.k !== 'n' && e.k !== 'o' && e.k !== 'w' && !e.gd && !e.jar && !e.hang && Math.hypot(e.x - P.x, e.y - P.y) > 220).map(e => [e.x + e.w / 2, e.y + e.h]);
+  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+  if (!spots.length) return;
+  const n = clamp(Math.round(spots.length * .8) + 2, 5, 12);       // мест мало — по двое на место
+  for (let i = 0; i < n; i++) {
+    const k = pick(L.spawn), [sx, sy] = spots[i % spots.length], e = mkBug(k, sx - BUGS[k][0] / 2 + (i >= spots.length ? 10 : 0), sy);
+    e.sleep = true; e.vx = 0; e.id = proto.length; proto.push(structuredClone(e)); enemies.push(e);
+  }
+  for (const c of cracks) c.n = 0;                  // трещины снова оживают
+  showToast('⚠ НОВАЯ ВОЛНА! пробивайся назад', 2.6); boom(.1); shake = .4; beep(140, 60, .6, 'sawtooth', .05);
 }
 const NEED = { key: 'сначала найди ключ', nests: 'сначала уничтожь все гнёзда', switch: 'сначала включи рубильник',
   tools: 'сначала найди инструменты', guards: 'сначала перебей свиту', lift: 'лифт ещё едет' };
@@ -1210,7 +1226,7 @@ function updatePlayer(dt, k) {
   const feetRow = Math.floor((P.y + P.h + 1) / T), midRow = Math.floor((P.y + P.h / 2) / T), lowRow = Math.floor((P.y + P.h - 2) / T);
   const onLad = tile(col, midRow) === LAD || tile(col, lowRow) === LAD;
   if (!P.climb && !k.dx && ((k.dy === -1 && onLad) || (k.dy === 1 && (tile(col, feetRow) === LAD || (onLad && !P.on))))) {
-    P.climb = true; P.crouch = false; const feet = P.y + P.h; P.h = 22; P.y = feet - P.h;
+    P.climb = true; P.crouch = false; P.flip = false; const feet = P.y + P.h; P.h = 22; P.y = feet - P.h;
     P.x = col * T + (T - P.w) / 2; P.vx = 0; P.vy = 0;
   }
   if (P.climb) {
@@ -1249,11 +1265,11 @@ function updatePlayer(dt, k) {
     const below = Math.floor((P.y + P.h + 1) / T), c0 = Math.floor(P.x / T), c1 = Math.floor((P.x + P.w) / T);
     const t0 = tile(c0, below), t1 = tile(c1, below);
     if (k.dy === 1 && oneWay(t0, c0, below) && !isSolid(t1)) { P.drop = .25; P.y += 3; }  // спрыгнуть с перекрытия
-    else if (canStand(P) || !P.crouch) { P.vy = stick ? -JUMP * .7 : -JUMP; P.slide = 0; beep(300, 700, .12, 'square', .03); }
+    else if (canStand(P) || !P.crouch) { P.vy = stick ? -JUMP * .7 : -JUMP; P.slide = 0; P.flip = !!k.dx && !stick; P.rot = 0; beep(300, 700, .12, 'square', .03); }   // с разбега — сальто
   } else if (k.aPressed && !P.on && !wet) {   // в воздухе у стены — прыжок от стены (от одной и той же два раза подряд нельзя)
     const ws = wallSide();
     if (ws && P.wj !== ws) {
-      P.vy = -JUMP * .9; P.kick = .17; P.kx = -ws; P.face = -ws; P.wj = ws;
+      P.vy = -JUMP * .9; P.kick = .17; P.kx = -ws; P.face = -ws; P.wj = ws; P.flip = true; P.rot = 0;
       beep(350, 800, .1, 'square', .03); explode(P.x + (ws > 0 ? P.w : 0), P.y + 12, 4, ['#aaa', '#777']);
     }
   }
@@ -1263,6 +1279,7 @@ function updatePlayer(dt, k) {
   if (slideWall && slideWall === k.dx && P.vy > 75) P.vy = 75;   // прижался к стене — сползаешь медленно
   moveBody(P, dt, P.drop <= 0);
   if (P.on || wet) P.wj = 0;
+  if (P.flip) { P.rot += dt * 10.5 * P.face; if (P.on || wet) P.flip = false; }   // крутится, пока в воздухе
   P.runT = P.on && Math.abs(P.vx) > SPEED * .85 && !P.crouch ? (P.runT || 0) + dt : 0;
   if (P.vx && P.on) P.run += dt;
   let ax = P.face, ay = 0;                        // куда смотрит ствол
@@ -1287,16 +1304,17 @@ function shoot(k) {
   const ox = P.x + P.w / 2 + ax * 9, oy = P.crouch ? P.y + 5 : ay < 0 ? P.y + 3 : ay > 0 ? P.y + 15 : P.y + 9;
   const g4 = good?.k === 'b404';                  // баг: пули 404 — сквозь стены, урон ×2
   const shot = (a, sp, o) => bullets.push(Object.assign({ x: ox - 2, y: oy - 2, w: 4, h: 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1.1, dmg: g4 ? 2 : 1, bd: g4 ? 2 : 1, ghost: g4 }, o));
+  const fan = P.flip ? [-.3, 0, .3] : [0];        // в сальто — веером (друг, 11.11)
   if (wpn === 1) {                                 // дробовик: веер дроби вблизи
-    for (let i = -2; i <= 2; i++) shot(a0 + i * .1 + rnd(-.03, .03), rnd(250, 300), { w: 3, h: 3, life: .3, k: 'pel' });
+    for (let i = -2; i <= 2; i++) shot(a0 + i * (P.flip ? .2 : .1) + rnd(-.03, .03), rnd(250, 300), { w: 3, h: 3, life: .3, k: 'pel' });
     beep(160, 60, .18, 'sawtooth', .06); shake = Math.max(shake, .12);
   } else if (wpn === 2) {                          // винтовка: насквозь, через щиты
-    shot(a0, 560, { life: 1, dmg: g4 ? 6 : 3, bd: g4 ? 4 : 2, pierce: 4, hitL: [], k: 'rifle', shield: true });
+    for (const f of fan) shot(a0 + f, 560, { life: 1, dmg: g4 ? 6 : 3, bd: g4 ? 4 : 2, pierce: 4, hitL: [], k: 'rifle', shield: true });
     beep(1400, 200, .14, 'square', .05); shake = Math.max(shake, .08);
   } else if (wpn === 3) {                          // гранатомёт: дугой, взрыв
     bullets.push({ x: ox - 3, y: oy - 3, w: 5, h: 5, vx: ux * 260, vy: uy * 260 - 170, g: 560, life: 2.2, k: 'gren' });
     beep(220, 90, .2, 'square', .05);
-  } else { shot(a0, 280, {}); beep(900, 300, .06, 'square', .025); }
+  } else { for (const f of fan) shot(a0 + f, 280, {}); beep(900, 300, .06, 'square', .025); }
   P.cd = WPN[wpn].cd;
   if (wpn) { ammo[wpn]--; if (ammo[wpn] <= 0) { showToast(WPN[wpn].n + ': пусто — пистолет', 1.6); wpn = 0; } }
 }
@@ -1422,6 +1440,7 @@ function update(dt) {
   if (flickT <= 0) { flick = 1.4; flickT = 15 + Math.random() * 15; }
   const k = input();
   lvT += dt;
+  if (waveT > 0 && (waveT -= dt) <= 0) spawnWave();
   updGlitch(dt, k);
   for (const it of items) if (it.fall && !it.got) {      // ящики патронов и оружие падают на пол
     it.vy = Math.min(it.vy + GRAV * dt, 400); moveBody(it, dt, true);
@@ -2246,6 +2265,10 @@ function drawDeco() {
       rect(cx - 4, y + 5, 8, h - 5, '#9a92aa'); rect(cx - 4, y + 5, 2, h - 5, '#c8c0d8'); rect(cx - 7, y + h - 3, 14, 3, '#9a92aa');
       ell(cx, y + 4, R, 7, '#2a7a7a'); ell(cx, y + 2, R - 3, 5, '#4ab8a8'); rect(cx - R + 3, y + 9, R * 2 - 6, 1, '#1a4a4a');
       for (let i = 0; i < 4; i++) ell(cx - R + 8 + i * (R * 2 - 16) / 3, y + 1 + (i % 2), 2, 1.5, '#c8fff0');
+    } else if (d.k === 'duct') {                       // вентшахта: наверх — прыжками от стены к стене
+      rect(x, y, w, h, '#1a1d22'); for (let i = 0; i < h; i += 12) rect(x, y + i, w, 2, '#2a2e36');
+      rect(x, y, 2, h, '#3a3e46'); rect(x + w - 2, y, 2, h, '#3a3e46');
+      for (let i = 6; i < h; i += 24) { rect(x + 3, y + i, 2, 2, '#5a5e66'); rect(x + w - 5, y + i, 2, 2, '#5a5e66'); }
     } else if (d.k === 'gen') {                        // генератор: дали ток — горит зелёный
       const pw = L.obj === 'switch' && done;
       rect(x, y, w, h, '#3a4246'); rect(x, y, w, 3, '#5a6266'); rect(x + 2, y + h - 4, w - 4, 2, '#22282a');
@@ -2427,6 +2450,15 @@ function drawPlayer() {
 function drawHero() {
   if (P.dead > 0 || (P.inv > 0 && Math.floor(time * 20) % 2)) return;
   const x = P.x - cam, y = P.y, f = P.face;
+  if (P.flip) {                                     // сальто: сгруппировался и крутится, ствол — по прицелу
+    ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot);
+    rect(-5, -4, 10, 8, '#35506a'); rect(-4, -10, 7, 6, '#d8b48d'); rect(-4, -10, 7, 2, '#3a3a2a');
+    rect(1, 3, 6, 3, '#2e4d32'); rect(4, -1, 3, 6, '#2e4d32');
+    ctx.restore();
+    const len = Math.hypot(P.ax, P.ay) || 1;
+    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(Math.round(x + 5), Math.round(y + 11)); ctx.lineTo(Math.round(x + 5 + P.ax / len * 10), Math.round(y + 11 + P.ay / len * 10)); ctx.stroke();
+    return;
+  }
   if (P.climb) {                                    // лезет по лестнице: спиной к нам
     const st = Math.floor(P.run * 8) % 2;
     rect(x + 1, y + 14 + st * 2, 3, 8 - st * 2, '#2e4d32'); rect(x + 6, y + 14 + (1 - st) * 2, 3, 8 - (1 - st) * 2, '#2e4d32');
@@ -3087,8 +3119,8 @@ function draw() {
     const blink = Math.floor(time * 2) % 2;
     centerText([['СУДНЫЙ ДЕНЬ', 26, '#ffd23f', 52], ['из-под земли вылезли древние насекомые. пробейся!', 9, '#fff', 76],
       ['A — прыжок, B — огонь, крестовина — бег и прицел', 9, '#ccc', 102], ['вверх/вниз у лестницы — лезть, вниз+вбок — ползти', 9, '#ccc', 116],
-      ['вниз + A на перекрытии — спрыгнуть', 9, '#ccc', 130], ['💾 дискеты — сохранения, гнёзда можно расстрелять', 9, '#ccc', 144],
-      ['в прыжке у стены A — от стены · бег + вниз — подкат', 9, '#ccc', 158],
+      ['вниз + A на перекрытии — спрыгнуть · у стены в прыжке A — отскок', 9, '#ccc', 130], ['💾 дискеты — сохранения, гнёзда можно расстрелять', 9, '#ccc', 144],
+      ['с разбега A — сальто, пули веером · бег + вниз — подкат', 9, '#ccc', 158],
       [blink ? 'жми A или B, чтобы начать' : '', 11, '#fff', 176], ['☰ справа вверху — выбрать уровень, бессмертие', 8, '#8a8a9a', 192]]);
     return;
   }
