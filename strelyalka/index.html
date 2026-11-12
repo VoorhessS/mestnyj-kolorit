@@ -100,12 +100,16 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 // 0 воздух (улица), 1 стена/пол, 2 перекрытие (запрыгнуть снизу), 3 лестница, 4 кислота,
 // 5 комната (стена на фоне), 6 запертая дверь, 7 решётка, 8 лаз (проход внутри стены)
 // 9 вода (плывёшь, течение сносит), 10 валун (твёрдый, разбивается камнем богомола)
-const AIR = 0, SOLID = 1, PLAT = 2, LAD = 3, ACID = 4, BG = 5, DOOR = 6, GRATE = 7, VENT = 8, WATER = 9, ROCK = 10, STICKY = 11, CRUMBLE = 12;
+const AIR = 0, SOLID = 1, PLAT = 2, LAD = 3, ACID = 4, BG = 5, DOOR = 6, GRATE = 7, VENT = 8, WATER = 9, ROCK = 10, STICKY = 11, CRUMBLE = 12, SLR = 13, SLL = 14;   // SLR/SLL — наклоны: подъём вправо / влево
 let grid, COLS = 10, ROWS = 10, MAPW = 160, MAPH = 160;
 const tile = (cx, cy) => (cx < 0 || cx >= COLS || cy >= ROWS ? SOLID : cy < 0 ? AIR : grid[cy][cx]);
 const ROCK_HP = 6; let rockHit = {}, crumb = new Map();   // crumb — осыпающийся пол: ключ клетки → таймеры            // сколько пуль выдерживает валун
 const isSolid = t => t === SOLID || t === DOOR || t === GRATE || t === ROCK || t === STICKY || t === CRUMBLE;
 const solid = (cx, cy) => isSolid(tile(cx, cy));
+const isSlope = t => t === SLR || t === SLL;
+function slopeY(cx, cy, px) { const lx = clamp(px - cx * T, 0, T); return cy * T + (tile(cx, cy) === SLR ? T - lx : lx); }   // высота поверхности наклона
+const inSlope = (px, py) => { const cx = Math.floor(px / T), cy = Math.floor(py / T); return isSlope(tile(cx, cy)) && py >= slopeY(cx, cy, px); };
+const underSlope = (cx, cy) => isSlope(tile(cx, cy - 1));                 // твёрдая клетка под наклоном — её роль играет сам наклон
 const open = t => t === AIR || t === BG || t === LAD || t === VENT || t === WATER;          // сквозь это видно и можно пройти
 const oneWay = (t, cx, cy) => t === PLAT || (t === LAD && tile(cx, cy - 1) !== LAD);   // верх лестницы — как пол
 
@@ -705,172 +709,176 @@ const LEVELS = [
       B.bug(8, 16, 'k');
       B.start(3, 16); B.save(9, 16);
     } },
-  // ===================== ВОЕННАЯ БАЗА (друг, 12.11) =====================
+  // ===================== ВОЕННАЯ БАЗА (друг, 12.11; карты v2 — у каждой своё движение) =====================
   { city: 4, name: 'КПП', task: 'Пройди через КПП на базу', obj: 'reach', ground: 99, dark: .84,
-    cols: 160, rows: 24, base: SOLID, pal: PAL.base, spawn: ['D', 'r', 'N'],
-    tips: ['тут военные держали оборону — и проиграли', 'покусанный солдат — носитель: убьёшь — из спины полезет мелюзга', 'собака-мутант прыгает на тебя — встречай пулей'],
+    cols: 160, rows: 28, base: SOLID, pal: PAL.base, spawn: ['D', 'r', 'N'],
+    tips: ['тут военные держали оборону — и проиграли', 'окопы, насыпь с вышкой, подкоп под стеной: вниз и вверх по наклонам', 'покусанный солдат — носитель: убьёшь — из спины полезет мелюзга'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 9, 158, 16);                                                        // проходная, пол — ряд 17
-      B.deco('gate', 1, 9, 3, 16); B.deco('wire', 4, 9, 158, 9);
-      for (const x of [8, 26, 42, 66, 96, 112, 130, 150]) gore(x, 10 + x % 3);
-      B.acid(22, 24, 17);
-      B.fill(36, 15, 39, 16); B.deco('sandbag', 36, 15, 39, 16);
-      B.fill(56, 9, 63, 15); B.deco('rubble', 56, 9, 63, 15); B.vent(56, 63, 16);   // обвал — ползком
-      B.acid(78, 93, 17); B.plat(80, 82, 14); B.plat(86, 88, 13); B.plat(91, 92, 14);
-      B.fill(106, 14, 108, 16); B.deco('crate', 106, 14, 108, 16);
-      B.crumble(118, 124, 17); B.room(118, 18, 124, 20); B.acid(118, 124, 21);      // пол проломлен над ямой
-      B.fill(138, 15, 140, 16); B.deco('sandbag', 138, 15, 140, 16);
-      for (const x of [12, 30, 44, 70, 100, 112, 132, 148]) body(x, 17);
-      for (const x of [16, 48, 74, 128, 144]) body(x, 17, 'bugbody');
-      for (let x = 10; x < 156; x += 18) B.lamp(x, 9);
-      B.sign(50, 14, '>'); B.sign(70, 14, '>'); B.sign(112, 14, '>'); B.sign(146, 14, '>');
-      B.bug(30, 17, 'D'); B.bug(46, 17, 'N'); B.bug(70, 17, 'r'); B.bug(100, 17, 'D'); B.bug(103, 17, 'N');
-      B.bug(130, 17, 'N'); B.bug(134, 17, 'D'); B.bug(146, 17, 'r'); B.bug(152, 17, 'N');
-      B.crack(48, 12); B.crack(128, 12);
-      B.exit(156, 17, 'КАЗАРМЫ');
-      B.start(5, 17);
+      B.room(1, 6, 158, 19);                                                        // двор, пол — ряд 20
+      B.deco('gate', 1, 6, 3, 19); B.deco('wire', 4, 6, 158, 6);
+      B.fill(14, 19, 16, 19); B.deco('sandbag', 14, 19, 16, 19);
+      B.ramp(18, 20, 24); B.room(22, 21, 31, 23); B.ramp(32, 24, 20);               // окоп: спуск и подъём
+      B.fill(37, 19, 39, 19); B.deco('sandbag', 37, 19, 39, 19);
+      B.fill(44, 6, 45, 18); B.deco('shutter', 44, 6, 45, 18); B.vent(44, 45, 19);  // шлагбаум — под ним ползком
+      B.ramp(52, 20, 10); B.fill(62, 10, 67, 19); B.ramp(68, 10, 20);               // насыпь с вышкой: вверх по склону и вниз
+      B.acid(82, 84, 20);
+      B.fill(96, 6, 100, 19); B.ramp(90, 20, 24); B.room(94, 21, 104, 23); B.ramp(105, 24, 20);   // бетонная стена — подкоп под ней
+      B.crumble(118, 123, 20); B.room(118, 21, 123, 23); B.acid(118, 123, 24);      // пол проломлен над ямой
+      B.fill(132, 18, 134, 19); B.deco('sandbag', 132, 18, 134, 19);
+      for (const x of [8, 30, 48, 76, 88, 112, 140, 152]) gore(x, 8 + x % 4);
+      for (const [x, f, k] of [[10, 20], [25, 24], [29, 24, 'bugbody'], [41, 20, 'bugbody'], [64, 10], [80, 20], [87, 20, 'bugbody'], [98, 24], [112, 20], [128, 20, 'bugbody'], [146, 20]]) body(x, f, k);
+      for (const x of [10, 28, 48, 65, 80, 112, 130, 148]) B.lamp(x, 6);
+      B.sign(20, 17, 'v'); B.sign(54, 15, '^'); B.sign(92, 17, 'v'); B.sign(146, 17, '>');
+      B.bug(28, 24, 'N'); B.bug(41, 20, 'D'); B.bug(64, 10, 'N'); B.bug(76, 20, 'D'); B.bug(86, 20, 'N'); B.bug(100, 24, 'C');
+      B.bug(112, 20, 'D'); B.bug(126, 20, 'N'); B.bug(138, 20, 'D'); B.bug(150, 20, 'N');
+      B.crack(30, 12); B.crack(140, 12);
+      B.exit(156, 20, 'КАЗАРМЫ');
+      B.start(5, 20);
     } },
-  { city: 4, name: 'КАЗАРМЫ', task: 'Найди ключ-карту от склада', obj: 'card', itemTxt: '💳 ключ-карта у тебя! дверь открыта', ground: 99, dark: .9,
-    cols: 132, rows: 28, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'C'],
-    tips: ['ключ-карта — в дальнем кубрике, а дверь на склад — там, где начал', 'коридор завален — иди через кубрики и вентиляцию', 'противогаз выпускает из фильтра мелюзгу — бей издалека'],
+  { city: 4, name: 'КАЗАРМЫ', task: 'Найди ключ-карту в дежурке на верхнем этаже', obj: 'card', itemTxt: '💳 ключ-карта у тебя! дверь внизу открыта', ground: 99, dark: .9,
+    cols: 150, rows: 40, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'C'],
+    tips: ['дежурка на самом верху: поднимайся по лестничным пролётам с этажа на этаж', 'на втором этаже завал — ползком, на третьем провал в полу', 'взял карту — вниз тем же путём, дверь у входа'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 16, 130, 21);                                                       // коридор, пол — 22
-      B.fill(40, 16, 46, 21); B.deco('rubble', 40, 16, 46, 21); B.fill(86, 16, 92, 21); B.deco('rubble', 86, 16, 92, 21);   // баррикады
-      B.room(4, 6, 38, 10); B.room(48, 6, 84, 10); B.room(94, 6, 128, 10);          // кубрики, пол — 11
-      B.vent(39, 47, 10); B.vent(85, 93, 10);
-      B.lad(8, 11, 21); B.lad(66, 11, 21); B.lad(110, 11, 21);
-      for (const x of [20, 54, 100]) { B.fill(x, 10, x + 3, 10); B.deco('bunk', x, 8, x + 3, 10); }
-      for (const x of [28, 76, 118, 14]) B.deco('locker', x, 8, x + 1, 10);
-      for (const [x, y] of [[12, 7], [32, 7], [60, 7], [80, 7], [104, 7], [124, 7], [24, 17], [58, 17], [100, 17], [120, 17]]) gore(x, y);
-      for (const [x, f] of [[16, 11], [36, 11], [70, 11], [96, 11], [114, 11], [18, 22], [34, 22], [62, 22], [96, 22], [124, 22]]) body(x, f, (x * 7 + f) % 3 ? 'body' : 'bugbody');
-      B.acid(74, 76, 22); B.item('life', 82, 22);                                   // тупик в середине коридора: секрет
-      B.item('card', 124, 11); B.door(5, 16, 21); B.exit(2, 22, 'СКЛАД');           // дверь — у старта
-      B.deco('wire', 1, 16, 130, 16);
-      for (const x of [12, 30, 56, 78, 100, 120]) B.lamp(x, 6);
-      for (const x of [20, 70, 116]) B.lamp(x, 16);
-      B.sign(36, 9, '>'); B.sign(82, 9, '>'); B.sign(112, 14, 'v'); B.sign(14, 19, '^');
-      B.bug(30, 11, 'C'); B.bug(56, 11, 'P'); B.bug(100, 11, 'C'); B.bug(70, 22, 'P'); B.bug(116, 22, 'N');
-      B.bug(24, 22, 'D'); B.bug(62, 11, 'N'); B.bug(82, 11, 'D'); B.bug(122, 11, 'D'); B.bug(56, 22, 'D');
-      B.start(8, 22);
+      B.room(1, 31, 50, 35);                                                        // 1-й этаж, пол — 36
+      B.ramp(51, 36, 28);                                                           // пролёт
+      B.room(59, 23, 92, 27);                                                       // 2-й этаж, пол — 28
+      B.fill(74, 23, 77, 26); B.deco('rubble', 74, 23, 77, 26); B.vent(74, 77, 27); // завал — ползком
+      B.ramp(93, 28, 20);
+      B.room(101, 15, 128, 19);                                                     // 3-й этаж, пол — 20
+      B.room(110, 20, 112, 22); B.acid(110, 112, 23);                               // провал в полу
+      B.ramp(129, 20, 12);
+      B.room(137, 7, 148, 11);                                                      // дежурка, пол — 12
+      for (const [x, y] of [[20, 35], [36, 35], [64, 27], [84, 27], [118, 19]]) { B.fill(x, y, x + 3, y); B.deco('bunk', x, y - 2, x + 3, y); }
+      for (const [x, y] of [[12, 33], [44, 33], [70, 25], [104, 17], [140, 9]]) B.deco('locker', x, y, x + 1, y + 2);
+      for (const [x, y] of [[8, 31], [28, 32], [62, 23], [88, 24], [114, 15], [124, 16], [144, 7]]) gore(x, y);
+      for (const [x, f, k] of [[16, 36], [30, 36, 'bugbody'], [46, 36], [68, 28], [80, 28, 'bugbody'], [106, 20], [124, 20, 'bugbody'], [142, 12]]) body(x, f, k);
+      B.deco('wire', 1, 31, 50, 31);
+      B.item('card', 146, 12); B.door(6, 31, 35); B.exit(2, 36, 'СКЛАД');           // дверь — у входа
+      for (const [x, y] of [[10, 31], [30, 31], [46, 31], [66, 23], [86, 23], [106, 15], [124, 15], [142, 7]]) B.lamp(x, y);
+      B.sign(48, 34, '^'); B.sign(90, 26, '^'); B.sign(126, 18, '^');
+      B.bug(30, 36, 'D'); B.bug(44, 36, 'N'); B.bug(66, 28, 'C'); B.bug(84, 28, 'D'); B.bug(88, 28, 'P');
+      B.bug(106, 20, 'N'); B.bug(120, 20, 'D'); B.bug(142, 12, 'N');
+      B.start(10, 36);
     } },
-  { city: 4, name: 'ОРУЖЕЙНЫЙ СКЛАД', task: 'Уничтожь кладки жуков среди ящиков', obj: 'nests', nestTxt: 'кладки', nestDone: 'все кладки уничтожены! дверь открыта', ground: 99, dark: .86,
-    cols: 124, rows: 28, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'r'],
-    tips: ['жуки отложили яйца прямо в оружейке: в зале, на стеллажах и в вентиляции', 'в вентиляцию — по щели между колоннами у дальней стены, прыжками от стены к стене', 'дверь дальше — там, где начал'],
+  { city: 4, name: 'ОРУЖЕЙНЫЙ СКЛАД', task: 'Уничтожь кладки жуков на стеллажах', obj: 'nests', nestTxt: 'кладки', nestDone: 'все кладки уничтожены! дверь открыта', ground: 99, dark: .86,
+    cols: 70, rows: 44, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'r'],
+    tips: ['склад высокий: стеллажи до потолка, наверх — по лестницам и по упавшему стеллажу', 'на стеллаж можно запрыгнуть снизу, а спрыгнуть — вниз сквозь полку', 'кладки на полу и на всех ярусах'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 6, 122, 21);                                                        // зал, пол — 22
-      B.fill(28, 14, 46, 15); B.lad(27, 14, 21);                                    // стеллаж A
-      B.fill(70, 12, 90, 13); B.lad(91, 12, 21);                                    // стеллаж B
-      B.acid(56, 58, 22);
-      B.fill(16, 21, 19, 21); B.deco('crate', 16, 21, 19, 21); B.fill(100, 21, 103, 21); B.deco('crate', 100, 21, 103, 21);
-      for (const [x, y] of [[12, 22], [64, 22], [106, 22]]) B.deco('barrel', x, y - 2, x, y - 1);
-      for (const [x, y] of [[32, 14], [40, 14], [76, 12], [84, 12]]) B.deco('rack', x, y - 2, x + 1, y - 1);
-      for (const [x, y] of [[6, 8], [22, 9], [50, 8], [62, 10], [94, 8], [110, 9]]) gore(x, y);
-      for (const [x, f] of [[8, 22], [30, 22], [48, 22], [78, 22], [94, 22], [114, 22], [36, 14], [80, 12]]) body(x, f, (x + f) % 3 ? 'body' : 'bugbody');
-      B.fill(116, 6, 116, 19); B.fill(119, 6, 119, 19); B.room(117, 2, 118, 5);    // щель между колоннами — в вентиляцию
-      B.room(96, 2, 116, 4); B.room(98, 5, 99, 5); B.deco('duct', 96, 2, 116, 4);
-      B.nest(106, 5); B.bug(110, 5, 'D');
-      B.deco('wire', 1, 6, 122, 6);
-      for (const x of [10, 30, 52, 74, 96, 114]) B.lamp(x, 6);
-      B.nest(26, 22); B.nest(44, 14); B.nest(72, 12); B.nest(88, 22); B.nest(110, 22);
-      B.bug(50, 22, 'P'); B.bug(96, 22, 'N'); B.bug(36, 22, 'D'); B.bug(80, 22, 'D'); B.bug(68, 22, 'N'); B.bug(31, 14, 'D');
-      B.exit(2, 22, 'МЕДБЛОК');
-      B.start(6, 22);
+      B.room(1, 4, 68, 39);                                                         // зал, пол — 40
+      B.fill(18, 39, 20, 39); B.deco('crate', 18, 39, 20, 39); B.fill(56, 38, 58, 39); B.deco('crate', 56, 38, 58, 39);
+      B.plat(6, 24, 34); B.lad(25, 34, 39);                                         // стеллаж 1
+      B.ramp(34, 40, 34); B.plat(40, 62, 34);                                       // упавший стеллаж — наклон наверх
+      B.plat(14, 36, 28); B.lad(13, 28, 33);
+      B.plat(46, 66, 28); B.lad(45, 28, 33);
+      B.plat(24, 50, 22); B.lad(35, 22, 27);
+      B.plat(8, 30, 16); B.lad(31, 16, 21);
+      B.plat(50, 64, 16); B.lad(49, 16, 21);
+      for (const [x, y] of [[13, 34], [45, 34], [35, 28], [31, 22], [49, 22], [25, 34], [13, 28], [45, 28], [35, 22], [31, 16], [49, 16]]) B.fill(x - 1, y, x + 1, y);   // у лестниц — твёрдые площадки
+      B.lad(25, 34, 39); B.lad(13, 28, 33); B.lad(45, 28, 33); B.lad(35, 22, 27); B.lad(31, 16, 21); B.lad(49, 16, 21);
+      for (const [x, y] of [[8, 37], [52, 37], [62, 31], [20, 25], [42, 19], [14, 13], [56, 13]]) B.deco('rack', x, y, x + 1, y + 2);
+      for (const [x, y] of [[4, 6], [30, 8], [60, 6], [2, 20], [64, 22]]) gore(x, y);
+      for (const [x, f, k] of [[12, 40], [44, 40, 'bugbody'], [62, 40], [10, 34], [54, 34, 'bugbody'], [22, 28], [30, 22], [20, 16, 'bugbody']]) body(x, f, k);
+      B.item('life', 10, 16);
+      for (const x of [8, 24, 40, 56]) B.lamp(x, 4);
+      B.nest(28, 40); B.nest(18, 34); B.nest(58, 28); B.nest(40, 22); B.nest(58, 16);
+      B.bug(48, 40, 'D'); B.bug(62, 40, 'N'); B.bug(20, 28, 'D'); B.bug(44, 22, 'N'); B.bug(56, 16, 'P'); B.bug(16, 16, 'D'); B.bug(10, 34, 'r');
+      B.exit(2, 40, 'МЕДБЛОК');
+      B.start(6, 40);
     } },
-  { city: 4, name: 'МЕДБЛОК', task: 'Дай свет в медблоке: найди рубильник', obj: 'switch', itemTxt: '⚡ свет дали! дверь открыта', ground: 99, dark: .88,
-    cols: 116, rows: 34, base: SOLID, pal: PAL.base, spawn: ['C', 'N', 'D'],
-    tips: ['рубильник на верхнем ярусе, а дверь в гараж — внизу, где начал', 'справа вентшахта: вниз — просто прыгай, наверх — прыжками от стены к стене', 'учёные спрятались здесь от жуков. не помогло — их замотало в коконы'],
+  { city: 4, name: 'МЕДБЛОК', task: 'Дай свет: рубильник в морге, в подвале', obj: 'switch', itemTxt: '⚡ свет дали! дверь наверху открыта', ground: 99, dark: .9,
+    cols: 120, rows: 32, base: SOLID, pal: PAL.base, spawn: ['C', 'N', 'D'],
+    tips: ['пол в коридоре проломлен: по наклонному ходу — вниз, в морг', 'из морга наверх — по лестнице в дальнем конце', 'обратно через пролом — прыжком'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 24, 110, 29);                                                       // нижний зал, пол — 30
-      B.room(1, 14, 110, 19);                                                       // средний ярус, пол — 20
-      B.room(1, 4, 110, 9);                                                         // верхний ярус, пол — 10
-      B.lad(104, 20, 29); B.lad(6, 10, 19);
-      for (const x of [18, 44, 78]) { B.fill(x, 27, x + 5, 29); B.deco('medcab', x, 27, x + 5, 29); }
-      B.acid(60, 64, 30); B.plat(60, 64, 27);
-      B.fill(30, 14, 34, 18); B.deco('rubble', 30, 14, 34, 18); B.vent(30, 34, 19);
-      B.acid(70, 72, 20); B.fill(88, 18, 90, 19); B.deco('crate', 88, 18, 90, 19);
-      B.plat(40, 46, 7); B.fill(56, 8, 58, 9); B.deco('crate', 56, 8, 58, 9);
-      for (const [x, y] of [[12, 25], [36, 25], [70, 25], [94, 25], [20, 15], [52, 15], [84, 15], [16, 5], [70, 5], [100, 5]]) gore(x, y);
-      for (const [x, f] of [[14, 30], [38, 30], [72, 30], [96, 30], [24, 20], [56, 20], [82, 20], [22, 10], [48, 10], [74, 10]]) body(x, f, (x + f) % 3 ? 'body' : 'bugbody');
-      B.deco('wire', 1, 24, 110, 24); B.deco('wire', 1, 14, 110, 14);
-      B.item('switch', 92, 10); B.door(5, 24, 29); B.exit(2, 30, 'ГАРАЖ');
-      B.shaft(112, 4, 29); B.room(111, 8, 111, 9); B.room(111, 28, 111, 29); B.sign(108, 7, '>');
-      for (const x of [10, 30, 50, 70, 90]) { B.lamp(x, 24); B.lamp(x + 6, 14); B.lamp(x + 3, 4); }
-      B.sign(98, 27, '^'); B.sign(12, 17, '^'); B.sign(80, 7, '>');
-      B.bug(30, 30, 'D'); B.bug(52, 30, 'C'); B.bug(70, 30, 'N'); B.bug(90, 30, 'C');
-      B.bug(80, 20, 'C'); B.bug(60, 20, 'D'); B.bug(20, 20, 'N'); B.bug(45, 20, 'P');
-      B.bug(30, 10, 'D'); B.bug(64, 10, 'C'); B.bug(80, 10, 'N');
-      B.crack(40, 26); B.crack(95, 16); B.crack(50, 6);
-      B.start(8, 30);
+      B.room(1, 8, 118, 13);                                                        // коридор, пол — 14
+      B.fill(40, 8, 46, 12); B.deco('rubble', 40, 8, 46, 12); B.vent(40, 46, 13);   // завал — ползком
+      B.ramp(60, 14, 26);                                                           // пролом: наклонный ход в подвал
+      B.room(72, 22, 116, 25);                                                      // морг, пол — 26
+      B.lad(104, 14, 25);                                                           // лестница из морга наверх
+      for (const x of [14, 26, 52, 84, 112]) B.deco('medcab', x, 9, x + 3, 11);
+      for (const x of [78, 88, 96]) { B.fill(x, 25, x + 3, 25); B.deco('bunk', x, 24, x + 3, 25); }   // столы морга
+      for (const [x, y] of [[8, 9], [34, 9], [64, 9], [92, 9], [76, 22], [100, 22], [110, 22]]) gore(x, y);
+      for (const [x, f, k] of [[20, 14], [36, 14, 'bugbody'], [56, 14], [80, 24], [90, 24], [98, 24], [108, 26, 'bugbody'], [86, 14], [112, 14]]) body(x, f, k);
+      B.deco('wire', 1, 8, 118, 8);
+      B.item('life', 116, 14);                                                      // за проломом, в дальней палате
+      B.item('switch', 114, 26); B.door(5, 8, 13); B.exit(2, 14, 'ГАРАЖ');
+      for (const x of [10, 30, 54, 84, 110]) B.lamp(x, 8);
+      for (const x of [80, 100]) B.lamp(x, 22);
+      B.sign(58, 12, 'v'); B.sign(102, 24, '^');
+      B.bug(30, 14, 'C'); B.bug(52, 14, 'N'); B.bug(80, 26, 'C'); B.bug(92, 26, 'D'); B.bug(100, 26, 'N'); B.bug(110, 26, 'C');
+      B.bug(84, 14, 'D'); B.bug(96, 14, 'P');
+      B.start(9, 14);
     } },
   { city: 4, name: 'ГАРАЖ', task: 'Перебей броню в гараже', obj: 'guards', guard: 'Z', guardTxt: 'броня', guardDone: 'броня перебита! дверь в бункер открыта', need: 'сначала перебей броню',
-    ground: 99, dark: .86, cols: 132, rows: 24, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'P'],
-    tips: ['жук сожрал солдата изнутри и носит его бронежилет: щит спереди — бей сзади или когда оглушён', 'ворота боксов подняты наполовину — под ними ползком', 'винтовка пробивает щит насквозь'],
+    ground: 99, dark: .86, cols: 128, rows: 30, base: SOLID, pal: PAL.base, spawn: ['D', 'N', 'P'],
+    tips: ['пандусы ведут на верхний ярус: на нём броня, ещё одна внизу справа и одна — под настилом', 'под настил — через узкую дыру в полу яруса, обратно — по лестнице', 'щит спереди: бей сзади или когда оглушён после рывка'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 9, 130, 15); B.door(10, 9, 15); B.exit(5, 16, 'БУНКЕР');           // пол — 16
-      for (const x of [34, 70, 100]) { B.fill(x, 9, x + 1, 14); B.deco('shutter', x, 9, x + 1, 14); B.vent(x, x + 1, 15); }
-      B.plat(50, 62, 12); B.lad(49, 12, 15); B.lad(63, 12, 15);
-      B.acid(80, 83, 16); B.plat(80, 83, 13);
-      B.fill(20, 15, 23, 15); B.deco('crate', 20, 15, 23, 15); B.fill(110, 15, 113, 15); B.deco('crate', 110, 15, 113, 15);
-      for (const x of [28, 56, 90, 118]) B.deco('barrel', x, 14, x, 15);
-      for (const x of [14, 40, 60, 86, 106, 122]) gore(x, 10 + x % 2);
-      for (const x of [16, 30, 44, 66, 76, 94, 116, 126]) body(x, 16, x % 3 ? 'body' : 'bugbody');
-      B.deco('wire', 1, 9, 130, 9);
-      for (const x of [16, 44, 76, 106, 124]) B.lamp(x, 9);
-      B.sign(30, 14, '>'); B.sign(96, 14, '>'); B.sign(16, 12, '<');
-      B.bug(60, 16, 'Z'); B.bug(94, 16, 'Z'); B.bug(124, 16, 'Z');
-      B.bug(28, 16, 'D'); B.bug(46, 16, 'N'); B.bug(66, 16, 'N'); B.bug(106, 16, 'P'); B.bug(114, 16, 'N'); B.bug(56, 12, 'D'); B.bug(118, 16, 'D');
-      B.crack(40, 12); B.crack(96, 12);
-      B.start(14, 16);
+      B.room(1, 6, 126, 25);                                                        // ангар, пол — 26
+      B.ramp(16, 26, 16); B.fill(26, 16, 96, 17); B.ramp(97, 16, 26);               // пандусы на верхний ярус (пол — 16)
+      B.room(30, 16, 31, 17);                                                       // дыра в настиле — под него
+      B.lad(88, 16, 25);                                                            // из-под настила — наверх
+      B.fill(50, 18, 51, 24); B.deco('shutter', 50, 18, 51, 24); B.vent(50, 51, 25); // ворота бокса — ползком
+      B.acid(114, 116, 26);
+      for (const x of [36, 62, 100, 122]) B.deco('barrel', x, 24, x, 25);
+      for (const x of [40, 58, 80]) B.deco('barrel', x, 14, x, 15);
+      for (const [x, y] of [[8, 18], [40, 8], [76, 9], [110, 10], [60, 19], [80, 19]]) gore(x, y);
+      for (const [x, f, k] of [[10, 26], [44, 16], [64, 16, 'bugbody'], [86, 16], [40, 26], [74, 26, 'bugbody'], [108, 26], [124, 26]]) body(x, f, k);
+      B.deco('wire', 1, 6, 126, 6);
+      for (const x of [12, 36, 60, 84, 108, 122]) B.lamp(x, 6);
+      B.sign(18, 23, '^'); B.sign(31, 14, 'v'); B.sign(90, 23, '^');
+      B.bug(78, 16, 'Z'); B.bug(70, 26, 'Z'); B.bug(122, 26, 'Z');
+      B.bug(56, 16, 'D'); B.bug(90, 16, 'N'); B.bug(40, 26, 'N'); B.bug(110, 26, 'D'); B.bug(118, 26, 'P');
+      B.crack(60, 10); B.crack(100, 10);
+      B.door(5, 21, 25); B.exit(2, 26, 'БУНКЕР');
+      B.start(9, 26);
     } },
-  { city: 4, name: 'БУНКЕР', task: 'Газ в бункере! Лезь наверх, к штабу', obj: 'reach', ground: 99, dark: .72, power: true, alarm: true, fume: 13,
-    cols: 32, rows: 80, base: SOLID, pal: PAL.base, spawn: ['D', 'N'],
-    tips: ['☣ военные пустили газ против жуков — и не успели уйти сами', 'лезь наверх и не задерживайся — газ ждать не будет', 'газ душит и мутантов'],
+  { city: 4, name: 'БУНКЕР', task: 'Беги от роя по норам — к штабу', obj: 'reach', ground: 99, dark: .78, alarm: true, chase: 66,
+    cols: 170, rows: 34, base: SOLID, pal: PAL.base, spawn: ['D', 'N'],
+    tips: ['☣ жуки прорыли бункер насквозь — и рой уже здесь. беги!', 'норы уходят вниз и снова вверх — не останавливайся', 'в завале — ползком, рой тоже замедлится не сильно'],
     build(B) {
-      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1);
-      for (let i = 0; i < 12; i++) {                                                 // 12 этажей, пол i-го — ряд 76 - 6i
-        const f = 76 - 6 * i;
-        B.room(1, f - 5, 30, f - 1);
-        if (i < 11) B.lad(i % 2 ? 3 : 28, f - 6, f - 1);
-        B.lamp(i % 2 ? 22 : 9, f - 5);
-        B.deco('gore', i % 2 ? 12 : 16, f - 5, i % 2 ? 14 : 18, f - 3);
-        if (i % 3 !== 1) body(i % 2 ? 24 : 6, f, i % 2 ? 'bugbody' : 'body');
-      }
-      B.acid(13, 15, 70);
-      B.fill(15, 62, 16, 63); B.deco('crate', 15, 62, 16, 63);
-      B.acid(16, 18, 58);
-      B.fill(12, 47, 18, 50); B.deco('rubble', 12, 47, 18, 50); B.vent(12, 18, 51);
-      B.acid(9, 11, 46); B.acid(19, 21, 46);
-      B.acid(10, 20, 40); B.plat(12, 13, 37); B.plat(17, 18, 37);
-      B.fill(10, 32, 11, 33); B.deco('crate', 10, 32, 11, 33); B.fill(20, 32, 21, 33); B.deco('crate', 20, 32, 21, 33);
-      B.acid(14, 16, 28);
-      B.fill(10, 17, 16, 20); B.deco('rubble', 10, 17, 16, 20); B.vent(10, 16, 21);
-      B.acid(8, 10, 16); B.acid(18, 20, 16);
-      B.bug(8, 64, 'D'); B.bug(10, 58, 'N'); B.bug(15, 46, 'D'); B.bug(16, 34, 'N'); B.bug(22, 28, 'D'); B.bug(8, 28, 'D');
-      B.bug(22, 22, 'P'); B.bug(14, 16, 'N'); B.bug(16, 10, 'D');
-      B.exit(4, 10, 'ШТАБ');
-      B.start(4, 76);
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 8, 30, 11);                                                         // пол — 12
+      B.ramp(31, 12, 22);                                                           // нора вниз
+      B.room(41, 19, 60, 21);                                                       // пол — 22
+      B.ramp(61, 22, 14);                                                           // нора вверх
+      B.room(69, 10, 90, 13);                                                       // пол — 14
+      B.fill(78, 10, 81, 12); B.deco('rubble', 78, 10, 81, 12); B.vent(78, 81, 13);
+      B.ramp(91, 14, 26);                                                           // глубокая нора вниз
+      B.room(103, 22, 128, 25);                                                     // пол — 26
+      B.acid(110, 112, 26);
+      B.ramp(129, 26, 16);                                                          // нора вверх
+      B.room(139, 12, 168, 15);                                                     // пол — 16
+      for (const [x, y] of [[10, 8], [22, 8], [48, 19], [74, 10], [86, 10], [116, 22], [146, 12], [160, 12]]) gore(x, y);
+      for (const [x, f, k] of [[14, 12], [26, 12, 'bugbody'], [46, 22], [56, 22, 'bugbody'], [72, 14], [88, 14], [106, 26], [122, 26, 'bugbody'], [144, 16], [156, 16]]) body(x, f, k);
+      for (const x of [8, 24, 50, 76, 112, 124, 148, 162]) B.lamp(x, x < 40 ? 8 : x < 70 ? 19 : x < 100 ? 10 : x < 135 ? 22 : 12);
+      B.sign(28, 10, '>'); B.sign(166, 14, '>');
+      B.bug(22, 12, 'D'); B.bug(50, 22, 'N'); B.bug(56, 22, 'r'); B.bug(74, 14, 'D'); B.bug(86, 14, 'N'); B.bug(108, 26, 'C'); B.bug(120, 26, 'D');
+      B.bug(150, 16, 'N'); B.bug(160, 16, 'D');
+      B.exit(166, 16, 'ШТАБ');
+      B.start(4, 12);
     } },
   { city: 4, name: 'ШТАБ', task: 'Победи человека-таракана', obj: 'boss', bossTxt: 'в штаб', need: 'сначала победи человека-таракана', ground: 99, dark: .8, power: true,
-    cols: 78, rows: 22, base: SOLID, pal: PAL.base, spawn: ['r', 'D'],
+    cols: 96, rows: 24, base: SOLID, pal: PAL.base, spawn: ['r', 'D'],
     tips: ['это был командир базы. жуки его не съели — он стал одним из них', 'присел — сейчас взлетит и рухнет на тебя. приземлился — по полу волна, прыгай, а он оглушён: урон двойной', 'плюётся кислотой и зовёт тараканов'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
-      B.room(1, 5, 76, 15);
-      B.plat(24, 29, 12); B.plat(40, 45, 12); B.plat(60, 65, 12);
-      B.deco('mapboard', 50, 7, 56, 10);
-      for (const [x, y] of [[6, 7], [16, 9], [34, 7], [68, 8]]) gore(x, y);
-      for (const x of [12, 22, 36, 48, 58, 70]) body(x, 16, x % 3 ? 'body' : 'bugbody');
-      B.deco('wire', 1, 5, 76, 5);
-      B.lamp(20, 5); B.lamp(40, 5); B.lamp(62, 5);
-      B.arena({ gate: 12, l: 13, top: 16, drop: 52, boss: 'roach' });
-      B.exit(74, 16, 'НАРУЖУ');
-      B.bug(8, 16, 'D');
-      B.start(3, 16); B.save(9, 16);
+      B.room(1, 3, 30, 7);                                                          // коридор штаба, пол — 8
+      B.ramp(31, 8, 16);                                                            // широкая лестница вниз, в зал
+      B.room(39, 5, 94, 15);                                                        // зал, пол — 16
+      B.plat(50, 55, 12); B.plat(64, 69, 12); B.plat(80, 85, 12);
+      B.deco('mapboard', 70, 6, 76, 9);
+      for (const [x, y] of [[6, 4], [20, 4], [44, 7], [58, 6], [86, 7]]) gore(x, y);
+      for (const [x, f, k] of [[12, 8], [24, 8, 'bugbody'], [46, 16], [60, 16], [74, 16, 'bugbody'], [88, 16]]) body(x, f, k);
+      B.deco('wire', 1, 3, 30, 3); B.deco('wire', 39, 5, 94, 5);
+      B.lamp(10, 3); B.lamp(24, 3); B.lamp(50, 5); B.lamp(68, 5); B.lamp(86, 5);
+      B.arena({ gate: 41, l: 42, top: 16, drop: 76, boss: 'roach' });
+      B.exit(93, 16, 'НАРУЖУ');
+      B.bug(20, 8, 'D');
+      B.start(3, 8); B.save(9, 8);
     } },
 ];
 
@@ -920,6 +928,10 @@ function build(def) {
     crumble(x0, x1, y) { B.fill(x0, y, x1, y, CRUMBLE); },
     shroom(x, y) { o.lamps.push([x, y, 'shroom']); },
     bigshroom(x, cap, floor, w = 2) { B.plat(x - w, x + w, cap); o.deco.push({ k: 'bigshroom', x0: x, y0: cap, x1: x, y1: floor - 1, w }); o.lamps.push([x, cap, 'cap']); },
+    ramp(x0, f1, f2, hgt = 3) {                       // диагональный подъём/спуск: пол f1 слева → пол f2 справа, над ним hgt клеток воздуха
+      const up = f2 < f1, n = Math.abs(f2 - f1), lo = Math.max(f1, f2);
+      for (let i = 0; i < n; i++) { const cx = x0 + i, cy = up ? f1 - 1 - i : f1 + i; B.room(cx, cy - hgt, cx, cy - 1); set(cx, cy, up ? SLR : SLL); B.fill(cx, cy + 1, cx, lo); }
+    },
     shaft(x, y0, y1) { B.fill(x, y0, x + 1, y1, BG); o.deco.push({ k: 'duct', x0: x, y0, x1: x + 1, y1 }); },   // вентшахта 2 клетки шириной
     tube(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1 }); o.lamps.push([x, y - 2, 'tube']); },          // колба с жижей
     flask(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1, mut: true }); o.lamps.push([x, y - 2, 'tube']); o.bugs.push([x, y, 'q']); },   // колба с мутантом
@@ -992,13 +1004,15 @@ function autoSaves(o, def) {
 // Движение тела по клеткам: сначала по X, потом по Y
 function moveBody(b, dt, oneway = true) {
   if (b.mv) { b.x += b.mv.dx; b.y += b.mv.dy; }       // стоит на кабине или бревне — едет вместе с ним
+  const wasOn = b.on;
   b.x += b.vx * dt;
   let x0 = Math.floor(b.x / T), x1 = Math.floor((b.x + b.w - .01) / T);
   let y0 = Math.floor(b.y / T), y1 = Math.floor((b.y + b.h - .01) / T);
   b.wall = false;
   for (let cy = y0; cy <= y1; cy++) {
-    if (b.vx > 0 && solid(x1, cy)) { b.x = x1 * T - b.w; b.wall = true; break; }
-    if (b.vx < 0 && solid(x0, cy)) { b.x = (x0 + 1) * T; b.wall = true; break; }
+    const step = wasOn && b.y + b.h - cy * T <= 7;                    // край наклона: шагнуть на ступеньку
+    if (b.vx > 0 && solid(x1, cy) && !(underSlope(x1, cy) && cy * T >= b.y + b.h - T - 1)) { if (step && !solid(x1, cy - 1)) { b.y = cy * T - b.h; continue; } b.x = x1 * T - b.w; b.wall = true; break; }
+    if (b.vx < 0 && solid(x0, cy) && !(underSlope(x0, cy) && cy * T >= b.y + b.h - T - 1)) { if (step && !solid(x0, cy - 1)) { b.y = cy * T - b.h; continue; } b.x = (x0 + 1) * T; b.wall = true; break; }
   }
   const prevBottom = b.y + b.h;
   b.y += b.vy * dt; b.on = false; b.mv = null;
@@ -1010,10 +1024,19 @@ function moveBody(b, dt, oneway = true) {
   if (b.vy > 0) {
     for (let cx = x0; cx <= x1; cx++) {
       const t = tile(cx, y1);
+      if (isSolid(t) && underSlope(cx, y1)) continue;
       if (isSolid(t) || (oneway && oneWay(t, cx, y1) && prevBottom <= y1 * T + .5)) { b.y = y1 * T - b.h; b.vy = 0; b.on = true; break; }
     }
   } else if (b.vy < 0) {
     for (let cx = x0; cx <= x1; cx++) if (solid(cx, y0)) { b.y = (y0 + 1) * T; b.vy = 0; break; }
+  }
+  if (b.vy >= 0) {                                   // наклон: держит по своей поверхности, вниз по нему — не отрываемся
+    const fx = b.x + b.w / 2, cx = Math.floor(fx / T), fb = b.y + b.h, r = Math.floor((fb - .01) / T);
+    for (const cy of [r - 1, r, r + 1]) if (isSlope(tile(cx, cy))) {
+      const sy = slopeY(cx, cy, fx);
+      if (fb >= sy - .5 || (wasOn && fb >= sy - 9)) { b.y = sy - b.h; b.vy = 0; b.on = true; }
+      break;
+    }
   }
 }
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -1891,7 +1914,7 @@ function update(dt) {
         if (b.k === 'gren') blast(b.x + 2, b.y + 2); else hurtBoss(br, b.bd || 1);
         break;
       }
-      if (!b.ghost && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) {
+      if (!b.ghost && (solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T)) || inSlope(b.x + 2, b.y + 2))) {
         b.life = 0;
         if (b.k === 'gren') { blast(b.x + 2 - b.vx * h, b.y + 2 - b.vy * h); break; }
         explode(b.x, b.y, 3, ['#fff', '#ffd23f']);
@@ -1905,7 +1928,7 @@ function update(dt) {
     b.vy += (b.g || 0) * edt; b.x += b.vx * edt; b.y += b.vy * edt; b.life -= edt;
     if (b.k === 'gas') { b.age += edt; if (!P.dead && b.age > .3 && b.life > .3 && hit(pc, b)) hurt(EDMG.gas); continue; }   // ядовитое облако висит на месте
     if (!P.dead && hit(pc, b)) { b.life = 0; hurt(EDMG[b.k] || 15); }
-    if (b.life > 0 && solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T))) {
+    if (b.life > 0 && (solid(Math.floor((b.x + 2) / T), Math.floor((b.y + 2) / T)) || inSlope(b.x + 2, b.y + 2))) {
       b.life = 0;
       if (b.k === 'glob') gasCloud(b.x + 3, Math.floor((b.y + 2) / T) * T); else explode(b.x, b.y, 3, ['#9be22d', '#e6ff7a']);
     }
@@ -2371,6 +2394,17 @@ function drawTiles() {
       const wv = Math.sin(cy * 1.7 + time) * 1.5;
       const lc = pal.nora ? ['#5a3a22', '#7a5232'] : ['#3a6a1e', '#4e9a2e'];   // в норе — корни
       rect(x + 7 + wv, y, 2, T, lc[0]); rect(x + 5 - wv, y + 4, 4, 3, lc[1]); rect(x + 9 + wv, y + 11, 4, 3, lc[1]);
+      continue;
+    }
+    if (t === SLR || t === SLL) {                   // наклон: ступени (база, город) или пологий склон (лес, нора)
+      drawBgCell(x, y, cx, cy);
+      const n = pal.forest ? 8 : 4, st = T / n, base = pal.forest ? pal.deep || '#22180f' : L.sky ? pal.earth || pal.solid : pal.solid;
+      for (let i = 0; i < n; i++) {
+        const k = t === SLR ? i + 1 : n - i, hh = k * st, xs = x + i * st;
+        rect(xs, y + T - hh, st, hh, base); rect(xs, y + T - hh, st, pal.forest ? 3 : 2, pal.floor);
+        if (!pal.forest) rect(xs + (t === SLR ? 0 : st - 1), y + T - hh, 1, Math.min(hh, st), '#0005');
+      }
+      if (!pal.forest) { ctx.strokeStyle = '#4a4c50'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, (t === SLR ? y + T : y) - 10); ctx.lineTo(x + T, (t === SLR ? y : y + T) - 10); ctx.stroke(); }   // перила
       continue;
     }
     if (t === SOLID) {
