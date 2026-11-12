@@ -128,6 +128,10 @@ const PAL = {
   tunnel: { lab: 1, bg: '#16171a', bg2: '#1e2024', pat: 'block', solid: '#34353a', floor: '#5e5f64' },
   lab: { lab: 1, bg: '#151b1d', bg2: '#1c2427', pat: 'tile', solid: '#283034', floor: '#56666a' },
   base: { base: 1, bg: '#17181a', bg2: '#202226', pat: 'conc', solid: '#2c2e28', floor: '#55574c' },
+  camp: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#3a3028', floor: '#6a5a44', road: '#3c3c44', earth: '#241e18' },
+  market: { bg: '#1a1c19', bg2: '#21241f', pat: 'tile', solid: '#2e2c27', floor: '#6a6658' },
+  police: { bg: '#15171d', bg2: '#1c1f27', pat: 'conc', solid: '#262a33', floor: '#4e5563' },
+  hosp: { bg: '#172020', bg2: '#1d2827', pat: 'tile', solid: '#29312f', floor: '#5c6c68' },
 };
 const LEVELS = [
   { name: 'УЛИЦА', task: 'Найди ключ от подъезда — он где-то под землёй', obj: 'key', sky: true, day: true, ground: 16, dark: .9,
@@ -891,9 +895,105 @@ const LEVELS = [
       B.bug(20, 8, 'D');
       B.start(3, 8); B.save(9, 8);
     } },
+  // ===================== ЛАГЕРЬ ВЫЖИВШИХ (друг, 12.11: лагерь, две вылазки и финальная — за лекарствами) =====================
+  { city: 5, name: 'ЛАГЕРЬ', task: 'Поговори с главным лагеря', obj: 'talk', sky: true, ground: 20, dark: .82,
+    cols: 120, rows: 28, base: AIR, pal: PAL.camp, spawn: ['r'],
+    tips: ['здесь живые люди. жуков нет — пока', 'главный — в штабной палатке справа', 'поговоришь — откроют ворота на вылазку'],
+    talk: [['ГЛАВНЫЙ', 'Живой? С военной базы? Тогда ты нам нужен.'], ['ГЛАВНЫЙ', 'Нас тут сорок душ. Еды — на три дня.'],
+      ['ГЛАВНЫЙ', 'Первое: гипермаркет за мостом. Склад, консервы.'], ['ГЛАВНЫЙ', 'Потом — полицейский участок. Там оружейка.'],
+      ['ГЛАВНЫЙ', 'И больница. Раненым нужны лекарства.'], ['ГЛАВНЫЙ', 'Иди. Мы будем ждать у ворот.']],
+    build(B) {
+      B.fill(0, 20, 119, 27);
+      B.deco('barricade', 0, 15, 2, 19);
+      B.ramp(20, 20, 17); B.fill(23, 17, 30, 19); B.ramp(31, 17, 20);               // холм
+      for (const [x, y] of [[10, 20], [24, 17], [40, 20], [68, 20], [84, 20]]) B.deco('tent', x, y - 3, x + 4, y - 1);
+      for (const x of [36, 58, 78]) B.fire(x, 20);
+      for (const [x, y] of [[34, 20], [38, 20], [56, 20], [60, 20], [76, 20], [80, 20], [27, 17], [15, 20], [90, 20]]) B.deco('npc', x, y - 2, x, y - 1);
+      B.plat(47, 52, 13); B.lad(46, 13, 19); B.deco('watch', 47, 13, 52, 19); B.deco('npc', 50, 11, 50, 12);   // вышка с часовым
+      B.car(63, 66, 19);
+      B.deco('shelter', 95, 14, 105, 19); B.deco('leader', 100, 18, 100, 19); B.item('talk', 99, 20);   // штаб лагеря
+      B.label(96, 13, 9, 'ШТАБ');
+      B.deco('barricade', 110, 14, 113, 19);
+      B.exit(116, 20, 'ВЫЛАЗКА');
+      B.start(4, 20);
+    } },
+  { city: 5, name: 'ГИПЕРМАРКЕТ', task: 'Вылазка: найди провизию на складе', obj: 'food', ground: 99, dark: .86,
+    cols: 170, rows: 32, base: SOLID, pal: PAL.market, spawn: ['r', 'm', 'R', 'j', 'N', 'D'],
+    tips: ['провизия на складе, наверху. по эскалатору', 'упавший стеллаж — под ним ползком', 'назад тем же путём: выход у входа'],
+    build(B) {
+      B.room(1, 9, 121, 25);                                                        // торговый зал, пол — 26
+      B.label(14, 10, 14, 'ГИПЕРМАРКЕТ', '#e0c040');
+      for (const x of [22, 30, 38]) { B.fill(x, 25, x + 3, 25); B.deco('kassa', x, 23, x + 3, 25); }   // кассы
+      for (const x of [50, 66, 98]) { B.deco('shelf', x, 14, x + 7, 25); B.plat(x, x + 7, 20); B.plat(x, x + 7, 14); }   // стеллажи: полки — площадки
+      B.lad(49, 14, 25); B.lad(97, 14, 25);
+      B.fill(84, 9, 92, 24); B.deco('fallen', 84, 9, 92, 24); B.vent(84, 92, 25);   // упавший стеллаж — ползком
+      B.acid(108, 110, 26);
+      for (const x of [16, 46, 76, 114]) B.deco('trolley', x, 24, x + 1, 25);
+      B.ramp(122, 26, 16, 6);                                                       // эскалатор на второй этаж
+      B.room(132, 6, 168, 15);                                                      // склад, пол — 16
+      B.label(134, 7, 8, 'СКЛАД', '#e0c040');
+      for (const x of [136, 152]) B.deco('fridge', x, 11, x + 4, 15);
+      B.fill(148, 14, 150, 15); B.deco('box', 148, 14, 150, 15); B.fill(158, 15, 159, 15); B.deco('box', 158, 15, 159, 15);
+      B.item('food', 163, 16); B.item('life', 53, 14);
+      for (const x of [12, 34, 60, 80, 104, 118]) B.lamp(x, 9);
+      for (const x of [140, 156]) B.lamp(x, 6);
+      B.bug(28, 26); B.bug(44, 26, 'R'); B.bug(58, 26, 'j'); B.bug(70, 20, 'j'); B.bug(76, 26, 'N'); B.bug(100, 26, 'D'); B.bug(104, 14, 'r');
+      B.bug(116, 26, 'm'); B.bug(140, 16, 'N'); B.bug(155, 16, 'R'); B.bug(160, 16, 'D'); B.bug(56, 20, 'r');
+      B.nest(62, 26); B.nest(112, 26); B.nest(141, 16);
+      B.crack(40, 12); B.crack(110, 11);
+      B.exit(3, 26, 'В ЛАГЕРЬ');
+      B.start(6, 26);
+    } },
+  { city: 5, name: 'ПОЛИЦЕЙСКИЙ УЧАСТОК', task: 'Вылазка: найди патроны в оружейной', obj: 'arms', ground: 99, dark: .9,
+    cols: 140, rows: 32, base: SOLID, pal: PAL.police, spawn: ['N', 'D', 'r', 'R'],
+    tips: ['оружейная — в подвале, за камерами', 'вниз по лестнице, обратно — по ней же или прыжками по вентшахте', 'в камерах кто-то сидит. не буди'],
+    build(B) {
+      B.room(1, 6, 118, 13);                                                        // дежурная часть, пол — 14
+      B.label(6, 7, 10, 'ПОЛИЦИЯ', '#7aa0e0');
+      B.fill(16, 13, 20, 13); B.deco('pdesk', 16, 11, 20, 13);
+      B.fill(36, 6, 41, 12); B.deco('rubble', 36, 6, 41, 12); B.vent(36, 41, 13);   // обвал — ползком
+      for (const [x, y] of [[26, 10], [48, 10], [86, 10], [104, 10]]) B.deco('locker', x, y, x + 1, y + 3);
+      B.ramp(60, 14, 28, 5);                                                        // лестница в подвал
+      B.room(74, 21, 136, 27);                                                      // подвал, пол — 28
+      for (const x of [80, 92, 104]) B.deco('bars', x, 21, x + 5, 27);              // камеры
+      B.shaft(114, 14, 27);                                                         // вентшахта из подвала в дежурку
+      B.deco('rack', 124, 24, 125, 27); B.deco('rack', 128, 24, 129, 27); B.label(122, 21, 12, 'ОРУЖЕЙНАЯ', '#7aa0e0');
+      B.item('arms', 132, 28);
+      for (const x of [10, 30, 54, 76, 100]) B.lamp(x, 6);
+      for (const x of [86, 110, 130]) B.lamp(x, 21);
+      B.bug(24, 14, 'D'); B.bug(46, 14, 'r'); B.bug(70, 14, 'R'); B.bug(96, 14, 'N'); B.bug(108, 14, 'D');
+      B.bug(83, 28, 'N'); B.bug(95, 28, 'N'); B.bug(107, 28, 'N'); B.bug(120, 28, 'D'); B.bug(130, 28, 'R');
+      B.nest(52, 14); B.nest(118, 28);
+      B.crack(30, 10); B.crack(98, 24);
+      B.exit(3, 14, 'В ЛАГЕРЬ');
+      B.start(6, 14);
+    } },
+  { city: 5, name: 'БОЛЬНИЦА', task: 'Финальная вылазка: лекарства для раненых', obj: 'meds', hold: 70, ground: 99, dark: .82, power: true,
+    cols: 130, rows: 30, base: SOLID, pal: PAL.hosp, spawn: [...'rRmjbMSlFvkxuhtNDCP'],
+    tips: ['аптека — наверху, в конце этажа', 'тихо. слишком тихо', 'возьмёшь лекарства — держись, сколько сможешь'],
+    build(B) {
+      B.room(1, 14, 55, 21);                                                        // палаты, пол — 22
+      B.label(24, 15, 10, 'БОЛЬНИЦА', '#e05a5a');
+      for (const x of [12, 28]) { B.fill(x, 21, x + 3, 21); B.deco('bed', x, 20, x + 3, 21); }
+      B.deco('medcab', 20, 15, 23, 17);
+      B.fill(42, 14, 46, 20); B.deco('gurney', 42, 14, 46, 20); B.vent(42, 46, 21);   // завал из каталок — ползком
+      B.ramp(56, 22, 12, 5);                                                        // лестница на второй этаж
+      B.room(66, 2, 126, 11);                                                       // аптека, пол — 12
+      B.label(100, 3, 10, 'АПТЕКА', '#e05a5a');
+      for (const x of [74, 90, 106, 118]) B.deco('pharm', x, 5, x + 5, 11);
+      B.plat(78, 84, 8); B.plat(96, 102, 8); B.plat(112, 116, 8);
+      B.trap(68, 2, 11);                                                            // за спиной — решётка: засада
+      for (const x of [82, 100, 120]) { B.deco('duct', x, 2, x + 1, 2); B.amb(x, 3); }
+      B.deco('breach', 125, 8, 126, 11); B.amb(124, 12, -1); B.amb(70, 12, 1);
+      B.item('meds', 110, 12);
+      for (const x of [8, 24, 40]) B.lamp(x, 14);
+      for (const x of [76, 92, 108, 122]) B.lamp(x, 2);
+      B.bug(20, 22, 'C'); B.bug(36, 22, 'C'); B.bug(50, 22, 'D'); B.bug(84, 12, 'N');
+      B.start(4, 22);
+    } },
 ];
 
-const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА'];
+const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ'];
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
 let L, lvlN = 0, lv;
@@ -909,7 +1009,7 @@ function build(def) {
   if (def.hi && !def._hiRows) { def._hiRows = def.rows; if (def.ground < def.rows) def.ground = fy(def.ground); }
   COLS = def.cols; ROWS = (def._hiRows || def.rows) + (def.hi || []).length; MAPW = COLS * T; MAPH = ROWS * T;
   grid = [...Array(ROWS)].map(() => new Uint8Array(COLS).fill(def.base));
-  const o = { saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], wins: [], logs: [], start: [3, 3], exit: null, heli: null, arena: null, lift: null, beams: [] };
+  const o = { traps: [], ambs: [], saves: [], nests: [], bugs: [], cracks: [], lamps: [], signs: [], doors: [], items: [], deco: [], wins: [], logs: [], start: [3, 3], exit: null, heli: null, arena: null, lift: null, beams: [] };
   const set = (x, y, t) => { if (x >= 0 && x < COLS && y >= 0 && y < ROWS) grid[y][x] = t; };
   const B = {
     fill(x0, y0, x1, y1, t = SOLID) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); },
@@ -957,6 +1057,10 @@ function build(def) {
         set(cx, cy, up ? SLR : SLL); B.fill(cx, cy + 1, cx, lo);
       }
     },
+    fire(x, y) { o.deco.push({ k: 'fire', x0: x, y0: y - 1, x1: x, y1: y - 1 }); o.lamps.push([x, y - 1, 'fire']); },
+    label(x, y, w, txt, col) { o.deco.push({ k: 'label', x0: x, y0: y, x1: x + w - 1, y1: y, txt, col }); },
+    trap(x, y0, y1) { for (let y = y0; y <= y1; y++) o.traps.push([x, y]); },
+    amb(x, y, dir = 0) { o.ambs.push([x, y, dir]); },
     shaft(x, y0, y1) { B.fill(x, y0, x + 1, y1, BG); o.deco.push({ k: 'duct', x0: x, y0, x1: x + 1, y1 }); },   // вентшахта 2 клетки шириной
     tube(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1 }); o.lamps.push([x, y - 2, 'tube']); },          // колба с жижей
     flask(x, y) { o.deco.push({ k: 'tube', x0: x, y0: y - 3, x1: x + 1, y1: y - 1, mut: true }); o.lamps.push([x, y - 2, 'tube']); o.bugs.push([x, y, 'q']); },   // колба с мутантом
@@ -1310,7 +1414,7 @@ function startLevel(n) {
     for (const d of [3, 2, 4, 1, 5, -2]) if (!solid(sx0 + d, sy0 - 1) && !solid(sx0 + d, sy0 - 2)) { gx = sx0 + d; break; }
     items.push({ k: 'gun', g: gi, x: gx * T + 2, y: sy0 * T - 34, w: 12, h: 10, vx: 0, vy: 0, fall: true, got: false });
   }
-  blasts = []; lvT = 0; waveT = 0;
+  blasts = []; lvT = 0; waveT = 0; dlg = null; amb = null;
   lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post: !!post, kind: typeof post === 'string' ? post : null, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
@@ -1381,6 +1485,7 @@ function respawn() {
   const cab = lift && lift.go ? lift : cart, sx = cab ? cab.x + cab.w / 2 - 5 : save.x, sy = cab ? cab.y - 22 : save.y + 14 - 22;
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
   hp = HP_MAX; hurtT = 9;
+  if (amb && !amb.end) Object.assign(amb, { t: L.hold, sp: 1.5 });   // погиб в засаде — держаться заново
   P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
   cam = camX(); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
 }
@@ -1412,7 +1517,7 @@ function complete(msg) {                 // задание выполнено: �
   done = true;
   for (const d of lv.doors) grid[d.y][d.x] = d.to;
   showToast(msg, 2.6); beep(500, 1400, .4, 'triangle', .06); shake = .2;
-  if (!['reach', 'boss', 'lift'].includes(L.obj)) waveT = 2.2;   // через пару секунд — новая волна
+  if (!['reach', 'boss', 'lift', 'talk', 'meds'].includes(L.obj)) waveT = 2.2;   // через пару секунд — новая волна
 }
 // Задание сделано — на обратном пути новая волна (друг, 11.11): жуки встают в начальные места подальше от героя
 function spawnWave() {
@@ -1434,6 +1539,40 @@ const ITEM = { key: '🔑 ключ у тебя! дверь открыта', swit
 NEED.radio = 'сначала найди рацию'; NEED.boss = 'сначала победи богомола';
 ITEM.card = '💳 пропуск у тебя! дверь открыта'; NEED.card = 'сначала найди пропуск';
 ITEM.flare = '🎆 сигнал подан! теперь вниз — к каменоломне'; NEED.flare = 'сначала достань ракетницу';
+ITEM.food = '🥫 провизия у тебя! неси в лагерь'; NEED.food = 'сначала найди провизию';
+ITEM.arms = '🧨 патроны у тебя! неси в лагерь'; NEED.arms = 'сначала найди патроны';
+ITEM.talk = '…'; NEED.talk = 'сначала поговори с главным'; ITEM.meds = '…'; NEED.meds = 'сначала найди лекарства';
+// Разговор (лагерь) и засада (больница) — друг, 12.11
+let dlg = null, amb = null;
+function startAmbush() {
+  amb = { t: L.hold, sp: 1.2, end: 0 };
+  for (const [x, y] of lv.traps) grid[y][x] = GRATE;
+  showToast('💊 лекарства у тебя… ⚠ ЗАСАДА! ДЕРЖИСЬ!', 3); boom(); shake = .8; beep(140, 50, .9, 'sawtooth', .06);
+  saves.forEach(o => o.on = false); save = { x: P.x, y: P.y + P.h - 14, w: 12, h: 14, on: true, hidden: true }; takeSnap();
+}
+function updStory(dt) {
+  if (dlg && (dlg.t += dt) > 3.4) {
+    dlg.t = 0; dlg.i++; beep(300, 360, .05, 'square', .02);
+    if (dlg.i >= dlg.lines.length) { dlg = null; complete(L.itemTxt || 'договорились! ворота открыты — на вылазку'); }
+  }
+  if (!amb || P.dead) return;
+  if (amb.end) { if ((amb.end -= dt) <= 0) { amb = null; nextLevel(); } return; }
+  amb.t -= dt; amb.sp -= dt;
+  const alive = enemies.filter(e => e.k !== 'n').length;
+  if (amb.sp <= 0 && alive < 13 && lv.ambs.length) {
+    const f = 1 - amb.t / L.hold; amb.sp = 2.3 - 1.4 * f;
+    for (let i = Math.random() < .25 + f * .4 ? 2 : 1; i > 0; i--) {
+      const [x, y, d] = pick(lv.ambs), k = pick(L.spawn), dir = d || Math.sign(P.x - x * T) || 1;
+      hatch(k, x * T + 2, y * T, dir, d ? -80 : 40, null); explode(x * T + 8, y * T - 4, 8, ['#3a4440', '#5a6a66', '#9ab0a8']);
+    }
+    if (Math.random() < .4) beep(120, 60, .25, 'sawtooth', .04);
+  }
+  if (amb.t <= 0) {                                   // отбился… и тут его кусают
+    amb.t = 0; amb.end = 5;
+    for (const e of enemies) if (e.k !== 'n') hurtEnemy(e, 999);
+    shake = 1.2; boom(); beep(900, 60, 1.4, 'sawtooth', .07); navigator.vibrate?.([80, 60, 200]);
+  }
+}
 const BOSS_NAME = { mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА', chimera: 'ХИМЕРА', roach: 'ЧЕЛОВЕК-ТАРАКАН' };
 
 // Жук-носорог: ходит к игроку, замирает и таранит до стены, оглушён, иногда прыгает
@@ -1717,6 +1856,7 @@ function update(dt) {
     shake = Math.max(0, shake - dt);
     if (state === 'cut') {
       const nc = LEVELS[lvlN + 1]?.city || 0, nora = nc === 2, lab = nc === 3;
+      if (nc === 5) cutHit = true;
       if (!cutHit && stateT > (nora ? 4.8 : lab ? 4.4 : 3)) { cutHit = true; shake = .9; boom(.15); beep(nora ? 120 : lab ? 1500 : 800, nora ? 40 : lab ? 200 : 80, nora ? .6 : 1.2, 'sawtooth', .05); }
       if (stateT > 7.2 || (stateT > 1 && (anyTap || k.aPressed))) startLevel(lvlN + 1);
       anyTap = false; return;
@@ -1738,6 +1878,7 @@ function update(dt) {
   const k = input();
   lvT += dt;
   if (waveT > 0 && (waveT -= dt) <= 0) spawnWave();
+  updStory(dt);
   updGlitch(dt, k);
   for (const it of items) if (it.fall && !it.got) {      // ящики патронов и оружие падают на пол
     it.vy = Math.min(it.vy + GRAV * dt, 400); moveBody(it, dt, true);
@@ -1840,7 +1981,12 @@ function update(dt) {
         owned[it.g] = true; ammo[it.g] += WPN[it.g].give; wpn = it.g;
         showToast(`🔫 ${WPN[it.g].n}! кнопка ⟳ — сменить оружие`, 3.2); beep(400, 1600, .5, 'triangle', .06);
       }
-      else complete(L.itemTxt || ITEM[it.k]);
+      else if (it.k === 'talk') { if (!dlg) dlg = { lines: L.talk, i: 0, t: 0 }; beep(400, 500, .1, 'triangle', .04); }
+      else if (it.k === 'meds') startAmbush();
+      else {
+        if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3;   // патроны — сразу в дело
+        complete(L.itemTxt || ITEM[it.k]);
+      }
     }
     if (exit && hit(P, exit)) {
       if (done) { nextLevel(); return; }
@@ -2297,8 +2443,10 @@ function nextLevel() {
   startLevel(lvlN + 1);
 }
 function target() {                     // куда показывает жёлтая стрелка
+  if (amb) return { x: P.x + 5, y: P.y - 6, txt: amb.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(amb.t)} с` };
+  if (dlg) return { x: P.x + 5, y: P.y - 6, txt: '' };
   if (!done) {
-    if (ITEM[L.obj]) { const it = items.find(i => !i.got && i.k === L.obj); return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты', radio: 'найди рацию', card: 'найди пропуск', flare: 'достань ракетницу' }[L.obj] }; }
+    if (ITEM[L.obj]) { const it = items.find(i => !i.got && i.k === L.obj); if (!it) return { x: P.x + 5, y: P.y - 6, txt: '' }; return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты', radio: 'найди рацию', card: 'найди пропуск', flare: 'достань ракетницу', food: 'найди провизию', arms: 'найди патроны', meds: 'найди лекарства', talk: 'поговори с главным' }[L.obj] }; }
     if (L.obj === 'nests' || L.obj === 'guards') {
       const nest = L.obj === 'nests', want = e => nest ? e.k === 'n' : e.gd;
       let best = null, bd = 1e9;
@@ -2707,6 +2855,77 @@ function drawDeco() {
         for (let i = 0; i < 5; i++) { const a = 4 + i * (w - 12) / 4; ctx.beginPath(); ctx.moveTo(x + a, y + h - 8); ctx.lineTo(x + a + 3, y + h - 18 - hash(i, 4) % 10); ctx.lineTo(x + a + 6, y + h - 8); ctx.fill(); }
         ell(cx, y + h - 1, w * .55, 3, 'rgba(60,200,110,.45)');
       }
+    } else if (d.k === 'tent') {                       // палатка
+      ctx.fillStyle = '#3a4a2e'; ctx.beginPath(); ctx.moveTo(x - 2, y + h); ctx.lineTo(x + w / 2, y + 2); ctx.lineTo(x + w + 2, y + h); ctx.fill();
+      ctx.fillStyle = '#2a3620'; ctx.beginPath(); ctx.moveTo(x + w / 2, y + 2); ctx.lineTo(x + w + 2, y + h); ctx.lineTo(x + w / 2 + 4, y + h); ctx.fill();
+      ctx.fillStyle = '#0e1008'; ctx.beginPath(); ctx.moveTo(x + w / 2 - 7, y + h); ctx.lineTo(x + w / 2, y + 16); ctx.lineTo(x + w / 2 + 5, y + h); ctx.fill();
+      rect(x + w / 2 - 1, y, 2, 4, '#5a4a30'); rect(x + 6, y + h - 10, 8, 2, '#4a5a3a');
+    } else if (d.k === 'fire') {                       // костёр
+      const cx = x + 8, fy = y + h;
+      rect(cx - 8, fy - 3, 16, 3, '#3a2414'); rect(cx - 6, fy - 5, 12, 2, '#4a2e18');
+      for (let i = 0; i < 6; i++) { const ph = time * 9 + i * 1.7, fh = 6 + Math.sin(ph) * 2.5 + (i % 3) * 2; rect(cx - 5 + i * 2, fy - 5 - fh, 2, fh, i % 2 ? '#ff7a1a' : '#ffb020'); }
+      rect(cx - 1, fy - 13 + Math.sin(time * 11) * 1.5, 2, 4, '#ffe080');
+      if (Math.random() < .08) parts.push({ x: cx + cam + (Math.random() - .5) * 8, y: fy - 10, vx: rnd(-10, 10), vy: rnd(-60, -30), life: .7, col: '#ffb020' });
+    } else if (d.k === 'npc' || d.k === 'leader') {    // выживший / главный лагеря
+      const q = hash(d.x0, d.y0), boss2 = d.k === 'leader', bx = x + 3, fy = y + h, br = Math.sin(time * 2 + q) * .6;
+      const coat = boss2 ? '#4a3a24' : ['#3a4a5a', '#5a3a2a', '#3a4a30', '#4a4a4a'][q % 4], face = ['#c89070', '#a87050', '#d8a888'][q % 3];
+      rect(bx, fy - 9, 3, 9, '#26262a'); rect(bx + 4, fy - 9, 3, 9, '#26262a');                 // ноги
+      rect(bx - 1, fy - 19 + br, 9, 11, coat); rect(bx - 1, fy - 19 + br, 9, 2, '#0006');        // куртка
+      rect(bx + 1, fy - 25 + br, 6, 6, face); rect(bx + 1, fy - 26 + br, 6, 2, boss2 ? '#8a8a8a' : ['#2a1a10', '#4a3a20', '#1a1a1a'][q % 3]);
+      if (boss2) { rect(bx + 1, fy - 21 + br, 6, 3, '#9a9a9a'); rect(bx - 3, fy - 23 + br, 2, 14, '#3a3a3a'); rect(bx, fy - 27 + br, 8, 2, '#3a4a2a'); }   // седая борода, ружьё, кепка
+      else if (q % 3 === 0) rect(bx + 8, fy - 17 + br, 6, 2, '#5a5a60');                          // в руках — ствол
+      rect(bx + 4, fy - 23 + br, 1, 1, '#111');
+    } else if (d.k === 'shelter') {                    // штаб лагеря: навес, стол с картой, рация
+      rect(x, y, 2, h, '#4a3a24'); rect(x + w - 2, y, 2, h, '#4a3a24');
+      ctx.fillStyle = '#5a4a2a'; ctx.beginPath(); ctx.moveTo(x - 6, y + 6); ctx.lineTo(x + w / 2, y - 4); ctx.lineTo(x + w + 6, y + 6); ctx.lineTo(x + w + 6, y + 9); ctx.lineTo(x - 6, y + 9); ctx.fill();
+      rect(x + 16, y + h - 12, 40, 3, '#4a3a24'); rect(x + 18, y + h - 9, 2, 9, '#3a2a18'); rect(x + 52, y + h - 9, 2, 9, '#3a2a18');
+      rect(x + 22, y + h - 14, 18, 2, '#c8c0a0'); rect(x + 26, y + h - 14, 3, 2, '#c82020'); rect(x + 44, y + h - 18, 8, 6, '#3a3e34'); rect(x + 50, y + h - 24, 1, 6, '#888');
+      rect(x + w - 30, y + 14, 14, 8, '#2a2a2a'); rect(x + w - 28, y + 16, 10, 4, '#c8b060');
+    } else if (d.k === 'watch') {                      // вышка
+      for (const px of [x + 2, x + w - 4]) rect(px, y, 2, h, '#3a2e1e');
+      ctx.strokeStyle = '#2e2416'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < h - 8; i += 16) { ctx.moveTo(x + 3, y + 4 + i); ctx.lineTo(x + w - 3, y + 16 + i); ctx.moveTo(x + w - 3, y + 4 + i); ctx.lineTo(x + 3, y + 16 + i); } ctx.stroke();
+    } else if (d.k === 'barricade') {                  // баррикада: доски, покрышки, колючка
+      for (let i = 0; i < 3; i++) rect(x - 4, y + 10 + i * 18, w + 8, 4, '#4a3a24');
+      for (let i = 0; i < w; i += 12) { ell(x + i + 6, y + h - 6, 6, 6, '#1a1a1a'); ell(x + i + 6, y + h - 6, 2, 2, '#333'); }
+      ctx.strokeStyle = '#6a6c70'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = -4; i < w + 4; i += 4) { ctx.moveTo(x + i, y + 4 + (i % 8 ? 2 : -2)); ctx.lineTo(x + i + 4, y + 4 + (i % 8 ? -2 : 2)); } ctx.stroke();
+    } else if (d.k === 'label') {                      // вывеска
+      ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; rect(x, y + 2, w, 12, '#0d0d10'); rect(x, y + 2, w, 1, d.col || '#c8c8c8');
+      ctx.fillStyle = Math.sin(time * 5 + d.x0) > -.85 ? (d.col || '#c8c8c8') : '#3a3a3a'; ctx.fillText(d.txt, x + w / 2, y + 11); ctx.textAlign = 'left';
+    } else if (d.k === 'kassa') {                      // касса
+      rect(x, y + h - 16, w, 16, '#3a3c40'); rect(x, y + h - 16, w, 2, '#5a5c60'); rect(x + 4, y + h - 13, w - 20, 2, '#1a1a1a');
+      rect(x + w - 14, y + h - 26, 10, 10, '#2a2a2e'); rect(x + w - 12, y + h - 24, 6, 4, '#3a6a4a'); rect(x + w - 10, y + h - 30, 2, 4, '#555');
+    } else if (d.k === 'shelf') {                      // стеллаж с товаром: многое на полу
+      rect(x, y, 2, h, '#4a4c50'); rect(x + w - 2, y, 2, h, '#4a4c50'); rect(x, y + h / 2 + 6, w, 2, '#4a4c50');
+      for (let r = 0; r < 4; r++) for (let i = 0; i < w - 6; i += 5) { const q = hash(d.x0 + i, r); if (q % 3) rect(x + 3 + i, y + 18 + r * 24 + (r > 1 ? 0 : 0), 4, 6 + q % 4, ['#c83a2a', '#d8a020', '#3a8a5a', '#3a5aa8', '#c8c8c0'][q % 5]); }
+    } else if (d.k === 'fallen') {                     // упавший стеллаж, товар вперемешку
+      rect(x, y, w, h, '#24221e');
+      for (let i = 0; i < w * h / 70; i++) { const q = hash(d.x0 * 17 + i, d.y0 + i * 5); rect(x + q % (w - 6), y + (q >> 8) % (h - 6), 4 + q % 6, 3 + (q >> 4) % 5, ['#3a3832', '#4a4c50', '#c83a2a', '#d8a020', '#2e2c28'][q % 5]); }
+      ctx.strokeStyle = '#5a5c60'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y + h - 4); ctx.lineTo(x + w, y + 6); ctx.stroke();
+    } else if (d.k === 'trolley') {                    // тележка
+      ctx.strokeStyle = '#8a8c90'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) + 2.5, y + h - 16.5, 20, 10);
+      for (let i = 6; i < 22; i += 4) rect(x + i, y + h - 16, 1, 10, '#6a6c70'); rect(x + 22, y + h - 20, 1, 6, '#8a8c90');
+      ell(x + 6, y + h - 3, 2.5, 2.5, '#222'); ell(x + 19, y + h - 3, 2.5, 2.5, '#222');
+    } else if (d.k === 'fridge') {                     // холодильник с разбитым стеклом
+      rect(x, y, w, h, '#2a3036'); rect(x + 2, y + 2, w - 4, h - 6, 'rgba(120,180,220,.18)');
+      for (let i = 0; i < w; i += 16) rect(x + i, y, 2, h, '#3a4046'); rect(x + 6, y + h / 2, w - 12, 2, '#3a4046');
+      ctx.strokeStyle = '#9ab'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 20, y + 8); ctx.lineTo(x + 26, y + 20); ctx.lineTo(x + 22, y + 30); ctx.stroke();
+    } else if (d.k === 'pdesk') {                      // стойка дежурного
+      rect(x, y + h - 14, w, 14, '#2a2e36'); rect(x, y + h - 14, w, 2, '#4a5260'); rect(x + 10, y + h - 26, 14, 10, '#1a1c22'); rect(x + 12, y + h - 24, 10, 6, '#203040');
+      rect(x + w - 20, y + h - 18, 12, 4, '#c8c8c0'); rect(x + w - 30, y + h - 17, 6, 3, '#6a0e16');
+    } else if (d.k === 'bars') {                       // решётка камеры
+      rect(x, y, w, 3, '#3a3e46'); for (let i = 2; i < w; i += 7) rect(x + i, y, 2, h, '#4a505a');
+      rect(x + w / 2 - 6, y + h / 2, 12, 2, '#4a505a'); rect(x + 8, y + h - 10, 20, 4, '#3a3a30');
+    } else if (d.k === 'bed') {                        // больничная койка
+      rect(x + 1, y + h - 4, 2, 4, '#7a8a88'); rect(x + w - 3, y + h - 4, 2, 4, '#7a8a88');
+      rect(x, y + h - 10, w, 6, '#c8d0cc'); rect(x, y + h - 10, w, 2, '#e8f0ec'); rect(x + 2, y + h - 14, 12, 4, '#d8e0dc'); rect(x + 18, y + h - 10, 14, 3, '#6a0e16');
+      rect(x + w - 4, y + h - 22, 2, 12, '#7a8a88');
+    } else if (d.k === 'gurney') {                     // каталки и койки свалены в кучу
+      rect(x, y, w, h, '#1e2624');
+      for (let i = 0; i < 9; i++) { const q = hash(d.x0 + i, d.y0 * 3 + i); const yy = y + 4 + (q % (h - 14)); rect(x + q % 20, yy, 30 + q % 20, 5, '#9aa6a2'); rect(x + q % 20, yy, 30 + q % 20, 1, '#c8d0cc'); rect(x + 6 + q % 30, yy + 5, 2, 8, '#6a7a76'); }
+      for (let i = 0; i < 4; i++) { const q = hash(d.x0 * 5, i); ell(x + q % w, y + (q >> 5) % h, 3, 2, '#6a0e16'); }
+    } else if (d.k === 'pharm') {                      // аптечный шкаф, коробки разбросаны
+      rect(x, y, w, h, '#2a3432'); for (let r = 1; r < 4; r++) rect(x, y + r * h / 4, w, 2, '#4a5a56');
+      for (let r = 0; r < 4; r++) for (let i = 2; i < w - 6; i += 7) { const q = hash(d.x0 + i, r + d.y0); if (q % 3) { rect(x + i, y + r * h / 4 + h / 4 - 8, 6, 6, '#e0e6e2'); rect(x + i + 2, y + r * h / 4 + h / 4 - 7, 2, 4, '#c82020'); } }
     } else if (d.k === 'tower') {
       rect(x + 8, y, w - 16, h - 4, '#2a2f30'); rect(x + 8, y, w - 16, 3, '#3a4044');
       for (let i = 0; i < 4; i++) rect(x + 8 + i * (w - 18) / 3, y + h - 4, 2, 6, '#2a2f30');
@@ -2725,6 +2944,27 @@ function drawProps() {
   }
   for (const it of items) {
     const x = it.x - cam, y = it.y + ((it.k === 'key' || it.k === 'life') && !it.got ? Math.sin(time * 3) * 1.5 : 0);
+    if (it.k === 'talk') {                           // над главным — «!»
+      if (it.got) continue;
+      const by = y - 30 + Math.sin(time * 4) * 2; rect(x + 1, by, 10, 12, '#ffd23f'); rect(x + 5, by + 2, 2, 5, '#1a1a1a'); rect(x + 5, by + 8, 2, 2, '#1a1a1a');
+      continue;
+    }
+    if (it.k === 'food') {                           // ящик консервов
+      if (it.got) continue;
+      rect(x - 3, y + 1, 18, 11, '#6a4a26'); rect(x - 3, y + 1, 18, 2, '#8a6a3a');
+      for (let i = 0; i < 3; i++) { rect(x - 1 + i * 5, y - 3, 4, 5, '#9a9aa4'); rect(x - 1 + i * 5, y - 2, 4, 2, ['#c83a2a', '#3a8a3a', '#d8a020'][i]); }
+      continue;
+    }
+    if (it.k === 'arms') {                           // цинк патронов
+      if (it.got) continue;
+      rect(x - 3, y + 1, 18, 11, '#3a4a2a'); rect(x - 3, y + 1, 18, 2, '#5a6a3a'); rect(x + 1, y + 5, 10, 3, '#d8b030'); rect(x + 1, y + 5, 2, 3, '#a08020');
+      continue;
+    }
+    if (it.k === 'meds') {                           // коробка лекарств
+      if (it.got) continue;
+      rect(x - 2, y + 1, 16, 11, '#e8ece8'); rect(x - 2, y + 1, 16, 2, '#fff'); rect(x + 5, y + 3, 2, 7, '#d82020'); rect(x + 2, y + 6, 8, 2, '#d82020');
+      continue;
+    }
     if (it.k === 'radio') {                          // рация
       if (it.got) continue;
       rect(x - 1, y + 2, 14, 10, '#3a3e34'); rect(x + 1, y + 4, 6, 6, '#22261e'); rect(x + 9, y + 4, 2, 2, Math.floor(time * 3) % 2 ? '#ff3b3b' : '#501010'); rect(x + 10, y - 6, 1, 8, '#888');
@@ -2781,7 +3021,7 @@ function drawProps() {
   }
   for (const lm of lamps) {
     const x = lm.x - cam, y = lm.y;
-    if (lm.kind === 'cap' || lm.kind === 'tube') continue;   // шляпку гриба-гиганта и колбу рисует deco
+    if (lm.kind === 'cap' || lm.kind === 'tube' || lm.kind === 'fire') continue;   // шляпку гриба-гиганта и колбу рисует deco
     if (lm.kind === 'shroom') {                      // светящийся гриб
       const fy = y - 3;
       rect(x - 1, fy - 8, 3, 8, '#c8c0d8'); ell(x, fy - 9, 6, 3.5, '#3aa8a0'); ell(x, fy - 10, 4, 2, '#a8fff0');
@@ -3655,6 +3895,25 @@ function drawRoach(b) {                   // босс базы: человек-�
   if (b.st === 'crouch') for (let i = 0; i < 3; i++) rect(dx + 8 + i * 9, dy + 50, 2, 2, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
   if (b.st === 'dizzy') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(b.x - cam + b.w / 2 + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
 }
+function drawCutCamp() {                  // заставка: дорога из города, баррикада, костры, живые люди
+  const t = stateT, fy = H - 44, gx = W * .5;
+  rect(0, 0, W, H, '#0c0e16'); for (let i = 0; i < 50; i++) rect(hash(i, 5) % W, hash(i, 13) % (fy - 70), 1, 1, '#9a9ab0');
+  for (let i = 0; i < 9; i++) { const bw = 30 + hash(i, 2) % 40, bh = 40 + hash(i, 7) % 70; rect(i * W / 9 - 10, fy - bh, bw, bh, '#14151c'); }   // город позади
+  rect(0, fy, W, H - fy, '#1e1a14'); rect(0, fy, W, 2, '#3a3022');
+  for (const [tx, s] of [[gx + 40, 1], [gx + 110, .8], [gx + 170, 1.1]]) { ctx.fillStyle = '#2a3420'; ctx.beginPath(); ctx.moveTo(tx - 22 * s, fy); ctx.lineTo(tx, fy - 26 * s); ctx.lineTo(tx + 22 * s, fy); ctx.fill(); }
+  for (const fx of [gx + 75, gx + 140]) {
+    const g = ctx.createRadialGradient(fx, fy - 8, 2, fx, fy - 8, 70); g.addColorStop(0, 'rgba(255,160,60,.45)'); g.addColorStop(1, 'rgba(255,120,40,0)'); ctx.fillStyle = g; ctx.fillRect(fx - 70, fy - 78, 140, 90);
+    for (let i = 0; i < 5; i++) rect(fx - 5 + i * 2, fy - 6 - (5 + Math.sin(t * 9 + i) * 2), 2, 5 + Math.sin(t * 9 + i) * 2, i % 2 ? '#ff7a1a' : '#ffb020');
+    for (const d of [-14, 12]) { rect(fx + d, fy - 16, 6, 9, '#3a4a5a'); rect(fx + d + 1, fy - 21, 4, 5, '#c89070'); rect(fx + d, fy - 7, 2, 7, '#222'); rect(fx + d + 4, fy - 7, 2, 7, '#222'); }
+  }
+  rect(gx - 8, fy - 34, 10, 34, '#3a2e1e'); for (let i = 0; i < 3; i++) rect(gx - 26, fy - 30 + i * 10, 46, 3, '#4a3a24');   // баррикада
+  drawHeroMini(10 + Math.min(1, t / 3.2) * (gx - 50), fy - 22, 'walk');
+  ctx.fillStyle = `rgba(0,0,0,${clamp((t - 4.4) / .6, 0, 1)})`; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  if (t > 2.6 && t < 4.4) { ctx.font = 'bold 12px monospace'; ctx.fillStyle = '#ffb060'; ctx.fillText('— СТОЙ! КТО ИДЁТ?', W / 2, 40); }
+  if (t > 5.2) { ctx.font = 'bold 22px monospace'; ctx.fillStyle = '#ffb060'; ctx.fillText(CITY[5], W / 2, H / 2); ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#ccc'; ctx.fillText('люди. живые люди. впервые за всё это время', W / 2, H / 2 + 18); }
+  ctx.textAlign = 'left';
+}
 function drawCutBase() {                  // заставка: из лаборатории — к воротам военной базы, ночь, прожектор, тела на земле
   const t = stateT, fy = H - 44, gx = W * .55;
   rect(0, 0, W, H, '#0c0e14'); for (let i = 0; i < 40; i++) rect(hash(i, 3) % W, hash(i, 11) % (fy - 60), 1, 1, '#8a8aa0');
@@ -3842,7 +4101,7 @@ function drawDark() {
   for (const lm of lamps) if (lampOn(lm)) {
     const x = lm.x - cam, y = lm.y + oy;
     if (x < -120 || x > W + 120) continue;
-    if (lm.kind === 'shroom') glow(x, y - 13, 60, .75); else if (lm.kind === 'cap') glow(x, y + 1, 100, .85); else if (lm.kind === 'tube') glow(x + 8, y + 10, 46, .55);
+    if (lm.kind === 'fire') glow(x, y, 95 + Math.sin(time * 9) * 6, .95); else if (lm.kind === 'shroom') glow(x, y - 13, 60, .75); else if (lm.kind === 'cap') glow(x, y + 1, 100, .85); else if (lm.kind === 'tube') glow(x + 8, y + 10, 46, .55);
     else glow(x, y + (lm.post ? 30 : 20), lm.post ? 75 : 62, L.power || lm.post ? .7 : .9);
   }
   for (const [sx, sy] of signs) glow(sx * T - cam + 8, sy * T + 8 + oy, 22, .45);
@@ -3872,6 +4131,23 @@ function drawEyes() {                     // глаза жуков горят в
   if (boss.on && !boss.dead && boss.parts[0].k === 'rhino') {
     const b = boss.parts[0], ex = b.x - cam + b.w / 2 + (b.dir > 0 ? 22 : -25);
     rect(ex, b.y + 18, 3, 2, b.st === 'prep' || b.st === 'charge' ? '#ff2a2a' : '#ffb020');
+  }
+}
+function drawStory() {
+  if (dlg) {                                          // реплика главного внизу экрана
+    const [who, txt] = dlg.lines[dlg.i], n = Math.min(txt.length, Math.floor(dlg.t * 40));
+    rect(40, H - 58, W - 80, 44, 'rgba(8,8,12,.88)'); rect(40, H - 58, W - 80, 2, '#ffd23f');
+    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#ffd23f'; ctx.fillText(who, 50, H - 44);
+    ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#fff'; ctx.fillText(txt.slice(0, n), 50, H - 28);
+  }
+  if (amb && amb.end) {                              // заражение
+    const k = 1 - amb.end / 5, sx = P.x - cam + 5, sy = P.y - camY + 6;
+    if (k < .3) { ctx.strokeStyle = '#2a3a1a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx + 40 - k * 100, -10); ctx.quadraticCurveTo(sx + 30, sy - 60, sx + 2, sy); ctx.stroke(); rect(sx - 1, sy - 2, 5, 5, '#9aff5a'); }
+    ctx.fillStyle = `rgba(60,160,40,${Math.min(.55, k * .8) * (.7 + .3 * Math.sin(time * 9))})`; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.font = 'bold 18px monospace'; ctx.fillStyle = '#c8ff8a';
+    if (k > .15) ctx.fillText('ТЕБЯ УКУСИЛИ…', W / 2, H * .2);
+    ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#fff'; if (k > .45) ctx.fillText('ты отбился. но что-то впрыснуло яд под кожу', W / 2, H * .2 + 18);
+    ctx.textAlign = 'left';
   }
 }
 function drawHud() {
@@ -3924,7 +4200,7 @@ function centerText(lines) {
 function draw() {
   ctx.save();
   if (shake > 0) ctx.translate(Math.round((Math.random() - .5) * 6 * shake), Math.round((Math.random() - .5) * 6 * shake));
-  if (state === 'cut') { ({ 2: drawCutNora, 3: drawCutLab, 4: drawCutBase }[LEVELS[lvlN + 1]?.city || 0] || drawCut)(); ctx.restore(); return; }
+  if (state === 'cut') { ({ 2: drawCutNora, 3: drawCutLab, 4: drawCutBase, 5: drawCutCamp }[LEVELS[lvlN + 1]?.city || 0] || drawCut)(); ctx.restore(); return; }
   drawBg();
   if (state === 'title') {
     ctx.restore();
@@ -3959,7 +4235,7 @@ function draw() {
   if (HORROR) drawDark();
   if (L.alarm && state === 'play') { ctx.fillStyle = `rgba(255,20,20,${.06 + .06 * Math.sin(time * 5)})`; ctx.fillRect(0, 0, W, H); }   // тревога: красная мигалка
   ctx.save(); ctx.translate(0, -Math.round(camY)); drawSigns(); if (HORROR) drawEyes(); ctx.restore();
-  drawHud();
+  drawHud(); drawStory();
   if (state === 'play' && ((bad && bad.warn > 0) || roul > 0 || (bad && Math.random() < .1) || (good && Math.random() < .06))) {   // помехи на экране
     for (let i = 0; i < 14; i++) { ctx.globalAlpha = Math.random() * .7; ctx.fillStyle = pick(['#f0f', '#0ff', '#fff', '#0f0']); ctx.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
     if (bad && bad.warn > 0) { const y = Math.random() * H, h = 6 + Math.random() * 20; ctx.globalAlpha = 1; ctx.drawImage(cv, 0, y, W, h, rnd(-12, 12), y, W, h); }
@@ -3971,7 +4247,8 @@ function draw() {
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
-  if (state === 'win') centerText([[`ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, '#ffd23f', 76], ['база зачищена. продолжение следует…', 9, '#fff', 98],
+  if (state === 'win') centerText([[L.city === 5 ? 'ТЫ ЗАРАЖЁН' : `ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, L.city === 5 ? '#9aff5a' : '#ffd23f', 76],
+    [L.city === 5 ? 'лекарства у тебя. но в крови уже что-то шевелится.' : 'продолжение следует…', 9, '#fff', 96], [L.city === 5 ? 'продолжение следует…' : '', 9, '#ffd23f', 108],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 122], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
 }
 
