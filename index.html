@@ -78,6 +78,8 @@
     font-size: 14px;
   }
   body.menu .hud { display: none; }
+  .hud .quit.ask { width: auto; padding: 0 12px; border-radius: 15px; font-size: 15px; font-weight: 700;
+    background: #d63c3c !important; color: #fff !important; border-color: #fff !important; }
 
   .msg { width: 100%; text-align: center; line-height: 1.25; }
   .msg h1 { font-size: clamp(24px, 7vmin, 40px); margin-bottom: 6px; }
@@ -966,7 +968,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 52;
+const BUILD = 53;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1183,6 +1185,17 @@ const STATS = {
 // Только в Телеграме: «Открыть всё» за Telegram Stars — все стили, «мама» и без рекламы
 // между матчами. Счёт выписывает наш сервер (stars/ — Cloudflare Worker), он же помнит,
 // кто купил, — покупка возвращается и на другом телефоне.
+// Плохой интернет: запрос, который не ответил за ms, бросаем — экран не висит на «Считаем…»
+function giveUp(ms) {
+  if (typeof AbortController !== 'function') return undefined;
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+// Номер экрана: ушли с экрана, пока ждали сервер, — ответ уже не рисуем
+let screenNo = 0;
+const backBtn = () => `<div><span class="btn" data-act="back">${BACK}</span></div>`;
+
 const STARS = {
   API: 'https://babushka-stars.17homosapiens.workers.dev',  // воркер stars/; пусто — кнопки покупки нет
   PRICE: 50,
@@ -1192,7 +1205,7 @@ const STARS = {
   ask(path) {
     return fetch(this.API + path, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: this.tg.initData }),
+      body: JSON.stringify({ initData: this.tg.initData }), signal: giveUp(10000),
     }).then(r => r.json());
   },
   grant() { this.paid = true; save('kolorit-paid', true); },
@@ -1237,7 +1250,7 @@ const WALLET = {
   async buy(pack) {
     try {
       const { link } = await fetch(STARS.API + '/pack', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ initData: STARS.tg.initData, pack }) }).then(r => r.json());
+        body: JSON.stringify({ initData: STARS.tg.initData, pack }), signal: giveUp(10000) }).then(r => r.json());
       if (!link) return 'error';
       const result = await new Promise(done => STARS.tg.openInvoice(link, done));
       // Пельмешки зачисляет сервер, когда Телеграм сообщит об оплате — даём ему секунду
@@ -1414,9 +1427,14 @@ function stopAll() {
   state.onRelease = null;
 }
 
+// Таймер гашения — свой, а не раунда: иначе stopAll в конце раунда отменял его, и вспышка залипала на итоге
+const flashT = [0, 0];
 function flash(p, kind) {
-  halves[p].classList.add('flash-' + kind);
-  later(900, () => halves[p].classList.remove('flash-' + kind));
+  const h = halves[p];
+  h.classList.remove('flash-win', 'flash-lose');
+  h.classList.add('flash-' + kind);
+  clearTimeout(flashT[p]);
+  flashT[p] = setTimeout(() => h.classList.remove('flash-' + kind), 900);
 }
 
 function flashResult(winner) {
@@ -1680,13 +1698,32 @@ for (const half of halves) {
     if (ONLINE.role === 'guest') return;    // у гостя тапы уходят по сети, см. ONLINE
     e.preventDefault();
     const p = Number(half.dataset.p);
-    if ((ONLINE.peer || FAIR.ws) && p !== 0) return;   // верхняя половина — соперника по сети, жмёт только он
+    // Верхняя половина — соперника по сети или робота: жмёт только он
+    if ((ONLINE.peer || FAIR.ws || FAIR.names || BOT.on) && p !== 0) return;
     pressFx(e);
     if (soundMode) audioCtx();
-    if (e.target.closest('.quit')) { buzz(20); if (FAIR.ws) FAIR.quit(); else showMenu(); return; }
+    const quit = e.target.closest('.quit');
+    if (quit) { askQuit(quit); return; }
     pointers.set(e.pointerId, p);
     if (state.onTap) state.onTap(p, e.target);
   });
+}
+
+// Крестик в углу легко задеть в «Пульте»: первое касание спрашивает «Выйти?», второе (через 0,35–3 с) выходит
+function askQuit(el) {
+  const now = performance.now();
+  const at = Number(el.dataset.ask || 0);
+  if (at && now - at > 350) { delete el.dataset.ask; buzz(20); leaveMatch(); return; }
+  if (at) return;
+  buzz(15);
+  el.dataset.ask = now;
+  el.classList.add('ask');
+  el.textContent = t('Выйти?', 'Quit?');
+  setTimeout(() => { if (el.dataset.ask === String(now)) { delete el.dataset.ask; el.classList.remove('ask'); el.textContent = '✕'; } }, 3000);
+}
+function leaveMatch() {
+  for (const q of document.querySelectorAll('.hud .quit')) { delete q.dataset.ask; q.classList.remove('ask'); q.textContent = '✕'; }
+  if (FAIR.ws || FAIR.names) FAIR.quit(); else home();
 }
 
 // Какой игрок держит какой палец — чтобы понять, чей палец отпустили (для игр с удержанием)
@@ -1725,7 +1762,7 @@ function kbTarget(p, slot, half = halves[p]) {
 document.addEventListener('keydown', e => {
   const hit = KB[e.code];
   if (ONLINE.role === 'guest') { if (hit && !e.repeat) ONLINE.key(hit[1], true); return; }
-  if (e.code === 'Escape' && !document.body.classList.contains('menu')) { showMenu(); return; }
+  if (e.code === 'Escape' && !document.body.classList.contains('menu')) { leaveMatch(); return; }
   if (!hit || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input')) return;
   e.preventDefault();
   if (soundMode) audioCtx();
@@ -2176,7 +2213,7 @@ const BOT = {
         if (real || fooled) this.once(real ? 'door' : 'creak', real ? rand(250, 600) : rand(150, 400), () => state.onRelease?.(this.P));
       }
     } else if (g === BILL) {
-      if (grab && !grab.classList.contains('done')) { if (!this.held) { this.held = true; later(rand(250, 700), () => this.tap(grab)); } }
+      if (grab && !grab.classList.contains('done')) { if (!this.held) { this.held = true; later(rand(250, 700), () => { this.held = false; this.tap(grab); }); } }
       else this.held = false;
     } else if (g === PICKLE) {
       const dot = parseFloat(half.querySelector('.dot')?.style.left);
@@ -2711,8 +2748,8 @@ const FISH = {
 const PICKLE = {
   emoji: '🥒',
   title: t('Засолка', 'Pickle Season'),
-  rule: t('Бегунок ездит туда-сюда. Жми «🫙 Закатать», когда он в зелёной зоне.<br>Кто больше банок закатал за 15 секунд — победил. Мимо — банка лопнула.',
-    'The slider runs back and forth. Hit “🫙 Seal” while it’s in the green.<br>Most jars sealed in 15 seconds wins. Miss — the jar pops.'),
+  rule: t('Бегунок ездит туда-сюда. Жми «🫙 Закатать», когда он в зелёной зоне: банка +1. Мимо — банка лопнула, −1.<br>У кого за 15 секунд больше очков — победил.',
+    'The slider runs back and forth. Hit “🫙 Seal” while it’s in the green: +1 jar. Miss — the jar pops, −1.<br>Most points in 15 seconds wins.'),
   // У каждого свой бегунок; с каждой банкой он ускоряется.
   play(done) {
     const LIMIT_S = 15;
@@ -2731,7 +2768,7 @@ const PICKLE = {
 
     const pos = p => (Math.sin(phase[p]) + 1) / 2 * 100;
     const score = p => jars[p] - broke[p];
-    const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} ${t('с', 's')}</p>`, p);
+    const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>${t('Очки', 'Points')} ${jars[p] - broke[p]} · ⏱ ${left} ${t('с', 's')}</p>`, p);
     [0, 1].forEach(drawStatus);
 
     const loop = now => {
@@ -2761,7 +2798,7 @@ const PICKLE = {
       const text = winner === null ? t('Поровну — ничья', 'Even — draw')
         : t(`${NAMES[winner]}: ${plural(jars[winner], 'банка', 'банки', 'банок')}, лопнуло ${broke[winner]} — лучше соперника`,
           `${NAMES[winner]}: ${jars[winner]} jar${jars[winner] === 1 ? '' : 's'}, ${broke[winner]} popped — beat the rival`);
-      const stats = [0, 1].map(p => `🫙 ${jars[p]} · 💥 ${broke[p]}`);
+      const stats = [0, 1].map(p => `🫙 ${jars[p]} − 💥 ${broke[p]} = ${jars[p] - broke[p]}`);
       later(2000, () => done(winner, text, stats));
     };
     later(1000, tick);
@@ -3028,6 +3065,7 @@ const FAIR = {
     this.code = code;
     this.over = false;
     this.stake = opts.stake || 0;
+    this.held = false;
     stopAll();
     BOT.stop();
     this.seat = seat;
@@ -3045,7 +3083,7 @@ const FAIR = {
     say(`<h2>⚔️ ${t('Честный матч', 'Fair match')}</h2><p>${t('Подключаемся к судье…', 'Connecting to the referee…')}</p>`);
     const ws = this.ws = new WebSocket(`${ONLINE.API.replace(/^http/, 'ws')}/match/${code}?seat=${seat}&have=${Object.keys(this.GAMES).join(',')}${this.room ? '&room=1' : ''}${opts.pick ? '&pick=' + opts.pick : ''}${this.testGames ? '&games=' + this.testGames : ''}`);
     ws.onmessage = e => { if (this.ws === ws) this.recv(JSON.parse(e.data)); };
-    ws.onclose = () => { if (this.ws === ws) this.gone(); };
+    ws.onclose = () => { if (this.ws === ws) this.gone({ lost: true }); };
     // Турнир: сервер должен знать, кто это — подпись Телеграма
     if (this.stake) ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', initData: STARS.tg?.initData }));
   },
@@ -3099,11 +3137,23 @@ const FAIR = {
     arena.innerHTML = '';
     stage.innerHTML = '<div class="logo">👋</div>';
     if (m.balance !== undefined) WALLET.bal = m.balance;
+    if (m.lost) {
+      // Пропала связь у нас. Если ставки уже заморожены, сервер отдал банк сопернику
+      const lostStake = this.stake && this.held && !this.over;
+      stage.innerHTML = '<div class="logo">📶</div>';
+      say(`<h2>${t('Связь пропала 📶', 'Connection lost 📶')}</h2><p>${lostStake
+        ? t(`Матч засчитан как поражение: −${fmtN(this.stake)} 🥟`, `The match counts as a loss: −${fmtN(this.stake)} 🥟`)
+        : this.stake ? t('Матч не начался — ставка не списана', 'The match never started — no stake taken')
+        : this.over ? t('Матч уже закончился', 'The match was already over') : t('Матч не засчитан', 'The match does not count')}</p>`);
+      if (this.stake) WALLET.load();   // баланс — с сервера, как он его посчитал
+      setTimeout(() => { if (!this.ws && this.names) this.quit(); }, 3500);
+      return;
+    }
     say(m.forfeit ? `<h2>${t('Соперник сбежал 🏃', 'Your rival fled 🏃')}</h2><p>${t('Победа твоя', 'The win is yours')}: +${fmtN(m.prize || 0)} 🥟</p>`
       : this.over ? `<h2>${t('Друг вышел 👋', 'Your friend left 👋')}</h2>`
       : `<h2>${t('Соперник вышел', 'Your rival left')}</h2><p>${this.stake ? t('Матч не начался — ставка не списана', 'The match never started — no stake taken') : t('Матч не засчитан', 'The match does not count')}</p>`);
     if (m.forfeit) { sfx('fanfare'); confetti(0, 40); }
-    setTimeout(() => { if (!this.ws) this.quit(); }, m.forfeit ? 3500 : 2600);
+    setTimeout(() => { if (!this.ws && this.names) this.quit(); }, m.forfeit ? 3500 : 2600);
   },
 
   recv(m) {
@@ -3120,6 +3170,7 @@ const FAIR = {
     else if (m.t === 'final') this.final(m);
     else if (m.t === 'gone') this.gone(m);
     else if (m.t === 'held') {
+      this.held = true;
       WALLET.bal = m.balance;
       stage.innerHTML = `<div class="logo">${boss('sway')}</div>`;
       say(`<h2>💼 ${t('Бабка приняла ставки', 'Granny took the stakes')}</h2><p>${t('Банк', 'Pot')}: ${fmtN(m.stake * 2)} 🥟 · ${t('доля Бабки', 'Granny’s cut')} ${fmtN(m.stake * 2 * 0.1)}</p>
@@ -3240,7 +3291,7 @@ const FAIR = {
       const now0 = performance.now();
       const seg = [0, 1].map(p => { const x = e.seg[p === 0 ? this.seat : 1 - this.seat]; return { at: now0, ph: x.ph, rate: x.rate }; });
       const pos = (p, now) => (Math.sin(seg[p].ph + seg[p].rate * (now - seg[p].at) / 1000) + 1) / 2 * 100;
-      const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>⏱ ${left} ${t('с', 's')}</p>`, p);
+      const drawStatus = p => setStatus(`<h2>🫙 ${jars[p]}  💥 ${broke[p]}</h2><p>${t('Очки', 'Points')} ${jars[p] - broke[p]} · ⏱ ${left} ${t('с', 's')}</p>`, p);
       [0, 1].forEach(drawStatus);
       const loop = now => {
         for (const p of [0, 1]) document.querySelector(`#k${p} .dot`).style.left = `${pos(p, now)}%`;
@@ -3574,7 +3625,7 @@ const FAIR = {
       const lay = this.mine(info.lay);
       return [0, 1].map(p => caught[p] ? t('попался 🩴', 'busted 🩴') : !lay[p] ? t('не ложился 🤨', 'never lay down 🤨') : t(`${mins[p]} мин сна`, `${mins[p]} min of sleep`));
     }
-    if (k === 'pickle') { const j = this.mine(info.jars); const b = this.mine(info.broke); return [0, 1].map(p => `🫙 ${j[p]} · 💥 ${b[p]}`); }
+    if (k === 'pickle') { const j = this.mine(info.jars); const b = this.mine(info.broke); return [0, 1].map(p => `🫙 ${j[p]} − 💥 ${b[p]} = ${j[p] - b[p]}`); }
     if (k === 'bags') {
       const c = this.mine(info.count);
       const torn = this.mine(info.torn);
@@ -3738,7 +3789,7 @@ FISH.demo = [
 PICKLE.demo = [
   { pic: '🫙', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 20, zone: [42, 16] }, cap: t('Бегунок ездит туда-сюда', 'The slider runs back and forth') },
   { pic: '🫙', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 50, zone: [42, 16] }, act: 'tap', cap: t('В зелёной зоне — жми!', 'In the green — tap!') },
-  { pic: '🥒', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 80, zone: [42, 16] }, cap: t('Закатал! Мимо зоны — банка лопнет', 'Sealed! Miss the zone — the jar pops') },
+  { pic: '🥒', btn: t('🫙 Закатать', '🫙 Seal'), bar: { dot: 80, zone: [42, 16] }, cap: t('Банка +1! Мимо зоны — лопнет, −1', 'Jar +1! Miss the zone — it pops, −1') },
 ];
 BAGS.demo = [
   { pic: '🛍️', btn: t('🛍️ Пихать', '🛍️ Stuff'), act: 'rapid', cap: t('Тапай — пихаешь пакеты в пакет', 'Tap to cram bags into the bag') },
@@ -3817,6 +3868,7 @@ const WAITING = t('Ждём соперника…', 'Waiting for rival…');
 // ---------- меню и матч ----------
 
 function enterMenu() {
+  screenNo++;
   stopAll();
   LEARN = false;
   state.mode = null;
@@ -3835,9 +3887,12 @@ function enterMenu() {
 // Стартовый экран: где играем
 function showStart() {
   BOT.stop();
+  QUICK = false;
   if (ONLINE.role) ONLINE.leave();
   enterMenu();
-  say(`<h1>${TITLE}</h1><p>${t('Как играем?', 'Two players, one phone')}</p>
+  const tip = learned ? `<p class="gift">👇 ${t('Дальше: «Вдвоём» на одном телефоне или «По сети» с другом', 'Next: “Two players” on one phone or “Online” with a friend')}</p>` : '';
+  learned = false;
+  say(`<h1>${TITLE}</h1>${tip || `<p>${t('Как играем?', 'Two players, one phone')}</p>`}
     <div class="modes">
       <div class="mode quick" data-where="quick"><span class="e">▶️</span><span><b>${t('Играть сразу', 'Play now')}</b><small>${t('Бой с роботом, без настроек', 'Versus robot, no setup')}</small></span></div>
       <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
@@ -3877,7 +3932,11 @@ function showStart() {
 // «Играть сразу»: одно нажатие — и уже бой с роботом. Первый раз «Пельмень» (его видели в роликах),
 // потом случайная открытая игра. learn — учебный матч при самом первом входе: в интро пометка «Обучение»
 var LEARN = false;
+var QUICK = false;   // матч начат с «Играть сразу»: выход — на главный экран, а не в меню игр
+let learned = false; // только что прошёл обучение — на главном подсказка
+function home() { if (QUICK) showStart(); else showMenu(); }
 function quickPlay(learn = false) {
+  QUICK = true;
   const n = load('kolorit-quick', 0);
   save('kolorit-quick', n + 1);
   const pool = MODES.filter(m => m.game && !(m.premium && isLocked(m.id)));
@@ -3900,10 +3959,15 @@ async function showTour(note = '', reload = true) {
   document.body.classList.add('rules-open');
   stage.innerHTML = `<div class="logo">${boss('sway')}</div>`;
   if (reload || WALLET.bal === null) {
-    say(`<h2>🏆 ${t('Турнир', 'Tournament')}</h2><p>⏳ ${t('Открываем кошелёк…', 'Opening your wallet…')}</p>`);
-    state.onTap = null;
+    const no = screenNo;
+    say(`<h2>🏆 ${t('Турнир', 'Tournament')}</h2><p>⏳ ${t('Открываем кошелёк…', 'Opening your wallet…')}</p>${backBtn()}`);
+    state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showStart(); } };
     await WALLET.load();
-    if (WALLET.bal === null) { showStart(); return; }
+    if (no !== screenNo) return;   // не дождался и ушёл
+    if (WALLET.bal === null) {
+      say(`<h2>🏆 ${t('Турнир', 'Tournament')}</h2><p>${t('Не получилось открыть кошелёк — проверь интернет', 'Could not open your wallet — check your connection')}</p>${backBtn()}`);
+      return;
+    }
   }
   const sum = WALLET.gifts.reduce((a, g) => a + g[1], 0);
   const gift = sum ? `🎁 ${WALLET.gifts.length === 1 ? WHY()[WALLET.gifts[0][0]] : t('Подарок', 'Gift')} +${fmtN(sum)} 🥟` : '';
@@ -3947,11 +4011,13 @@ async function showBoard() {
   enterMenu();
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
-  say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2><p>⏳ ${t('Считаем…', 'Counting…')}</p>`);
-  state.onTap = null;
+  const no = screenNo;
+  const back = () => { state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } }; };
+  say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2><p>⏳ ${t('Считаем…', 'Counting…')}</p>${backBtn()}`);
+  back();
   let b = null;
   try { b = await STARS.ask('/board'); } catch { /* нет сети */ }
-  const back = () => { state.onTap = (p, el) => { if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); } }; };
+  if (no !== screenNo) return;
   if (!b?.me) {
     say(`<h2>📊 ${t('Лидерборд недели', 'Weekly leaderboard')}</h2><p>${t('Не получилось загрузить — проверь интернет', 'Could not load — check your connection')}</p><div><span class="btn" data-act="back">${BACK}</span></div>`);
     back();
@@ -4006,12 +4072,23 @@ function showWallet(note = '') {
     <div><span class="btn" data-act="back">${BACK}</span></div>`);
   state.onTap = async (p, el) => {
     if (el.closest('[data-act=back]')) { buzz(20); showTour('', false); return; }
-    if (el.closest('[data-act=pension]')) { buzz(20); state.onTap = null; await WALLET.pension(); sfx('round'); showWallet(t('👵 Бабушка подкинула +200 🥟', '👵 Granny chipped in +200 🥟')); return; }
+    if (el.closest('[data-act=pension]')) {
+      buzz(20);
+      state.onTap = null;
+      const no = screenNo, was = WALLET.bal;
+      await WALLET.pension();
+      if (no !== screenNo) return;
+      if (WALLET.bal !== was) sfx('round');
+      showWallet(WALLET.bal !== was ? t('👵 Бабушка подкинула +200 🥟', '👵 Granny chipped in +200 🥟') : t('Не получилось — проверь интернет', 'Could not reach the server — check your connection'));
+      return;
+    }
     const pack = el.closest('[data-pack]')?.dataset.pack;
     if (!pack) return;
     buzz(20);
     state.onTap = null;
+    const no = screenNo;
     const r = await WALLET.buy(pack);
+    if (no !== screenNo) return;
     showWallet(r === 'paid' ? t('🎉 Спасибо! Пельмешки зачислены', '🎉 Thank you! Dumplings added') : r === 'error' ? t('Не получилось — попробуй ещё раз', 'Something went wrong — try again') : '');
   };
 }
@@ -4201,7 +4278,7 @@ function nextRound() {
   arena.innerHTML = '';
   // Новая для этого матча игра — сначала показываем, как играть, и ждём «Начать» от обоих
   if (state.round === 1 || game !== prev) showIntro(game, () => countdown(game, 1200));
-  else countdown(game, 2400);
+  else countdown(game, 900);
 }
 
 function progressText(p) {
@@ -4357,7 +4434,8 @@ function showFinal() {
       : winner === p
       ? `<h1>${t('Победа', 'Victory')} ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
       : `<h1>${t('Проиграл', 'Lost')} ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
-    return face + head + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
+    const learnLine = LEARN ? `<p>🎓 ${t('Обучение пройдено! На главном — игра вдвоём и по сети', 'Tutorial done! Two-player and online modes are on the main screen')}</p>` : '';
+    return face + head + learnLine + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
       '<div><span class="btn" data-act="again">🔁 Rematch</span><span class="btn" data-act="menu">🏠 Menu</span></div>');
   });
   state.onTap = (p, el) => {
@@ -4365,7 +4443,8 @@ function showFinal() {
     if (act !== 'again' && act !== 'menu') return;
     // Матч сыгран — естественная пауза для рекламы
     state.onTap = null;
-    ADS.between().then(() => act === 'again' ? startMode(state.mode) : showMenu());
+    if (LEARN) learned = true;
+    ADS.between().then(() => act === 'again' ? startMode(state.mode) : home());
   };
 }
 
