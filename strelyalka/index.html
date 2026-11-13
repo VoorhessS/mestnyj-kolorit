@@ -1806,7 +1806,7 @@ function updatePlayer(dt, k) {
   P.h = P.crouch ? 12 : 22; P.y = feet - P.h;
   const flow = wet && L.flow && (!L.fx || (P.x > L.fx[0] * T && P.x < L.fx[1] * T)) ? L.flow : 0;   // течение только в реке
   const fr = Math.floor((P.y + P.h + 1) / T), stick = P.on && (tile(Math.floor((P.x + 1) / T), fr) === STICKY || tile(Math.floor((P.x + P.w - 1) / T), fr) === STICKY);
-  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (wet ? .6 : 1) * (stick ? .42 : 1) * (badOn('tpose') ? .5 : 1) + flow;   // в слизи вязнешь
+  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (MUT() ? .86 : 1) * (wet ? .6 : 1) * (stick ? .42 : 1) * (badOn('tpose') ? .5 : 1) + flow;   // в слизи вязнешь
   if (stick && k.dx && Math.random() < .04) beep(90, 60, .08, 'sine', .03);
   if (P.slide > 0) {                          // подкат: едешь низко и быстро, жуки не задевают
     P.slide -= dt; P.vx = P.face * SPEED * (1.15 + 2.2 * Math.max(0, P.slide));
@@ -1894,9 +1894,10 @@ const ALLY_MAX = 14;
 function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
-  const n = allies.length;                 // друг (msg 1586): свита медленнее, у каждого свой шаг и своё место — толпа растянута
-  Object.assign(a, { ally: true, human: false, hp: 8, max: 8, sleep: false, vx: 0, vy: -150, bite: 0, sp: SPEED * (k === 'D' ? .86 : rnd(.6, .76)),
-    slot: 20 + n * 15 + rnd(0, 12), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
+  const n = allies.length, fr = n % 2 === 1, j = n >> 1;   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
+  Object.assign(a, { ally: true, human: false, hp: 8, max: 8, sleep: false, vx: 0, vy: -150, bite: 0,
+    sp: SPEED * (fr ? rnd(.86, .96) : k === 'D' ? .84 : rnd(.62, .78)),
+    slot: (fr ? -1 : 1) * (22 + j * 17 + rnd(0, 12)), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
   if (!quiet) { explode(x, y - 10, 10, ['#9aff5a', '#2a4a1a', '#c8102e']); beep(200, 500, .15, 'sawtooth', .03); }
   return a;
@@ -1938,7 +1939,7 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
       }
     } else { tx = fx; fast = 1.15; }
   } else tx = P.x + 5 - P.face * (a.slot + Math.sin(time * .6 + a.ph) * 9);   // растянутой толпой за спиной, каждый на своём месте
-  if (tx !== null) { const dx = tx - cx, dz = foe ? 6 : a.lag; a.vx = Math.abs(dx) > dz ? Math.sign(dx) * a.sp * fast * (Math.abs(dx) > 170 ? 1.6 : 1) : 0; }
+  if (tx !== null) { const dx = tx - cx, dz = foe ? 6 : a.lag; a.vx = Math.abs(dx) > dz ? Math.sign(dx) * a.sp * fast * (Math.abs(dx) > 170 ? 1.6 : !foe && a.slot < 0 && Math.abs(dx) > 36 ? 1.4 : 1) : 0; }   // передние обгоняют героя
   if (a.on && ((a.wall && a.vx) || (!foe && P.on && P.y + P.h < fy - 20 && Math.abs(P.x - a.x) < 70))) { a.jw = (a.jw || 0) + dt; if (a.jw > a.jd) { a.vy = -370; a.jw = 0; } }   // запрыгивает за героем, не все разом
   a.vy = Math.min(a.vy + GRAV * dt, 520);
   moveBody(a, dt);
@@ -1946,7 +1947,7 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
   if (a.vx || !a.on) a.run += dt;
   if (Math.abs(a.x - P.x) > 420 || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из темноты
     if (P.dead) return;
-    a.x = P.x + 5 - a.w / 2 - P.face * Math.min(a.slot, 120); a.y = P.y + P.h - a.h; a.vx = 0; a.vy = 0;
+    a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; a.vx = 0; a.vy = 0;
     if (inSolid(a)) a.x = P.x + 5 - a.w / 2;
     explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']);
   }
