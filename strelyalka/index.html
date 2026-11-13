@@ -4660,7 +4660,7 @@ function drawFinale() {                    // финал (днём, друг 13.
   }
   const near = [];                                                                    // ближний ряд орды: крупные, обходят героя и спускаются с холма
   for (let i = 0; i < Math.min(60, Math.floor(t * 8)); i++) {
-    const u = (t * .08 + hash(i, 11) / 997) % 1, sd = hash(i, 12) % 2 ? 1 : -1, x = W * .48 + sd * (26 + (1 - u) * W * .5 * (.3 + (hash(i, 13) % 70) / 100)), y = H + 14 - u * (H * .34);
+    const u = (t * .08 + hash(i, 11) / 997) % 1, sd = hash(i, 12) % 2 ? 1 : -1, x = W * .48 + sd * (4 + (1 - u) * W * .5 * (.3 + (hash(i, 13) % 70) / 100)), y = H + 14 - u * (H * .34);
     near.push([y, x, 2.4 - u * 1.5, i]);
   }
   near.sort((a, b) => a[0] - b[0]);
@@ -4674,8 +4674,8 @@ function drawFinale() {                    // финал (днём, друг 13.
     if (big) for (const d of [-1, 1]) { ctx.lineWidth = Math.max(1, sc); ctx.beginPath(); ctx.moveTo(x + d * bw * .7, y - bh * 1.6 - bob); ctx.lineTo(x + d * bw * 1.4, y - bh * 2.8 - bob); ctx.lineTo(x + d * bw * .9, y - bh * 3.2 - bob); ctx.stroke(); }   // поднятые косы
   }
   const hp = HERO_PALS[HERO_V], hx = W * .48, fy = H + 2;                             // герой со спины, рядом Альфа
-  if (HERO_V === 'C') drawHeroBack(hx, fy, t);   // друг (msg 1614): со спины должен внушать страх
-  else {
+  if (false) drawHeroBack(hx, fy, t);   // друг (msg 1642): в финале без героя — только орда
+  else if (false) {
     rect(hx - 9, fy - 30, 7, 30, hp.p); rect(hx + 3, fy - 30, 7, 30, hp.P);
     ell(hx, fy - 44, 13, 17, hp.j); ell(hx - 4, fy - 50, 5, 9, hp.k);
     if (HERO_V === 'A') { ell(hx, fy - 44, 11, 15, hp.h); ell(hx - 4, fy - 50, 3, 8, hp.H); rect(hx, fy - 58, 1, 28, '#140e16'); }
@@ -4690,7 +4690,7 @@ function drawFinale() {                    // финал (днём, друг 13.
   ctx.textAlign = 'center';
   const sh = (txt, y, col, sz) => { ctx.font = `bold ${sz}px monospace`; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(txt, W / 2 + 1, y + 1); ctx.fillStyle = col; ctx.fillText(txt, W / 2, y); };
   if (t > 2.5 && t < 7) sh('внизу большой город. там ещё ничего не знают…', 26, `rgba(255,255,255,${clamp((t - 2.5) * 2, 0, 1) * clamp((7 - t) * 2, 0, 1)})`, 11);
-  if (t > 8) sh('ОРДА ИДЁТ НА ГОРОД', 34, `rgba(154,255,90,${clamp((t - 8) * 1.5, 0, 1)})`, 22);
+  // подпись «ОРДА ИДЁТ НА ГОРОД» друг попросил убрать (msg 1642)
   ctx.textAlign = 'left';
 }
 function drawFinaleBosses(t) {             // боссы прошлых городов стоят на холме по краям и смотрят на город
