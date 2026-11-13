@@ -1922,7 +1922,7 @@ function updCarnage(dt) {
   for (let i = 0; i < n; i++) {
     let k = pick(c[0]);
     if (TECH.includes(k) && alive.some(e => TECH.includes(e.k) && Math.abs(e.x - P.x) < 600)) k = 'K';   // техника — не больше одной рядом
-    const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((P.x + 5 + side * (W / 2 + 30 + i * 24)) / T);
+    const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((side > 0 ? cam + W + 30 + i * 24 : cam - 30 - i * 24) / T);   // строго за краем экрана
     if (cx < 2 || cx > COLS - 3) continue;
     const fr = findFloor(cx, Math.floor((P.y + P.h - 1) / T)); if (fr === null) continue;
     const e = mkBug(k, cx * T + 8 - BUGS[k][0] / 2, fr * T, -side);
@@ -2012,11 +2012,13 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
   moveBody(a, dt);
   if (a.vx) a.dir = Math.sign(a.vx);
   if (a.vx || !a.on) a.run += dt;
-  if (Math.abs(a.x - P.x) > 420 || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из темноты
+  if (Math.abs(a.x - P.x) > Math.max(420, W + 60) || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из-за края экрана, а не из воздуха (друг, msg 1620)
     if (P.dead) return;
-    a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; a.vx = 0; a.vy = 0;
-    if (inSolid(a)) a.x = P.x + 5 - a.w / 2;
-    explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']);
+    const ex = P.face > 0 ? cam - a.w - 6 : cam + W + 6, fr = findFloor(Math.floor((ex + a.w / 2) / T), Math.floor((P.y + P.h - 1) / T));
+    if (fr !== null) { a.x = ex; a.y = fr * T - a.h; }
+    else { a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; if (inSolid(a)) a.x = P.x + 5 - a.w / 2; explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']); }
+    a.vx = 0; a.vy = 0;
+    if (inSolid(a)) { a.x = P.x + 5 - a.w / 2; a.y = P.y + P.h - a.h; }
   }
 }
 function humanDown(e) {                     // человек повержен: рвут на части, а он встаёт уже в свите
@@ -3796,8 +3798,9 @@ const MON_DEF = {
     }
     const tp = tail[2]; p.poly([tp, [tp[0] + 4, tp[1] + 3], [tp[0] + 1, tp[1] + 5]], '#9aff5a');
     for (let i = 0; i < 6; i++) { p.blob(18 - i * 1.6, 18 + i * 3, 3.6, 3, CH); p.line(20 - i * 1.6, 17 + i * 3, 12 - i * 1.6, 24 + i * 3, WG); }   // приоткрытые надкрылья и плёнка крыла
-    for (const [hx, kx] of [[25, 19], [31, 36]]) {
-      p.poly([[hx, 41], [kx, 47], [hx - 1, 55]], CH[1]); p.poly([[hx + 1, 41], [kx + 1, 47], [hx, 55]], CH[2]); p.set(kx - 1, 46, '#d8c8a0'); p.rect(hx - 3, 55, 6, 1, '#d8c8a0');
+    for (const [j, hx, kx] of [[0, 25, 19], [1, 31, 36]]) {   // ноги шагают: в двух кадрах меняются местами (друг, msg 1620)
+      const s = (j + ph) % 2, fx = hx - 1 + (s ? 5 : -4), kk = kx + (s ? 2 : -2), fy = s ? 54 : 55;
+      p.poly([[hx, 41], [kk, 47], [fx, fy]], CH[1]); p.poly([[hx + 1, 41], [kk + 1, 47], [fx + 1, fy]], CH[2]); p.set(kk - 1, 46, '#d8c8a0'); p.rect(fx - 2, fy, 6, 1, '#d8c8a0');
     }
     p.blob(28, 39, 3.5, 2.5, CH);                  // тонкая талия
     p.blob(28, 29, 7, 8, CH); for (const y of [25, 29, 33]) p.line(22, y, 34, y, CH[0]); p.line(28, 22, 28, 36, CH[0]);   // грудь в бронеплитах
