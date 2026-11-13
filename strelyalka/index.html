@@ -1000,7 +1000,7 @@ const LEVELS = [
     stages: [{ obj: 'infect', n: 8, x0: 70, x1: 180, done: 'лагерь твой! ворота базы открыты' },
       { obj: 'guards', guard: 'JB', txt: 'техника', x0: 180, x1: 290, done: 'техника уничтожена! гермодверь лаборатории открыта' },
       { obj: 'free', txt: 'образцы', x0: 290, x1: 380, done: 'образцы на свободе! гермозатвор в нору открыт' },
-      { obj: 'guards', guard: 'V', txt: 'вертолёт', x0: 440, x1: 540, done: 'вертолёт сбит! на холм — к городу' }],
+      { obj: 'desant', n: 10, txt: 'десант', x0: 440, x1: 540, done: 'десант разбит! вертолёт улетает — на холм, к городу' }],   // друг (msg 1597): бьёмся с десантом, а не с вертолётом
     tips: ['ты больше не человек. B — удар косами, вверх + B — над головой', 'убитые люди встают и идут за тобой. тебя не убить',
       'дальше — всё, что ты прошёл: лагерь, база, лаборатория, нора, лес'],
     build(B) {
@@ -1619,7 +1619,7 @@ function inStage(e) { const st = L.stages[stg]; return e.x + e.w / 2 >= st.x0 * 
 function stageOn(i) {                       // этап орды: своя цель в своей части локации
   stg = i; const st = L.stages[i];
   Object.assign(L, { obj: st.obj, guard: st.guard, guardTxt: st.txt, guardDone: st.done, infect: st.n, infDone: st.done, freeTxt: st.txt, freeDone: st.done });
-  infected = 0; done = false;
+  infected = 0; done = false; desKilled = 0; desSent = 0; L.desant = st.obj === 'desant' ? st.n : 0; L.desDone = st.done;
   for (const e of enemies) e.gd = st.obj === 'guards' && (st.guard || '').includes(e.k) && inStage(e);
   guardsAll = enemies.filter(e => e.gd).length;
   jarsAll = enemies.filter(e => e.jar && inStage(e)).length;
@@ -1875,6 +1875,7 @@ function shoot(k) {
 }
 function hurtEnemy(e, d) {
   if (e.hp <= 0) return;
+  if (e.k === 'V' && L.desant) { e.fl = .05; return; }   // при высадке вертолёт не сбить — бьём десант
   e.hp = Math.max(0, e.hp - d); e.fl = .08;
   if (e.hp <= 0 && e.human && MUT()) humanDown(e);
   if (e.sleep || e.hang) { e.sleep = false; e.hang = false; e.vx = (Math.sign(P.x - e.x) || 1) * (e.sp || D.spd); }
@@ -1889,8 +1890,28 @@ function hurtEnemy(e, d) {
   }
 }
 // ===== ОРДА (друг, 13.11): свита героя-мутанта, люди и техника =====
-let allies = [], rising = [], infected = 0, jarsAll = 0;
-const ALLY_MAX = 14;
+let allies = [], rising = [], infected = 0, jarsAll = 0, desKilled = 0, desSent = 0, kin = [];
+const ALLY_MAX = 22;
+// Жуки прошлых уровней (друг, msg 1599): стоят в своих зонах, чуют Альфу и встают в орду, когда герой рядом
+const KIN = { 'ЛАГЕРЬ': 'rjRr', 'ВОЕННАЯ БАЗА': 'NDNj', 'ЛАБОРАТОРИЯ': 'kxkq', 'НОРА': 'ejRe', 'ЛЕС': 'MAHM' };
+function placeKin() {
+  kin = []; if (!L.zones) return;
+  L.zones.forEach((z, zi) => {
+    const ks = KIN[z.name]; if (!ks) return;
+    const x1 = (L.zones[zi + 1] || { x0: COLS }).x0, n = ks.length;
+    for (let i = 0; i < n; i++) {
+      const c = Math.floor(z.x0 + 8 + (i + .5) * (x1 - z.x0 - 16) / n);
+      let r = 1; while (r < ROWS - 1 && solid(c, r)) r++; while (r < ROWS - 1 && !solid(c, r)) r++;
+      if (r < ROWS - 1) kin.push({ k: ks[i], x: c * T + 8, y: r * T, ph: rnd(0, 6.3) });
+    }
+  });
+}
+function updKin() {
+  for (const q of kin) if (!q.gone && !P.dead && Math.abs(q.x - P.x - 5) < 110 && Math.abs(q.y - P.y - P.h) < 70 && allies.length < ALLY_MAX) {
+    q.gone = true; const a = addAlly(q.k, q.x, q.y); if (a) { a.vy = -200; showToast(`🪲 жук примкнул к орде (${allies.length + 1})`, 1.2); }
+  }
+  kin = kin.filter(q => !q.gone);
+}
 function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
@@ -1903,8 +1924,9 @@ function addAlly(k, x, y, quiet) {          // y — пол под ним
   return a;
 }
 function hordeStart() {
-  allies = []; rising = [];
+  allies = []; rising = []; kin = [];
   if (!MUT()) return;
+  placeKin();
   const [sx, sy] = lv.start, ks = L.hordeKinds || 'NIDNkI';
   for (let i = 0; i < (L.horde ?? 3); i++) {
     const a = addAlly(ks[i % ks.length], (sx + .5) * T, sy * T, true);
@@ -1966,6 +1988,7 @@ function humanDown(e) {                     // человек повержен: 
   explode(cx, cy, 22, ['#c8102e', '#7a0a10', '#ff6a5a', '#e8c8b0']); beep(200, 70, .2, 'sawtooth', .04);
   for (let i = 0; i < 3; i++) parts.push({ x: cx, y: cy, vx: rnd(-90, 90), vy: rnd(-200, -90), life: .9, col: i ? '#7a0a10' : '#d8b48d' });
   if (!L.stages || inStage(e)) infected++;
+  if (e.desant) desKilled++;
   rising.push({ x: cx, y: e.y + e.h, t: 1.3, k: e.k === 'K' ? 'N' : 'I', f: e.dir });
 }
 function updRising(dt) {                    // заражённые бьются в судорогах и встают
@@ -2024,7 +2047,23 @@ function humanAI(e, dt) {
     return;
   }
   e.dir = dir;
-  if (e.k === 'V') {                        // вертолёт: висит над целью и заходит сбоку
+  if (e.k === 'V' && e.leave) {             // десант разбит — улетает
+    e.fly = true; e.dir = 1; e.vx = 120; e.vy = -55; e.x += e.vx * dt; e.y += e.vy * dt; e.run += dt;
+    if (e.y < camY - 120 || e.x > MAPW + 40) e.hp = -1;
+    return;
+  }
+  if (e.k === 'V' && L.desant && inStage(e)) {   // десант (друг, msg 1597): зависает над героем и спускает солдат по тросам
+    e.fly = true;
+    const hx = t.x + t.w / 2 - e.w / 2 + Math.sin(time * .5) * 36, hy = clamp(t.y - 92, 8, MAPH - 140);
+    e.vx = clamp((hx - e.x) * 1.2, -110, 110); e.vy = clamp((hy - e.y) * 1.1, -70, 70);
+    e.x = clamp(e.x + e.vx * dt, 0, MAPW - e.w); e.y += e.vy * dt;
+    e.drop = (e.drop ?? 1.2) - dt;
+    if (e.drop <= 0 && desSent < L.desant && enemies.filter(q => q.desant && q.hp > 0).length < 4 && Math.abs(hx - e.x) < 70) {
+      const c = mkBug('K', e.x + e.w / 2 + rnd(-10, 10), e.y + e.h + 24, -e.dir);
+      Object.assign(c, { y: e.y + e.h - 6, desant: true, rope: true, spawned: true, sleep: false, armed: true });
+      enemies.push(c); desSent++; e.drop = rnd(1.4, 2.2); beep(260, 180, .25, 'square', .02);
+    }
+  } else if (e.k === 'V') {                 // вертолёт: висит над целью и заходит сбоку
     e.fly = true;
     const hx = t.x + t.w / 2 - e.w / 2 - dir * 50 + Math.sin(time * .7 + e.x * .01) * 50, hy = clamp(t.y - (Math.sin(time * .55 + e.x * .01) > -.1 ? 46 : 100), 8, MAPH - 140);   // то висит высоко, то снижается — тогда достанешь косой
     e.vx = clamp((hx - e.x) * 1.1, -100, 100); e.vy = clamp((hy - e.y) * 1.1, -70, 70);
@@ -2038,6 +2077,7 @@ function humanAI(e, dt) {
     else if (e.k === 'K') { e.burst = 3; e.cd = rnd(1.4, 2.1); }
     else if (e.k === 'J') { e.burst = 6; e.cd = rnd(1.6, 2.4); }
     else if (e.k === 'B') { shellAt(e, t); e.cd = rnd(2.4, 3.2); e.shot = .2; boom(.06); }
+    else if (e.k === 'V' && L.desant) { e.burst = 3; e.cd = rnd(3, 4.2); }   // при высадке — только прикрывает пулемётом
     else if (e.k === 'V') { fireAt(e, t, 'rkt', 210, .05); e.burst = 4; e.cd = rnd(2, 2.8); beep(300, 900, .3, 'sawtooth', .04); }
   }
   if (e.burst > 0 && (e.bt = (e.bt || 0) - dt) <= 0) {
@@ -2055,6 +2095,14 @@ function drawAllies() {
     if (x < -40 || x > W + 40) continue;
     drawMon(a, x, a.y, a.fl > 0, a.dir > 0 ? 1 : -1, a.run || 0);
   }
+  for (const q of kin) {                    // жуки ждут Альфу: стоят и покачиваются
+    const x = q.x - cam; if (x < -40 || x > W + 40) continue;
+    const [w, h] = BUGS[q.k], f = P.x + 5 > q.x ? 1 : -1;
+    drawMon({ k: q.k, w, h, st: 'walk', x: q.x - w / 2, y: q.y - h }, x - w / 2, q.y - h + Math.sin(time * 2 + q.ph), false, f, (Math.sin(time * 1.5 + q.ph) + 1) * .05);
+  }
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;   // тросы десанта
+  const heli = enemies.find(q => q.k === 'V' && q.hp > 0);
+  for (const e of enemies) if (e.rope && e.hp > 0) { const x = Math.round(e.x + e.w / 2 - cam) + .5; ctx.beginPath(); ctx.moveTo(x, heli ? heli.y + heli.h - 2 : e.y - 80); ctx.lineTo(x, e.y + 2); ctx.stroke(); }
 }
 function hurtBoss(r, d) {
   r.hp -= d * (r.st === 'stuck' || r.st === 'dizzy' ? 2 : 1); r.fl = .06; beep(200, 120, .05, 'sawtooth', .03);
@@ -2334,7 +2382,7 @@ function update(dt) {
     } else bugAI(e, edt);
     if (!P.dead && e.hp > 0 && !e.human && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && !e.jar && !(P.slide > 0) && hit(pc, e)) hurt(DMG[e.k] || 15);
   }
-  if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); }
+  if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); updKin(); }
   for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
     if (!P.dead && c.cd <= 0 && c.n < (L.crackN || 3) && Math.abs(P.x - c.x) < 230 && Math.abs(P.y - c.y) < (L.crackRange || 60)) {
@@ -2431,6 +2479,7 @@ function update(dt) {
   enemies = enemies.filter(e => e.hp > 0);
   if (L.obj === 'nests' && !done && !enemies.some(e => e.k === 'n')) complete(L.nestDone || 'все гнёзда уничтожены! дверь открыта');
   if (L.obj === 'infect' && !done && infected >= L.infect) complete(L.infDone || 'заражено!');
+  if (L.obj === 'desant' && !done && desKilled >= L.desant) { complete(L.desDone || 'десант разбит!'); for (const e of enemies) if (e.k === 'V') e.leave = true; }
   if (L.obj === 'free' && !done && !enemies.some(e => e.jar && (!L.stages || inStage(e)))) complete(L.freeDone || 'все на свободе!');
   if (L.obj === 'guards' && !done && !enemies.some(e => e.gd)) complete(L.guardDone || (L.guard ? 'свита богомола разбита! путь к логову открыт' : 'свита перебита! люк на крышу открыт'));
   for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; }
@@ -2478,6 +2527,7 @@ function turnTo(e, dt, dyF, dir) {
 }
 function bugAI(e, dt) {
   if (e.human) {                                   // люди и техника (орда)
+    if (e.rope) { e.vx = 0; e.vy = 80; moveBody(e, dt); e.dir = Math.sign(P.x - e.x) || 1; if (e.on || e.y > MAPH) e.rope = false; return; }   // десантник едет по тросу
     humanAI(e, dt);
     if (e.k !== 'V') { e.vy = Math.min(e.vy + GRAV * dt, 520); moveBody(e, dt); if (touches(e, ACID)) e.hp = -1; }
     if (e.vx || e.k === 'V') e.run += dt;
@@ -2771,6 +2821,12 @@ function target() {                     // куда показывает жёл�
       for (const e of enemies) if (want(e)) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
       const n = enemies.filter(want).length;
       return { x: best.x + best.w / 2, y: best.y, txt: nest ? `${L.nestTxt || (L.pal.nora ? 'кладки' : 'гнёзда')}: ${n} из ${nestsAll}` : `${L.guardTxt || 'свита'}: ${n} из ${guardsAll}` };
+    }
+    if (L.obj === 'desant') {
+      let best = null, bd = 1e9;
+      for (const e of enemies) if (e.hp > 0 && (e.desant || (e.k === 'V' && !best))) { const d = Math.hypot(e.x - P.x, e.y - P.y) + (e.desant ? 0 : 5000); if (d < bd) { bd = d; best = e; } }
+      const txt = `десант: ${Math.min(desKilled, L.desant)} из ${L.desant}`;
+      return best ? { x: best.x + best.w / 2, y: best.y, txt } : { x: P.x + 5, y: P.y - 6, txt };
     }
     if (L.obj === 'infect' || L.obj === 'free') {
       const inf = L.obj === 'infect', want = e => (inf ? e.human && !TECH.includes(e.k) : e.jar) && (!L.stages || inStage(e));
