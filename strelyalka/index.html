@@ -41,7 +41,7 @@
   #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
   #menu button { font: 600 12px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 10px; }
   #menu button.cur { border-color: #ffd23f; }
-  #menu #god.on { background: #1f6a2a; border-color: #4f4; }
+  #menu #god.on, #menu #mus.on { background: #1f6a2a; border-color: #4f4; }
   #menu #close { background: #5a1a22; border-color: #c8102e; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
     justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
@@ -63,7 +63,7 @@
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
 <div id="port"><div class="ic">📱</div>Поверни телефон боком</div>
 <script>
 'use strict';
@@ -1268,7 +1268,7 @@ addEventListener('keydown', e => {
   if (!keys[e.code] && ['KeyK', 'Space', 'KeyZ'].includes(e.code)) aEdge = true;
   if (!keys[e.code] && ['KeyC', 'KeyQ', 'KeyL'].includes(e.code)) wEdge = true;    // сменить оружие
   if (!keys[e.code] && ['KeyV', 'KeyE', 'KeyI'].includes(e.code)) gEdge = true;    // полезный баг
-  keys[e.code] = true; audioOn();
+  keys[e.code] = true; audioOn(); if (e.code === 'KeyM' && !e.repeat) musToggle();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const ptrs = new Map();
@@ -1369,6 +1369,83 @@ function boom(vol = .12) {
   const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = buf; g.gain.value = vol;
   s.connect(g).connect(ac.destination); s.start();
 }
+
+// ===== Музыка (друг, msg 1645): 8-бит металкор и ню-метал — свой трек на каждый город =====
+// Рифф: 16 шагов; x — глухой «чаг» на тонике, 0–c — квинт-аккорд на ступени (полутонах от тоники), - — тянуть, . — пауза
+const TRACKS = [
+  { name: 'ГОРОД N1', st: 'mc', bpm: 168, root: 40, A: 'x.xxx.x.3-1-x.xx', B: '0-------5---3---', C: 'x..x..x.x...1---', L: '7-5-3-2-0-----3-' },
+  { name: 'ЛЕС', st: 'nu', bpm: 100, root: 38, A: 'x..x.3x..xx.5-3.', B: '0-..0-..5-3-1-..', C: 'x.x...x.x...x.1-', L: '..c.a...7.5.....' },
+  { name: 'НОРА', st: 'nu', bpm: 92, root: 37, A: 'x...x.1.x..x.6-.', B: '0-------1-------', C: 'x..x..x..x..x.1.', L: 'c-.b-.c-.6---...' },
+  { name: 'ЛАБОРАТОРИЯ', st: 'mc', bpm: 180, root: 42, A: 'xx3xx5xx6xx5xx3x', B: '0---3---5---6---', C: 'x.x.x...x.x.x...', L: '037c037c7307c730' },
+  { name: 'ВОЕННАЯ БАЗА', st: 'mc', bpm: 160, root: 38, A: 'x.xxx.xxx.x.5-6-', B: '0---5---3---1---', C: 'x...x...x.x.x...', L: '7---8---7-5-3---' },
+  { name: 'ЛАГЕРЬ', st: 'nu', bpm: 104, root: 35, A: 'x.x..3.x.x..5.3.', B: '0---3---5---3---', C: 'x..x..x.....x.x.', L: 'c...a...7...5-3-' },
+  { name: 'ОРДА', st: 'mc', bpm: 192, root: 36, A: 'xxxxxxxx1-xxxx3-', B: '0-------1---6---', C: 'x..x..x.x..x1-0-', L: '0---1---3---1---', blast: true },
+];
+const SONG = { mc: 'AABBACBC', nu: 'AABAABCC' };
+const DRUM = {
+  mc: { A: ['x.x.x.x.x.x.x.x.', '....x.......x...', 'x.x.x.x.x.x.x.x.'], B: ['xxxxxxxxxxxxxxxx', '....x.......x...', '..x...x...x...x.'] },
+  nu: { A: ['x..x..x...x.x...', '....x.......x...', 'x.x.x.x.x.x.x.x.'], B: ['x...x.x...x.x...', '....x.......x...', 'x.x.x.x.x.x.x.x.'] },
+};
+const MUS = { on: true, cur: -1, step: 0, next: 0 };
+try { MUS.on = localStorage.getItem('strel-music') !== '0'; } catch (e) {}
+const mtof = m => 440 * 2 ** ((m - 69) / 12), ofs = ch => parseInt(ch, 36);
+function musBus() {
+  if (MUS.g) return;
+  MUS.g = ac.createGain(); MUS.g.gain.value = .5; const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
+  const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 25) * x / (1 + 25 * Math.abs(x)); } MUS.curve = c;
+  const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; MUS.noise = nb;
+  const re = new Float32Array(32), im = new Float32Array(32); for (let k = 1; k < 32; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25); MUS.pulse = ac.createPeriodicWave(re, im);   // пульс 25% — «NES»
+}
+function env(g, t, vol, dur, rel = .03) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .003); g.gain.setValueAtTime(vol * .8, t + Math.max(.004, dur - rel)); g.gain.linearRampToValueAtTime(0, t + dur); }
+function gtr(t, m, dur, mute) {                    // гитара: квинт-аккорд на квадратах через перегруз
+  const ws = ac.createWaveShaper(), f = ac.createBiquadFilter(), g = ac.createGain(); ws.curve = MUS.curve;
+  f.type = 'lowpass'; f.frequency.value = mute ? 700 : 2400; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .075 : .06, dur);
+  for (const iv of mute ? [0, 7] : [0, 7, 12]) for (const dt of [-7, 7]) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .22; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }
+}
+function bass(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = mtof(m - 12); o.connect(g).connect(MUS.g); env(g, t, .2, dur); o.start(t); o.stop(t + dur + .02); }
+function lead(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.setPeriodicWave(MUS.pulse); o.frequency.value = mtof(m); v.frequency.value = 6; vg.gain.value = 5; v.connect(vg).connect(o.detune); o.connect(g).connect(MUS.g); env(g, t, .05, dur, .06); o.start(t); v.start(t); o.stop(t + dur + .02); v.stop(t + dur + .02); }
+function noiseHit(t, type, freq, vol, dur, sweep) {
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = MUS.noise; f.type = type; f.frequency.setValueAtTime(freq, t);
+  if (sweep) { f.Q.value = 6; f.frequency.exponentialRampToValueAtTime(freq * 3, t + dur * .5); f.frequency.exponentialRampToValueAtTime(freq, t + dur); }
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f).connect(g).connect(MUS.g); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+}
+function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .1); g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.001, t + .14); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .15); }
+function snare(t) { noiseHit(t, 'bandpass', 1900, .32, .12); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(140, t + .06); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .07); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .08); }
+function musWant() { if (!MUS.on || !ac) return -1; if (window.__musForce >= 0) return window.__musForce; return state === 'title' ? 0 : clamp((L && L.city) || 0, 0, TRACKS.length - 1); }
+function musTick() {
+  if (!ac || ac.state !== 'running') return;
+  const w = musWant();
+  if (w !== MUS.cur) { MUS.cur = w; MUS.step = 0; MUS.next = ac.currentTime + .08; }
+  if (w < 0) return;
+  musBus();
+  const tr = TRACKS[w], sp = 60 / tr.bpm / 4, song = SONG[tr.st];
+  if (MUS.next < ac.currentTime - .5) MUS.next = ac.currentTime + .05;   // вкладка спала — не догоняем
+  while (MUS.next < ac.currentTime + .25) {
+    const t = MUS.next, st = MUS.step, s16 = st % 16, bar = Math.floor(st / 16), sec = song[Math.floor(bar / 2) % song.length], riff = tr[sec];
+    const ch = riff[s16];
+    if (ch !== '.' && ch !== '-') {               // гитара и бас
+      let n = 1; while (s16 + n < 16 && riff[s16 + n] === '-') n++;
+      const mute = ch === 'x', m = tr.root + (mute ? 0 : ofs(ch)), dur = mute ? sp * .8 : sp * n * .95;
+      gtr(t, m, dur, mute); bass(t, m, dur);
+    }
+    if (sec === 'B') { const lc = tr.L[s16]; if (lc !== '.' && lc !== '-') { let n = 1; while (s16 + n < 16 && tr.L[s16 + n] === '-') n++; lead(t, tr.root + 24 + ofs(lc), sp * n * .9); } }
+    if (sec === 'C') {                             // брейкдаун: бочка за чагами, малый на «3», тарелка в начале
+      if (ch !== '.' && ch !== '-') kick(t);
+      if (s16 === 8) snare(t);
+      if (s16 === 0) noiseHit(t, 'highpass', 4000, .14, .9);
+      if (tr.st === 'nu' && bar % 2 && s16 === 12) noiseHit(t, 'bandpass', 900, .3, .22, true);   // скретч
+    } else {
+      const dp = tr.blast && sec === 'B' ? ['x.x.x.x.x.x.x.x.', '.x.x.x.x.x.x.x.x', '................'] : DRUM[tr.st][sec];
+      if (dp[0][s16] === 'x') kick(t);
+      if (dp[1][s16] === 'x') snare(t);
+      if (dp[2][s16] === 'x') noiseHit(t, 'highpass', 7000, .07, .03);
+      if (s16 === 0 && bar % 2 === 0) noiseHit(t, 'highpass', 4000, .12, .7);
+    }
+    MUS.next += sp; MUS.step++;
+  }
+}
+setInterval(musTick, 50);
+function musToggle() { MUS.on = !MUS.on; try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
 
 // ===== Состояние игры =====
 const SPEED = 92, CRAWL = 42, CLIMB = 78, JUMP = 352, GRAV = 900;
@@ -4650,7 +4727,7 @@ function drawFinale() {                    // финал (днём, друг 13.
     rect(tx - 1, by - 4, 3, 8, '#3a2a1a');
     ctx.fillStyle = d % 2 ? '#1e3a1a' : '#24441e'; ctx.beginPath(); ctx.moveTo(tx - 12, by); ctx.lineTo(tx, by - th); ctx.lineTo(tx + 12, by); ctx.fill();
   }
-  const n = Math.min(460, Math.floor(t * 46)), HC = ['#3a2a3a', '#2a3a22', '#4a2a18', '#3a3a40', '#5a3a22', '#2a2430'];   // друг (msg 1637): орда больше
+  const n = Math.min(920, Math.floor(t * 92)), HC = ['#3a2a3a', '#2a3a22', '#4a2a18', '#3a3a40', '#5a3a22', '#2a2430'];   // друг (msg 1637): орда больше
   for (let i = 0; i < n; i++) {                                                       // орда: идёт от леса вниз к городу, уменьшаясь, разлилась по полям
     const u = ((t * .06 + hash(i, 5) / 997) % 1), side = (hash(i, 6) % 200 - 100) / 100 * (i % 3 ? 1 : 2.4), [x, y] = road(u, side), sc = 1 - u * .85;
     const big = hash(i, 7) % 9 === 0, bw = (big ? 7 : 4) * sc, bh = (big ? 9 : 6) * sc, bob = Math.sin(t * 9 + i) * sc, c = HC[hash(i, 8) % 4];
@@ -4659,7 +4736,7 @@ function drawFinale() {                    // финал (днём, друг 13.
     if (sc > .55) { rect(x - bw * .6, y - bh * 2 + bob, 1, bh * .6, c); rect(x + bw * .6, y - bh * 2 + bob, 1, bh * .6, c); }   // усики
   }
   const near = [];                                                                    // ближний ряд орды: крупные, обходят героя и спускаются с холма
-  for (let i = 0; i < Math.min(60, Math.floor(t * 8)); i++) {
+  for (let i = 0; i < Math.min(120, Math.floor(t * 16)); i++) {
     const u = (t * .08 + hash(i, 11) / 997) % 1, sd = hash(i, 12) % 2 ? 1 : -1, x = W * .48 + sd * (4 + (1 - u) * W * .5 * (.3 + (hash(i, 13) % 70) / 100)), y = H + 14 - u * (H * .34);
     near.push([y, x, 2.4 - u * 1.5, i]);
   }
@@ -4672,6 +4749,14 @@ function drawFinale() {                    // финал (днём, друг 13.
     ell(x, y - bh * 2.1 - bob, bw * .55, bh * .5, c);                                 // голова
     for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + d * bw * .2, y - bh * 2.4 - bob); ctx.quadraticCurveTo(x + d * bw * .8, y - bh * 3.6, x + d * bw * 1.5, y - bh * 3.3 - bob + Math.sin(t * 4 + i) * sc); ctx.stroke(); }   // усы
     if (big) for (const d of [-1, 1]) { ctx.lineWidth = Math.max(1, sc); ctx.beginPath(); ctx.moveTo(x + d * bw * .7, y - bh * 1.6 - bob); ctx.lineTo(x + d * bw * 1.4, y - bh * 2.8 - bob); ctx.lineTo(x + d * bw * .9, y - bh * 3.2 - bob); ctx.stroke(); }   // поднятые косы
+  }
+  for (let i = 0; i < Math.min(46, Math.floor(t * 6)); i++) {                         // летающие (msg 1645): стрекозы-иглы и осы летят к городу
+    const u = (t * .05 + hash(i, 21) / 997) % 1, sd = (hash(i, 22) % 200 - 100) / 100, sc = 1.9 - u * 1.6, x = W * .5 + sd * (1 - u * .8) * W * .55 + Math.sin(t * 2 + i) * 6 * sc;
+    const y = H * .62 - u * (H * .5) - (hash(i, 23) % 40) * (1 - u) + Math.sin(t * 3 + i * 1.7) * 3 * sc, wasp = hash(i, 24) % 3 === 0, fl = Math.sin(t * 40 + i) > 0;
+    const c = wasp ? '#3a2a10' : '#1e3a2a', wc = wasp ? 'rgba(255,230,160,.45)' : 'rgba(200,240,255,.45)';
+    ell(x - 3 * sc, y - (fl ? 3 : 1) * sc, 4 * sc, (fl ? 1.5 : 1) * sc, wc); ell(x + 3 * sc, y - (fl ? 3 : 1) * sc, 4 * sc, (fl ? 1.5 : 1) * sc, wc);   // крылья машут
+    ell(x, y, 1.6 * sc, (wasp ? 4 : 5.5) * sc, c); if (wasp) { rect(x - 1.5 * sc, y, 3 * sc, Math.max(1, .8 * sc), '#c8a020'); rect(x - 1.5 * sc, y + 2 * sc, 3 * sc, Math.max(1, .8 * sc), '#c8a020'); }
+    ell(x, y - 5 * sc, 1.4 * sc, 1.4 * sc, c); if (sc > .8) rect(x - .5, y - 6 * sc, 1, 1, '#ff3b3b');
   }
   const hp = HERO_PALS[HERO_V], hx = W * .48, fy = H + 2;                             // герой со спины, рядом Альфа
   if (false) drawHeroBack(hx, fy, t);   // друг (msg 1642): в финале без героя — только орда
@@ -4689,7 +4774,7 @@ function drawFinale() {                    // финал (днём, друг 13.
   ctx.fillStyle = `rgba(0,0,0,${clamp(1 - t / 1.5, 0, 1) + clamp((t - 15) / 1.5, 0, 1)})`; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
   const sh = (txt, y, col, sz) => { ctx.font = `bold ${sz}px monospace`; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(txt, W / 2 + 1, y + 1); ctx.fillStyle = col; ctx.fillText(txt, W / 2, y); };
-  if (t > 2.5 && t < 7) sh('внизу большой город. там ещё ничего не знают…', 26, `rgba(255,255,255,${clamp((t - 2.5) * 2, 0, 1) * clamp((7 - t) * 2, 0, 1)})`, 11);
+  // фразу «внизу большой город…» друг попросил убрать (msg 1645)
   // подпись «ОРДА ИДЁТ НА ГОРОД» друг попросил убрать (msg 1642)
   ctx.textAlign = 'left';
 }
@@ -5157,6 +5242,9 @@ document.getElementById('back').onclick = () => {   // застрял — вер
   openMenu(false); if (state !== 'play' || P.dead) return;
   respawn(); showToast('↩ вернулся к последней дискете', 1.8); beep(1500, 300, .2, 'square', .03);
 };
+const musBtn = document.getElementById('mus');
+window.musLabel = () => { musBtn.textContent = `МУЗЫКА: ${MUS.on ? 'ВКЛ' : 'ВЫКЛ'}`; musBtn.classList.toggle('on', MUS.on); };
+musBtn.onclick = () => musToggle(); musLabel();
 godBtn.onclick = () => { IMMORTAL = !IMMORTAL; try { localStorage.setItem('strel-god', IMMORTAL ? '1' : '0'); } catch (e) {} godLabel(); };
 
 // ===== Цикл: физика с фиксированным шагом =====
