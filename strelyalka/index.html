@@ -1450,7 +1450,8 @@ const HUMANS = 'UKJBV', TECH = 'JBV';
 const MUT = () => !!(L && L.mut);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
-  const [w, h, hp, sp, sc] = BUGS[k], HP = k === 's' ? hp + lvlN : hp;
+  const [w, h, hp, sp0, sc] = BUGS[k], HP = k === 's' ? hp + lvlN : hp;
+  const sp = HUMANS.includes(k) ? sp0 : (sp0 > 1 ? 1 + (sp0 - 1) * .4 : sp0) * (sp0 >= .8 ? .9 : 1);   // друг (msg 1591): быстрые монстры медленнее
   return { k, x, y: y - h, w, h, hp: HP, max: HP, sp: D.spd * sp, sc, vx: dir * D.spd * sp, vy: 0, fl: 0, run: 0, turn: 0,
     cd: 1 + Math.random() * 2, st: 'walk', t: 1 + Math.random(), dir, human: HUMANS.includes(k), gun: k === 'U' && Math.random() < (L?.armed ?? .45) };
 }
@@ -1586,6 +1587,7 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
 }
 let hp = HP_MAX, hurtT = 9, hpFlash = 0;
 function hurt(d) {                       // удар снимает часть шкалы, на нуле — минус жизнь
+  if (P.safe > 0 && !P.climb) return;     // друг (msg 1591): только что слез с лестницы — короткая передышка
   if (MUT()) {                            // мутант бессмертен: только вздрагивает
     if (P.dead || P.inv > 0) return;
     P.inv = .2; hpFlash = .2; explode(P.x + 5, P.y + 10, 4, ['#6a8a3a', '#2a3a1a', '#9aff5a']); beep(160, 70, .08, 'square', .03);
@@ -1762,7 +1764,7 @@ function wallSide() {                       // стена вплотную сл�
   return 0;
 }
 function updatePlayer(dt, k) {
-  P.inv = Math.max(0, P.inv - dt); P.slash = Math.max(0, (P.slash || 0) - dt); P.cd -= dt; P.drop -= dt; P.slideCd = (P.slideCd || 0) - dt;
+  P.inv = Math.max(0, P.inv - dt); P.slash = Math.max(0, (P.slash || 0) - dt); P.safe = Math.max(0, (P.safe || 0) - dt); P.cd -= dt; P.drop -= dt; P.slideCd = (P.slideCd || 0) - dt;
   hurtT += dt; hpFlash -= dt; if (hurtT > 1.5 && hp < HP_MAX && !P.dead) hp = Math.min(HP_MAX, hp + 2.5 * dt);   // шкала сама восстанавливается
   const pdy = P.pdy; P.pdy = k.dy;
   if (good?.k === 'noclip') {               // баг-ноклип: летаешь сквозь стены в любую сторону
@@ -1781,8 +1783,8 @@ function updatePlayer(dt, k) {
     P.x = col * T + (T - P.w) / 2; P.vx = 0; P.vy = 0;
   }
   if (P.climb) {
-    if (k.aPressed) { P.climb = false; P.vy = -JUMP * .75; }
-    else if (k.dx && !k.dy) P.climb = false;
+    if (k.aPressed) { P.climb = false; P.vy = -JUMP * .75; P.safe = .8; }
+    else if (k.dx && !k.dy) { P.climb = false; P.safe = .8; }
     else {
       P.vx = 0; P.vy = k.dy * CLIMB;
       moveBody(P, dt, false);
@@ -1790,8 +1792,8 @@ function updatePlayer(dt, k) {
       const c = Math.floor((P.x + P.w / 2) / T), fr = Math.floor((P.y + P.h - .5) / T);
       if (tile(c, fr) !== LAD && tile(c, Math.floor((P.y + P.h / 2) / T)) !== LAD) {
         if (tile(c, fr + 1) === LAD) { P.y = (fr + 1) * T - P.h; P.on = true; P.vy = 0; }    // вылез наверх
-        P.climb = false;
-      } else if (P.on && k.dy > 0) P.climb = false;                            // спустился на пол
+        P.climb = false; P.safe = .8;
+      } else if (P.on && k.dy > 0) { P.climb = false; P.safe = .8; }           // спустился на пол
     }
     if (P.climb) { P.ax = P.face; P.ay = 0; shoot(k); return; }
   }
