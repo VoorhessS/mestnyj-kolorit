@@ -1892,7 +1892,9 @@ const ALLY_MAX = 14;
 function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
-  Object.assign(a, { ally: true, human: false, hp: 8, max: 8, sleep: false, vx: 0, vy: -150, bite: 0, sp: SPEED * (k === 'D' ? 1.12 : .96) });
+  const n = allies.length;                 // друг (msg 1586): свита медленнее, у каждого свой шаг и своё место — толпа растянута
+  Object.assign(a, { ally: true, human: false, hp: 8, max: 8, sleep: false, vx: 0, vy: -150, bite: 0, sp: SPEED * (k === 'D' ? .86 : rnd(.6, .76)),
+    slot: 20 + n * 15 + rnd(0, 12), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
   if (!quiet) { explode(x, y - 10, 10, ['#9aff5a', '#2a4a1a', '#c8102e']); beep(200, 500, .15, 'sawtooth', .03); }
   return a;
@@ -1933,16 +1935,16 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
         explode(fx + rnd(-4, 4), foe.y + rnd(4, 14), 3, TECH.includes(foe.k) ? ['#ffd23f', '#555', '#fff'] : ['#c8102e', '#7a0a10', '#ff6a5a']);
       }
     } else { tx = fx; fast = 1.15; }
-  } else tx = P.x + 5 - P.face * (16 + (i % 6) * 12 + Math.floor(i / 6) * 6);   // строем за спиной
-  if (tx !== null) { const dx = tx - cx; a.vx = Math.abs(dx) > 6 ? Math.sign(dx) * a.sp * fast * (Math.abs(dx) > 140 ? 1.5 : 1) : 0; }
-  if (a.on && ((a.wall && a.vx) || (!foe && P.on && P.y + P.h < fy - 20 && Math.abs(P.x - a.x) < 70))) a.vy = -370;   // запрыгивает за героем
+  } else tx = P.x + 5 - P.face * (a.slot + Math.sin(time * .6 + a.ph) * 9);   // растянутой толпой за спиной, каждый на своём месте
+  if (tx !== null) { const dx = tx - cx, dz = foe ? 6 : a.lag; a.vx = Math.abs(dx) > dz ? Math.sign(dx) * a.sp * fast * (Math.abs(dx) > 170 ? 1.6 : 1) : 0; }
+  if (a.on && ((a.wall && a.vx) || (!foe && P.on && P.y + P.h < fy - 20 && Math.abs(P.x - a.x) < 70))) { a.jw = (a.jw || 0) + dt; if (a.jw > a.jd) { a.vy = -370; a.jw = 0; } }   // запрыгивает за героем, не все разом
   a.vy = Math.min(a.vy + GRAV * dt, 520);
   moveBody(a, dt);
   if (a.vx) a.dir = Math.sign(a.vx);
   if (a.vx || !a.on) a.run += dt;
-  if (Math.abs(a.x - P.x) > 360 || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из темноты
+  if (Math.abs(a.x - P.x) > 420 || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из темноты
     if (P.dead) return;
-    a.x = P.x + 5 - a.w / 2 - P.face * (10 + (i % 6) * 8); a.y = P.y + P.h - a.h; a.vx = 0; a.vy = 0;
+    a.x = P.x + 5 - a.w / 2 - P.face * Math.min(a.slot, 120); a.y = P.y + P.h - a.h; a.vx = 0; a.vy = 0;
     if (inSolid(a)) a.x = P.x + 5 - a.w / 2;
     explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']);
   }
