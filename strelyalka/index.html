@@ -992,7 +992,7 @@ const LEVELS = [
       B.start(4, 22);
     } },
   // ===================== ОРДА (друг, 13.11): одна локация из кусков прошлых уровней, проходы открываются по этапам =====================
-  { city: 6, name: 'ОБРАТНЫЙ ПУТЬ', task: 'Веди орду назад: лагерь, база, лаборатория, нора, лес', obj: 'infect', mut: true, horde: 2, ground: 99, dark: .8, armed: .4,
+  { city: 6, name: 'ОБРАТНЫЙ ПУТЬ', task: 'Бойня! Веди орду назад и уничтожь всех, кто выжил', obj: 'carnage', mut: true, horde: 2, ground: 99, dark: .8, armed: .4,
     cols: 540, rows: 30, base: SOLID, pal: PAL.hosp, spawn: ['K', 'U'],
     zones: [{ x0: 0, name: 'БОЛЬНИЦА', pal: PAL.hosp, dark: .78 }, { x0: 70, name: 'ЛАГЕРЬ', pal: PAL.camp, sky: true, ground: 22, dark: .74 },
       { x0: 180, name: 'ВОЕННАЯ БАЗА', pal: PAL.base, dark: .8 }, { x0: 290, name: 'ЛАБОРАТОРИЯ', pal: PAL.lab, dark: .8 },
@@ -1444,7 +1444,9 @@ const BUGS = {
   J: [48, 24, 24, .6, 800],    // джип с пулемётом
   B: [62, 28, 50, .32, 1500],  // БТР: снаряды дугой
   V: [66, 26, 30, 1, 2000],    // вертолёт: ракеты и пулемёт, достать можно только плевком
-  I: [14, 22, 8, 1, 0],        // заражённый человек — в свите героя
+  I: [14, 22, 8, 1, 0],
+  AL: [26, 54, 40, .8, 0],     // Альфа в орде (друг, msg 1609: боссов тоже в орду)
+  LB: [70, 30, 40, .5, 0],     // матка-гора в орде        // заражённый человек — в свите героя
 };
 const HUMANS = 'UKJBV', TECH = 'JBV';
 const MUT = () => !!(L && L.mut);
@@ -1518,7 +1520,8 @@ function startLevel(n) {
   lives = Math.max(lives, 3);
   snap = null; respawn(); takeSnap();
   infected = 0; hordeStart(); jarsAll = enemies.filter(e => e.jar).length; zoneP = null;
-  if (L.stages) stageOn(0);
+  if (L.obj === 'carnage') { for (const d of lv.doors) grid[d.y][d.x] = d.to; done = true; spawnT = 3; }   // бойня: всё открыто, люди идут волнами
+  else if (L.stages) stageOn(0);
   setState('card');
 }
 function gate(on) {                          // решётка арены: закрыть / открыть
@@ -1875,7 +1878,7 @@ function shoot(k) {
 }
 function hurtEnemy(e, d) {
   if (e.hp <= 0) return;
-  if (e.k === 'V' && L.desant) { e.fl = .05; return; }   // при высадке вертолёт не сбить — бьём десант
+  if (e.k === 'V' && (L.desant || L.obj === 'carnage')) { e.fl = .05; return; }   // при высадке вертолёт не сбить — бьём десант
   e.hp = Math.max(0, e.hp - d); e.fl = .08;
   if (e.hp <= 0 && e.human && MUT()) humanDown(e);
   if (e.sleep || e.hang) { e.sleep = false; e.hang = false; e.vx = (Math.sign(P.x - e.x) || 1) * (e.sp || D.spd); }
@@ -1890,10 +1893,43 @@ function hurtEnemy(e, d) {
   }
 }
 // ===== ОРДА (друг, 13.11): свита героя-мутанта, люди и техника =====
+let hordeGone = 0, leaveCd = 0;            // ушли вперёд к городу (друг, msg 1611)
+function hordeLeave(dt) {                  // по одному: самый старый уходит вперёд, если рядом толпа больше 12
+  if (L.obj !== 'carnage' || (leaveCd -= dt) > 0) return;
+  leaveCd = rnd(1.5, 3);
+  const stay = allies.filter(a => a.leaving === undefined && a.k !== 'AL');
+  if (stay.length <= 12) return;
+  let old = stay[0]; for (const a of stay) if ((a.age || 0) > (old.age || 0)) old = a;
+  if ((old.age || 0) > 12) old.leaving = 0;
+}
 let allies = [], rising = [], infected = 0, jarsAll = 0, desKilled = 0, desSent = 0, kin = [];
-const ALLY_MAX = 22;
+const ALLY_MAX = 30;
+const BIG = ['AL', 'LB', 's', 'Z'];
 // Жуки прошлых уровней (друг, msg 1599): стоят в своих зонах, чуют Альфу и встают в орду, когда герой рядом
-const KIN = { 'ЛАГЕРЬ': 'rjRr', 'ВОЕННАЯ БАЗА': 'NDNj', 'ЛАБОРАТОРИЯ': 'kxkq', 'НОРА': 'ejRe', 'ЛЕС': 'MAHM' };
+const KIN = { 'ЛАГЕРЬ': ['r', 'j', 'R', 'r', 'j', 'r'], 'ВОЕННАЯ БАЗА': ['N', 'D', 'Z', 'N', 'j', 'D'], 'ЛАБОРАТОРИЯ': ['k', 'x', 'k', 'x', 'q', 'k'],
+  'НОРА': ['e', 'j', 'LB', 'R', 'e', 'j'], 'ЛЕС': ['M', 'A', 'H', 'M', 'A', 'M'] };   // по 6 на зону, с мини-боссами
+// Бойня (друг, msg 1607): люди и техника подходят волнами по кд — спереди и сзади, по зоне
+let spawnT = 3;
+const CARN = { 'БОЛЬНИЦА': ['UUK', 2.6, 5], 'ЛАГЕРЬ': ['UUUKKJ', 1.6, 10], 'ВОЕННАЯ БАЗА': ['KKKUJB', 1.5, 10], 'ЛАБОРАТОРИЯ': ['UUKK', 1.8, 9], 'НОРА': ['KKU', 2, 8], 'ЛЕС': ['KKUJ', 1.9, 9] };
+function findFloor(c, r0) { for (let d = 0; d <= 6; d++) for (const r of [r0 + d, r0 - d]) if (r > 2 && r < ROWS && solid(c, r) && !solid(c, r - 1) && !solid(c, r - 2)) return r; return null; }
+function updCarnage(dt) {
+  if (L.obj !== 'carnage' || P.dead || state !== 'play' || (spawnT -= dt) > 0) return;
+  const z = zoneOf(Math.floor((P.x + 5) / T)), c = CARN[z.name] || ['UK', 2.5, 6];
+  spawnT = c[1] * rnd(.7, 1.3);
+  const alive = enemies.filter(e => e.human && e.hp > 0 && e.k !== 'V');
+  if (alive.filter(e => Math.abs(e.x - P.x) < 420).length >= c[2] || alive.length > 40 || P.x > exit.x - 100) return;
+  const n = 1 + (Math.random() < .55) + (Math.random() < .3);
+  for (let i = 0; i < n; i++) {
+    let k = pick(c[0]);
+    if (TECH.includes(k) && alive.some(e => TECH.includes(e.k) && Math.abs(e.x - P.x) < 600)) k = 'K';   // техника — не больше одной рядом
+    const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((P.x + 5 + side * (W / 2 + 30 + i * 24)) / T);
+    if (cx < 2 || cx > COLS - 3) continue;
+    const fr = findFloor(cx, Math.floor((P.y + P.h - 1) / T)); if (fr === null) continue;
+    const e = mkBug(k, cx * T + 8 - BUGS[k][0] / 2, fr * T, -side);
+    if (inSolid(e)) continue;
+    Object.assign(e, { sleep: false, spawned: true }); enemies.push(e);
+  }
+}
 function placeKin() {
   kin = []; if (!L.zones) return;
   L.zones.forEach((z, zi) => {
@@ -1916,7 +1952,8 @@ function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
   const n = allies.length, fr = n % 2 === 1, j = n >> 1;   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
-  Object.assign(a, { ally: true, human: false, hp: 8, max: 8, sleep: false, vx: 0, vy: -150, bite: 0,
+  const big = BIG.includes(k);
+  Object.assign(a, { ally: true, human: false, hp: big ? 40 : 8, max: big ? 40 : 8, dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
     sp: SPEED * (fr ? rnd(.86, .96) : k === 'D' ? .84 : rnd(.62, .78)),
     slot: (fr ? -1 : 1) * (22 + j * 17 + rnd(0, 12)), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
@@ -1924,7 +1961,7 @@ function addAlly(k, x, y, quiet) {          // y — пол под ним
   return a;
 }
 function hordeStart() {
-  allies = []; rising = []; kin = [];
+  allies = []; rising = []; kin = []; hordeGone = 0;
   if (!MUT()) return;
   placeKin();
   const [sx, sy] = lv.start, ks = L.hordeKinds || 'NIDNkI';
@@ -1932,6 +1969,7 @@ function hordeStart() {
     const a = addAlly(ks[i % ks.length], (sx + .5) * T, sy * T, true);
     if (a) { a.x = Math.max(T + 1, a.x - (i % 3) * 10); a.vy = 0; }
   }
+  if (L.obj === 'carnage') { const al = addAlly('AL', (sx + .5) * T, sy * T, true); if (al) { al.slot = 34; al.vy = 0; al.x = Math.max(T + 1, al.x - 20); } }   // Альфа ведёт орду вместе с героем
 }
 function hurtAlly(a, d) {
   a.hp -= d; a.fl = .08;
@@ -1946,7 +1984,14 @@ function nearestHuman(x, y, rx, ry) {
   return best;
 }
 function allyAI(a, i, dt) {                 // свита: бежит за героем, людей рвёт на части
-  a.fl -= dt; a.bite -= dt;
+  a.fl -= dt; a.bite -= dt; a.age = (a.age || 0) + dt;
+  if (a.leaving !== undefined) {            // бегут к городу и пропадают за краем экрана
+    a.leaving += dt; a.st = 'walk'; a.dir = 1; a.vx = SPEED * 1.35;
+    if (a.on && a.wall) a.vy = -380;
+    a.vy = Math.min(a.vy + GRAV * dt, 520); moveBody(a, dt); a.run += dt;
+    if (a.x - cam > W + 30 || a.leaving > 9 || a.y > MAPH) { a.hp = 0; a.gone = true; hordeGone++; if (a.x - cam < W) explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']); }
+    return;
+  }
   const cx = a.x + a.w / 2, fy = a.y + a.h;
   const foe = P.dead ? null : nearestHuman(cx, fy, 200, 64);
   let tx = null, fast = 1;
@@ -1956,7 +2001,7 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
     if (hit(a, foe) || (Math.abs(fx - cx) < foe.w / 2 + 8 && Math.abs(foe.y + foe.h - fy) < 26)) {
       a.vx = 0; a.dir = Math.sign(fx - cx) || a.dir; a.st = 'lunge';
       if (a.bite <= 0) {
-        a.bite = .42; hurtEnemy(foe, 1); beep(rnd(500, 900), 200, .05, 'sawtooth', .025);
+        a.bite = .42; hurtEnemy(foe, a.dmg || 1); beep(rnd(500, 900), 200, .05, 'sawtooth', .025);
         explode(fx + rnd(-4, 4), foe.y + rnd(4, 14), 3, TECH.includes(foe.k) ? ['#ffd23f', '#555', '#fff'] : ['#c8102e', '#7a0a10', '#ff6a5a']);
       }
     } else { tx = fx; fast = 1.15; }
@@ -2052,13 +2097,14 @@ function humanAI(e, dt) {
     if (e.y < camY - 120 || e.x > MAPW + 40) e.hp = -1;
     return;
   }
-  if (e.k === 'V' && L.desant && inStage(e)) {   // десант (друг, msg 1597): зависает над героем и спускает солдат по тросам
+  if (e.k === 'V' && L.obj === 'carnage' && P.x > exit.x - 140) e.leave = true;     // герой у выхода — вертолёт уходит
+  if (e.k === 'V' && (L.desant || L.obj === 'carnage') && (L.obj === 'carnage' || inStage(e))) {   // десант (друг, msg 1597): зависает над героем и спускает солдат по тросам
     e.fly = true;
     const hx = t.x + t.w / 2 - e.w / 2 + Math.sin(time * .5) * 36, hy = clamp(t.y - 92, 8, MAPH - 140);
     e.vx = clamp((hx - e.x) * 1.2, -110, 110); e.vy = clamp((hy - e.y) * 1.1, -70, 70);
     e.x = clamp(e.x + e.vx * dt, 0, MAPW - e.w); e.y += e.vy * dt;
     e.drop = (e.drop ?? 1.2) - dt;
-    if (e.drop <= 0 && desSent < L.desant && enemies.filter(q => q.desant && q.hp > 0).length < 4 && Math.abs(hx - e.x) < 70) {
+    if (e.drop <= 0 && desSent < (L.desant || 1e9) && enemies.filter(q => q.desant && q.hp > 0).length < 4 && Math.abs(hx - e.x) < 70) {
       const c = mkBug('K', e.x + e.w / 2 + rnd(-10, 10), e.y + e.h + 24, -e.dir);
       Object.assign(c, { y: e.y + e.h - 6, desant: true, rope: true, spawned: true, sleep: false, armed: true });
       enemies.push(c); desSent++; e.drop = rnd(1.4, 2.2); beep(260, 180, .25, 'square', .02);
@@ -2077,7 +2123,7 @@ function humanAI(e, dt) {
     else if (e.k === 'K') { e.burst = 3; e.cd = rnd(1.4, 2.1); }
     else if (e.k === 'J') { e.burst = 6; e.cd = rnd(1.6, 2.4); }
     else if (e.k === 'B') { shellAt(e, t); e.cd = rnd(2.4, 3.2); e.shot = .2; boom(.06); }
-    else if (e.k === 'V' && L.desant) { e.burst = 3; e.cd = rnd(3, 4.2); }   // при высадке — только прикрывает пулемётом
+    else if (e.k === 'V' && (L.desant || L.obj === 'carnage')) { e.burst = 3; e.cd = rnd(3, 4.2); }   // при высадке — только прикрывает пулемётом
     else if (e.k === 'V') { fireAt(e, t, 'rkt', 210, .05); e.burst = 4; e.cd = rnd(2, 2.8); beep(300, 900, .3, 'sawtooth', .04); }
   }
   if (e.burst > 0 && (e.bt = (e.bt || 0) - dt) <= 0) {
@@ -2382,7 +2428,7 @@ function update(dt) {
     } else bugAI(e, edt);
     if (!P.dead && e.hp > 0 && !e.human && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && !e.jar && !(P.slide > 0) && hit(pc, e)) hurt(DMG[e.k] || 15);
   }
-  if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); updKin(); }
+  if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); updKin(); updCarnage(dt); hordeLeave(dt); }
   for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
     if (!P.dead && c.cd <= 0 && c.n < (L.crackN || 3) && Math.abs(P.x - c.x) < 230 && Math.abs(P.y - c.y) < (L.crackRange || 60)) {
@@ -4859,7 +4905,7 @@ function drawStory() {
 }
 function drawHud() {
   if (MUT()) {                                     // мутант: вместо жизней — размер орды
-    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#9aff5a'; ctx.fillText(`ОРДА: ${allies.length + 1}`, 8, 16);
+    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#9aff5a'; ctx.fillText(`ОРДА: ${allies.length + 1 + hordeGone}`, 8, 16);
     ctx.fillStyle = hpFlash > 0 ? '#fff' : '#ff6a5a'; ctx.font = 'bold 7px monospace'; ctx.fillText('БЕССМЕРТЕН', 8, 24);
   } else {
   for (let i = 0; i < lives; i++) { rect(8 + i * 10, 8, 6, 9, '#ffd23f'); rect(9 + i * 10, 17, 4, 3, '#c8102e'); }
