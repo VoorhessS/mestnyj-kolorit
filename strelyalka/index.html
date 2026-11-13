@@ -4656,13 +4656,16 @@ function drawFinale() {                    // финал (днём, друг 13.
     if (sc > .55) { rect(x - bw * .6, y - bh * 2 + bob, 1, bh * .6, c); rect(x + bw * .6, y - bh * 2 + bob, 1, bh * .6, c); }   // усики
   }
   const hp = HERO_PALS[HERO_V], hx = W * .44, fy = H + 2;                             // герой со спины, рядом Альфа
-  rect(hx - 9, fy - 30, 7, 30, hp.p); rect(hx + 3, fy - 30, 7, 30, hp.P);
-  ell(hx, fy - 44, 13, 17, hp.j); ell(hx - 4, fy - 50, 5, 9, hp.k);
-  if (HERO_V === 'A') { ell(hx, fy - 44, 11, 15, hp.h); ell(hx - 4, fy - 50, 3, 8, hp.H); rect(hx, fy - 58, 1, 28, '#140e16'); }
-  if (HERO_V === 'C') { ctx.fillStyle = 'rgba(200,140,70,.7)'; ctx.beginPath(); ctx.ellipse(hx - 5, fy - 36, 6, 22, .1, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(hx + 5, fy - 36, 6, 22, -.1, 0, 7); ctx.fill(); }
-  ell(hx, fy - 66, 8, 8, hp.h); ell(hx - 3, fy - 69, 3, 3, hp.H);
-  ctx.strokeStyle = hp.H; ctx.lineWidth = 1.5; for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hx + d * 3, fy - 72); ctx.quadraticCurveTo(hx + d * 10, fy - 92, hx + d * 22, fy - 90 + Math.sin(t * 3 + d) * 2); ctx.stroke(); }
-  for (const d of [-1, 1]) { ctx.fillStyle = hp.s; ctx.beginPath(); ctx.moveTo(hx + d * 12, fy - 56); ctx.lineTo(hx + d * 18, fy - 32); ctx.lineTo(hx + d * 14, fy - 30); ctx.fill(); rect(hx + d * 17 - 1, fy - 32, 2, 5, '#e8e0c8'); }
+  if (HERO_V === 'C') drawHeroBack(hx, fy, t);   // друг (msg 1614): со спины должен внушать страх
+  else {
+    rect(hx - 9, fy - 30, 7, 30, hp.p); rect(hx + 3, fy - 30, 7, 30, hp.P);
+    ell(hx, fy - 44, 13, 17, hp.j); ell(hx - 4, fy - 50, 5, 9, hp.k);
+    if (HERO_V === 'A') { ell(hx, fy - 44, 11, 15, hp.h); ell(hx - 4, fy - 50, 3, 8, hp.H); rect(hx, fy - 58, 1, 28, '#140e16'); }
+    if (HERO_V === 'C') { ctx.fillStyle = 'rgba(200,140,70,.7)'; ctx.beginPath(); ctx.ellipse(hx - 5, fy - 36, 6, 22, .1, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(hx + 5, fy - 36, 6, 22, -.1, 0, 7); ctx.fill(); }
+    ell(hx, fy - 66, 8, 8, hp.h); ell(hx - 3, fy - 69, 3, 3, hp.H);
+    ctx.strokeStyle = hp.H; ctx.lineWidth = 1.5; for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hx + d * 3, fy - 72); ctx.quadraticCurveTo(hx + d * 10, fy - 92, hx + d * 22, fy - 90 + Math.sin(t * 3 + d) * 2); ctx.stroke(); }
+    for (const d of [-1, 1]) { ctx.fillStyle = hp.s; ctx.beginPath(); ctx.moveTo(hx + d * 12, fy - 56); ctx.lineTo(hx + d * 18, fy - 32); ctx.lineTo(hx + d * 14, fy - 30); ctx.fill(); rect(hx + d * 17 - 1, fy - 32, 2, 5, '#e8e0c8'); }
+  }
   const al = MON.AL[Math.floor(t * 2) % 2].img;                                       // Альфа — тот же спрайт, крупно
   ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(al, Math.round(W * .54), Math.round(fy - 58 * 2.3), Math.round(62 * 2.3), Math.round(58 * 2.3)); ctx.restore();
   ctx.restore();
@@ -4672,6 +4675,46 @@ function drawFinale() {                    // финал (днём, друг 13.
   if (t > 2.5 && t < 7) sh('внизу большой город. там ещё ничего не знают…', 26, `rgba(255,255,255,${clamp((t - 2.5) * 2, 0, 1) * clamp((7 - t) * 2, 0, 1)})`, 11);
   if (t > 8) sh('ОРДА ИДЁТ НА ГОРОД', 34, `rgba(154,255,90,${clamp((t - 8) * 1.5, 0, 1)})`, 22);
   ctx.textAlign = 'left';
+}
+function drawHeroBack(hx, fy, t) {          // таракан-мутант со спины: сгорблен, косы подняты, шипы по хребту, рваные крылья
+  const S = 1.3, br = 1 + Math.sin(t * 2.2) * .015, DK = '#120a06', CH = '#2e1a0e', MD = '#4a2a16', LT = '#7a4a24', RIM = '#c8884a', BONE = '#e8dcc0';
+  ctx.save(); ctx.translate(Math.round(hx), fy); ctx.scale(S, S * br);
+  const P = (pts, fill, stroke, lw) => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (const q of pts.slice(1)) q.length > 2 ? ctx.quadraticCurveTo(q[0], q[1], q[2], q[3]) : ctx.lineTo(q[0], q[1]); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); } };
+  const L = (pts, col, lw) => { ctx.lineCap = 'round'; ctx.lineJoin = 'round'; P(pts, null, col, lw); };
+  for (const d of [-1, 1]) {                  // ноги: толстые бёдра, колени назад, когти
+    L([[d * 7, -36], [d * 15, -20], [d * 10, -2]], DK, 8); L([[d * 7, -36], [d * 15, -20], [d * 10, -2]], MD, 4);
+    L([[d * 6, -34], [d * 14, -21]], LT, 1.5); L([[d * 10, -2], [d * 15, 0]], BONE, 2); L([[d * 10, -2], [d * 5, 0]], BONE, 2);
+  }
+  for (const d of [-1, 1]) {                  // рваные крылья, приоткрыты
+    const w = Math.sin(t * 6 + d) * 1.5;
+    P([[d * 4, -74], [d * 30, -60, d * (30 + w), -24], [d * 24, -28], [d * 26, -34], [d * 19, -30], [d * 20, -38], [d * 12, -34], [d * 4, -44]], 'rgba(190,120,55,.55)', 'rgba(60,30,12,.8)', 1);
+    for (const k of [.3, .55, .8]) L([[d * 5, -70], [d * (8 + 20 * k), -52 + k * 6, d * (6 + 22 * k), -30 - k * 4]], 'rgba(70,35,12,.6)', .7);
+  }
+  for (const d of [-1, 1]) { const k = Math.sin(t * 9 + d * 2) * 2; L([[d * 13, -52], [d * 25, -48 + k], [d * 23, -38]], DK, 2.5); L([[d * 23, -38], [d * 26, -36]], BONE, 1); }   // лишние лапки из боков
+  P([[0, -82], [-19, -76, -18, -52], [-17, -30, 0, -28], [17, -30, 18, -52], [19, -76, 0, -82]], CH, DK, 2.5);   // панцирь-спина
+  for (const y of [-70, -60, -50, -40]) L([[-16, y + 4], [0, y - 2, 16, y + 4]], DK, 1.2);                    // сегменты
+  P([[-6, -80], [-15, -72, -14, -52], [-11, -62, -6, -80]], 'rgba(200,140,80,.35)');                         // блик слева
+  for (let i = 0; i < 6; i++) { const y = -80 + i * 8; P([[-2.5, y + 4], [0, y - 5 - (i < 3 ? 2 : 0)], [2.5, y + 4]], BONE, DK, .8); }   // шипы по хребту
+  for (const d of [-1, 1]) {                  // наплечники с шипами
+    P([[d * 8, -84], [d * 22, -88, d * 24, -74], [d * 18, -66, d * 8, -72]], MD, DK, 2);
+    P([[d * 15, -84], [d * 22, -98], [d * 20, -82]], BONE, DK, .8); P([[d * 21, -78], [d * 31, -86], [d * 24, -74]], BONE, DK, .8);
+  }
+  P([[-9, -80], [-10, -92, 0, -93], [10, -92, 9, -80], [0, -76, -9, -80]], DK, null);                          // голова опущена меж плеч
+  for (const d of [-1, 1]) {                  // глаза светятся сбоку, усы назад-вверх
+    const on = Math.sin(t * 1.7 + d) > -.85; if (on) { ctx.fillStyle = '#ff7a1a'; ctx.fillRect(d * 9 - (d < 0 ? 2 : 0), -89, 2, 2); ctx.fillStyle = 'rgba(255,122,26,.25)'; ctx.fillRect(d * 9 - (d < 0 ? 4 : -2) , -91, 4, 6); }
+    L([[d * 3, -92], [d * 8, -118, d * (34 + Math.sin(t * 3 + d) * 3), -128]], '#3a1a0a', 1.4);
+  }
+  for (const d of [-1, 1]) {                  // руки-косы подняты над головой
+    const sw = Math.sin(t * 1.3 + d) * 2, ex = d * 34, ey = -104 + sw;
+    L([[d * 18, -78], [ex, ey]], DK, 6); L([[d * 18, -78], [ex, ey]], MD, 3);
+    const tip = [d * 16, -136 + sw];
+    P([[ex, ey], [d * 46, -128 + sw, tip[0], tip[1]], [d * 34, -122 + sw, ex - d * 2, ey - 4]], BONE, DK, 1.5);   // клинок
+    for (let i = 1; i < 5; i++) { const k = i / 5, x = ex + (tip[0] - ex) * k + d * (6 - Math.abs(k - .5) * 8), y = ey + (tip[1] - ey) * k; P([[x, y], [x - d * 3, y + 1], [x, y + 2]], DK); }   // зубцы
+    if ((t * 1.5 + (d > 0 ? .5 : 0)) % 2 < 1) { ctx.fillStyle = '#8a0a10'; ctx.fillRect(tip[0] - 1, tip[1] + 3 + ((t * 30) % 14), 1, 2); }   // капает кровь
+    ctx.fillStyle = '#8a0a10'; ctx.fillRect(tip[0] - d * 2, tip[1] + 2, 2, 3);
+  }
+  ctx.globalAlpha = .5; L([[-19, -70], [-18, -50, -14, -32]], RIM, 1); ctx.globalAlpha = 1;                    // контровой свет солнца
+  ctx.restore();
 }
 function drawChimera(b) {                 // химера Б: скорпион-хирург — панцирь из лабораторного металла, хвост-шприц, клешни-скальпели (друг, 12.11)
   const x = b.x - cam + b.w / 2, wh = b.fl > 0, rage = b.hp < b.max / 2;
