@@ -1414,22 +1414,21 @@ function audioReset() {                  // выбросить сломанны�
   try { if (ac) ac.close(); } catch (e) {}
   ac = null; acBroken = false; MUS.g = MUS.out = MUS.noise = MUS.pulse = null; MUS.cur = -1; MUS.fast = undefined; AW.n = 0;
 }
-const AW = { t0: 0, a0: 0, n: 0 };       // сторож: время звука должно идти вместе с обычным временем
+const AW = { t0: 0, a0: 0, n: 0, last: -99, resets: 0 };   // сторож: время звука должно идти вместе с обычным временем
 function audioWatch() {
   if (!ac || ac.state !== 'running' || document.hidden) { AW.t0 = 0; return; }
   const now = performance.now() / 1000, at = ac.currentTime;
   if (!AW.t0) { AW.t0 = now; AW.a0 = at; return; }
   if (now - AW.t0 < 1.5) return;
   const r = (at - AW.a0) / (now - AW.t0); AW.t0 = now; AW.a0 = at;
-  AW.n = r < .9 || r > 1.1 ? AW.n + 1 : 0;   // звук отстаёт или скачет — сбой
-  if (AW.n >= 2) acBroken = true;
+  AW.n = r < .3 ? AW.n + 1 : 0;              // время звука почти стоит — звук завис
+  if (AW.n >= 3 && now - AW.last > 30 && AW.resets < 3) acBroken = true;
 }
 function audioOn() {                     // будим звук на каждом касании: iPhone разрешает это только в ответ на палец
   try {
     if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';   // играть и в беззвучном режиме
-    if (ac && (acBroken || ac.state === 'closed')) audioReset();
-    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0;
-      ac.onstatechange = () => { if (ac && ac.state === 'interrupted') acBroken = true; }; }   // iOS: звонок, запись экрана, Siri
+    if (ac && (acBroken || ac.state === 'closed')) { AW.last = performance.now() / 1000; AW.resets++; audioReset(); }
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0; }
     if (ac.state !== 'running' && !document.hidden) {
       ac.resume();
       const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050); b.connect(ac.destination); b.start(0);   // тихий щелчок «отпирает» звук на iOS
