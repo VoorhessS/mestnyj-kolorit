@@ -45,7 +45,7 @@
   #menu #god.on, #menu #mus.on, #menu #auto.on { background: #1f6a2a; border-color: #4f4; }
   #menu #close { background: #5a1a22; border-color: #c8102e; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
-    justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
+    justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; z-index: 50; }
   #port .ic { font-size: 54px; animation: rot 1.6s ease-in-out infinite; }
   @keyframes rot { 50% { transform: rotate(90deg); } }
   /* Тактическая карта уровней и титульное меню (друг, msg 1782) */
@@ -1409,7 +1409,21 @@ function input() {
 }
 
 // ===== Звук =====
-let ac = null, acBroken = false;
+let ac = null, acBroken = false, acStale = false;
+let quietEl = null;                      // тихий <audio>: «будит» аудиосессию iPhone, когда Web Audio залип после фона
+function quietKick() {
+  try {
+    if (!quietEl) {
+      const n = 2205, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => [...t].forEach((c, i) => b[o + i] = c.charCodeAt(0));
+      w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 22050, true); v.setUint32(28, 22050, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+      b.fill(128, 44);
+      quietEl = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' })));
+      quietEl.setAttribute('playsinline', ''); quietEl.preload = 'auto';
+    }
+    quietEl.currentTime = 0; const pr = quietEl.play(); if (pr) pr.catch(() => {});
+  } catch (e) {}
+}
 function audioReset() {                  // выбросить сломанный звук: следующее касание создаст новый
   try { if (ac) ac.close(); } catch (e) {}
   ac = null; acBroken = false; MUS.g = MUS.out = MUS.noise = MUS.pulse = null; MUS.cur = -1; MUS.fast = undefined; AW.n = 0;
@@ -1427,7 +1441,9 @@ function audioWatch() {
 function audioOn() {                     // будим звук на каждом касании: iPhone разрешает это только в ответ на палец
   try {
     if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';   // играть и в беззвучном режиме
-    if (ac && (acBroken || ac.state === 'closed')) { AW.last = performance.now() / 1000; AW.resets++; audioReset(); }
+    if (ac && acStale && !document.hidden) { acStale = false; quietKick(); audioReset(); }   // вернулся из фона — звук с чистого листа
+    if (ac && (acBroken || ac.state === 'closed')) { AW.last = performance.now() / 1000; AW.resets++; quietKick(); audioReset(); }
+    if (!ac) quietKick();
     if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0; }
     if (ac.state !== 'running' && !document.hidden) {
       ac.resume();
@@ -1539,10 +1555,10 @@ function musTick() {
 setInterval(musTick, 50);
 document.addEventListener('visibilitychange', () => {   // свернул игру — звук на паузу; вернулся — музыка идёт дальше без догонялок (друг, msg 1670)
   if (!ac) return;
-  if (document.hidden) ac.suspend(); else ac.resume().then(() => { MUS.next = ac.currentTime + .06; });
+  if (document.hidden) { ac.suspend(); acStale = true; } else ac.resume().then(() => { if (ac) MUS.next = ac.currentTime + .06; }).catch(() => {});
 });
 // включил музыку заново — звук с чистого листа (лечит сбой на iPhone вручную)
-function musToggle() { MUS.on = !MUS.on; if (MUS.on) { audioReset(); audioOn(); } try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
+function musToggle() { MUS.on = !MUS.on; if (MUS.on) { quietKick(); audioReset(); audioOn(); } try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
 
 // ===== Состояние игры =====
 const SPEED = 92, CRAWL = 42, CLIMB = 78, JUMP = 352, GRAV = 900;
