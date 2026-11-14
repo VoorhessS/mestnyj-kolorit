@@ -1347,7 +1347,17 @@ function input() {
 
 // ===== Звук =====
 let ac = null;
-function audioOn() { if (!ac) try { ac = new AudioContext(); drone(); } catch (e) {} }
+function audioOn() {                     // будим звук на каждом касании: iPhone разрешает это только в ответ на палец
+  try {
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';   // играть и в беззвучном режиме
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); }
+    if (ac.state !== 'running' && !document.hidden) {
+      ac.resume();
+      const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050); b.connect(ac.destination); b.start(0);   // тихий щелчок «отпирает» звук на iOS
+    }
+  } catch (e) {}
+}
+for (const t of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(t, audioOn, true);   // на перехвате — срабатывает и в меню
 function drone() {                       // тревожный низкий гул на фоне
   if (!HORROR) return;
   const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
@@ -1391,7 +1401,7 @@ try { MUS.on = localStorage.getItem('strel-music') !== '0'; } catch (e) {}
 const mtof = m => 440 * 2 ** ((m - 69) / 12), ofs = ch => parseInt(ch, 36);
 function musBus() {
   if (MUS.g) return;
-  MUS.g = ac.createGain(); MUS.g.gain.value = .2;   // фоном: эффекты важнее (друг, msg 1673) const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
+  MUS.g = ac.createGain(); MUS.g.gain.value = .26;   // фоном: эффекты важнее (друг, msg 1673) const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
   const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 70) * x / (1 + 70 * Math.abs(x)); } MUS.curve = c;
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; MUS.noise = nb;
   const re = new Float32Array(32), im = new Float32Array(32); for (let k = 1; k < 32; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25); MUS.pulse = ac.createPeriodicWave(re, im);   // пульс 25% — «NES»
