@@ -1418,7 +1418,10 @@ function musTick() {
   if (w !== MUS.cur) { MUS.cur = w; MUS.step = 0; MUS.next = ac.currentTime + .08; }
   if (w < 0) return;
   musBus();
-  const tr = TRACKS[w], sp = 60 / tr.bpm / 4, song = SONG[tr.st];
+  const tr = TRACKS[w], song = SONG[tr.st];
+  const fast = state === 'title' || (L && L.mut) || (boss && boss.on && !boss.dead);   // друг (msg 1659): босс и «Орда» — полный темп, обычная игра — медленнее
+  if (fast !== MUS.fast) { if (fast && MUS.fast !== undefined) MUS.step = song.indexOf('B') * 32; MUS.fast = fast; }   // босс появился — сразу припев
+  const sp = 60 / (tr.bpm * (fast ? 1 : .7)) / 4;
   if (MUS.next < ac.currentTime - .5) MUS.next = ac.currentTime + .05;   // вкладка спала — не догоняем
   while (MUS.next < ac.currentTime + .25) {
     const t = MUS.next, st = MUS.step, s16 = st % 16, bar = Math.floor(st / 16), sec = song[Math.floor(bar / 2) % song.length], riff = tr[sec];
