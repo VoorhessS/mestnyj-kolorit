@@ -164,7 +164,7 @@ const LEVELS = [
     } },
   { name: 'ПОДЪЕЗД', hi: [9, 9, 16, 16, 21], task: 'Дай ток: дверь на лестницу на электрозамке', obj: 'switch', itemTxt: '⚡ ток пошёл! замок щёлкнул — дверь открыта', ground: 13, dark: .9,
     cols: 104, rows: 30, base: SOLID, pal: PAL.lobby, spawn: ['r', 'm', 'R'],
-    tips: ['рубильник в самом низу подвала, за кислотой', 'дашь ток — откроется люк: вентшахта прямо в холл. наверх — прыжками от стены к стене', 'лаз в стене: зажми вниз и ползи вбок'],
+    tips: ['рубильник в самом низу подвала, за кислотой', 'дашь ток — откроется люк: вентшахта прямо в холл. наверх — зажми ВВЕРХ, полезешь по стенкамы к стене', 'лаз в стене: зажми вниз и ползи вбок'],
     build(B) {
       B.room(1, 8, 70, 11); B.door(62, 8, 11); B.exit(67, 12, 'ЛЕСТНИЦА');
       B.win(5, 9); B.win(27, 9); B.win(47, 9);
@@ -210,7 +210,7 @@ const LEVELS = [
     } },
   { name: 'ВЕРХНИЕ ЭТАЖИ', hi: [12, 19, 24, 31, 36, 45, 45], task: 'Принеси инструменты с последнего этажа к лифту', obj: 'tools', ground: 99, dark: .9,
     cols: 64, rows: 48, base: SOLID, pal: PAL.upper, spawn: ['r', 'j', 'b', 'R', 'm'],
-    tips: ['грузовой лифт внизу, у старта. а инструменты — на последнем этаже', 'вентшахта справа: наверх — прыжками от стены к стене, вниз — просто прыгай', 'бомбардир брызгает кислотой — не подходи близко'],
+    tips: ['грузовой лифт внизу, у старта. а инструменты — на последнем этаже', 'вентшахта справа: наверх — зажми ВВЕРХ, полезешь по стенкамы к стене, вниз — просто прыгай', 'бомбардир брызгает кислотой — не подходи близко'],
     build(B) {
       for (const f of [46, 40, 34, 28, 22, 16]) B.room(1, f - 5, 58, f - 1);
       B.room(1, 4, 58, 9);
@@ -244,7 +244,7 @@ const LEVELS = [
       B.room(13, 3, 28, 102);                                                      // шахта
       B.room(29, 3, 38, 6); B.exit(36, 7, 'ЧЕРДАК');                               // выход наверху
       B.lift(13, 28, 109, 7);
-      B.room(29, 107, 30, 108); B.shaft(31, 7, 108); B.plat(31, 32, 7);           // вентшахта справа: выпал из лифта — лезь прыжками от стен
+      B.room(29, 107, 30, 108); B.shaft(31, 7, 108); B.plat(31, 32, 7);           // вентшахта справа: выпал из лифта — зажми ВВЕРХ и лезь по стенкам
       for (let r = 96; r > 12; r -= 12) B.plat(31, 32, r);                         // полки — передохнуть
       for (let r = 98; r > 10; r -= 12) { B.deco('ldoor', 12, r - 3, 12, r - 1); B.deco('ldoor', 29, r - 3, 29, r - 1); B.lamp(r % 24 ? 14 : 27, r - 9); }
       for (let r = 99, i = 0; r >= 12; r -= 7, i++) B.crack(i % 2 ? 28 : 13, r);
@@ -299,7 +299,7 @@ const LEVELS = [
       B.rock(72, 14, 73, 15); B.bush(80, 16, 3); B.bug(81, 16, 'A');
       B.fill(96, 16, 127, 17, AIR); B.room(96, 18, 127, 30);                        // овраг, дно — 31
       B.ramp(96, 16, 24); B.fill(104, 24, 105, 24); B.lad(126, 16, 30);             // осыпь в овраг слева, лиана справа
-      B.fill(92, 16, 93, 17, AIR); B.room(92, 18, 93, 30); B.room(94, 27, 95, 30);  // расщелина: наверх — прыжками от стен
+      B.fill(92, 16, 93, 17, AIR); B.room(92, 18, 93, 30); B.room(94, 27, 95, 30);  // расщелина: наверх — зажми ВВЕРХ, полезешь по стенкам
       B.water(104, 29, 116, 30);                                                    // ручей на дне
       B.fill(106, 24, 110, 24); B.fill(118, 21, 122, 21);                           // каменные полки
       B.room(128, 26, 134, 30); B.item('radio', 132, 31);                           // пещерка с рацией
@@ -601,7 +601,7 @@ const LEVELS = [
     } },
   { city: 3, name: 'ГЕНЕРАТОРНАЯ', hi: [5, 5, 5, 25, 25, 25], task: 'Дай аварийный ток: найди рубильник', obj: 'switch', itemTxt: '⚡ ток пошёл! свет есть, дверь открыта', ground: 99, dark: .88,
     cols: 116, rows: 34, base: SOLID, pal: PAL.lab, spawn: ['k', 'h', 'x'],
-    tips: ['рубильник на верхнем ярусе, а дверь в виварий — внизу, где начал', 'справа вентшахта: вниз — просто прыгай, наверх — прыжками от стены к стене', 'разрядник засветился — сейчас ударит током по полу, прыгай'],
+    tips: ['рубильник на верхнем ярусе, а дверь в виварий — внизу, где начал', 'справа вентшахта: вниз — просто прыгай, наверх — зажми ВВЕРХ, полезешь по стенкамы к стене', 'разрядник засветился — сейчас ударит током по полу, прыгай'],
     build(B) {
       B.room(1, 24, 110, 29);                                                       // нижний зал, пол — 30
       B.room(1, 14, 110, 19);                                                       // средний ярус, пол — 20
@@ -1391,7 +1391,7 @@ try { MUS.on = localStorage.getItem('strel-music') !== '0'; } catch (e) {}
 const mtof = m => 440 * 2 ** ((m - 69) / 12), ofs = ch => parseInt(ch, 36);
 function musBus() {
   if (MUS.g) return;
-  MUS.g = ac.createGain(); MUS.g.gain.value = .75; const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
+  MUS.g = ac.createGain(); MUS.g.gain.value = .2;   // фоном: эффекты важнее (друг, msg 1673) const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
   const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 70) * x / (1 + 70 * Math.abs(x)); } MUS.curve = c;
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; MUS.noise = nb;
   const re = new Float32Array(32), im = new Float32Array(32); for (let k = 1; k < 32; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25); MUS.pulse = ac.createPeriodicWave(re, im);   // пульс 25% — «NES»
@@ -1400,7 +1400,7 @@ function env(g, t, vol, dur, rel = .03) { g.gain.setValueAtTime(0, t); g.gain.li
 function gtr(t, m, dur, mute) {                    // гитара: квинт-аккорд на квадратах через перегруз
   const ws = ac.createWaveShaper(), f = ac.createBiquadFilter(), g = ac.createGain(); ws.curve = MUS.curve;
   f.type = 'lowpass'; f.frequency.value = mute ? 1300 : 3200; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .11 : .095, dur, .015);
-  for (const [iv, ty] of mute ? [[0, 'square'], [-12, 'sawtooth'], [7, 'square']] : [[0, 'square'], [-12, 'sawtooth'], [7, 'square'], [12, 'sawtooth']]) for (const dt of [-9, 9]) { const o = ac.createOscillator(); o.type = ty; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .2; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }
+  for (const [iv, ty, dt] of mute ? [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0]] : [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0], [7, 'square', 0]]) { const o = ac.createOscillator(); o.type = ty; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .26; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }   // поменьше генераторов — телефону легче
 }
 function bass(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = mtof(m - 12); o.connect(g).connect(MUS.g); env(g, t, .2, dur); o.start(t); o.stop(t + dur + .02); }
 function lead(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.setPeriodicWave(MUS.pulse); o.frequency.value = mtof(m); v.frequency.value = 6; vg.gain.value = 5; v.connect(vg).connect(o.detune); o.connect(g).connect(MUS.g); env(g, t, .07, dur, .06); o.start(t); v.start(t); o.stop(t + dur + .02); v.stop(t + dur + .02); }
@@ -1423,7 +1423,7 @@ function musTick() {
   if (fast !== MUS.fast) { if (fast && MUS.fast !== undefined) MUS.step = song.indexOf('B') * 32; MUS.fast = fast; }   // босс появился — сразу припев
   const sp = 60 / (tr.bpm * (fast ? 1 : .7)) / 4;
   if (MUS.next < ac.currentTime - .5) MUS.next = ac.currentTime + .05;   // вкладка спала — не догоняем
-  while (MUS.next < ac.currentTime + .25) {
+  while (MUS.next < ac.currentTime + .3) {
     const t = MUS.next, st = MUS.step, s16 = st % 16, bar = Math.floor(st / 16), sec = song[Math.floor(bar / 2) % song.length], riff = tr[sec];
     const ch = riff[s16];
     if (ch !== '.' && ch !== '-') {               // гитара и бас
@@ -1447,6 +1447,10 @@ function musTick() {
   }
 }
 setInterval(musTick, 50);
+document.addEventListener('visibilitychange', () => {   // свернул игру — звук на паузу; вернулся — музыка идёт дальше без догонялок (друг, msg 1670)
+  if (!ac) return;
+  if (document.hidden) ac.suspend(); else ac.resume().then(() => { MUS.next = ac.currentTime + .06; });
+});
 function musToggle() { MUS.on = !MUS.on; try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
 
 // ===== Состояние игры =====
@@ -1911,6 +1915,10 @@ function updatePlayer(dt, k) {
   const slideWall = !P.on && !wet && P.vy > 0 && k.dx ? wallSide() : 0;
   if (!k.a && P.vy < -120 && !wet) P.vy = -120;          // отпустил прыжок раньше — прыжок ниже
   P.vy = wet ? Math.min(P.vy + GRAV * .3 * dt, 60) : Math.min(P.vy + GRAV * (good?.k === 'moon' ? .38 : 1) * dt, 520);   // баг: лунный прыжок
+  if (!P.climb && !wet && k.dy === -1 && (inDuct() || narrowGap())) {   // вентшахта (друг, msg 1670): зажми ВВЕРХ — лезешь распором по стенкам
+    P.vy = -CLIMB * .85; P.flip = false; P.rot = P.face > 0 ? 0 : Math.PI; P.wj = 0;
+    if ((P.ductT = (P.ductT || 0) - dt) <= 0) { P.ductT = .22; beep(180, 120, .04, 'square', .012); }
+  }
   if (MUT() && HERO_V === 'C') {                   // друг (msg 1661): у таракана крылья — в воздухе держи A и лети
     if (P.on || wet) { P.flyOn = false; P.wing = Math.min(WING, (P.wing ?? WING) + dt * 1.6); }
     else if (k.a && (P.flyOn || P.vy > -40) && !P.kick) {
@@ -2001,6 +2009,19 @@ const KIN = { 'ЛАГЕРЬ': ['r', 'j', 'R', 'r', 'j', 'r'], 'ВОЕННАЯ Б
 // Бойня (друг, msg 1607): люди и техника подходят волнами по кд — спереди и сзади, по зоне
 let spawnT = 3;
 const CARN = { 'БОЛЬНИЦА': ['UUK', 2.6, 5], 'ЛАГЕРЬ': ['UUUKKJ', 1.6, 10], 'ВОЕННАЯ БАЗА': ['KKKUJB', 1.5, 10], 'ЛАБОРАТОРИЯ': ['UUKK', 1.8, 9], 'НОРА': ['KKU', 2, 8], 'ЛЕС': ['KKUJ', 1.9, 9] };
+function narrowGap() {                    // узкая вертикальная щель (стены с двух сторон ближе 3 клеток) — тоже можно лезть распором
+  const c = Math.floor((P.x + P.w / 2) / T);
+  for (const y of [P.y + P.h / 2, P.y + P.h + 2]) {
+    const r = Math.floor(y / T); if (solid(c, r)) continue;
+    let l = 0, rr = 0; for (let d = 1; d <= 2; d++) { if (!l && solid(c - d, r)) l = d; if (!rr && solid(c + d, r)) rr = d; }
+    if (l && rr) return true;
+  }
+  return false;
+}
+function inDuct() {                       // герой в вентшахте (или над её верхним краем, пока не встал на пол)
+  const cx = P.x + P.w / 2, feet = P.y + P.h;
+  return lv.deco.some(d => d.k === 'duct' && cx >= d.x0 * T - 2 && cx < (d.x1 + 1) * T + 2 && feet > (d.y0 - 1) * T - 1 && P.y < (d.y1 + 1) * T);
+}
 function floorBelow(c, r0) { for (let r = Math.max(3, r0); r < ROWS; r++) if (solid(c, r) && !solid(c, r - 1) && !solid(c, r - 2)) return r; return findFloor(c, r0); }   // пол под точкой — орда выбегает по земле
 function findFloor(c, r0) { for (let d = 0; d <= 6; d++) for (const r of [r0 + d, r0 - d]) if (r > 2 && r < ROWS && solid(c, r) && !solid(c, r - 1) && !solid(c, r - 2)) return r; return null; }
 function updCarnage(dt) {
@@ -3264,7 +3285,7 @@ function drawDeco() {
       rect(cx - 4, y + 5, 8, h - 5, '#9a92aa'); rect(cx - 4, y + 5, 2, h - 5, '#c8c0d8'); rect(cx - 7, y + h - 3, 14, 3, '#9a92aa');
       ell(cx, y + 4, R, 7, '#2a7a7a'); ell(cx, y + 2, R - 3, 5, '#4ab8a8'); rect(cx - R + 3, y + 9, R * 2 - 6, 1, '#1a4a4a');
       for (let i = 0; i < 4; i++) ell(cx - R + 8 + i * (R * 2 - 16) / 3, y + 1 + (i % 2), 2, 1.5, '#c8fff0');
-    } else if (d.k === 'duct') {                       // вентшахта: наверх — прыжками от стены к стене
+    } else if (d.k === 'duct') {                       // вентшахта: наверх — зажми ВВЕРХ, полезешь по стенкамы к стене
       rect(x, y, w, h, '#1a1d22'); for (let i = 0; i < h; i += 12) rect(x, y + i, w, 2, '#2a2e36');
       rect(x, y, 2, h, '#3a3e46'); rect(x + w - 2, y, 2, h, '#3a3e46');
       for (let i = 6; i < h; i += 24) { rect(x + 3, y + i, 2, 2, '#5a5e66'); rect(x + w - 5, y + i, 2, 2, '#5a5e66'); }
