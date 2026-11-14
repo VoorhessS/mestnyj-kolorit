@@ -1536,7 +1536,7 @@ const MUT = () => !!(L && L.mut);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
   const [w, h, hp, sp0, sc] = BUGS[k], HP = k === 's' ? hp + lvlN : hp;
-  const sp = HUMANS.includes(k) ? sp0 : (sp0 > 1 ? 1 + (sp0 - 1) * .4 : sp0) * (sp0 >= .8 ? .9 : 1);   // друг (msg 1591): быстрые монстры медленнее
+  const sp = HUMANS.includes(k) ? sp0 : sp0 >= 1 ? (1 + (sp0 - 1) * .25) * .8 : sp0 * (sp0 >= .8 ? .88 : 1);   // друг (msg 1591, 1677): быстрые монстры ещё медленнее
   return { k, x, y: y - h, w, h, hp: HP, max: HP, sp: D.spd * sp, sc, vx: dir * D.spd * sp, vy: 0, fl: 0, run: 0, turn: 0,
     cd: 1 + Math.random() * 2, st: 'walk', t: 1 + Math.random(), dir, human: HUMANS.includes(k), gun: k === 'U' && Math.random() < (L?.armed ?? .45) };
 }
@@ -2063,11 +2063,11 @@ function updKin() {
 function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
-  const n = allies.length, fr = n % 2 === 1, j = n >> 1;   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
+  const n = allies.length, fr = false, j = n;   // друг (msg 1677): вся орда позади героя — передние враги его   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
   const big = BIG.includes(k);
   Object.assign(a, { ally: true, human: false, hp: big ? 40 : 8, max: big ? 40 : 8, dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
     sp: SPEED * (fr ? rnd(.86, .96) : k === 'D' ? .84 : rnd(.62, .78)),
-    slot: (fr ? -1 : 1) * (22 + j * 17 + rnd(0, 12)), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
+    slot: 26 + j * 12 + rnd(0, 10), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
   if (!quiet) { explode(x, y - 10, 10, ['#9aff5a', '#2a4a1a', '#c8102e']); beep(200, 500, .15, 'sawtooth', .03); }
   return a;
@@ -2105,7 +2105,8 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
     return;
   }
   const cx = a.x + a.w / 2, fy = a.y + a.h;
-  const foe = P.dead ? null : nearestHuman(cx, fy, 200, 64);
+  let foe = P.dead ? null : nearestHuman(cx, fy, 200, 64);
+  if (foe && L.obj === 'carnage' && (foe.x + foe.w / 2 - (P.x + 5)) * P.face > -6) foe = null;   // кто впереди героя — его добыча, орда добивает только позади (msg 1677)
   let tx = null, fast = 1;
   a.st = 'walk';
   if (foe && foe.k !== 'V') {                // вертолёт им не достать — только плевком героя
@@ -2675,7 +2676,7 @@ function breakRock(cx, cy) {
   explode(cx * T + 8, cy * T + 8, 8, ['#8a8478', '#5a5650', '#a89a88']); boom(.04);
 }
 function hatch(k, x, y, dir, vy, mom) {     // новый жук из гнезда или трещины (мелюзга — сразу стайкой)
-  const n = k === 'm' ? 4 : 1;
+  const n = k === 'm' ? 3 : 1;   // мелюзга стайкой по 3 (друг, msg 1677)
   for (let i = 0; i < n; i++) {
     const e = mkBug(k, x + i * 3, y, dir); e.vy = vy - i * 30; e.vx *= 1 - i * .12; e.spawned = true;
     if (mom) { e.mom = mom; mom.kids++; }
