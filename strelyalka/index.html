@@ -8,12 +8,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Город N1">
-<title>Город N1</title>
+<title>Судный день</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; transition: transform .25s; }
   .ctl { position: fixed; touch-action: none; }
+  body.noctl .ctl { visibility: hidden; }
   /* Крестовина как на джойстике: полупрозрачная */
   #pad { left: calc(env(safe-area-inset-left) + 44px); bottom: calc(env(safe-area-inset-bottom) + 44px); width: 150px; height: 150px; opacity: .42; }
   #pad svg { width: 100%; height: 100%; display: block; }
@@ -39,9 +40,9 @@
   #menu h2 { margin: 0; font-size: 18px; color: #ffd23f; flex: 1; min-width: 160px; }
   #menu h3 { margin: 8px 0 5px; font-size: 13px; color: #9a9aaa; letter-spacing: 1px; }
   #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
-  #menu button { font: 600 12px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 10px; }
+  #menu button { font: 600 13px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 12px; min-height: 44px; min-width: 44px; }   /* под палец (аудит №25) */
   #menu button.cur { border-color: #ffd23f; }
-  #menu #god.on, #menu #mus.on { background: #1f6a2a; border-color: #4f4; }
+  #menu #god.on, #menu #mus.on, #menu #auto.on { background: #1f6a2a; border-color: #4f4; }
   #menu #close { background: #5a1a22; border-color: #c8102e; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
     justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
@@ -63,12 +64,12 @@
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
 <div id="port"><div class="ic">📱</div>Поверни телефон боком</div>
 <script>
 'use strict';
 // ===== Экран: высота фиксирована, ширина по пропорциям телефона =====
-const T = 16, H = 14 * T;
+const T = 16; let H = 14 * T;
 let W = 400;
 const cv = document.getElementById('c'), ctx0 = cv.getContext('2d');
 let ctx = ctx0;                                   // рисуем сюда; outlined() на время подменяет слой
@@ -87,10 +88,13 @@ function outlined(fn) {                        // стиль 1: всё, что �
   ctx.drawImage(OL, 0, 0); ctx.restore();
 }
 function resize() {
-  W = Math.max(300, Math.min(520, Math.round(H * innerWidth / innerHeight)));
+  const asp = innerWidth / innerHeight;
+  H = asp > 1 && asp < 1.6 ? Math.min(320, Math.round(400 / asp)) : 14 * T;   // планшет 4:3 — экран выше и шире: видно больше карты (аудит №24)
+  W = Math.max(300, Math.min(520, Math.round(H * asp)));
   cv.width = W; cv.height = H; dark.width = W; dark.height = H; OL.width = OS.width = W; OL.height = OS.height = H;
   ctx.imageSmoothingEnabled = false; olx.imageSmoothingEnabled = false;
   port.style.display = innerHeight > innerWidth ? 'flex' : 'none';
+  if (innerHeight > innerWidth) try { releaseAll(); } catch (e) {}   // при старте ввода ещё нет
 }
 addEventListener('resize', resize); resize();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1062,6 +1066,7 @@ const LEVELS = [
       B.ramp(512, 22, 15, 3, AIR); B.fill(519, 15, 538, 21);                        // холм над городом
       B.bug(456, 22, 'K'); B.bug(474, 19, 'K'); B.bug(492, 22, 'K'); B.bug(500, 22, 'J'); B.bug(508, 22, 'K'); B.bug(526, 15, 'K');
       B.bug(490, 7, 'V');
+      B.bug(140, 11, 'V');                                                           // второй вертолёт — над лагерем (друг, msg 1730)
       for (const [x, y] of [[72, 22], [182, 22], [292, 22], [382, 22], [442, 22]]) B.save(x, y);
       B.exit(536, 15, 'К ГОРОДУ');
       B.start(3, 22);
@@ -1251,6 +1256,21 @@ function moveBody(b, dt, oneway = true) {
       break;
     }
   }
+  if (b.on) {                                        // конец пандуса: краем стоит на ровном полу выше — не проседаем в него (аудит №16)
+    const fb = b.y + b.h, ry = Math.floor((fb - .01) / T);
+    for (const ex of [b.x + 1, b.x + b.w - 1]) {
+      const cx = Math.floor(ex / T), t = tile(cx, ry);
+      if (isSolid(t) && !isSlope(t) && !underSlope(cx, ry) && fb - ry * T > 0 && fb - ry * T <= 6 && !solid(cx, ry - 1)) b.y = ry * T - b.h;
+    }
+  }
+}
+function unstick(e) {                        // враг поставлен краем в стену или мешки — ищем ближайшее свободное место
+  const box = () => inSolid({ x: e.x + 1, y: e.y + 1, w: e.w - 2, h: e.h - 2 }); if (!box()) return;
+  const x0 = e.x, y0 = e.y;
+  for (let d = 1; d <= 12; d++) for (const sg of [-1, 1]) { e.x = x0 + sg * d; if (!box()) return; }
+  e.x = x0; for (let d = 1; d <= 20; d++) { e.y = y0 - d; if (!box()) return; }   // стоит в ступеньке — на неё
+  e.y = y0; for (let d = 13; d <= 32; d++) for (const sg of [-1, 1]) { e.x = x0 + sg * d; if (!box()) return; }
+  e.x = x0;
 }
 const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 function touches(b, t) {
@@ -1286,7 +1306,7 @@ function recompute() {
       const r = padEl.getBoundingClientRect();
       const dx = p.x - (r.left + r.width / 2), dy = p.y - (r.top + r.height / 2);
       if (Math.hypot(dx, dy) > 14) {
-        const s = ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8;
+        const a = Math.atan2(dy, dx), s = Math.abs(a) < .61 ? 0 : Math.abs(a) > Math.PI - .61 ? 4 : ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;   // бег — с запасом ±35°, чтобы не ползти (аудит №9)
         padDir = { dx: DIRS[s][0], dy: DIRS[s][1] };
       }
     }
@@ -1323,7 +1343,7 @@ function onTouch(e) {                      // при каждом событии
   const next = new Map();
   for (const t of e.touches) {
     const old = ptrs.get(t.identifier); let z;
-    if (!old) { z = zoneAt(t.clientX, t.clientY); if (z !== 'pad') anyTap = true; }
+    if (!old) { z = zoneAt(t.clientX, t.clientY) || (state === 'play' && t.clientX < innerWidth * .4 ? 'pad' : null); if (z !== 'pad') anyTap = true; }   // левая часть экрана — крестовина (аудит №8)
     else { z = old.z; if (z !== 'pad') { const zz = zoneAt(t.clientX, t.clientY); z = zz === 'pad' ? null : zz; } }
     next.set(t.identifier, { z, x: t.clientX, y: t.clientY });
   }
@@ -1572,6 +1592,7 @@ function startLevel(n) {
     if (k === 'w') { e.burrow = true; e.st = 'under'; }
     if (k === 'e') { e.lure = true; e.sleep = false; }
     if (k === 'q') { e.jar = true; e.sleep = false; e.x += 9; }                // мутант сидит в колбе
+    if (!e.hang && !e.burrow && !e.jar && !['o', 'A', 'V', 'n'].includes(k)) unstick(e);   // аудит №14: краем в стене — сдвинуть
     e.gd = L.obj === 'guards' && (L.guard || 's').includes(k);
     enemies.push(e);
   }
@@ -1661,6 +1682,7 @@ function respawn() {
   if (boss && boss.on && !boss.dead) {          // погиб на арене: босс ждёт заново, решётка открыта
     boss.on = false; gate(false);
     const b = boss.parts[0];
+    b.hp = Math.min(b.max, Math.ceil(b.hp + (b.max - b.hp) / 2));   // друг (msg 1745): после твоей смерти босс лечит половину потерянного
     if (b.k === 'larva') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'under', t: 1.2, vx: 0, hide: true });
     else if (b.k === 'chimera' || b.k === 'roach') Object.assign(b, { x: lv.arena.drop * T, y: lv.arena.top * T - b.h, st: 'sleep', vx: 0, vy: 0, t: 0 });
     else Object.assign(b, { x: lv.arena.drop * T, y: -90, st: 'drop', vx: 0, vy: 0, t: 0, arm: 0 });
@@ -1689,6 +1711,7 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
 let hp = HP_MAX, hurtT = 9, hpFlash = 0;
 function hurt(d) {                       // удар снимает часть шкалы, на нуле — минус жизнь
   if (P.safe > 0 && !P.climb) return;     // друг (msg 1591): только что слез с лестницы — короткая передышка
+  if (P.slide > 0) return;                // друг (msg 1735): в подкате героя не ранить
   if (MUT()) {                            // мутант бессмертен: только вздрагивает
     if (P.dead || P.inv > 0) return;
     P.inv = .2; hpFlash = .2; explode(P.x + 5, P.y + 10, 4, ['#6a8a3a', '#2a3a1a', '#9aff5a']); beep(160, 70, .08, 'square', .03);
@@ -2044,13 +2067,14 @@ function updCarnage(dt) {
   if (L.obj !== 'carnage' || P.dead || state !== 'play' || (spawnT -= dt) > 0) return;
   const z = zoneOf(Math.floor((P.x + 5) / T)), c = CARN[z.name] || ['UK', 2.5, 6];
   spawnT = c[1] * rnd(.7, 1.3);
-  const alive = enemies.filter(e => e.human && e.hp > 0 && e.k !== 'V');
+  const alive = enemies.filter(e => e.human && e.hp > 0 && e.k !== 'V' && !e.sleep);   // спящие в своих зонах волну не держат (аудит №1)
   if (alive.filter(e => Math.abs(e.x - P.x) < 420).length >= c[2] || alive.length > 40 || P.x > exit.x - 100) return;
   const n = 1 + (Math.random() < .55) + (Math.random() < .3);
   for (let i = 0; i < n; i++) {
     let k = pick(c[0]);
     if (TECH.includes(k) && alive.some(e => TECH.includes(e.k) && Math.abs(e.x - P.x) < 600)) k = 'K';   // техника — не больше одной рядом
-    const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((side > 0 ? cam + W + 30 + i * 24 : cam - 30 - i * 24) / T);   // строго за краем экрана
+    const off = TECH.includes(k) ? 76 : 30;     // широкая техника — дальше, чтобы не торчала краем (аудит №15)
+    const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((side > 0 ? cam + W + off + i * 24 : cam - off - i * 24) / T);   // строго за краем экрана
     if (cx < 2 || cx > COLS - 3) continue;
     let fr = findFloor(cx, Math.floor((P.y + P.h - 1) / T));
     if (Math.random() < .55) {                 // друг (msg 1687): враги везде — на вышках, крышах, этажах
@@ -2172,8 +2196,14 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
   if (a.vx || !a.on) a.run += dt;
   if (Math.abs(a.x - P.x) > Math.max(420, W + 60) || (Math.abs(a.y - P.y) > 220 && P.on) || a.y > MAPH || touches(a, ACID)) {   // герой летит — по высоте не догоняют (msg 1666)   // отстал или упал — догоняет из-за края экрана, а не из воздуха (друг, msg 1620)
     if (P.dead) return;
-    const ex = P.face > 0 ? cam - a.w - 6 : cam + W + 6, fr = floorBelow(Math.floor((ex + a.w / 2) / T), Math.floor((P.y + P.h - 1) / T));
-    if (fr !== null) { a.x = ex; a.y = fr * T - a.h; }
+    const ex = P.face > 0 ? cam - a.w - 6 : cam + W + 6; let ok = false;
+    for (const k of [0, 16, 32, 48, 72, 104]) {    // за краем экрана; на склоне не влезло — чуть дальше (аудит №5)
+      const x = ex - P.face * k, fr = floorBelow(Math.floor((x + a.w / 2) / T), Math.floor((P.y + P.h - 1) / T));
+      if (fr === null) continue;
+      a.x = x; a.y = fr * T - a.h - 3;
+      if (!inSolid(a)) { ok = true; break; }
+    }
+    if (ok) {}
     else if (P.on) { a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; if (inSolid(a)) a.x = P.x + 5 - a.w / 2; explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']); }
     else return;                                   // герой в воздухе, пола нет — подождёт
     a.vx = 0; a.vy = 0;
@@ -2268,12 +2298,13 @@ function humanAI(e, dt) {
     if (e.y < camY - 120 || e.x > MAPW + 40) e.hp = -1;
     return;
   }
-  if (e.k === 'V' && L.obj === 'carnage' && P.x > exit.x - 140) e.leave = true;     // герой у выхода — вертолёт уходит
+  if (e.k === 'V' && L.obj === 'carnage' && (P.x > exit.x - 140 || (e.camp && P.x > 186 * T))) e.leave = true;   // лагерный улетает, когда герой ушёл на базу     // герой у выхода — вертолёт уходит
   if (e.k === 'V' && (L.desant || L.obj === 'carnage') && (L.obj === 'carnage' || inStage(e))) {   // десант (друг, msg 1597): зависает над героем и спускает солдат по тросам
     e.fly = true;
     const hx = t.x + t.w / 2 - e.w / 2 + Math.sin(time * .5) * 36, hy = clamp(t.y - 92, 8, MAPH - 140);
     e.vx = clamp((hx - e.x) * 1.2, -110, 110); e.vy = clamp((hy - e.y) * 1.1, -70, 70);
-    e.x = clamp(e.x + e.vx * dt, 0, MAPW - e.w); e.y += e.vy * dt;
+    if (L.obj === 'carnage' && e.camp === undefined) e.camp = e.x < 300 * T;
+    e.x = clamp(e.x + e.vx * dt, L.obj !== 'carnage' ? 0 : e.camp ? 70 * T : 440 * T, L.obj === 'carnage' && e.camp ? 180 * T - e.w : MAPW - e.w); e.y += e.vy * dt;   // в орде — только над открытым небом: лагерь или лес (аудит №6)
     e.drop = (e.drop ?? 1.2) - dt;
     if (e.drop <= 0 && desSent < (L.desant || 1e9) && enemies.filter(q => q.desant && q.hp > 0).length < 4 && Math.abs(hx - e.x) < 70) {
       const c = mkBug('K', e.x + e.w / 2 + rnd(-10, 10), e.y + e.h + 24, -e.dir);
@@ -2350,6 +2381,9 @@ function endGood() {
 function endBad() {
   if (bad.k === 'lag' && !P.dead) {             // откат: тебя возвращает туда, где был секунды назад (с лифта выкидывает — это фишка)
     P.x = bad.x; P.y = bad.y; P.h = 22; P.vx = 0; P.vy = 0; P.climb = false; P.inv = Math.max(P.inv, .8);
+    if (swarm && bad.sw != null) swarm.x = bad.sw;   // честный откат (друг, msg 1724): стая, газ и вагонетка возвращаются вместе с героем
+    if (fume && bad.fu != null) fume.y = bad.fu;
+    if (cart && bad.cx != null) { cart.x = bad.cx; cart.v = bad.cv; cart.dx = 0; }
     explode(P.x + 5, P.y + 11, 14, ['#f0f', '#0ff', '#fff']); showToast('↩ откат!', 1.2); beep(1800, 200, .3, 'square', .04);
   }
   cv.style.transform = ''; bad = null;
@@ -2385,7 +2419,7 @@ function updGlitch(dt, k) {
       bad.warn -= dt; if (Math.random() < .5) beep(rnd(80, 3000), rnd(80, 3000), .03, 'sawtooth', .015);
       if (bad.warn <= 0) {
         showToast('💀 БАГ: ' + BAD[bad.k].n, 2); beep(1200, 60, .5, 'sawtooth', .05); shake = .3;
-        if (bad.k === 'lag') { bad.x = P.x; bad.y = P.y + P.h - 22; }
+        if (bad.k === 'lag') { bad.x = P.x; bad.y = P.y + P.h - 22; bad.sw = swarm?.x; bad.fu = fume?.y; bad.cx = cart?.x; bad.cv = cart?.v; }   // запоминаем и угрозы — откат честный
         cv.style.transform = bad.k === 'flip' ? 'rotate(180deg)' : '';
       }
     } else { bad.t -= dt; if (bad.t <= 0) endBad(); }
@@ -2398,6 +2432,7 @@ function updGlitch(dt, k) {
 // ===== Обновление =====
 function update(dt) {
   if (menuOpen) return;                    // открыто меню уровней — игра стоит
+  if (innerHeight > innerWidth && 'ontouchstart' in window) return;   // телефон вертикально — пауза под заставкой (аудит №7)
   time += dt; stateT += dt;
   if (state !== 'play') {
     const k = input();
@@ -2416,7 +2451,7 @@ function update(dt) {
       if (stateT > 7.2 || (stateT > 1 && (anyTap || k.aPressed))) startLevel(lvlN + 1);
       anyTap = false; return;
     }
-    if (stateT > wait && (anyTap || k.a || k.b || k.aPressed)) {
+    if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
       if (state === 'over') { lives = 3; respawn(); setState('play'); }   // продолжаем с сохранения
       else if (state === 'win') setState('title');
       else if (state === 'card') setState('play');
@@ -2488,7 +2523,7 @@ function update(dt) {
   // --- Игрок ---
   if (P.dead > 0) {
     P.dead -= dt;
-    if (P.dead <= 0) { if (lives < 0) { lives = 0; setState('over'); return; } respawn(); }
+    if (P.dead <= 0) { if (lives <= 0) { lives = 0; setState('over'); return; } respawn(); }   // три сердечка — три смерти (аудит №18)
   } else {
     updatePlayer(dt, k);
     if (L.zones) { const z = zoneOf(Math.floor((P.x + 5) / T)); if (z !== zoneP) { if (zoneP) showToast(`— ${z.name} —`, 2); zoneP = z; } }
@@ -2532,7 +2567,7 @@ function update(dt) {
     for (const it of items) if (!it.got && hit(P, it)) {
       it.got = true;
       if (it.k === 'life') { lives++; showToast('❤ секрет! +1 жизнь', 2.4); beep(500, 1500, .5, 'triangle', .06); }
-      else if (it.k === 'ammo') { ammo[it.g] += WPN[it.g].box; showToast(`+${WPN[it.g].box} · ${WPN[it.g].n}`, 1.2); beep(700, 1100, .1, 'square', .04); }
+      else if (it.k === 'ammo') { it.gone = true; ammo[it.g] += WPN[it.g].box; showToast(`+${WPN[it.g].box} · ${WPN[it.g].n}`, 1.2); beep(700, 1100, .1, 'square', .04); }
       else if (it.k === 'gun') {
         owned[it.g] = true; ammo[it.g] += WPN[it.g].give; wpn = it.g;
         showToast(`🔫 ${WPN[it.g].n}! кнопка ⟳ — сменить оружие`, 3.2); beep(400, 1600, .5, 'triangle', .06);
@@ -2544,6 +2579,7 @@ function update(dt) {
         complete(L.itemTxt || ITEM[it.k]);
       }
     }
+    if (items.some(i => i.gone)) items = items.filter(i => !i.gone);   // подобранные ящики патронов — из памяти (аудит №20)
     if (exit && hit(P, exit)) {
       if (done) { nextLevel(); return; }
       if (lockMsgT <= 0) { showToast('🔒 закрыто: ' + (L.need || NEED[L.obj]), 2); lockMsgT = 2.5; beep(160, 120, .2, 'square', .04); }
@@ -2741,7 +2777,8 @@ function bugAI(e, dt) {
   if (e.human) {                                   // люди и техника (орда)
     if (e.rope) { e.vx = 0; e.vy = 80; moveBody(e, dt); e.dir = Math.sign(P.x - e.x) || 1; if (e.on || e.y > MAPH) e.rope = false; return; }   // десантник едет по тросу
     humanAI(e, dt);
-    if (e.k !== 'V') { e.vy = Math.min(e.vy + GRAV * dt, 520); moveBody(e, dt); if (touches(e, ACID)) e.hp = -1; }
+    if (e.k !== 'V') { e.vy = Math.min(e.vy + GRAV * dt, 520); moveBody(e, dt); if (touches(e, ACID)) e.hp = -1; if (e.on && e.wall && e.vx && (e.k === 'U' || e.k === 'K')) e.vy = -300; }   // упёрся в мешки — перепрыгнул (аудит №2)
+    if (e.spawned && !e.rope && Math.abs(e.x - P.x) > 700) e.hp = -1;   // отставшие из волн — убираем
     if (e.vx || e.k === 'V') e.run += dt;
     return;
   }
@@ -3032,6 +3069,7 @@ function target() {                     // куда показывает жёл�
       let best = null, bd = 1e9;
       for (const e of enemies) if (want(e)) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
       const n = enemies.filter(want).length;
+      if (!best) return { x: P.x + 5, y: P.y - 6, txt: '' };   // защита: целей не осталось (аудит №21)
       return { x: best.x + best.w / 2, y: best.y, txt: nest ? `${L.nestTxt || (L.pal.nora ? 'кладки' : 'гнёзда')}: ${n} из ${nestsAll}` : `${L.guardTxt || 'свита'}: ${n} из ${guardsAll}` };
     }
     if (L.obj === 'desant') {
@@ -5184,7 +5222,20 @@ function drawStory() {
     ctx.textAlign = 'left';
   }
 }
-function drawHud() {
+let SAFE = { l: 0, r: 0 };                   // вырез/камера/скругления: сколько отступить HUD слева и справа (друг, msg 1742) — браузер сам знает под каждый телефон
+const safeProbe = Object.assign(document.createElement('div'), { style: 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)' });
+document.body.appendChild(safeProbe);
+function safeUpd() {
+  const cs = getComputedStyle(safeProbe), k = W / (cv.getBoundingClientRect().width || innerWidth);
+  SAFE = { l: Math.round((parseFloat(cs.paddingLeft) || 0) * k), r: Math.round((parseFloat(cs.paddingRight) || 0) * k) };
+}
+addEventListener('resize', () => setTimeout(safeUpd, 50)); addEventListener('orientationchange', () => setTimeout(safeUpd, 300)); setTimeout(safeUpd, 100);
+function drawHud() {                       // HUD рисуем в «безопасной» полосе экрана
+  if (!SAFE.l && !SAFE.r) return drawHud0();
+  const W0 = W; ctx.save(); ctx.translate(SAFE.l, 0); W = W0 - SAFE.l - SAFE.r;
+  try { drawHud0(); } finally { W = W0; ctx.restore(); }
+}
+function drawHud0() {
   if (MUT()) {                                     // мутант: вместо жизней — размер орды
     ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#9aff5a'; ctx.fillText(`ОРДА: ${allies.length + 1 + hordeGone}`, 8, 16);
     ctx.fillStyle = hpFlash > 0 ? '#fff' : '#ff6a5a'; ctx.font = 'bold 7px monospace'; ctx.fillText('БЕССМЕРТЕН', 8, 24);
@@ -5290,6 +5341,7 @@ function draw() {
   if (L.alarm && state === 'play') { ctx.fillStyle = `rgba(255,20,20,${.06 + .06 * Math.sin(time * 5)})`; ctx.fillRect(0, 0, W, H); }   // тревога: красная мигалка
   ctx.save(); ctx.translate(0, -Math.round(camY)); drawSigns(); if (HORROR) drawEyes(); ctx.restore();
   drawHud(); drawStory();
+  if (AUTO && state === 'play') { ctx.font = 'bold 8px monospace'; ctx.fillStyle = Math.floor(time * 2) % 2 ? '#4f4' : '#2a2'; ctx.textAlign = 'center'; ctx.fillText('АВТОПИЛОТ', W / 2, H - 6); ctx.textAlign = 'left'; }
   if (state === 'play' && ((bad && bad.warn > 0) || roul > 0 || (bad && Math.random() < .1) || (good && Math.random() < .06))) {   // помехи на экране
     for (let i = 0; i < 14; i++) { ctx.globalAlpha = Math.random() * .7; ctx.fillStyle = pick(['#f0f', '#0ff', '#fff', '#0f0']); ctx.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
     if (bad && bad.warn > 0) { const y = Math.random() * H, h = 6 + Math.random() * 20; ctx.globalAlpha = 1; ctx.drawImage(cv, 0, y, W, h, rnd(-12, 12), y, W, h); }
@@ -5352,6 +5404,23 @@ document.getElementById('back').onclick = () => {   // застрял — вер
 const musBtn = document.getElementById('mus');
 window.musLabel = () => { musBtn.textContent = `МУЗЫКА: ${MUS.on ? 'ВКЛ' : 'ВЫКЛ'}`; musBtn.classList.toggle('on', MUS.on); };
 musBtn.onclick = () => musToggle(); musLabel();
+// ===== Автопилот (друг, msg 1706/1708): тот же бот, что проходит игру в тестах — идёт по маршруту уровня, бьёт всех, перелетает стены =====
+const autoBtn = document.getElementById('auto'); let AUTO = null;
+function autoLabel() { autoBtn.textContent = `АВТОПИЛОТ: ${AUTO ? 'ВКЛ' : 'ВЫКЛ'}`; autoBtn.classList.toggle('on', !!AUTO); }
+function autoSet(on) {
+  window.__botTick = null; releaseAll(); AUTO = null;
+  if (on && window.__bot) {
+    window.__bot(); const tick = window.__botTick; AUTO = { wait: 0 };
+    window.__botTick = () => {                       // карточки и «ты погиб» — сам жмёт дальше через секунду
+      if (['card', 'over', 'cut'].includes(state)) { if ((AUTO.wait += 1 / 60) > 1.2) { AUTO.wait = 0; dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ' })); dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyZ' })); } return; }
+      AUTO.wait = 0; tick();
+    };
+    if (state === 'play') startLevel(lvlN);          // маршрут — с начала уровня
+    document.getElementById('close').click();
+  }
+  autoLabel();
+}
+autoBtn.onclick = () => autoSet(!AUTO); autoLabel();
 godBtn.onclick = () => { IMMORTAL = !IMMORTAL; try { localStorage.setItem('strel-god', IMMORTAL ? '1' : '0'); } catch (e) {} godLabel(); };
 
 // ===== Цикл: физика с фиксированным шагом =====
@@ -5363,6 +5432,7 @@ let last = performance.now(), acc = 0;
 function frame(now) {
   acc += Math.min(.1, (now - last) / 1000) * SIM; last = now;
   while (acc >= 1 / 60) { window.__botTick?.(); update(1 / 60); acc -= 1 / 60; }
+  document.body.classList.toggle('noctl', state !== 'play');   // титул, карточка, «ты погиб» — кнопки прячем, текст виден (аудит №10)
   if (!badOn('lag') || fN++ % 7 === 0) draw();      // баг: лаг — картинка дёргается
   requestAnimationFrame(frame);
 }
@@ -5374,6 +5444,202 @@ window.__game = { get P() { return P; }, get state() { return state; }, get cam(
   get enemies() { return enemies; }, get lvl() { return lvlN; }, get done() { return done; }, get exit() { return exit; }, get items() { return items; },
   get heli() { return heli; }, get L() { return L; }, get allies() { return allies; }, get infected() { return infected; }, target: () => target(), ambEnd() { startAmbush(); amb.t = .01; }, get lv() { return lv; }, get lift() { return lift; }, get cart() { return cart; }, get swarm() { return swarm; }, get rocks() { return rocks; }, get ebullets() { return ebullets; }, get movers() { return movers; },
   startLevel, setState, T, cityStart, stageOn, get stg() { return stg; } };
+</script>
+<script>
+// Бот проходит подуровни Города N1 по маршрутам. Вызывается внутри страницы: __bot()
+window.__bot = (opts = {}) => {
+  let first = true;
+  const T = 16, G = __game, L = __lvl;
+  const ROUTES = [
+    [['go', 75, 16], ['climb', 76, 23], ['go', 70, 23], ['go', 100, 31], ['crawl', 110], ['go', 124, 31], ['climb', 128, 16], ['go', 163, 16]],
+    [['go', 20, 12], ['climb', 20, 19], ['go', 55, 19], ['crawl', 61], ['go', 92, 19], ['climb', 92, 27],
+      ['go', 64, 27], ['go', 61, 25], ['go', 57, 25], ['go', 52, 25], ['go', 47, 27], ['go', 40, 27], ['go', 3, 27], ['wj', 2, 12, 1, -1], ['go', 67, 12]],
+    [['go', 20, 18], ['climb', 14, 12], ['go', 40, 12], ['crawl', 50], ['go', 82, 12], ['crawl', 96], ['go', 125, 12], ['go', 97, 12], ['climb', 97, 18],
+      ['go', 128, 18], ['go', 72, 18], ['climb', 72, 25], ['go', 104, 25], ['go', 40, 25], ['go', 13, 25], ['climb', 12, 18], ['go', 2, 18]],
+    [['go', 56, 46], ['climb', 56, 40], ['go', 3, 40], ['climb', 3, 34], ['go', 24, 34], ['crawl', 33], ['go', 56, 34], ['climb', 56, 28],
+      ['go', 3, 28], ['climb', 3, 22], ['go', 56, 22], ['climb', 56, 16], ['go', 3, 16], ['climb', 3, 10], ['go', 30, 10], ['go', 61, 46], ['go', 2, 46]],
+    [['ride'], ['go', 36, 7]],
+    [['go', 29, 14], ['crawl', 41], ['go', 56, 19], ['go', 71, 14], ['crawl', 87],
+      ['go', 120, 14], ['hunt'], ['go', 88, 14], ['crawl', 71], ['go', 56, 19], ['go', 41, 14], ['crawl', 29], ['go', 5, 14]],
+    [['go', 110, 9], ['boss'], ['go', 140, 9]],
+    // ЛЕС
+    [['go', 91, 16], ['go', 94, 31], ['go', 132, 31], ['go', 95, 31], ['wj', 92, 16, -1, -1], ['go', 2, 16]],
+    [['go', 166, 16]],
+    [['go', 40, 8], ['climb', 40, 16], ['go', 12, 16], ['go', 47, 16], ['crawl', 53], ['go', 68, 16], ['climb', 68, 24], ['go', 108, 24], ['climb', 110, 8], ['go', 92, 8],
+      ['go', 110, 8], ['climb', 110, 24], ['go', 30, 24], ['go', 6, 24], ['wj', 4, 8, -1, -1], ['go', 2, 8]],
+    [['climb', 139, 14], ['go', 166, 14]],
+    [['climb', 44, 60], ['go', 5, 60], ['climb', 5, 54], ['go', 44, 54], ['climb', 44, 48], ['go', 5, 48], ['climb', 5, 42], ['go', 44, 42], ['climb', 44, 36],
+      ['go', 5, 36], ['climb', 5, 30], ['go', 44, 30], ['climb', 44, 24], ['go', 5, 24], ['climb', 5, 18], ['go', 44, 18], ['climb', 44, 12], ['go', 38, 12], ['go', 48, 66], ['go', 46, 66]],
+    [['go', 30, 16], ['hunt'], ['go', 2, 16]],
+    [['go', 20, 16], ['boss'], ['go', 67, 16]],
+    // НОРА
+    [['go', 37, 12], ['go', 11, 18], ['go', 47, 24], ['go', 13, 30], ['go', 49, 36], ['go', 13, 42], ['go', 56, 42]],
+    [['go', 30, 22], ['climb', 35, 14], ['go', 50, 14], ['climb', 35, 22], ['go', 75, 22], ['climb', 79, 12], ['go', 92, 12], ['climb', 79, 22], ['go', 111, 22], ['wj', 111, 5, -1, 1], ['go', 76, 22], ['go', 2, 22]],
+    [['hunt', 28, 38], ['climb', 80, 26], ['hunt', 18, 27], ['climb', 8, 16], ['hunt', 8, 18], ['crawl', 2], ['go', 2, 36]],
+    [['go', 136, 18]],
+    [['cart'], ['go', 195, 19]],
+    [['hunt', 3, 12], ['climb', 100, 19], ['hunt', 13, 22], ['climb', 60, 29], ['hunt', 23, 30], ['climb', 60, 19], ['climb', 10, 9], ['go', 2, 9]],
+    [['climb', 19, 15], ['go', 33, 15], ['go', 47, 22], ['climb', 54, 12], ['go', 69, 12], ['go', 82, 22], ['climb', 89, 15], ['go', 103, 15], ['go', 122, 22], ['climb', 111, 10], ['go', 123, 10], ['go', 108, 22], ['go', 2, 22]],
+    [['go', 20, 16], ['boss'], ['go', 70, 16]],
+    // ЛАБОРАТОРИЯ
+    [['go', 53, 17], ['crawl', 64], ['go', 156, 14]],
+    [['go', 98, 30], ['climb', 104, 20], ['go', 37, 20], ['crawl', 28], ['go', 8, 20], ['climb', 6, 10], ['go', 92, 10], ['go', 112, 30], ['go', 2, 30]],
+    [['go', 23, 22], ['climb', 27, 14], ['go', 40, 14], ['climb', 27, 22], ['go', 85, 22], ['go', 66, 22], ['climb', 69, 12], ['go', 76, 12], ['go', 117, 22], ['wj', 117, 5, -1, 1], ['go', 98], ['go', 104, 22], ['go', 2, 22]],
+    [['climb', 8, 11], ['go', 36, 11], ['crawl', 50], ['go', 82, 11], ['crawl', 96], ['go', 120, 11], ['go', 96, 11], ['crawl', 82], ['go', 50, 11], ['crawl', 36], ['climb', 8, 22], ['go', 2, 22]],
+    [['climb', 28, 70], ['climb', 3, 64], ['climb', 28, 58], ['climb', 3, 52], ['go', 10, 52], ['crawl', 20], ['climb', 28, 46], ['climb', 3, 40], ['climb', 28, 34],
+      ['climb', 3, 28], ['climb', 28, 22], ['go', 18, 22], ['crawl', 8], ['climb', 3, 16], ['climb', 28, 10], ['go', 4, 10]],
+    [['go', 31, 16], ['crawl', 38], ['hunt', 0, 30, 36, 69], ['go', 67, 16], ['crawl', 74], ['hunt', 0, 30, 72, 99], ['go', 97, 16], ['crawl', 104], ['hunt', 0, 30, 102, 130],
+      ['go', 104, 16], ['crawl', 97], ['go', 74, 16], ['crawl', 67], ['go', 38, 16], ['crawl', 31], ['go', 5, 16]],
+    [['go', 20, 16], ['boss'], ['go', 74, 16]],
+    // ВОЕННАЯ БАЗА v2
+    [['go', 26, 24], ['go', 41, 20], ['crawl', 48], ['go', 64, 10], ['go', 80, 20], ['go', 99, 24], ['go', 112, 20], ['go', 156, 20]],
+    [['go', 70, 28], ['crawl', 80], ['go', 105, 20], ['go', 146, 12], ['go', 122, 20], ['go', 82, 28], ['crawl', 72], ['go', 40, 36], ['go', 2, 36]],
+    [['go', 33, 40], ['go', 44, 34], ['climb', 45, 28], ['go', 64, 28], ['go', 33, 40], ['climb', 25, 34], ['go', 8, 34], ['climb', 13, 28],
+      ['climb', 35, 22], ['go', 47, 22], ['climb', 49, 16], ['go', 63, 16], ['go', 2, 40]],
+    [['go', 38, 14], ['crawl', 48], ['go', 76, 26], ['go', 114, 26], ['climb', 104, 14], ['go', 66, 14], ['go', 50, 14], ['crawl', 38], ['go', 2, 14]],
+    [['go', 40, 16], ['hunt', 12, 17, 26, 96], ['go', 112, 26], ['hunt', 22, 27, 107, 127], ['go', 90, 16], ['go', 30.5, 26], ['go', 46, 26], ['crawl', 55],
+      ['hunt', 22, 27, 52, 96], ['climb', 88, 16], ['hunt'], ['go', 27, 16], ['go', 2, 26]],
+    [['go', 50, 22], ['go', 76, 14], ['crawl', 84], ['go', 120, 26], ['go', 166, 16]],
+    [['go', 44, 16], ['boss'], ['go', 93, 16]],
+    // ЛАГЕРЬ ВЫЖИВШИХ
+    [['go', 99, 20], ['go', 116, 20]],
+    [['go', 82, 26], ['crawl', 94], ['go', 163, 16], ['go', 94, 26], ['crawl', 82], ['go', 3, 26]],
+    [['go', 33, 14], ['crawl', 44], ['go', 132, 28], ['go', 58, 14], ['go', 44, 14], ['crawl', 33], ['go', 3, 14]],
+    [['go', 40, 22], ['crawl', 48], ['go', 110, 12], ['hold', 70, 124]],
+    // ОРДА: бежать к выходу, рубить всех по пути, через стены — перелетать (таракан летает, пока держишь A)
+    [['go', 536, 15]],
+  ];
+  const held = {};
+  const set = (code, on) => { if (!!held[code] !== on) { dispatchEvent(new KeyboardEvent(on ? 'keydown' : 'keyup', { code })); held[code] = on; } };
+  const releaseAll = () => Object.keys(held).forEach(c => set(c, false));
+  let lvl = -1, i = 0, jumpT = 0, stuck = 0, lastX = 0, log = [];
+  window.__botState = () => ({ lvl, i, log, step: ROUTES[lvl]?.[i] });
+  const solidT = t => t === 1 || t === 6 || t === 7 || t === 10 || t === 11 || t === 12;
+  const ground = t => solidT(t) || t === 2 || t === 3;
+  window.__botTick = () => {
+    const P = G.P;
+    if (G.state !== 'play' || !P || P.dead) { releaseAll(); return; }
+    if (G.lvl !== lvl) { lvl = G.lvl; i = first ? opts.start || 0 : 0; first = false; log.push('L' + (lvl + 1)); }
+    const R = ROUTES[lvl], st0 = R[Math.min(i, R.length - 1)], hy = window.__hy || (y => y);
+    const st = st0.slice(); if (['go', 'climb', 'wj'].includes(st[0]) && st.length > 2) st[2] = hy(st[2]); if (st[0] === 'hunt' && st.length > 2) { st[1] = hy(st[1]); st[2] = hy(st[2]); }
+    const col = Math.floor((P.x + P.w / 2) / T), feetRow = Math.floor((P.y + P.h + 1) / T);
+    set('KeyJ', true);
+    if (jumpT > 0) { jumpT--; if (jumpT <= 0) set('KeyK', false); }
+    // гнездо впереди на этом же полу — присесть и стрелять
+    const nest = G.enemies.find(e => e.k === 'n' && Math.abs(e.y + 8 - (P.y + P.h)) < 4 && (e.x + 10 - P.x) * P.face > 0 && Math.abs(e.x + 10 - P.x) < 110);
+    if (nest && st[0] !== 'boss' && P.on && !P.climb && L(col, feetRow) !== 3) { set('ArrowLeft', false); set('ArrowRight', false); set('ArrowUp', false); set('ArrowDown', true); return; }
+    if (st[0] === 'ride') {                       // в лифте: стоять в центре и стрелять по жукам
+      if (G.done) { set('ArrowUp', false); i++; return; }
+      const cab = G.lift, cx = cab.x + cab.w / 2 - 5;
+      const bug = G.enemies.filter(e => e.k !== 'n').sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y))[0];
+      set('ArrowDown', false);
+      if (bug && bug.y + bug.h < P.y - 6 && Math.abs(bug.x - P.x) < 40) { set('ArrowUp', true); set('ArrowLeft', false); set('ArrowRight', false); return; }
+      set('ArrowUp', false);
+      const want = bug ? Math.sign(bug.x - P.x) : 1;
+      if (Math.abs(P.x - cx) > 30) { set('ArrowRight', P.x < cx); set('ArrowLeft', P.x > cx); }
+      else if (P.face !== want) { set('ArrowRight', want > 0); set('ArrowLeft', want < 0); }
+      else { set('ArrowRight', false); set('ArrowLeft', false); }
+      return;
+    }
+    if (st[0] === 'cart') {                       // вагонетка: забраться, пригибаться под балками, стрелять вверх по осам
+      const c = G.cart;
+      if (!c || c.stop) { set('ArrowDown', false); set('ArrowUp', false); log.push(i); i++; return; }
+      if (P.mv !== c && !c.go) { const dx = c.x + c.w / 2 - 5 - P.x; walk(dx, c.y); if (Math.abs(dx) < 14 && P.on && jumpT <= 0) { set('KeyK', true); jumpT = 12; } return; }
+      set('ArrowRight', false); set('ArrowLeft', false);
+      const top = Math.floor((c.y - 21) / T); let beam = false;
+      for (let x = P.x - 4; x < P.x + 60; x += 6) if (solidT(L(Math.floor(x / T), top))) beam = true;
+      const wasp = G.enemies.some(e => e.hp > 0 && (e.k === 'v' || e.k === 'o') && e.y < P.y - 10 && Math.abs(e.x - P.x) < 90);
+      set('ArrowDown', beam); set('ArrowUp', !beam && wasp);
+      return;
+    }
+    if (st[0] === 'hunt') {                       // гоняться за свитой (st[1..2] — ряды, где искать)
+      const gs = G.enemies.filter(e => e.gd && (e.k === 'v' || st[1] === undefined || (e.y / T >= st[1] && e.y / T <= st[2])) && (st[3] === undefined || (e.x / T >= st[3] && e.x / T <= st[4])));
+      if (!gs.length) { i++; return; }
+      const g = gs.sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y))[0], gx = g.x + g.w / 2 - (P.x + 5), gy = g.y + g.h / 2 - (P.y + 9);
+      set('ArrowDown', false);
+      if (g.k === 'o' || (g.k === 'v' && gy < -24)) {          // кокон или оса сверху — целимся вверх
+        if (g.k === 'o' ? Math.abs(gx) > 6 : Math.abs(gx) > -gy * 1.3) { set('ArrowUp', false); walk(gx, P.y + P.h); }
+        else { set('ArrowUp', true); set('ArrowRight', g.k === 'v' && gx > 4); set('ArrowLeft', g.k === 'v' && gx < -4); }
+        return;
+      }
+      set('ArrowUp', false);
+      if (g.k === 'w') {                                        // червь: ждём горку, отбегаем, стреляем
+        if (g.st === 'rise') { const away = -(Math.sign(gx) || 1); set('ArrowRight', away > 0); set('ArrowLeft', away < 0); return; }
+        if (!g.burrow) { const want = Math.sign(gx) || 1; set('ArrowRight', P.face !== want && want > 0); set('ArrowLeft', P.face !== want && want < 0); return; }
+        if (Math.abs(gx) > 60 || Math.abs(gy) > 30) walk(gx, P.y + P.h); else { set('ArrowRight', false); set('ArrowLeft', false); }
+        return;
+      }
+      if (gy > 30 && P.on && jumpT <= 0) { set('ArrowDown', true); set('KeyK', true); jumpT = 12; return; }   // цель внизу — спрыгнуть с мостика
+      if (jumpT <= 0 && P.on && (g.st === 'dash' || g.st === 'prep' || g.st === 'lunge') && Math.abs(gx) < 110) { set('KeyK', true); jumpT = 24; }
+      if (Math.abs(gx) > 70) walk(gx, P.y + P.h);
+      else if (Math.sign(gx) !== P.face) { set('ArrowRight', gx > 0); set('ArrowLeft', gx < 0); }
+      else { set('ArrowRight', false); set('ArrowLeft', false); }
+      return;
+    }
+    if (st[0] === 'hold') {                       // засада: держаться в зале и бить ближайшего
+      let best = null, bd = 1e9; for (const e of G.enemies) if (e.k !== 'n') { const d = Math.abs(e.x - P.x) + Math.abs(e.y - P.y); if (d < bd) { bd = d; best = e; } }
+      const tx = best ? Math.min(Math.max(best.x, st[1] * T), st[2] * T) : (st[1] + st[2]) / 2 * T;
+      walk(tx - P.x, P.y + P.h); return;
+    }
+    if (st[0] === 'boss') {
+      const b = G.boss;
+      if (b.dead) { i++; return; }
+      const r = b.parts[0], tx = (G.lv.arena.l + 3) * T, dxr = r.x + r.w / 2 - (P.x + 5);
+      set('ArrowDown', false); set('ArrowUp', false);
+      if (Math.abs(P.x - tx) > 10) { set('ArrowRight', P.x < tx); set('ArrowLeft', P.x > tx); }
+      else { const want = Math.sign(dxr) || 1; set('ArrowRight', P.face !== want && want > 0); set('ArrowLeft', P.face !== want && want < 0); }
+      const wave = G.ebullets.some(e => e.k === 'wave' && Math.abs(e.x - P.x) < 50);
+      if (jumpT <= 0 && (wave || (r.st === 'charge' && Math.abs(dxr) < 100)) && P.on) { set('KeyK', true); jumpT = 23; }
+      return;
+    }
+    if (st[0] === 'wj') {                         // вентшахта: прыжки от стены к стене, наверху — вбок (st[3])
+      const top = st[2] * T;
+      if (P.on && P.y + P.h <= top + 1) { set('ArrowLeft', false); set('ArrowRight', false); log.push(i); i++; return; }
+      if (P.y + P.h < top + 4) { set('ArrowRight', st[3] > 0); set('ArrowLeft', st[3] < 0); return; }
+      if (jumpT > 0) return;
+      if (P.on) { const d = st[1] * T + T - (P.x + 5); if (Math.abs(d) > 10) { set('ArrowRight', d > 0); set('ArrowLeft', d < 0); return; } const j0 = st[4] || 1; set('ArrowRight', j0 > 0); set('ArrowLeft', j0 < 0); set('KeyK', true); jumpT = 14; return; }   // первый прыжок — к глухой стене (st[4])
+      const ws = wallSide();
+      if (ws && P.wj !== ws) { set('KeyK', true); jumpT = 14; set(ws > 0 ? 'ArrowRight' : 'ArrowLeft', false); set(ws > 0 ? 'ArrowLeft' : 'ArrowRight', true); }
+      return;
+    }
+    const tx = st[1] * T + 8 - P.w / 2, dx = tx - P.x;
+    if (st[0] === 'climb') {
+      if (!P.climb && Math.abs(dx) > 24) { set('ArrowDown', false); set('ArrowUp', false); walk(dx, P.y + P.h); }
+      else if (!P.climb && Math.abs(dx) > 2) { set('ArrowDown', false); set('ArrowUp', false); set('ArrowRight', dx > 0); set('ArrowLeft', dx < 0); }
+      else if (!P.climb && P.on && Math.round((P.y + P.h) / T) === st[2]) { set('ArrowUp', false); set('ArrowDown', false); log.push(i); i++; }
+      else if (!P.climb && !P.on && !P.wet) { set('ArrowUp', false); set('ArrowDown', false); }
+      else { set('ArrowRight', false); set('ArrowLeft', false); const up = st[2] * T < P.y + P.h; set('ArrowUp', up); set('ArrowDown', !up); }
+      return;
+    }
+    if (st[0] === 'crawl') {
+      set('ArrowUp', false); set('ArrowDown', true);
+      set('ArrowRight', dx > 0); set('ArrowLeft', dx < 0);
+      if (Math.abs(dx) < 6) { set('ArrowDown', false); log.push(i); i++; }
+      return;
+    }
+    // go: идти к точке, перепрыгивая стены, ямы и кислоту
+    set('ArrowDown', false); set('ArrowUp', false);
+    const reached = Math.abs(dx) < 8 && (st[2] === undefined || Math.abs(P.y + P.h - st[2] * T) < 6) && P.on;
+    if (reached && i < R.length - 1) { log.push(i); i++; return; }
+    walk(dx, st[2] !== undefined ? st[2] * T : P.y + P.h);
+  };
+  function walk(dx, ty) {
+    const P = G.P, feetRow = Math.floor((P.y + P.h + 1) / T);
+    const dir = Math.abs(dx) < 4 ? 0 : Math.sign(dx);
+    set('ArrowRight', dir > 0); set('ArrowLeft', dir < 0);
+    if (P.wet && !P.on) { if (jumpT <= 0) { set('KeyK', true); jumpT = 10; } return; }   // в воде гребём
+    if (jumpT > 0 || !P.on || !dir) return;
+    if (Math.abs(P.x - lastX) < .2) stuck++; else stuck = 0; lastX = P.x;
+    const ahead = Math.floor((P.x + (dir > 0 ? P.w + 5 : -5)) / T);
+    const sl = q => q === 13 || q === 14;                                    // наклоны
+    const wall = (solidT(L(ahead, feetRow - 1)) && !sl(L(ahead, feetRow - 2))) || (solidT(L(ahead, feetRow - 2)) && !sl(L(ahead, feetRow - 3)));
+    const t = L(ahead, feetRow), gap = !ground(t) && !sl(t) && !sl(L(ahead, feetRow + 1));
+    const above = ty < P.y + P.h - 8 && Math.abs(dx) <= 40;
+    const farBelow = ty > P.y + P.h + 40 && t !== 4;
+    if (wall || above || (gap && !farBelow) || stuck > 20) { set('KeyK', true); jumpT = LEVELS[G.lvl]?.mut ? 32 + Math.min(stuck, 40) : 20; stuck = 0; }
+  }
+};
+
 </script>
 </body>
 </html>
