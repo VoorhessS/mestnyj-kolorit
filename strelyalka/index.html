@@ -327,12 +327,13 @@ const LEVELS = [
       B.start(3, 12); B.save(36, 10); B.save(82, 11); B.save(105, 9);
     } },
   // ===================== ЛЕС =====================
-  { city: 1, name: 'МЕСТО КРУШЕНИЯ', hi: [28], task: 'Найди рацию — её отбросило в овраг', obj: 'radio', sky: true, day: true, ground: 18, dark: .9, art: 16,
+  { city: 1, name: 'МЕСТО КРУШЕНИЯ', hi: [28], task: 'Найди рацию — её отбросило в овраг', obj: 'radio', sky: true, day: true, ground: 18, dark: .9, art: 16, burn: true,
+    after: [['r', 'Приём! Кто живой? Это Сокол-2, второй пилот!'], ['r', 'Меня выбросило с парашютом, сижу на сосне за рекой.'], ['r', 'Лес горит от вертолёта! Огонь идёт к тебе — уходи в чащу!']],
     cols: 140, rows: 36, base: AIR, pal: PAL.forest, spawn: ['M', 'M', 'A'],
     tips: ['рацию отбросило в овраг — спускайся по лиане', 'из оврага наверх быстрее по расщелине: прыжками от стены к стене', 'тропа в чащу — у обломков вертолёта, где начал'],
     build(B) {
       B.ground(0, 139, 16);
-      B.deco('wreck', 7, 12, 15, 15);
+      B.deco('wreck', 7, 12, 15, 15); B.fire(9, 16); B.fire(14, 16);                 // вертолёт горит
       B.tree(22, 5, 15); B.tree(50, 4, 15); B.tree(88, 5, 15); B.tree(133, 4, 15);
       B.ramp(28, 16, 12); B.fill(32, 12, 37, 15); B.ramp(38, 12, 16);              // холм: склоны вверх и вниз
       B.plat(44, 56, 10); B.lad(57, 10, 15); B.nest(48, 10); B.bug(53, 10, 'S');      // ветви большого дерева
@@ -350,9 +351,9 @@ const LEVELS = [
       B.exit(2, 16, 'ЧАЩА');
       B.start(10, 16);
     } },
-  { city: 1, name: 'ЧАЩА', task: 'Убегай от стаи богомолов к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 12, flow: 22, chase: 72,
+  { city: 1, name: 'ПОЖАР', task: 'Беги от пожара к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 12, flow: 22, chase: 72, fire: true, burn: true,
     cols: 170, rows: 28, base: AIR, pal: PAL.forest, spawn: ['M', 'A', 'S'],
-    tips: ['за тобой несётся стая богомолов — не останавливайся!', 'под упавшим стволом — подкат: бег + вниз', 'в воде жми прыжок — гребёшь вверх'],
+    tips: ['лес горит — огонь идёт стеной, не останавливайся!', 'под упавшим стволом — подкат: бег + вниз', 'жуки бегут от огня вместе с тобой — и на тебя'],
     build(B) {
       B.ground(0, 169, 16);
       B.tree(12, 4, 15); B.tree(40, 5, 15); B.tree(73, 4, 15); B.tree(132, 5, 15); B.tree(158, 4, 15);
@@ -373,6 +374,7 @@ const LEVELS = [
       B.start(3, 16); B.save(52, 16); B.save(103, 16); B.save(144, 16);
     } },
   { city: 1, name: 'НОРЫ', hi: [5, 5, 13, 13, 23, 23, 23, 23], task: 'Уничтожь все коконы богомолов', obj: 'nests', ground: 99, dark: .62, art: 9, under: true,
+    after: [['r', 'Пожар ушёл стороной. Выходи к реке!'], ['r', 'У берега рыбацкий плот — я видел его сверху.']],
     cols: 120, rows: 30, base: SOLID, pal: PAL.forest, spawn: ['M', 'M', 'S', 'A'],
     tips: ['коконы на всех ярусах нор — зачисти всё', 'выход к реке — там, где начал. снизу к нему ведёт расщелина: прыжками от стены к стене', 'метатель кидает камешки дугой'],
     build(B) {
@@ -392,27 +394,25 @@ const LEVELS = [
       B.exit(2, 8, 'К РЕКЕ');
       B.start(8, 8);
     } },
-  { city: 1, name: 'РЕКА', hi: [24, 24], task: 'Переберись через реку', obj: 'reach', sky: true, day: true, ground: 29, dark: .9, art: 9, flow: 40, fx: [30, 120],
-    cols: 170, rows: 30, base: AIR, pal: PAL.forest, spawn: ['M', 'F', 'A'],
-    tips: ['течение сносит вправо — прыгай по брёвнам', 'поверху можно пройти по веткам', 'за водопадом что-то блестит…'],
+  { city: 1, name: 'СПЛАВ', task: 'Сплавься на плоту по горящей реке', obj: 'reach', sky: true, day: true, ground: 17, dark: .9, burn: true, raft: true, cartV: 84, flow: 40,
+    rapids: [[96, 126], [150, 176]],
+    cols: 200, rows: 22, base: AIR, pal: PAL.forest, spawn: ['v'],
+    tips: ['встань на плот — течение понесёт само', 'горящий ствол над водой — пригнись (вниз)! стоя собьёт в реку', 'на порогах несёт быстрее. осы пикируют сверху: вверх + B'],
     build(B) {
-      B.ground(0, 169, 16);
-      B.fill(30, 16, 119, 17, AIR); B.water(30, 18, 119, 21);                     // река
-      B.fill(60, 17, 64, 21); B.fill(88, 17, 92, 21);                             // острова
-      B.log(30, 60, 18, 2); B.log(64, 88, 18, 2); B.log(92, 120, 18, 2);
-      B.fill(120, 16, 139, 24, AIR); B.water(120, 25, 139, 27); B.fall(120, 18, 24);   // водопад и нижний бассейн
-      B.room(106, 23, 119, 26); B.item('life', 109, 27); B.save(113, 27);          // пещера за водопадом
-      B.fill(140, 14, 169, 28); B.lad(139, 14, 26);                               // высокий берег и лиана
-      B.tree(27, 3, 15); B.lad(28, 10, 15);                                       // верхний путь по веткам
-      for (const [a, b] of [[29, 35], [39, 44], [48, 53], [57, 64], [68, 73], [77, 82], [86, 92], [96, 101], [105, 110], [114, 119], [123, 128], [132, 137]]) B.plat(a, b, 10);
-      B.tree(61, 3, 16); B.tree(90, 3, 16); B.tree(125, 4, 9);
-      B.bush(16, 16, 3); B.bug(17, 16, 'A');
-      B.bug(50, 10, 'F'); B.bug(80, 10, 'F'); B.bug(108, 10, 'F'); B.bug(70, 10, 'S');
-      B.bug(150, 14, 'G'); B.bug(158, 14, 'M'); B.bug(62, 17, 'M');
-      B.exit(166, 14, 'ДЕРЕВО');
-      B.start(3, 16); B.save(22, 16); B.save(62, 17); B.save(90, 17); B.save(145, 14);
+      const R = 15;                                                                  // плот на воде (ряд 15), вода — 16–17, дно — 18
+      B.ground(0, 6, 16); B.ground(192, 199, 16);                                   // берега
+      B.water(7, 16, 191, 17); B.ground(7, 191, 18);
+      for (const x of [34, 60, 88, 112, 140, 164, 184]) B.beam(x, R - 6, R - 2);    // горящие стволы свисают над водой
+      for (const [a, b] of [[44, 50], [72, 79], [124, 131], [152, 158]]) B.plat(a, b, R - 7);   // поваленные деревья поперёк реки
+      B.bug(47, R - 7, 'G'); B.bug(76, R - 7, 'M'); B.bug(127, R - 7, 'G'); B.bug(155, R - 7, 'M');
+      for (const x of [52, 98, 118, 146, 172]) B.bug(x, 10, 'v');
+      B.fire(2, 16); B.fire(195, 16);
+      B.cart(7, 191, R);
+      B.exit(197, 16, 'ДЕРЕВО');
+      B.start(3, 16); B.save(70, 16); B.save(120, 16); B.save(160, 16);
     } },
-  { city: 1, name: 'ОГРОМНОЕ ДЕРЕВО', hi: [16, 16, 16, 22, 22, 22, 28, 28, 28, 34, 34, 34, 40, 40, 40, 46, 46, 46, 52, 52, 52, 58, 58, 58, 64, 64, 64], task: 'Достань ракетницу с верхушки и подай сигнал', obj: 'flare', sky: true, day: true, ground: 69, dark: .9, art: 8,
+  { city: 1, name: 'ОГРОМНОЕ ДЕРЕВО', hi: [16, 16, 16, 22, 22, 22, 28, 28, 28, 34, 34, 34, 40, 40, 40, 46, 46, 46, 52, 52, 52, 58, 58, 58, 64, 64, 64], task: 'Достань ракетницу с верхушки и подай сигнал', obj: 'flare', sky: true, day: true, ground: 69, dark: .9, art: 8, burn: true,
+    after: [['r', 'Вижу ракету! Иду к тебе — через каменоломню.']],
     cols: 50, rows: 70, base: AIR, pal: PAL.forest, spawn: ['M', 'F', 'S'],
     tips: ['на верхушке — гнездо разведчика с ракетницей', 'лезь по лианам, через дупло — на другую сторону ствола', 'назад вниз быстрее всего — спрыгнуть с ветки. к каменоломне — от корней'],
     build(B) {
@@ -430,7 +430,8 @@ const LEVELS = [
       B.exit(46, 66, 'КАМЕНОЛОМНЯ');
       B.start(10, 66);
     } },
-  { city: 1, name: 'КАМЕНОЛОМНЯ', task: 'Разбей свиту богомола', obj: 'guards', guard: 'H', sky: true, day: true, ground: 26, dark: .9, art: 5,
+  { city: 1, name: 'КАМЕНОЛОМНЯ', task: 'Разбей свиту богомола', obj: 'guards', guard: 'H', sky: true, day: true, ground: 26, dark: .9, art: 5, burn: true,
+    after: [['r', 'Чисто! Иду к тебе... Стой. Земля дрожит...'], ['r', 'Он здесь! А-а-а!..'], 'Связь оборвалась. Его утащили — в логово.'],
     cols: 130, rows: 28, base: AIR, pal: PAL.forest, spawn: ['M', 'G', 'A'],
     tips: ['свита разбрелась: внизу в карьере, на уступах и за карьером', 'щитоносец закрыт косами спереди — бей, когда он ударил и застыл', 'разобьёшь свиту — тропа в логово откроется там, где ты начал'],
     build(B) {
@@ -448,7 +449,8 @@ const LEVELS = [
       B.exit(2, 16, 'ЛОГОВО');
       B.start(8, 16);
     } },
-  { city: 1, name: 'ЛОГОВО', task: 'Победи богомола', obj: 'boss', sky: true, day: true, ground: 18, dark: .9,
+  { city: 1, name: 'ЛОГОВО', task: 'Победи богомола', obj: 'boss', sky: true, day: true, ground: 18, dark: .9, burn: true,
+    after: [['r', 'Кха... живой. Спасибо, браток.'], ['r', 'Я к своим, за реку. А ты... под тобой земля! Беги!']],
     cols: 70, rows: 22, base: AIR, pal: PAL.forest, spawn: ['M', 'M'],
     tips: ['богомол кидает валуны прямо в тебя — следи за меткой', 'ударил косами в землю — они застряли: бей, урон двойной', 'от волны по земле — прыгай'],
     build(B) {
@@ -1850,6 +1852,7 @@ function complete(msg) {                 // задание выполнено: �
   }
   done = true;
   for (const d of lv.doors) grid[d.y][d.x] = d.to;
+  if (L.after) sayLines(L.after, 1.2);
   showToast(msg, 2.6); beep(500, 1400, .4, 'triangle', .06); shake = .2;
   if (!['reach', 'boss', 'lift', 'talk', 'meds'].includes(L.obj) && !(L.mut && L.obj === 'guards' && L.guard === 'V')) waveT = 2.2;   // через пару секунд — новая волна
 }
@@ -1887,14 +1890,14 @@ const THINK = [
   ['Инструмент есть. Зачищу контакты, скручу провода.', 'Минута работы. А жуки уже лезут из шахты...', 'Отобьюсь — и наверх, на крышу.'],
   ['Люк на крышу задраен. Сверху — тяжёлые шаги.', 'Что-то огромное ходит по крыше. И охрана при нём.', 'Сначала свита. Потом — он.'],
   ['Слышу винты! Вертолёт кружит над соседним домом!', 'Но на крыше стоит жук размером с машину. Носорог.', 'Убью его — и машу пилоту.'],
-  ['Мы рухнули. Пилот... не дышит.', 'Рацию выбило при ударе. Треск доносится из оврага.', 'Без связи нас никто не найдёт.'],
-  ['Рация шипит, а кусты шуршат со всех сторон.', 'Богомолы. Стая. Они меня учуяли.', 'Видел с вертолёта норы впереди — туда, не останавливаясь!'],
-  ['Норы забиты коконами. Это их ясли.', 'Вылупятся — стая станет втрое больше.', 'Жгу всё, что найду.'],
-  ['Рация ожила: «...лагерь... за рекой... приём...»', 'Мост снесло. Только брёвна, а течение тащит к водопаду.', 'Значит, вброд и по брёвнам. Быстро.'],
-  ['Меня не слышат — внизу рация не добивает.', 'На верхушке дерева — гнездо разведчика. Там ракетница.', 'Ракета в небо — увидят за километр.'],
-  ['Ракету увидели. Но, похоже, не только люди...', 'Из карьера ползёт свита богомола.', 'Пока они живы, к логову не пройти.'],
-  ['Вот он. Королевский богомол. Это он сбил вертолёт.', 'Камни кидает метко. Видишь метку — уходи в сторону.', 'Воткнёт косы в землю — застрянет. Тогда бить.'],
-  ['Богомол мёртв, но земля под логовом провалилась.', 'Снизу гул. Будто кто-то роет.', 'Назад пути нет. Спускаюсь.'],
+  ['Мы рухнули. Пилот... не дышит. А кресло второго — пустое.', 'Вертолёт горит, огонь уже пошёл по траве.', 'Рацию выбило при ударе. Треск доносится из оврага.'],
+  ['Дым режет глаза. Сзади трещит — огонь идёт стеной.', ['r', 'Ветер дует к норам! Огонь гонит прямо за тобой!'], ['r', 'Впереди норы. Нырнёшь туда — огонь не достанет.']],
+  ['Норы забиты коконами. Это их ясли.', ['r', 'Ты в норах? Слышу, как стрекочут... Сожги кладку!'], ['r', 'Иначе выйдешь — а за тобой целая стая.']],
+  ['Вот он, рыбацкий плот. Связан проволокой, но держится.', ['r', 'Течение сильное — само донесёт до меня. Пригибайся под стволами!'], 'Берега горят. Ну, поплыли.'],
+  [['r', 'Я тебя потерял — всё в дыму. Залезь повыше и дай ракету.'], 'На верхушке этого великана — гнездо разведчика. Там ракетница.', 'Ракета в небо — он выйдет на свет.'],
+  [['r', 'Стой! В карьере богомолы... много. Это его свита.'], ['r', 'Перебьёшь их — я проскочу к тебе по тропе.'], 'Значит, чистим карьер.'],
+  ['Вот он. Королевский богомол. Это он сбил вертолёт.', 'А за ним, в коконе, — Сокол-2. Ещё дёргается.', 'Камни кидает метко. Воткнёт косы в землю — бей.'],
+  ['Земля под логовом провалилась. Сокол-2 остался наверху.', 'Снизу гул. Будто кто-то роет.', 'Назад пути нет. Спускаюсь.'],
   ['Грибы светятся. И пахнет... кислотой.', 'На уступах кладки яиц. Свежие — ещё тёплые.', 'Кто их откладывает — лучше не знать. Жгу.'],
   ['Под потолком висят коконы. Внутри кто-то дёргается.', 'Пройду под ними — свалятся на голову.', 'Бью снизу: вверх и огонь.'],
   ['Озеро. Вода чистая, а вот земля вокруг шевелится.', 'Горки ползут ко мне. Черви.', 'Задрожала — отбегай. Вылез — стреляй.'],
@@ -1924,10 +1927,14 @@ const THINK = [
 ];
 let think = null;                         // { lines, i, t } — показываем строку за строкой, игра не стоит
 function thinkStart(n) { think = THINK[n] ? { lines: THINK[n], i: 0, t: -.6 } : null; }
-function thinkDur(s) { return 1.4 + s.length * .05; }
+function sayLines(lines, delay = .4) { if (lines && lines.length) think = { lines, i: 0, t: -delay }; }
+const thTxt = l => typeof l === 'string' ? l : l[1], thRadio = l => typeof l !== 'string' && l[0] === 'r';
+function thinkDur(s) { return 1.4 + thTxt(s).length * .05; }
 function updThink(dt) {
   if (!think || dlg) return;
-  if ((think.t += dt) > thinkDur(think.lines[think.i])) { think.t = 0; if (++think.i >= think.lines.length) think = null; }
+  const t0 = think.t;
+  if ((think.t += dt) > thinkDur(think.lines[think.i])) { think.t = 0; if (++think.i >= think.lines.length) { think = null; return; } }
+  if (t0 <= 0 && think.t > 0 && thRadio(think.lines[think.i])) { beep(1800, 900, .06, 'square', .015); beep(2400, 1200, .05, 'sawtooth', .01); }   // щелчок рации
 }
 function wrapTxt(s, maxW) {               // перенос по словам под ширину плашки
   const out = []; let cur = '';
@@ -1936,14 +1943,16 @@ function wrapTxt(s, maxW) {               // перенос по словам п
 }
 function drawThink() {
   if (!think || dlg || think.t < 0 || state !== 'play') return;
-  const s = think.lines[think.i], n = Math.min(s.length, Math.floor(think.t * 40));
-  const fade = clamp((thinkDur(s) - think.t) / .3, 0, 1) * clamp(think.t / .15, 0, 1);
+  const ln0 = think.lines[think.i], s = thTxt(ln0), radio = thRadio(ln0), n = Math.min(s.length, Math.floor(think.t * 40));
+  const fade = clamp((thinkDur(ln0) - think.t) / .3, 0, 1) * clamp(think.t / .15, 0, 1);
   ctx.font = 'bold 10px monospace';
   const bw = Math.min(W - 150, 340), bx = (W - bw) / 2, lines = wrapTxt(s, bw - 20), bh = 22 + lines.length * 13, by = 56;   // сверху: внизу герой и кнопки
   ctx.globalAlpha = fade;
-  rect(bx, by, bw, bh, 'rgba(8,10,16,.8)'); rect(bx, by, 2, bh, '#8ec8ff');
-  ctx.font = 'bold 8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#8ec8ff'; ctx.fillText('ГЕРОЙ · МЫСЛИ', bx + 10, by + 12);
-  ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#e8eef8';
+  const hc = radio ? '#9aff7a' : '#8ec8ff';
+  rect(bx, by, bw, bh, 'rgba(8,10,16,.8)'); rect(bx, by, 2, bh, hc);
+  ctx.font = 'bold 8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = hc; ctx.fillText(radio ? '📻 РАЦИЯ · СОКОЛ-2' : 'ГЕРОЙ · МЫСЛИ', bx + 10, by + 12);
+  if (radio) for (let i = 0; i < 6; i++) rect(bx + bw - 14 - i * 4, by + 10 - Math.abs(Math.sin(time * 9 + i)) * 5, 2, 1 + Math.abs(Math.sin(time * 9 + i)) * 5, hc);   // «эквалайзер» рации
+  ctx.font = 'bold 10px monospace'; ctx.fillStyle = radio ? '#d8ffcc' : '#e8eef8';
   let left = n;
   lines.forEach((ln, i) => { const k = Math.max(0, Math.min(ln.length, left)); ctx.fillText(ln.slice(0, k), bx + 10, by + 25 + i * 13); left -= ln.length + 1; });
   ctx.globalAlpha = 1;
@@ -2517,6 +2526,7 @@ function hurtBoss(r, d) {
     explode(r.x + r.w / 2, r.y + r.h / 2, 40, GOO);
     for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
     gate(false);
+    if (L.after) sayLines(L.after, 1.5);
     done = true; showToast({ mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! за ней — старый тоннель', rhino: 'носорог убит! к вертолёту!', chimera: 'химера повержена! путь на базу открыт', roach: 'человек-таракан повержен! база зачищена' }[r.k], 3); rocks = [];
   }
 }
@@ -2669,13 +2679,15 @@ function update(dt) {
 
   if (cart) {                                          // вагонетка: едет сама, пока не упрётся
     cart.dx = 0;
-    if (!cart.go && !cart.stop && P.mv === cart && !P.dead && (cart.wait -= dt) <= 0) { cart.go = true; showToast('поехали! балка — пригнись', 2); boom(.06); }
+    if (!cart.go && !cart.stop && P.mv === cart && !P.dead && (cart.wait -= dt) <= 0) { cart.go = true; showToast(L.raft ? 'поплыли! горящий ствол — пригнись' : 'поехали! балка — пригнись', 2); boom(.06); }
     if (cart.go) {
-      cart.v = Math.min(L.cartV || 110, cart.v + 120 * dt);
+      const rap = L.rapids && L.rapids.some(([a, b]) => cart.x >= a * T && cart.x < b * T), vmax = (L.cartV || 110) * (rap ? 1.6 : 1);   // пороги несут быстрее
+      cart.v = cart.v < vmax ? Math.min(vmax, cart.v + 120 * dt) : Math.max(vmax, cart.v - 90 * dt);
+      if (rap && L.raft && Math.random() < dt * 3) shake = Math.max(shake, .08);
       cart.dx = Math.min(cart.v * dt, cart.end - cart.w - cart.x); cart.x += cart.dx;
       if (Math.random() < dt * 7) beep(70 + Math.random() * 30, 50, .06, 'square', .012);
       if (!P.dead && !P.on && !P.climb && Math.abs(P.x - cart.x - 15) < 60) P.x += cart.dx;   // в прыжке летишь вместе с ней
-      if (cart.x >= cart.end - cart.w - .1) { cart.go = false; cart.stop = true; shake = .4; boom(.08); showToast('приехали! к выходу', 2); }
+      if (cart.x >= cart.end - cart.w - .1) { cart.go = false; cart.stop = true; shake = .4; boom(.08); showToast(L.raft ? 'берег! прыгай на сушу' : 'приехали! к выходу', 2); }
     }
   }
   for (const m of movers) if (m.k === 'log') {          // брёвна: плывут и качаются
@@ -2699,18 +2711,18 @@ function update(dt) {
     }
     if (touches(P, ACID) && good?.k !== 'noclip') { P.inv = 0; killPlayer(); }      // кислота
     if (cart && cart.go && !P.dead && good?.k !== 'noclip') {
-      if (inSolid(P)) { P.inv = 0; killPlayer(); if (P.dead) showToast('💥 балка! пригибайся', 1.8); }
-      else if (P.on && P.mv !== cart && P.x < cart.x - 50) { P.inv = 0; killPlayer(); if (P.dead) showToast('отстал от вагонетки!', 1.8); }
+      if (inSolid(P)) { P.inv = 0; killPlayer(); if (P.dead) showToast(L.raft ? '💥 ствол! пригибайся' : '💥 балка! пригибайся', 1.8); }
+      else if ((P.on || P.wet) && P.mv !== cart && P.x < cart.x - 50) { P.inv = 0; killPlayer(); if (P.dead) showToast(L.raft ? 'плот уплыл без тебя!' : 'отстал от вагонетки!', 1.8); }
     }
     if (swarm && P.dead <= 0) {                    // погоня: стая догоняет, если отстаёшь — подтягивается
-      if (!swarm.on) { if ((swarm.t -= dt) <= 0) { swarm.on = true; showToast('🦗 СТАЯ! БЕГИ!', 2); boom(.12); shake = .5; } }
+      if (!swarm.on) { if ((swarm.t -= dt) <= 0) { swarm.on = true; showToast(L.fire ? '🔥 ПОЖАР! БЕГИ!' : '🦗 СТАЯ! БЕГИ!', 2); boom(.12); shake = .5; } }
       else {
         const gap = P.x - swarm.x;
         swarm.x = Math.min(MAPW, swarm.x + (L.chase + Math.max(0, gap - 240) * 1.5) * dt * (good?.k === 'lag' ? .25 : 1));
-        if (Math.random() < dt * 10) beep(rnd(1200, 2600), 600, .03, 'square', .012);
-        for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w < swarm.x) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, GOO); }   // стая жрёт всех на пути
+        if (Math.random() < dt * 10) { if (L.fire) beep(rnd(80, 160), 50, .08, 'sawtooth', .015); else beep(rnd(1200, 2600), 600, .03, 'square', .012); }   // треск огня / стрекот стаи
+        for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w < swarm.x) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, L.fire ? ['#ffb020', '#ff5a1a', '#3a2a1a'] : GOO); }   // стая жрёт / огонь сжигает всех на пути
         if (gap < 130) shake = Math.max(shake, .06);
-        if (P.x < swarm.x + 2) { P.inv = 0; killPlayer(); if (P.dead) showToast('стая догнала!', 1.8); }
+        if (P.x < swarm.x + 2) { P.inv = 0; killPlayer(); if (P.dead) showToast(L.fire ? 'огонь догнал!' : 'стая догнала!', 1.8); }
       }
     }
     if (fume && P.dead <= 0) {                     // выброс газа: поднимается снизу, отстанешь — подтягивается
@@ -3267,18 +3279,33 @@ function target() {                     // куда показывает жёл�
 function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 function ell(x, y, rx, ry, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(Math.round(x), Math.round(y), Math.max(.5, rx), Math.max(.5, ry), 0, 0, Math.PI * 2); ctx.fill(); }
 const hash = (a, b) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
-function drawForestBg(sy, sp) {          // лес на фоне: дымка и ели в два слоя
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#93a89a'); g.addColorStop(.75, '#c9d2bc'); g.addColorStop(1, '#d8dcc6');
+function drawForestBg(sy, sp) {          // лес на фоне: дымка и ели в два слоя; burn — лес горит (друг, msg 1861)
+  const burn = L && L.burn, g = ctx.createLinearGradient(0, 0, 0, H);
+  if (burn) { g.addColorStop(0, '#6a6058'); g.addColorStop(.6, '#b08a68'); g.addColorStop(1, '#d09060'); }
+  else { g.addColorStop(0, '#93a89a'); g.addColorStop(.75, '#c9d2bc'); g.addColorStop(1, '#d8dcc6'); }
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ell(W * .7, 30, 18, 18, 'rgba(255,252,236,.6)');
-  for (const [k, col, h0, hr, step] of [[.12, '#7f9686', 80, 60, 22], [.3, '#5c7562', 60, 70, 18]]) {
+  ell(W * .7, 30, 18, 18, burn ? 'rgba(255,150,90,.55)' : 'rgba(255,252,236,.6)');
+  if (burn) for (let i = 0; i < 5; i++) {        // столбы дыма вдали
+    const bx = ((hash(i, 41) % 900) - cam * .08) % (W + 160); const x = bx < -80 ? bx + W + 160 : bx;
+    for (let j = 0; j < 7; j++) { const yy = sy - 60 - j * 22 - (time * 6 % 22), r = 14 + j * 5; ell(x + Math.sin(time * .4 + j + i) * 6 + j * 4, yy, r, r * .7, `rgba(60,52,48,${.22 - j * .025})`); }
+  }
+  for (const [k, col, h0, hr, step] of [[.12, burn ? '#6e6a5e' : '#7f9686', 80, 60, 22], [.3, burn ? '#4a4a3c' : '#5c7562', 60, 70, 18]]) {
     for (let i = -1; i < W / step + 2; i++) {
       const off = cam * k + sp * k * 4, n = i + Math.floor(off / step), x = i * step - off % step, h = h0 + hash(n, 3) % hr;
       ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x - 10, sy); ctx.lineTo(x + step / 2, sy - h); ctx.lineTo(x + step + 10, sy); ctx.fill();
+      if (burn && hash(n, 17) % (k < .2 ? 6 : 9) === 0) {         // горящая ель: пламя на верхушке и по бокам
+        const fl = 1 + Math.sin(time * 11 + n) * .25, tx = x + step / 2, ty = sy - h;
+        ell(tx, ty + 10, 9 * fl, 12 * fl, 'rgba(255,120,30,.55)'); ell(tx, ty + 6, 4 * fl, 8 * fl, 'rgba(255,220,110,.8)');
+        ell(tx - 6, ty + 28, 5 * fl, 7 * fl, 'rgba(255,100,20,.5)');
+      }
     }
   }
-  rect(0, sy - 2, W, H, '#5c7562');
+  rect(0, sy - 2, W, H, burn ? '#3e4234' : '#5c7562');
+  if (burn) {                                      // зарево у земли и искры в воздухе
+    const gl = ctx.createLinearGradient(0, sy - 50, 0, sy); gl.addColorStop(0, 'rgba(255,90,20,0)'); gl.addColorStop(1, `rgba(255,90,20,${.28 + .08 * Math.sin(time * 3)})`);
+    ctx.fillStyle = gl; ctx.fillRect(0, sy - 50, W, 50);
+    for (let i = 0; i < 22; i++) { const u = (time * .12 + hash(i, 33) / 991) % 1, x = (hash(i, 34) % W + Math.sin(time + i) * 10 - cam * .2 % W + W) % W; rect(x, sy - u * (sy + 20), 1, 1, i % 3 ? '#ffb040' : '#ff6a20'); }
+  }
 }
 function drawBg() {
   if (L && L.zones) {                       // небо рисуем, если в кадре есть часть под открытым небом
@@ -3814,7 +3841,23 @@ function drawProps() {
     for (let i = 6; i < w; i += 16) rect(x + i, y + 1, 2, 2, '#9aa0aa');
     rect(x, y - 14, 2, 14, '#7a7f88'); rect(x, y - 14, 10, 2, '#7a7f88'); rect(x + w - 2, y - 14, 2, 14, '#7a7f88'); rect(x + w - 10, y - 14, 10, 2, '#7a7f88');
   }
-  if (cart) {                                       // рельсы и вагонетка
+  if (cart && L.raft) {                             // плот и горящие стволы над рекой
+    for (const [bx, b0, b1] of lv.beams) {
+      const x = bx * T - cam; if (x < -40 || x > W + 40) continue;
+      const yb = (b1 + 1) * T, fl = 1 + Math.sin(time * 12 + bx) * .2;
+      ell(x + 8, b0 * T - 30, 22, 14, '#2a3222'); ell(x - 4, b0 * T - 20, 12, 8, '#36402a');
+      rect(x + 2, b0 * T - 30, 12, yb - b0 * T + 30, '#3a2a1c'); rect(x + 4, b0 * T - 30, 2, yb - b0 * T + 30, '#5a4430'); rect(x + 11, b0 * T - 30, 1, yb - b0 * T + 30, '#22180e');
+      rect(x + 2, yb - 6, 12, 6, '#1a1008');
+      ell(x + 8, yb - 4, 9 * fl, 11 * fl, 'rgba(255,110,25,.65)'); ell(x + 8, yb - 6, 4 * fl, 7 * fl, 'rgba(255,225,120,.9)');
+      if (Math.random() < .25) parts.push({ x: bx * T + 8 + rnd(-4, 4), y: yb - 8, vx: rnd(-20, 20), vy: rnd(-60, -20), life: .5, col: Math.random() < .5 ? '#ffb040' : '#ff6a20' });
+    }
+    const x = cart.x - cam, y = cart.y + 2, w = cart.w;
+    for (let i = 0; i < 5; i++) { rect(x + i * 8, y, 8, 8, i % 2 ? '#6a4a2a' : '#7a5832'); rect(x + i * 8, y, 8, 2, '#9a7448'); rect(x + i * 8 + 7, y, 1, 8, '#3a2614'); }
+    rect(x + 5, y + 1, 1, 7, '#c8b890'); rect(x + w - 6, y + 1, 1, 7, '#c8b890');                           // верёвки
+    rect(x + w - 4, y - 18, 1, 18, '#5a4430');                                                                  // шест
+    if (cart.go && Math.random() < .5) parts.push({ x: cart.x - 2 + Math.random() * 6, y: y + 8, vx: rnd(-50, -20), vy: rnd(-30, -5), life: .3, col: 'rgba(220,235,245,.8)' });   // пена за плотом
+  }
+  else if (cart) {                                  // рельсы и вагонетка
     const R = lv.cart.y, ry = R * T + 15, c0 = Math.max(lv.cart.x0 - 2, Math.floor(cam / T)), c1 = Math.min(lv.cart.x1, Math.floor(cam / T) + Math.ceil(W / T) + 1);
     for (let cx = c0; cx <= c1; cx++) { const x = cx * T - cam; rect(x, ry, T, 1, '#8a8a90'); rect(x + 3, ry + 1, 4, 1, '#4a3424'); rect(x + 11, ry + 1, 4, 1, '#4a3424'); }
     for (const [bx, b0, b1] of lv.beams) {          // деревянные балки с жёлто-чёрной полосой внизу
@@ -4026,8 +4069,24 @@ function mutArm(x, y, f) {                         // мутант: голова
     for (let i = 0; i < 3; i++) { ctx.beginPath(); if (f > 0) ctx.arc(cx + 4, cy - 3 + i * 3, r - i * 2, -1.1, 1.1); else ctx.arc(cx - 4, cy - 3 + i * 3, r - i * 2, Math.PI - 1.1, Math.PI + 1.1); ctx.stroke(); }
   }
 }
+function drawFireWall(fx) {                      // стена огня: угли внизу, языки пламени по фронту, дым сверху
+  const top = camY - 10, h = H + 20;
+  const g = ctx.createLinearGradient(fx - 140, 0, fx + 10, 0);
+  g.addColorStop(0, 'rgba(40,10,4,.95)'); g.addColorStop(.6, 'rgba(160,40,8,.92)'); g.addColorStop(1, 'rgba(255,140,30,.85)');
+  ctx.fillStyle = g; ctx.fillRect(-20, top, fx + 12, h);
+  for (let i = 0; i < 26; i++) {                   // языки пламени
+    const yy = top + ((i * 37 + 11) % h), ph = time * 9 + i * 2.1, len = 14 + Math.sin(ph) * 7 + (i % 4) * 4;
+    ctx.fillStyle = i % 3 ? 'rgba(255,170,40,.9)' : 'rgba(255,230,120,.95)';
+    ctx.beginPath(); ctx.moveTo(fx - 4, yy - 7); ctx.quadraticCurveTo(fx + len * .7, yy - 6 + Math.sin(ph * 1.4) * 3, fx + len, yy); ctx.quadraticCurveTo(fx + len * .7, yy + 6, fx - 4, yy + 7); ctx.fill();
+  }
+  for (let i = 0; i < 18; i++) {                   // искры летят вперёд
+    const u = (time * .9 + hash(i, 5) / 977) % 1, yy = top + (hash(i, 9) % h) - u * 40;
+    rect(fx + u * 90, yy, 1 + (i % 2), 1 + (i % 2), u < .6 ? '#ffd060' : '#ff6a20');
+  }
+}
 function drawSwarm() {                           // стая богомолов: тёмная стена с глазами и лапами-косами
   const fx = swarm.x - cam; if (fx < -30) return;
+  if (L.fire) { drawFireWall(fx); return; }
   ctx.fillStyle = 'rgba(8,14,6,.9)'; ctx.fillRect(-20, camY - 10, fx + 12, H + 20);
   for (let i = 0; i < 34; i++) {
     const yy = camY + ((i * 53 + 17) % (H + 20)) - 10, ph = time * 8 + i * 1.7, xx = fx + 6 - (i % 6) * 9 + Math.sin(ph) * 4;
@@ -5420,7 +5479,7 @@ function drawHud0() {
 
   ctx.font = 'bold 8px monospace'; ctx.fillStyle = '#8a8a9a'; ctx.textAlign = 'left';
   ctx.fillText(L.zones ? `${L.name}: ${zoneOf(Math.floor((P.x + 5) / T)).name}` : `${lvlN - cityStart(L.city || 0) + 1}/${cityCount(L.city || 0)} ${L.name}`, 8, 32);
-  if (swarm && swarm.on && P) { const g = P.x - swarm.x; if (g < 240) { ctx.fillStyle = `rgba(255,30,30,${(1 - g / 240) * (.45 + .25 * Math.sin(time * 12))})`; ctx.fillRect(0, 0, 8, H); } }
+  if (swarm && swarm.on && P) { const g = P.x - swarm.x; if (g < 240) { ctx.fillStyle = `rgba(255,${L.fire ? 110 : 30},30,${(1 - g / 240) * (.45 + .25 * Math.sin(time * 12))})`; ctx.fillRect(0, 0, 8, H); } }
   if (fume && fume.on && P) { const g = fume.y - (P.y + P.h); if (g < 200) { ctx.fillStyle = `rgba(120,230,60,${(1 - Math.max(0, g) / 200) * (.35 + .2 * Math.sin(time * 10))})`; ctx.fillRect(0, H - 8, W, 8); } }
   rect(8, 37, 52, 4, '#222'); rect(8, 37, 52 * energy / 100, 4, energy >= 100 ? (Math.floor(time * 6) % 2 ? '#e0a0ff' : '#9b3dff') : '#6a2a9a');
   ctx.fillStyle = '#b48aff'; ctx.font = 'bold 7px monospace'; ctx.fillText('БАГ', 63, 42);
@@ -6096,7 +6155,7 @@ window.__bot = (opts = {}) => {
     [['go', 166, 16]],
     [['go', 40, 8], ['climb', 40, 16], ['go', 12, 16], ['go', 47, 16], ['crawl', 53], ['go', 68, 16], ['climb', 68, 24], ['go', 108, 24], ['climb', 110, 8], ['go', 92, 8],
       ['go', 110, 8], ['climb', 110, 24], ['go', 30, 24], ['go', 6, 24], ['wj', 4, 8, -1, -1], ['go', 2, 8]],
-    [['climb', 139, 14], ['go', 166, 14]],
+    [['cart'], ['go', 197, 16]],                  // сплав на плоту
     [['climb', 44, 60], ['go', 5, 60], ['climb', 5, 54], ['go', 44, 54], ['climb', 44, 48], ['go', 5, 48], ['climb', 5, 42], ['go', 44, 42], ['climb', 44, 36],
       ['go', 5, 36], ['climb', 5, 30], ['go', 44, 30], ['climb', 44, 24], ['go', 5, 24], ['climb', 5, 18], ['go', 44, 18], ['climb', 44, 12], ['go', 38, 12], ['go', 48, 66], ['go', 46, 66]],
     [['go', 30, 16], ['hunt'], ['go', 2, 16]],
