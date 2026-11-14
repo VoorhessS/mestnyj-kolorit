@@ -48,6 +48,28 @@
     justify-content: center; flex-direction: column; font: 600 20px system-ui, sans-serif; text-align: center; gap: 14px; }
   #port .ic { font-size: 54px; animation: rot 1.6s ease-in-out infinite; }
   @keyframes rot { 50% { transform: rotate(90deg); } }
+  /* Тактическая карта уровней и титульное меню (друг, msg 1782) */
+  #map { position: fixed; inset: 0; background: #121410; display: none; z-index: 20; }
+  #mapc { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; image-rendering: auto; }
+  #map .bar { position: absolute; top: calc(env(safe-area-inset-top) + 8px); left: calc(env(safe-area-inset-left) + 12px); right: calc(env(safe-area-inset-right) + 12px);
+    display: flex; align-items: center; gap: 10px; pointer-events: none; }
+  #map .bar b { font: 800 15px system-ui, sans-serif; letter-spacing: 3px; color: #d8d0b0; text-shadow: 0 1px 3px #000; flex: 1; }
+  #map .bar small { font: 600 11px system-ui, sans-serif; color: #9a9478; }
+  .mbtn { pointer-events: auto; font: 700 13px system-ui, sans-serif; color: #e8dca8; background: rgba(20,22,16,.88); border: 1.5px solid #8a8058;
+    border-radius: 4px; padding: 8px 14px; min-height: 40px; letter-spacing: 1px; }
+  #minfo { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 10px); width: min(560px, calc(100% - 24px));
+    display: none; align-items: center; gap: 12px; background: rgba(16,18,13,.94); border: 1.5px solid #8a8058; border-left: 4px solid #ffd23f; border-radius: 4px; padding: 8px 10px; box-sizing: border-box; }
+  #minfo .tx { flex: 1; min-width: 0; color: #e8e0c0; font: 600 12px system-ui, sans-serif; }
+  #mi-n { font: 800 15px monospace; color: #ffd23f; } #mi-z { font: 700 10px system-ui; color: #9a9478; letter-spacing: 1px; margin: 1px 0 3px; }
+  #mi-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mi-go { background: #6a1218; border-color: #ff4040; color: #fff; font-size: 15px; }
+  #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; justify-content: center; gap: 12px; z-index: 5; }
+  #tmenu button { font: 800 15px system-ui, sans-serif; letter-spacing: 2px; color: #ffd23f; background: rgba(10,10,8,.78); border: 2px solid #ffd23f;
+    border-radius: 4px; padding: 10px 18px; min-height: 46px; min-width: 120px; }
+  #tmenu #t-go { background: #8a1218; border-color: #ff5a4a; color: #fff; }
+  #help { position: fixed; inset: 0; background: rgba(8,8,10,.95); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; z-index: 21;
+    color: #ddd; font: 600 14px system-ui, sans-serif; text-align: center; padding: 10px; }
+  #help h3 { margin: 0 0 6px; color: #ffd23f; letter-spacing: 3px; } #help b { color: #ffd23f; }
 </style>
 </head>
 <body>
@@ -64,7 +86,19 @@
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="m-map">КАРТА</button><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<div id="tmenu"><button id="t-go">▶ НАЧАТЬ</button><button id="t-map">УРОВНИ</button><button id="t-help">УПРАВЛЕНИЕ</button></div>
+<div id="help"><h3>УПРАВЛЕНИЕ</h3>
+  <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
+  <div>вверх/вниз у лестницы — лезть, вниз + вбок — ползти</div>
+  <div>вниз + A на перекрытии — спрыгнуть · у стены в прыжке A — отскок</div>
+  <div>с разбега A — сальто, стреляешь по кругу · бег + вниз — подкат (в подкате не ранят)</div>
+  <div>💾 дискеты — сохранения · гнёзда можно расстрелять</div>
+  <div>☰ справа вверху — меню: уровни, музыка, бессмертие</div>
+  <button class="mbtn" id="hclose" style="margin-top:10px">ПОНЯЛ</button></div>
+<div id="map"><canvas id="mapc"></canvas>
+  <div class="bar"><button class="mbtn" id="mback" style="display:none">← КАРТА</button><b id="mtitle">КАРТА ЗОНЫ</b><small id="mhint">выбери зону</small><button class="mbtn" id="mclose">✕</button></div>
+  <div id="minfo"><div class="tx"><div id="mi-n"></div><div id="mi-z"></div><div id="mi-t"></div></div><button class="mbtn" id="mi-go">В БОЙ ▶</button></div></div>
 <div id="port"><div class="ic">📱</div>Поверни телефон боком</div>
 <script>
 'use strict';
@@ -2433,7 +2467,7 @@ function updGlitch(dt, k) {
 
 // ===== Обновление =====
 function update(dt) {
-  if (menuOpen) return;                    // открыто меню уровней — игра стоит
+  if (menuOpen || mapOpen) return;         // открыто меню или карта — игра стоит
   if (innerHeight > innerWidth && 'ontouchstart' in window) return;   // телефон вертикально — пауза под заставкой (аудит №7)
   time += dt; stateT += dt;
   if (state !== 'play') {
@@ -3056,7 +3090,7 @@ function guardAI(e, dt, dx, dyF, dir) {
   }
 }
 function nextLevel() {
-  beep(300, 900, .3, 'triangle', .05);
+  beep(300, 900, .3, 'triangle', .05); markDone(lvlN);   // галочка на карте
   if (lvlN + 1 >= LEVELS.length) { setState(L.mut ? 'fin' : 'win'); return; }   // орда дошла — финальная сцена
   if ((LEVELS[lvlN + 1].city || 0) !== (L.city || 0)) { cutHit = false; setState('cut'); return; }   // заставка: вертолёт сбит
   startLevel(lvlN + 1);
@@ -5310,11 +5344,8 @@ function draw() {
   if (state === 'title') {
     ctx.restore();
     const blink = Math.floor(time * 2) % 2;
-    centerText([['СУДНЫЙ ДЕНЬ', 26, '#ffd23f', 52], ['из-под земли вылезли древние насекомые. пробейся!', 9, '#fff', 76],
-      ['A — прыжок, B — огонь, крестовина — бег и прицел', 9, '#ccc', 102], ['вверх/вниз у лестницы — лезть, вниз+вбок — ползти', 9, '#ccc', 116],
-      ['вниз + A на перекрытии — спрыгнуть · у стены в прыжке A — отскок', 9, '#ccc', 130], ['💾 дискеты — сохранения, гнёзда можно расстрелять', 9, '#ccc', 144],
-      ['с разбега A — сальто, стреляешь по кругу · бег + вниз — подкат', 9, '#ccc', 158],
-      [blink ? 'жми A или B, чтобы начать' : '', 11, '#fff', 176], ['☰ справа вверху — выбрать уровень, бессмертие', 8, '#8a8a9a', 192]]);
+    centerText([['СУДНЫЙ ДЕНЬ', 32, '#ffd23f', 62], ['из-под земли вылезли древние насекомые', 9, '#fff', 90], ['найди своего скорпиона. пробейся!', 9, '#ff6a4a', 103]]);
+    ctx.fillStyle = `rgba(200,16,46,${.25 + .15 * Math.sin(time * 3)})`; ctx.fillRect(W / 2 - 90, 78, 180, 2);
     return;
   }
   ctx.translate(0, -Math.round(camY));
@@ -5403,6 +5434,273 @@ document.getElementById('back').onclick = () => {   // застрял — вер
   openMenu(false); if (state !== 'play' || P.dead) return;
   respawn(); showToast('↩ вернулся к последней дискете', 1.8); beep(1500, 300, .2, 'square', .03);
 };
+// ===== Тактическая карта уровней (друг, msg 1782: «как карта в Таркове») =====
+const MAP = { W: 1000, H: 620 };
+// метки уровней в координатах карты; порядок = LEVELS
+const MPOS = [
+  [905, 540], [880, 492], [858, 458], [838, 422], [862, 388], [890, 358], [912, 322],            // Город N1: улица → крыша
+  [728, 312], [668, 286], [618, 340], [566, 296], [512, 268], [474, 340], [532, 392],            // Лес
+  [548, 468], [604, 492], [656, 536], [598, 568], [530, 548], [466, 572], [424, 520], [392, 572], // Нора
+  [334, 528], [292, 484], [244, 538], [200, 486], [240, 432], [300, 410], [196, 404],             // Лаборатория
+  [238, 188], [298, 152], [368, 172], [440, 130], [362, 96], [282, 70], [432, 52],                // Военная база
+  [104, 252], [62, 170], [148, 146], [82, 322],                                                    // Лагерь выживших
+  [612, 214]];                                                                                     // Орда: обратный путь
+const MZONE = [                                // зона: полигон, подпись, цвет заливки
+  { c: 0, pts: [[782, 292], [978, 282], [988, 596], [790, 600], [762, 448]], lab: [884, 610], col: '120,118,104' },
+  { c: 1, pts: [[452, 236], [748, 226], [770, 300], [756, 432], [470, 432], [440, 330]], lab: [640, 420], col: '84,110,60' },
+  { c: 2, pts: [[376, 448], [700, 448], [712, 600], [372, 604]], lab: [540, 614], col: '120,86,56', under: true },
+  { c: 3, pts: [[150, 384], [366, 382], [362, 590], [154, 588]], lab: [258, 600], col: '70,108,120' },
+  { c: 4, pts: [[186, 30], [520, 26], [524, 208], [190, 212]], lab: [352, 20], col: '100,104,70' },
+  { c: 5, pts: [[24, 116], [182, 108], [186, 360], [28, 366]], lab: [104, 100], col: '130,96,64' }];
+const HORDE = [[104, 252], [200, 284], [420, 280], [470, 222], [760, 210], [952, 248], [966, 548]];
+const MICON = { boss: 'boss', nests: 'nest', guards: 'shield', reach: 'flag', carnage: 'claw', switch: 'bolt', lift: 'lift',
+  talk: 'talk', food: 'crate', arms: 'crate', meds: 'cross' };
+function doneSet() { try { return new Set(JSON.parse(localStorage.getItem('strel-done') || '[]')); } catch (e) { return new Set(); } }
+function markDone(n) { try { const s = doneSet(); s.add(n); localStorage.setItem('strel-done', JSON.stringify([...s])); } catch (e) {} }
+
+const mapEl = document.getElementById('map'), mapC = document.getElementById('mapc'), mx = mapC.getContext('2d');
+const mInfo = document.getElementById('minfo');
+let mapOpen = false, mapBg = null, mapSel = -1, mapV = { z: 1, x: 0, y: 0 }, mapAnim = 0, mapZ = -1, mapTw = null;
+function inPoly(x, y, pts) { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function segD(px, py, [ax, ay], [bx, by]) { const dx = bx - ax, dy = by - ay, t = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy), 0, 1); return Math.hypot(ax + dx * t - px, ay + dy * t - py); }
+function mapZoneAt(wx, wy) {                  // какая зона под пальцем (6 — путь орды)
+  for (let i = 1; i < HORDE.length; i++) if (segD(wx, wy, HORDE[i - 1], HORDE[i]) < 14) return 6;
+  const z = MZONE.find(z => inPoly(wx, wy, z.pts)); return z ? z.c : -1;
+}
+function zoneBox(c) { const pts = c === 6 ? HORDE : MZONE[c].pts, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; }
+function viewFor(c) {                         // вид, в котором зона c занимает экран
+  const cw = mapC.clientWidth, ch = mapC.clientHeight;
+  if (c < 0) { const z = Math.min(cw / MAP.W, ch / MAP.H) * .96; return { z, x: (cw - MAP.W * z) / 2, y: (ch - MAP.H * z) / 2 }; }
+  const [x0, y0, x1, y1] = zoneBox(c), pad = 30, top = 50, bot = 70;
+  const z = Math.min((cw - pad * 2) / (x1 - x0), (ch - top - bot) / (y1 - y0));
+  return { z, x: cw / 2 - (x0 + x1) / 2 * z, y: top + (ch - top - bot) / 2 - (y0 + y1) / 2 * z };
+}
+function mapFocus(c, now) {
+  mapZ = c; mapSel = -1; mInfo.style.display = 'none';
+  document.getElementById('mback').style.display = c < 0 ? 'none' : '';
+  document.getElementById('mtitle').textContent = c < 0 ? 'КАРТА ЗОНЫ' : CITY[c];
+  document.getElementById('mhint').textContent = c < 0 ? 'выбери зону' : 'выбери уровень';
+  const to = viewFor(c);
+  if (now) { mapV = to; mapTw = null; } else mapTw = { a: { ...mapV }, b: to, t: 0 };
+}
+function mrand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function buildMapBg() {                       // статичный слой: бумага, рельеф, зоны, дороги, сетка — рисуем один раз в 2×
+  const S = 2, c = document.createElement('canvas'); c.width = MAP.W * S; c.height = MAP.H * S;
+  const g = c.getContext('2d'); g.scale(S, S); const R = mrand(1782);
+  g.fillStyle = '#23271f'; g.fillRect(0, 0, MAP.W, MAP.H);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${R() < .5 ? '0,0,0' : '200,200,170'},${R() * .05})`; g.fillRect(R() * MAP.W, R() * MAP.H, 1 + R() * 2, 1 + R() * 2); }
+  // зоны
+  for (const z of MZONE) {
+    g.beginPath(); z.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+    g.fillStyle = `rgba(${z.col},.22)`; g.fill();
+    if (z.under) { g.save(); g.clip(); g.strokeStyle = `rgba(${z.col},.35)`; g.lineWidth = 1; for (let x = -700; x < 1000; x += 9) { g.beginPath(); g.moveTo(x, 640); g.lineTo(x + 640, 0); g.stroke(); } g.restore(); }
+  }
+  // рельеф: изолинии вокруг холмов
+  const hills = [[620, 120, 150], [120, 470, 120], [700, 560, 90], [880, 120, 110], [380, 330, 70], [40, 40, 90], [960, 420, 60]];
+  g.strokeStyle = 'rgba(190,180,140,.13)'; g.lineWidth = .8;
+  for (const [hx, hy, hr] of hills) {
+    const ph = R() * 6, k = 7;
+    for (let i = 1; i <= k; i++) {
+      const r = hr * i / k; g.beginPath();
+      for (let a = 0; a <= 6.3; a += .08) { const rr = r * (1 + .18 * Math.sin(a * 3 + ph + i * .4) + .08 * Math.sin(a * 7 + ph * 2)); g.lineTo(hx + Math.cos(a) * rr, hy + Math.sin(a) * rr * .8); }
+      g.closePath(); g.stroke();
+    }
+  }
+  // лес: кроны
+  for (let i = 0; i < 900; i++) {
+    const x = 450 + R() * 310, y = 230 + R() * 200; if (x > 748 || (x < 470 && y > 380)) continue;
+    g.fillStyle = `rgba(${60 + R() * 30},${90 + R() * 40},${45 + R() * 20},.55)`; g.beginPath(); g.arc(x, y, 2 + R() * 4, 0, 7); g.fill();
+  }
+  // река через лес и дальше на юг
+  g.strokeStyle = 'rgba(90,120,140,.75)'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
+  for (let y = 0; y <= 620; y += 10) g.lineTo(560 + Math.sin(y / 40) * 18 + (y > 300 ? (y - 300) * .3 : 0), y); g.stroke();
+  g.strokeStyle = 'rgba(150,180,195,.35)'; g.lineWidth = 2; g.stroke();
+  // каменоломня: карьер
+  g.strokeStyle = 'rgba(200,190,160,.3)'; for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(474, 340, 30 - i * 7, 18 - i * 4, .3, 0, 7); g.stroke(); }
+  // постройки
+  const blk = (x, y, w, h, a) => { g.fillStyle = `rgba(20,22,18,${a || .85})`; g.fillRect(x, y, w, h); g.strokeStyle = 'rgba(200,200,180,.28)'; g.lineWidth = .8; g.strokeRect(x + .5, y + .5, w, h); };
+  for (let x = 800; x < 975; x += 26) for (let y = 300; y < 590; y += 30) if (R() < .78 && !(x > 830 && x < 900 && y > 330 && y < 480)) blk(x + R() * 4, y + R() * 4, 14 + R() * 8, 14 + R() * 10);
+  blk(828, 330, 64, 150, .95);                                  // наша высотка
+  g.fillStyle = 'rgba(200,200,180,.18)'; for (let y = 338; y < 476; y += 10) for (let x = 834; x < 888; x += 10) g.fillRect(x, y, 5, 5);
+  for (let i = 0; i < 9; i++) blk(210 + (i % 3) * 100 + R() * 20, 50 + Math.floor(i / 3) * 52 + R() * 10, 40 + R() * 20, 16 + R() * 8);   // база: ангары
+  g.setLineDash([6, 4]); g.strokeStyle = 'rgba(220,210,170,.45)'; g.lineWidth = 1.2; g.strokeRect(196, 36, 322, 168); g.setLineDash([]);
+  for (let i = 0; i < 6; i++) blk(170 + (i % 3) * 64 + R() * 10, 400 + Math.floor(i / 3) * 80 + R() * 14, 40 + R() * 16, 24 + R() * 12);   // лаборатория
+  for (let i = 0; i < 14; i++) { const x = 40 + R() * 130, y = 130 + R() * 220; g.fillStyle = 'rgba(160,130,90,.6)'; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x + 7, y + 4); g.lineTo(x - 7, y + 4); g.fill(); }   // палатки лагеря
+  // норы: туннели
+  g.strokeStyle = 'rgba(30,20,12,.8)'; g.lineWidth = 5; g.beginPath();
+  [[532, 392], [548, 468], [604, 492], [656, 536], [598, 568], [530, 548], [466, 572], [424, 520], [392, 572], [334, 528]].forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+  // дороги
+  const road = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.lineJoin = 'round'; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); };
+  road(HORDE, 6, 'rgba(40,40,36,.9)'); road(HORDE, 1, 'rgba(210,200,160,.35)');
+  road([[238, 188], [238, 280]], 4, 'rgba(40,40,36,.9)'); road([[790, 540], [905, 540], [975, 540]], 5, 'rgba(40,40,36,.9)');
+  // сетка с координатами
+  g.strokeStyle = 'rgba(220,210,170,.09)'; g.lineWidth = 1; g.font = '600 9px monospace'; g.fillStyle = 'rgba(220,210,170,.4)';
+  for (let i = 0; i <= 10; i++) { g.beginPath(); g.moveTo(i * 100, 0); g.lineTo(i * 100, MAP.H); g.stroke(); if (i < 10) g.fillText('ABCDEFGHIJ'[i], i * 100 + 4, 10); }
+  for (let j = 0; j <= 6; j++) { g.beginPath(); g.moveTo(0, j * 100); g.lineTo(MAP.W, j * 100); g.stroke(); if (j) g.fillText(String(j), 3, j * 100 - 4); }
+  // контуры зон поверх
+  for (const z of MZONE) {
+    g.beginPath(); z.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+    g.setLineDash(z.under ? [4, 4] : []); g.strokeStyle = `rgba(${z.col},.9)`; g.lineWidth = 1.5; g.stroke(); g.setLineDash([]);
+  }
+  // виньетка
+  const vg = g.createRadialGradient(500, 310, 200, 500, 310, 640); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  g.fillStyle = vg; g.fillRect(0, 0, MAP.W, MAP.H);
+  return c;
+}
+function mapFit() { mapV = viewFor(mapZ); }
+function mapClamp() {
+  const cw = mapC.clientWidth, ch = mapC.clientHeight, z0 = Math.min(cw / MAP.W, ch / MAP.H) * .9;
+  mapV.z = clamp(mapV.z, mapZ < 0 ? z0 : viewFor(mapZ).z * .8, mapZ < 0 ? z0 * 1.6 : viewFor(mapZ).z * 2.5);
+  const mw = MAP.W * mapV.z, mh = MAP.H * mapV.z;
+  mapV.x = mw < cw ? (cw - mw) / 2 : clamp(mapV.x, cw - mw - 40, 40);
+  mapV.y = mh < ch ? (ch - mh) / 2 : clamp(mapV.y, ch - mh - 40, 40);
+}
+function mIcon(g, k, x, y, col) {             // значок цели уровня
+  g.fillStyle = col; g.strokeStyle = col; g.lineWidth = 1.6;
+  if (k === 'boss') { g.beginPath(); g.arc(x, y - 1, 4.2, 0, 7); g.fill(); g.fillRect(x - 2.6, y + 1.5, 5.2, 3); g.fillStyle = '#111'; g.fillRect(x - 2.6, y - 2, 2, 2); g.fillRect(x + .6, y - 2, 2, 2); }
+  else if (k === 'nest') { for (const [dx, dy] of [[-2.5, 1.5], [2.5, 1.5], [0, -2.5]]) { g.beginPath(); g.ellipse(x + dx, y + dy, 2, 2.6, 0, 0, 7); g.fill(); } }
+  else if (k === 'shield') { g.beginPath(); g.moveTo(x - 4, y - 4); g.lineTo(x + 4, y - 4); g.lineTo(x + 4, y); g.lineTo(x, y + 5); g.lineTo(x - 4, y); g.closePath(); g.fill(); }
+  else if (k === 'flag') { g.beginPath(); g.moveTo(x - 3, y + 5); g.lineTo(x - 3, y - 5); g.stroke(); g.beginPath(); g.moveTo(x - 3, y - 5); g.lineTo(x + 4, y - 3); g.lineTo(x - 3, y - 1); g.fill(); }
+  else if (k === 'claw') { for (const d of [-3, 0, 3]) { g.beginPath(); g.moveTo(x + d - 2, y - 4); g.lineTo(x + d + 2, y + 4); g.stroke(); } }
+  else if (k === 'bolt') { g.beginPath(); g.moveTo(x + 1, y - 5); g.lineTo(x - 3, y + 1); g.lineTo(x, y + 1); g.lineTo(x - 1, y + 5); g.lineTo(x + 3, y - 1); g.lineTo(x, y - 1); g.closePath(); g.fill(); }
+  else if (k === 'lift') { g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 4, y); g.lineTo(x - 4, y); g.fill(); g.fillRect(x - 1.2, y, 2.4, 5); }
+  else if (k === 'cross') { g.fillRect(x - 1.5, y - 4.5, 3, 9); g.fillRect(x - 4.5, y - 1.5, 9, 3); }
+  else if (k === 'crate') { g.strokeRect(x - 4, y - 3.5, 8, 7); g.beginPath(); g.moveTo(x - 4, y - 3.5); g.lineTo(x + 4, y + 3.5); g.stroke(); }
+  else if (k === 'talk') { g.beginPath(); g.ellipse(x, y - 1, 4.5, 3.4, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(x - 2, y + 1); g.lineTo(x - 3, y + 5); g.lineTo(x + 1, y + 2); g.fill(); }
+  else { g.beginPath(); g.moveTo(x, y - 4.5); g.lineTo(x + 4.5, y); g.lineTo(x, y + 4.5); g.lineTo(x - 4.5, y); g.closePath(); g.fill(); }   // предмет
+}
+function drawMap() {
+  if (!mapOpen) return;
+  mapAnim = requestAnimationFrame(drawMap);
+  const dpr = Math.min(devicePixelRatio || 1, 2.5), cw = mapC.clientWidth, ch = mapC.clientHeight;
+  if (mapC.width !== Math.round(cw * dpr) || mapC.height !== Math.round(ch * dpr)) { mapC.width = Math.round(cw * dpr); mapC.height = Math.round(ch * dpr); }
+  if (mapTw) { mapTw.t = Math.min(1, mapTw.t + 1 / 24); const k = 1 - Math.pow(1 - mapTw.t, 3), A = mapTw.a, B = mapTw.b;
+    const cxA = (cw / 2 - A.x) / A.z, cyA = (ch / 2 - A.y) / A.z, cxB = (cw / 2 - B.x) / B.z, cyB = (ch / 2 - B.y) / B.z;
+    const zz = A.z * Math.pow(B.z / A.z, k), wx = cxA + (cxB - cxA) * k, wy = cyA + (cyB - cyA) * k;
+    mapV = { z: zz, x: cw / 2 - wx * zz, y: ch / 2 - wy * zz };
+    if (mapTw.t >= 1) { mapV = { ...B }; mapTw = null; } }
+  const g = mx, z = mapV.z, done = doneSet(), t = performance.now() / 1000;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#121410'; g.fillRect(0, 0, cw, ch);
+  g.imageSmoothingEnabled = true; g.drawImage(mapBg, mapV.x, mapV.y, MAP.W * z, MAP.H * z);
+  const sx = x => mapV.x + x * z, sy = y => mapV.y + y * z;
+  const zn = MZONE[mapZ], lvOf = i => (LEVELS[i].city || 0) === mapZ;
+  if (mapZ >= 0) {                              // выбранная зона: всё вокруг темнеет
+    g.beginPath(); g.rect(0, 0, cw, ch);
+    if (zn) zn.pts.forEach(([x, y], i) => i ? g.lineTo(sx(x), sy(y)) : g.moveTo(sx(x), sy(y)));
+    g.closePath(); g.fillStyle = 'rgba(6,7,5,.72)'; g.fill(zn ? 'evenodd' : 'nonzero');
+    if (zn) { g.strokeStyle = `rgba(${zn.col},1)`; g.lineWidth = 2.5; g.stroke(); }
+  } else for (const q of MZONE) {               // общая карта: зоны подсвечены, при тапе — приближаем
+    g.beginPath(); q.pts.forEach(([x, y], i) => i ? g.lineTo(sx(x), sy(y)) : g.moveTo(sx(x), sy(y))); g.closePath();
+    g.fillStyle = `rgba(${q.col},${.12 + .06 * Math.sin(t * 2 + q.c)})`; g.fill(); g.strokeStyle = `rgba(${q.col},1)`; g.lineWidth = 2; g.stroke();
+  }
+  // маршрут внутри зоны: пунктир по порядку уровней
+  g.setLineDash([5, 5]); g.lineWidth = 1.6; g.strokeStyle = 'rgba(255,210,63,.6)';
+  if (mapZ >= 0 && mapZ < 6) { g.beginPath(); let f = true; for (let i = 0; i < 40; i++) if (lvOf(i)) { const [x, y] = MPOS[i]; f ? g.moveTo(sx(x), sy(y)) : g.lineTo(sx(x), sy(y)); f = false; } g.stroke(); }
+  g.setLineDash([5, 5]);
+  if (mapZ < 0 || mapZ === 6) {
+  g.lineDashOffset = -t * 12; g.strokeStyle = 'rgba(220,40,40,.85)'; g.lineWidth = 2.2; g.beginPath();
+  HORDE.forEach(([x, y], i) => i ? g.lineTo(sx(x), sy(y)) : g.moveTo(sx(x), sy(y))); g.stroke(); g.setLineDash([]); g.lineDashOffset = 0;
+  { const [ax, ay] = HORDE[HORDE.length - 1], [bx, by] = HORDE[HORDE.length - 2], a = Math.atan2(ay - by, ax - bx);   // стрелка в конце пути орды
+    g.fillStyle = 'rgba(220,40,40,.9)'; g.beginPath(); g.moveTo(sx(ax), sy(ay)); g.lineTo(sx(ax) - Math.cos(a - .5) * 10, sy(ay) - Math.sin(a - .5) * 10); g.lineTo(sx(ax) - Math.cos(a + .5) * 10, sy(ay) - Math.sin(a + .5) * 10); g.fill(); }
+  }
+  g.setLineDash([]);
+  // названия зон
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const zoneTag = (c, x, y, col) => {           // подпись зоны и сколько уровней пройдено
+    const ids = LEVELS.map((l, i) => i).filter(i => (LEVELS[i].city || 0) === c), nd = ids.filter(i => done.has(i)).length;
+    const big = mapZ < 0, fs = big ? 15 : 11, txt = CITY[c].split('').join(' ');
+    g.font = `800 ${fs}px system-ui, sans-serif`; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y);
+    if (big) { g.font = '700 10px monospace'; const t2 = `${nd ? '✔ ' + nd + '/' : ''}${ids.length} ${ids.length === 1 ? 'уровень' : ids.length < 5 ? 'уровня' : 'уровней'}`;
+      g.lineWidth = 3; g.strokeText(t2, x, y + 15); g.fillStyle = nd === ids.length ? '#5fd35f' : '#b8b090'; g.fillText(t2, x, y + 15); }
+  };
+  if (mapZ < 0) {
+    for (const q of MZONE) { const [x0, y0, x1, y1] = zoneBox(q.c); zoneTag(q.c, sx((x0 + x1) / 2), sy((y0 + y1) / 2), '#e8e0c0'); }
+    zoneTag(6, sx(612), sy(190), '#ff5050');
+  } else if (zn) zoneTag(mapZ, sx(zn.lab[0]), sy(zn.lab[1]), '#e8e0c0');
+  // метки
+  const r = clamp(7 * Math.sqrt(z), 8, 13);
+  for (let i = 0; i < MPOS.length && i < LEVELS.length && mapZ >= 0; i++) {
+    if (!lvOf(i)) continue;
+    const [wx, wy] = MPOS[i], x = sx(wx), y = sy(wy), lv = LEVELS[i], boss = lv.obj === 'boss', isD = done.has(i), sel = i === mapSel;
+    if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) continue;
+    if (sel) { g.strokeStyle = `rgba(255,210,63,${.5 + .5 * Math.sin(t * 6)})`; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r + 5 + Math.sin(t * 6) * 2, 0, 7); g.stroke(); }
+    g.fillStyle = boss ? 'rgba(90,10,14,.92)' : 'rgba(18,20,16,.92)'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.strokeStyle = sel ? '#ffd23f' : boss ? '#ff4040' : isD ? '#5fd35f' : '#c8b878'; g.lineWidth = 1.6; g.stroke();
+    g.save(); g.translate(x, y); g.scale(r / 7.5, r / 7.5); mIcon(g, MICON[lv.obj] || 'item', 0, 0, boss ? '#ff6a5a' : lv.mut ? '#ff5050' : '#e8dca8'); g.restore();
+    if (isD) { g.strokeStyle = '#5fd35f'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(x + r * .3, y - r * .9); g.lineTo(x + r * .7, y - r * .5); g.lineTo(x + r * 1.4, y - r * 1.4); g.stroke(); }
+    g.font = `700 ${clamp(r * 1.1, 8, 12)}px monospace`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)';
+    const lbl = `${i + 1} ${lv.name}`;
+    g.strokeText(lbl, x + r + 3, y); g.fillStyle = sel ? '#ffd23f' : '#e8e0c0'; g.fillText(lbl, x + r + 3, y);
+  }
+  // компас и масштаб
+  g.textAlign = 'center'; g.save(); g.translate(cw - 34, ch - 44); g.strokeStyle = '#c8b878'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 16, 0, 7); g.stroke();
+  g.fillStyle = '#c84030'; g.beginPath(); g.moveTo(0, -14); g.lineTo(4, 0); g.lineTo(-4, 0); g.fill(); g.fillStyle = '#c8b878'; g.beginPath(); g.moveTo(0, 14); g.lineTo(4, 0); g.lineTo(-4, 0); g.fill();
+  g.font = '700 10px system-ui'; g.fillText('С', 0, -24); g.restore();
+  g.fillStyle = '#c8b878'; g.fillRect(14, ch - 22, 100 * z, 3); g.font = '600 10px monospace'; g.textAlign = 'left'; g.fillText('500 м', 14, ch - 32);
+}
+function mapShow(on) {
+  mapOpen = on; mapEl.style.display = on ? 'block' : 'none'; releaseAll();
+  cancelAnimationFrame(mapAnim);
+  if (!on) return;
+  if (!mapBg) mapBg = buildMapBg();
+  const cur = state === 'title' ? -1 : lvlN;
+  mapFocus(cur >= 0 ? LEVELS[cur].city || 0 : -1, true); if (cur >= 0) mapPick(cur);
+  drawMap();
+}
+function mapPick(i) {
+  mapSel = i; if (i < 0) { mInfo.style.display = 'none'; return; }
+  const lv = LEVELS[i], done = doneSet().has(i);
+  document.getElementById('mi-n').textContent = `${String(i + 1).padStart(2, '0')} · ${lv.name}`;
+  document.getElementById('mi-z').textContent = `${CITY[lv.city || 0]}${lv.obj === 'boss' ? ' · БОСС' : ''}${done ? ' · ✔ ПРОЙДЕН' : ''}`;
+  document.getElementById('mi-t').textContent = lv.task || '';
+  mInfo.style.display = 'flex';
+}
+document.getElementById('mi-go').onclick = () => {
+  const n = mapSel; if (n < 0) return;
+  mapShow(false); openMenu(false); score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n);
+};
+document.getElementById('mclose').onclick = () => mapShow(false);
+document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, .05, 'square', .02); };
+{                                            // палец: тащить карту, два пальца — масштаб, тап — выбрать метку
+  const pts = new Map(); let moved = 0, pinch = null;
+  const pos = e => { const r = mapC.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  mapC.addEventListener('pointerdown', e => { mapC.setPointerCapture(e.pointerId); pts.set(e.pointerId, pos(e)); moved = pts.size > 1 ? 99 : 0; pinch = null; });
+  mapC.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    const [x, y] = pos(e), [px, py] = pts.get(e.pointerId); pts.set(e.pointerId, [x, y]);
+    if (pts.size === 1) { mapV.x += x - px; mapV.y += y - py; moved += Math.abs(x - px) + Math.abs(y - py); }
+    else if (pts.size === 2) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
+      if (pinch) { const k = d / pinch.d, wx = (pinch.cx - mapV.x) / mapV.z, wy = (pinch.cy - mapV.y) / mapV.z; mapV.z *= k; mapV.x = cx - wx * mapV.z; mapV.y = cy - wy * mapV.z; }
+      pinch = { d, cx, cy };
+    }
+    mapClamp();
+  });
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    const [x, y] = pts.get(e.pointerId); pts.delete(e.pointerId); pinch = null;
+    if (pts.size || moved > 8 || mapTw) return;
+    const wx0 = (x - mapV.x) / mapV.z, wy0 = (y - mapV.y) / mapV.z;
+    if (mapZ < 0) { const c = mapZoneAt(wx0, wy0); if (c >= 0) { mapFocus(c); beep(700, 1100, .06, 'square', .02); } return; }
+    let best = -1, bd = 28;
+    MPOS.forEach(([wx, wy], i) => { const d = Math.hypot(mapV.x + wx * mapV.z - x, mapV.y + wy * mapV.z - y); if (d < bd && i < LEVELS.length && (LEVELS[i].city || 0) === mapZ) { bd = d; best = i; } });
+    if (best < 0 && mapZoneAt(wx0, wy0) !== mapZ) { mapFocus(-1); return; }
+    mapPick(best); if (best >= 0) beep(900, 1200, .04, 'square', .02);
+  };
+  mapC.addEventListener('pointerup', up); mapC.addEventListener('pointercancel', up);
+  mapC.addEventListener('wheel', e => { e.preventDefault(); const [x, y] = pos(e), wx = (x - mapV.x) / mapV.z, wy = (y - mapV.y) / mapV.z; mapV.z *= e.deltaY < 0 ? 1.15 : 1 / 1.15; mapV.x = x - wx * mapV.z; mapV.y = y - wy * mapV.z; mapClamp(); }, { passive: false });
+  addEventListener('resize', () => { if (mapOpen) { mapTw = null; mapFit(); } });
+}
+// ===== Титульное меню: Начать / Уровни / Управление =====
+const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help');
+document.getElementById('t-go').onclick = () => { audioOn(); score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); };
+document.getElementById('t-map').onclick = () => { audioOn(); mapShow(true); };
+document.getElementById('t-help').onclick = () => { helpEl.style.display = 'flex'; };
+document.getElementById('hclose').onclick = () => { helpEl.style.display = 'none'; };
+document.getElementById('m-map').onclick = () => { openMenu(false); mapShow(true); };
+for (const el of [mapEl, tMenu, helpEl]) for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend', 'wheel']) el.addEventListener(t, e => e.stopPropagation());
+
 const musBtn = document.getElementById('mus');
 window.musLabel = () => { musBtn.textContent = `МУЗЫКА: ${MUS.on ? 'ВКЛ' : 'ВЫКЛ'}`; musBtn.classList.toggle('on', MUS.on); };
 musBtn.onclick = () => musToggle(); musLabel();
@@ -5434,7 +5732,8 @@ let last = performance.now(), acc = 0;
 function frame(now) {
   acc += Math.min(.1, (now - last) / 1000) * SIM; last = now;
   while (acc >= 1 / 60) { window.__botTick?.(); update(1 / 60); acc -= 1 / 60; }
-  document.body.classList.toggle('noctl', state !== 'play');   // титул, карточка, «ты погиб» — кнопки прячем, текст виден (аудит №10)
+  document.body.classList.toggle('noctl', state !== 'play');
+  tMenu.style.display = state === 'title' && !menuOpen && !mapOpen ? 'flex' : 'none';   // титул, карточка, «ты погиб» — кнопки прячем, текст виден (аудит №10)
   if (!badOn('lag') || fN++ % 7 === 0) draw();      // баг: лаг — картинка дёргается
   requestAnimationFrame(frame);
 }
