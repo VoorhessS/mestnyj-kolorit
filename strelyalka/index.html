@@ -90,7 +90,7 @@
 <div id="m">☰</div>
 <div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="m-map">КАРТА</button><button id="m-intro">ЗАСТАВКА</button><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
-<div id="tmenu"><button id="t-go">▶ НАЧАТЬ</button><button id="t-map">УРОВНИ</button><button id="t-help">УПРАВЛЕНИЕ</button></div>
+<div id="tmenu"><button id="t-go">▶ НАЧАТЬ</button><button id="t-map">УРОВНИ</button><button id="t-help">УПРАВЛЕНИЕ</button><button id="t-vid">ВИДЕО</button></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
   <div>вверх/вниз у лестницы — лезть, вниз + вбок — ползти</div>
@@ -5905,6 +5905,7 @@ skipEl.onclick = () => { if (state === 'intro') introEnd(); };
 document.getElementById('t-go').onclick = () => { audioOn(); score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); };
 document.getElementById('t-map').onclick = () => { audioOn(); mapShow(true); };
 document.getElementById('t-help').onclick = () => { helpEl.style.display = 'flex'; };
+document.getElementById('t-vid').onclick = () => { location.href = 'video.html'; };
 document.getElementById('hclose').onclick = () => { helpEl.style.display = 'none'; };
 document.getElementById('m-map').onclick = () => { openMenu(false); mapShow(true); };
 document.getElementById('m-intro').onclick = () => { openMenu(false); audioOn(); introGo = true; setState('intro'); };

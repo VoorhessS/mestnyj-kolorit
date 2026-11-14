@@ -17,7 +17,7 @@ self.addEventListener('activate', e => {
 
 // Сначала сеть (чтобы видеть обновления), без сети — из памяти
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET' || /\.mp4$/.test(new URL(e.request.url).pathname)) return;   // видео не копим в телефоне
   e.respondWith(
     fetch(e.request)
       .then(res => {
