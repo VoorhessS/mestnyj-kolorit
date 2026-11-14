@@ -1409,11 +1409,27 @@ function input() {
 }
 
 // ===== Звук =====
-let ac = null;
+let ac = null, acBroken = false;
+function audioReset() {                  // выбросить сломанный звук: следующее касание создаст новый
+  try { if (ac) ac.close(); } catch (e) {}
+  ac = null; acBroken = false; MUS.g = MUS.out = MUS.noise = MUS.pulse = null; MUS.cur = -1; MUS.fast = undefined; AW.n = 0;
+}
+const AW = { t0: 0, a0: 0, n: 0 };       // сторож: время звука должно идти вместе с обычным временем
+function audioWatch() {
+  if (!ac || ac.state !== 'running' || document.hidden) { AW.t0 = 0; return; }
+  const now = performance.now() / 1000, at = ac.currentTime;
+  if (!AW.t0) { AW.t0 = now; AW.a0 = at; return; }
+  if (now - AW.t0 < 1.5) return;
+  const r = (at - AW.a0) / (now - AW.t0); AW.t0 = now; AW.a0 = at;
+  AW.n = r < .9 || r > 1.1 ? AW.n + 1 : 0;   // звук отстаёт или скачет — сбой
+  if (AW.n >= 2) acBroken = true;
+}
 function audioOn() {                     // будим звук на каждом касании: iPhone разрешает это только в ответ на палец
   try {
     if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';   // играть и в беззвучном режиме
-    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); }
+    if (ac && (acBroken || ac.state === 'closed')) audioReset();
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0;
+      ac.onstatechange = () => { if (ac && ac.state === 'interrupted') acBroken = true; }; }   // iOS: звонок, запись экрана, Siri
     if (ac.state !== 'running' && !document.hidden) {
       ac.resume();
       const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050); b.connect(ac.destination); b.start(0);   // тихий щелчок «отпирает» звук на iOS
@@ -1487,6 +1503,7 @@ function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequ
 function snare(t) { noiseHit(t, 'bandpass', 1900, .24, .11); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(140, t + .06); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .07); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .08); }
 function musWant() { if (!MUS.on || !ac) return -1; if (window.__musForce >= 0) return window.__musForce; return state === 'title' ? 0 : clamp((L && L.city) || 0, 0, TRACKS.length - 1); }
 function musTick() {
+  audioWatch();
   if (!ac || ac.state !== 'running') return;
   const w = musWant();
   if (w !== MUS.cur) { MUS.cur = w; MUS.step = 0; MUS.next = ac.currentTime + .08; }
@@ -1525,7 +1542,8 @@ document.addEventListener('visibilitychange', () => {   // свернул игр
   if (!ac) return;
   if (document.hidden) ac.suspend(); else ac.resume().then(() => { MUS.next = ac.currentTime + .06; });
 });
-function musToggle() { MUS.on = !MUS.on; try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
+// включил музыку заново — звук с чистого листа (лечит сбой на iPhone вручную)
+function musToggle() { MUS.on = !MUS.on; if (MUS.on) { audioReset(); audioOn(); } try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
 
 // ===== Состояние игры =====
 const SPEED = 92, CRAWL = 42, CLIMB = 78, JUMP = 352, GRAV = 900;
