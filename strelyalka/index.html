@@ -1035,7 +1035,7 @@ const LEVELS = [
       B.start(4, 22);
     } },
   // ===================== ОРДА (друг, 13.11): одна локация из кусков прошлых уровней, проходы открываются по этапам =====================
-  { city: 6, name: 'ОБРАТНЫЙ ПУТЬ', task: 'Бойня! Веди орду назад и уничтожь всех, кто выжил', obj: 'carnage', mut: true, horde: 2, ground: 99, dark: .8, armed: .4,
+  { city: 6, name: 'ОБРАТНЫЙ ПУТЬ', task: 'Бойня! Веди орду назад и уничтожь всех, кто выжил', obj: 'carnage', mut: true, mirror: true, horde: 2, ground: 99, dark: .8, armed: .4,
     cols: 540, rows: 30, base: SOLID, pal: PAL.hosp, spawn: ['K', 'U'],
     zones: [{ x0: 0, name: 'БОЛЬНИЦА', pal: PAL.hosp, dark: .78 }, { x0: 70, name: 'ЛАГЕРЬ', pal: PAL.camp, sky: true, ground: 22, dark: .74 },
       { x0: 180, name: 'ВОЕННАЯ БАЗА', pal: PAL.base, dark: .8 }, { x0: 290, name: 'ЛАБОРАТОРИЯ', pal: PAL.lab, dark: .8 },
@@ -1123,6 +1123,25 @@ const HI_ARGS = { fill: [1, 3], room: [1, 3], plat: [2], lad: [1, 2], vent: [2],
   start: [1], save: [1], nest: [1], bug: [1], win: [1], lift: [2, 3], cart: [2], beam: [1, 2], ground: [2], rock: [1, 3], water: [1, 3],
   bush: [1], tree: [1, 2], fall: [1, 2], log: [2], crack: [1], lamp: [1], sign: [1], item: [2], exit: [1], heli: [1], slime: [2],
   crumble: [2], shroom: [1], bigshroom: [1, 2], ramp: [1, 2], shaft: [1, 2], tube: [1], flask: [1] };
+function mirrorLevel(o, def) {               // зеркало по горизонтали: клетки, наклоны, все объекты, зоны и этапы
+  const M = x => COLS - 1 - x;
+  for (const row of grid) { row.reverse(); for (let i = 0; i < COLS; i++) row[i] = row[i] === SLR ? SLL : row[i] === SLL ? SLR : row[i]; }
+  for (const k of ['saves', 'nests', 'bugs', 'cracks', 'lamps', 'traps', 'beams']) for (const a of o[k]) a[0] = M(a[0]);
+  for (const a of o.ambs) { a[0] = M(a[0]); a[2] = -a[2]; }
+  for (const a of o.signs) { a[0] = M(a[0]); a[2] = a[2] === '>' ? '<' : a[2] === '<' ? '>' : a[2]; }
+  for (const a of o.items) a[1] = M(a[1]);
+  for (const a of o.wins) a[0] = M(a[0]) - a[2] + 1;
+  for (const d of o.doors) d.x = M(d.x);
+  for (const d of o.deco) [d.x0, d.x1] = [M(d.x1), M(d.x0)];
+  o.start[0] = M(o.start[0]);
+  if (o.exit) o.exit[0] = M(o.exit[0]);
+  if (o.heli) o.heli[0] = M(o.heli[0]) - 3;
+  if (!def._mir) {                            // зоны и этапы в описании уровня — один раз
+    def._mir = true;
+    if (def.zones) def.zones = def.zones.map((z, i) => ({ ...z, x0: COLS - (def.zones[i + 1] ? def.zones[i + 1].x0 : COLS) })).sort((a, b) => a.x0 - b.x0);
+    if (def.stages) def.stages = def.stages.map(st => ({ ...st, x0: COLS - st.x1, x1: COLS - st.x0 }));
+  }
+}
 function build(def) {
   const fy = hiMap(def); window.__hy = fy;
   if (def.hi && !def._hiRows) { def._hiRows = def.rows; if (def.ground < def.rows) def.ground = fy(def.ground); }
@@ -1194,6 +1213,7 @@ function build(def) {
   for (let cy = 0; cy < ROWS - 1; cy++) for (let cx = 0; cx < COLS; cx++)
     if (grid[cy][cx] === ACID && open(grid[cy + 1][cx])) grid[cy + 1][cx] = SOLID;
   B.fill(0, 0, 0, ROWS - 1); B.fill(COLS - 1, 0, COLS - 1, ROWS - 1); B.fill(0, ROWS - 1, COLS - 1, ROWS - 1);
+  if (def.mirror) mirrorLevel(o, def);   // уровень идёт справа налево
   if (!o.lift && !o.cart && !def.stages) { const a = autoSaves(o, def); if (a && a.length) o.saves = a; }   // у длинной орды — ручные, у начала каждой части   // в лифте и вагонетке — ручные
   return o;
 }
@@ -1768,11 +1788,11 @@ function respawn() {
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
   hp = HP_MAX; hurtT = 9;
   if (amb && !amb.end) Object.assign(amb, { t: L.hold, sp: 1.5 });   // погиб в засаде — держаться заново
-  P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: 1, cd: 0, inv: 2, dead: 0, ax: 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
+  P = { x: sx, y: sy, w: 10, h: 22, vx: 0, vy: 0, on: false, face: L && L.mirror ? -1 : 1, cd: 0, inv: 2, dead: 0, ax: L && L.mirror ? -1 : 1, ay: 0, crouch: false, climb: false, drop: 0, run: 0 };
   cam = camX(); camY = clamp(P.y + 11 - H * .55, 0, MAPH - H);
 }
 // Камера может заехать за край карты: герой у стены не прячется под крестовиной или кнопками
-const camX = () => clamp(P.x + 5 - W * .45, -W * .3, MAPW - W * .75);
+const camX = () => clamp(P.x + 5 - W * (L && L.mirror ? .55 : .45), -W * .3, MAPW - W * .75);   // по ходу движения видно больше
 function setState(s) { state = s; stateT = 0; }
 function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) {
   for (let i = 0; i < n; i++) {
@@ -6116,7 +6136,7 @@ window.__bot = (opts = {}) => {
     [['go', 33, 14], ['crawl', 44], ['go', 132, 28], ['go', 58, 14], ['go', 44, 14], ['crawl', 33], ['go', 3, 14]],
     [['go', 40, 22], ['crawl', 48], ['go', 110, 12], ['hold', 70, 124]],
     // ОРДА: бежать к выходу, рубить всех по пути, через стены — перелетать (таракан летает, пока держишь A)
-    [['go', 536, 15]],
+    [['go', 3, 15]],                       // орда зеркальная: выход «к городу» слева
   ];
   const held = {};
   const set = (code, on) => { if (!!held[code] !== on) { dispatchEvent(new KeyboardEvent(on ? 'keydown' : 'keyup', { code })); held[code] = on; } };
