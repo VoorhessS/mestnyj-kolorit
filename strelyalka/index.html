@@ -5436,38 +5436,129 @@ document.getElementById('back').onclick = () => {   // застрял — вер
   openMenu(false); if (state !== 'play' || P.dead) return;
   respawn(); showToast('↩ вернулся к последней дискете', 1.8); beep(1500, 300, .2, 'square', .03);
 };
-// ===== Вступительная заставка (друг, msg 1795): офис → толчок → улица, жук сжирает копа, пистолет отлетает герою =====
+// ===== Вступительная заставка (друг, msg 1795/1801): офис с кабинками → туалет → толчок → улица днём, жук сжирает копа =====
 const COP_SPR = mkHeroSpr({ j: '#2a3a6a', J: '#1a2448', k: '#4a5a9a', h: '#141420', H: '#22223a', p: '#1e2238', P: '#141828', q: '#2a3050', b: '#111', B: '#c8c8d0' });
+const WORK_SPR = [                             // коллеги: рубашки и причёски разные
+  mkHeroSpr({ j: '#d8dce8', J: '#a8acb8', k: '#3a4a8a', h: '#6a4a2a', H: '#8a6a3a', p: '#2a2a32', P: '#1a1a22', q: '#3a3a44' }),
+  mkHeroSpr({ j: '#8a2a3a', J: '#5a1a24', k: '#c8c8d0', h: '#1a1a1a', H: '#2a2a2a', s: '#b07a52', S: '#7a5034', p: '#3a3428', P: '#2a241a' }),
+  mkHeroSpr({ j: '#5a8ac8', J: '#3a5a8a', k: '#e8e8f0', h: '#c8a050', H: '#e8c870', p: '#2a2a32', P: '#1a1a22' }),
+  mkHeroSpr({ j: '#e8e0c8', J: '#b8b098', k: '#6a2a2a', h: '#4a2a1a', H: '#6a3a2a', s: '#e8b890', p: '#4a4a5a', P: '#2a2a3a' })];
 let introGo = false;
 const h01 = n => (hash(Math.floor(n), 7) % 1000) / 1000;   // псевдослучайное 0..1 для картинок заставки
-function drawSpr(img, x, y, f) { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(f, 1); ctx.drawImage(img, f > 0 ? 0 : -img.width, 0); ctx.restore(); }
-function drawBigBug(x, y, s, f, t, bite) {    // огромный жук: панцирь, шесть лап, жвалы, красные глаза; (x, y) — середина брюха у земли
-  ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(f * s, s);
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 3; i++) for (const side of [0, 1]) {   // лапы
-    const lx = -14 + i * 14, ph = t * 9 + i * 2 + side * 3, k = Math.sin(ph) * 3;
-    ctx.strokeStyle = side ? '#120c08' : '#24180e'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(lx, -12); ctx.lineTo(lx + (side ? -6 : 6) + k, -20); ctx.lineTo(lx + (side ? -10 : 10) + k * 1.5, 0); ctx.stroke();
-  }
-  ell(-4, -16, 26, 14, '#0e0a08'); ell(-4, -17, 24, 12, '#2a1c12'); ell(-8, -22, 14, 5, '#4a3424'); ell(-12, -24, 6, 2, '#7a6048');   // брюхо с бликом
-  ctx.strokeStyle = '#120c08'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-4, -29); ctx.lineTo(-4, -4); ctx.stroke();
-  ell(18, -16, 10, 9, '#0e0a08'); ell(18, -17, 9, 8, '#3a2618');                       // грудь
-  ell(29, -14, 7, 7, '#0e0a08'); ell(29, -15, 6, 6, '#4a3020');                         // голова
-  const g = .7 + .3 * Math.sin(t * 8); ell(31, -18, 2, 2, `rgba(255,40,30,${g})`); ell(27, -19, 1.6, 1.6, `rgba(255,40,30,${g})`);
-  const o = (bite || 0) * 6;                                                              // жвалы раскрываются
-  ctx.strokeStyle = '#d8c8a0'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(34, -16); ctx.quadraticCurveTo(42, -18 - o, 44, -12 - o * .3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(34, -11); ctx.quadraticCurveTo(42, -8 + o, 44, -13 + o * .3); ctx.stroke();
+function drawSpr(img, x, y, f, rows) {       // rows — сколько строк спрайта рисовать (сидит за столом — только верх)
+  const h = rows || img.height; ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(f, 1);
+  ctx.drawImage(img, 0, 0, img.width, h, f > 0 ? 0 : -img.width, 0, img.width, h); ctx.restore();
+}
+function drawStreetBug(x, gy, f, run, bite, k) {   // жук как в игре: бегун r или бронированный R; (x, gy) — середина у земли
+  ctx.save(); ctx.translate(Math.round(x), Math.round(gy - (k === 'R' ? 18 : 14))); ctx.scale(f, 1);
+  if (k === 'R') ctx.scale(1.33, 1.3);
+  ctx.translate(-9, 0);
+  legs(3, 9, 3, 5, run, '#1d2b12');
+  ell(9, 7, 9, 6, k === 'R' ? '#5a3d1e' : '#3d6b1f'); ell(9, 5, 7, 3, k === 'R' ? '#8a6a3a' : '#5c9a2e');
+  rect(9, 1, 1, 11, '#1d2b12'); ell(17, 8, 3, 3, '#1d2b12');
+  const o = Math.round((bite || 0) * 2); rect(19, 9 - o, 4, 1, '#e6e0a0'); rect(19, 11 + o, 4, 1, '#e6e0a0');
+  if (k === 'R') { rect(3, 3, 12, 1, '#b89a60'); rect(4, 6, 10, 1, '#b89a60'); }
   ctx.restore();
 }
-function introCity(gy, t, fire) {             // силуэт города на фоне
-  for (let i = 0; i < 30; i++) {
-    const bw = 18 + h01(i * 7) * 22, bh = 30 + h01(i * 13) * 70, bx = i * 22 - 20;
+function dayCity(gy, off) {                   // дневной город на фоне
+  for (let i = 0; i < 32; i++) {
+    const bw = 20 + h01(i * 7 + off) * 24, bh = 26 + h01(i * 13 + off) * 64, bx = i * 24 - 16;
     if (bx > W + 20) break;
-    rect(bx, gy - bh, bw, bh, fire ? '#140c10' : '#1a1c26');
-    for (let wy = gy - bh + 5; wy < gy - 6; wy += 8) for (let wx = bx + 3; wx < bx + bw - 3; wx += 6)
-      if (h01(wx * 3 + wy * 17 + i) > (fire ? .8 : .55)) rect(wx, wy, 3, 4, fire ? (h01(wx + wy) > .5 ? '#ff7a2a' : '#5a1a10') : '#e8c870');
+    rect(bx, gy - bh, bw, bh, i % 3 ? '#8a909c' : '#9aa0aa');
+    for (let wy = gy - bh + 5; wy < gy - 6; wy += 8) for (let wx = bx + 3; wx < bx + bw - 3; wx += 6) rect(wx, wy, 3, 4, '#5a6a7a');
   }
+}
+function introOffice(t) {                     // сцена 1: офис днём
+  const gy = H - 34, quake = t > 7, dark = quake && Math.random() < .3;
+  const wcX = W - 118, stX = W - 62;          // стена туалета и кабинка
+  rect(0, 0, W, H, '#cfd2d6'); rect(0, gy, W, H - gy, '#8a8478'); rect(0, gy, W, 2, '#6a6458');
+  for (let x = 0; x < wcX; x += 36) rect(x, 0, 1, gy, '#bfc2c6');
+  // окна во всю стену: день, облака, город
+  const wx0 = 40, wx1 = wcX - 12, wy0 = 16, wy1 = 64;
+  const sky = ctx.createLinearGradient(0, wy0, 0, wy1); sky.addColorStop(0, '#5aa0e0'); sky.addColorStop(1, '#bfe0f4'); ctx.fillStyle = sky; ctx.fillRect(wx0, wy0, wx1 - wx0, wy1 - wy0);
+  ctx.save(); ctx.beginPath(); ctx.rect(wx0, wy0, wx1 - wx0, wy1 - wy0); ctx.clip();
+  for (let i = 0; i < 4; i++) ell(wx0 + ((i * 90 + t * 6) % (wx1 - wx0 + 60)) - 30, wy0 + 10 + i % 2 * 8, 16, 5, 'rgba(255,255,255,.85)');
+  dayCity(wy1 + 4, 3);
+  if (t > 7.4) { const q = (t - 7.4) * 60; drawStreetBug(wx0 + q, wy1, 1, t * 3, 0, 'r'); drawStreetBug(wx0 + q - 40, wy1, 1, t * 3, 0, 'r'); }   // за окном пробегают жуки
+  ctx.restore();
+  for (let x = wx0; x <= wx1; x += 60) rect(x - 1, wy0, 3, wy1 - wy0, '#9a9ea6'); rect(wx0 - 2, wy0 - 2, wx1 - wx0 + 4, 3, '#9a9ea6'); rect(wx0 - 2, wy1, wx1 - wx0 + 4, 3, '#9a9ea6');
+  if (t > 7.2) { ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); const cx = wx0 + 70, cy = wy0 + 20; for (let i = 0; i < 6; i++) { const a = i * 1.05; ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 10); ctx.lineTo(cx + Math.cos(a + .25) * 26, cy + Math.sin(a + .25) * 18); } ctx.stroke(); }
+  for (let x = 70; x < wcX - 20; x += 90) { rect(x, 2, 30, 3, '#9a9ea6'); if (!dark) rect(x + 2, 5, 26, 2, '#fffbe0'); }   // лампы
+  rect(6, gy - 48, 22, 48, '#6a5038'); rect(8, gy - 46, 18, 44, '#7a6048'); rect(22, gy - 26, 3, 3, '#d8c060'); ctx.font = 'bold 6px monospace'; ctx.fillStyle = '#2a8a3a'; ctx.fillText('ВЫХОД', 4, gy - 52);   // выход
+  // кабинки: перегородки, столы, мониторы, коллеги; четвёртая — героя
+  const cubs = [], cw = Math.min(64, (wcX - 50) / 4);
+  for (let i = 0; i < 4; i++) cubs.push(38 + i * cw);
+  const panic = t > 7.3;
+  cubs.forEach((cx, i) => {
+    const desk = cx + 8, hero = i === 3;
+    if (!hero) {                               // коллега: печатает, на толчке вскакивает и бежит к выходу
+      const sp = WORK_SPR[i], run = panic ? (t - 7.3 - i * .15) : -1;
+      if (run < 0) { drawSpr(sp.stand, desk + 14, gy - 26 + (Math.floor(t * 4 + i) % 2), 1, 16); }
+      else { const x = desk + 14 - run * 160; if (x > -20) drawSpr(sp['r' + (1 + Math.floor(t * 10 + i) % 4)], x, gy - 24, -1); }
+    }
+    rect(desk + 26, gy - 30, 16, 12, '#222'); rect(desk + 27, gy - 29, 14, 9, dark ? '#0a1424' : '#3a6aaa');           // монитор
+    if (!dark) for (let k = 0; k < 3; k++) rect(desk + 29, gy - 27 + k * 2, 3 + h01(k + i * 5 + Math.floor(t * 4)) * 8, 1, '#c8e0ff');
+    rect(desk + 32, gy - 18, 4, 2, '#222');
+    rect(desk + 6, gy - 16, 40, 3, '#b8a07a'); rect(desk + 8, gy - 13, 2, 13, '#6a5a44'); rect(desk + 42, gy - 13, 2, 13, '#6a5a44');   // стол
+    rect(desk + 12, gy - 10, 12, 3, '#3a3a44'); rect(desk + 17, gy - 7, 2, 7, '#3a3a44');                                    // стул
+    rect(cx, gy - 30, 3, 30, '#7a8a9a'); rect(cx, gy - 31, cw - 2, 3, '#7a8a9a');                                           // перегородка
+  });
+  // туалет: стена с дверью, внутри кабинка и раковина
+  rect(wcX, 0, W - wcX, gy, '#b8d0d0'); for (let y = 8; y < gy; y += 10) rect(wcX, y, W - wcX, 1, '#a0b8b8'); for (let x = wcX; x < W; x += 10) rect(x, 0, 1, gy, '#a8c0c0');
+  rect(wcX - 3, 0, 6, gy, '#8a9aa0');
+  const doorOpen = (t > 4.4 && t < 5.2) || (t > 8.6 && t < 9.2);
+  rect(wcX - 2, gy - 44, doorOpen ? 4 : 20, 44, '#e8e8e0'); if (!doorOpen) { ctx.font = 'bold 7px monospace'; ctx.fillStyle = '#3a6aaa'; ctx.fillText('WC', wcX + 3, gy - 30); }
+  rect(wcX + 28, gy - 22, 14, 4, '#f0f0f0'); rect(wcX + 33, gy - 18, 4, 18, '#d8d8d8'); rect(wcX + 33, gy - 30, 2, 8, '#aaa');   // раковина
+  // герой: сидит → идёт в туалет → в кабинке → выбегает к выходу
+  let hx = cubs[3] + 22, hf = 1, fr = HERO_SPR.stand, rows = 16, hy = gy - 26, show = true;
+  const walk = HERO_SPR['r' + (1 + Math.floor(t * 10) % 4)];
+  if (t > 3.2 && t < 5.6) { const q = t - 3.2; hx = Math.min(stX + 8, cubs[3] + 22 + q * 60); fr = hx < stX + 8 ? walk : HERO_SPR.stand; rows = 0; hy = gy - 24; }
+  else if (t >= 5.6 && t < 8.6) show = false;                               // сидит в кабинке
+  else if (t >= 8.6) { const q = t - 8.6; hx = stX + 8 - q * 210; hf = -1; fr = walk; rows = 0; hy = gy - 24; }
+  if (show && hx > -20) drawSpr(fr, hx, hy, hf, rows || undefined);
+  // кабинка: перегородка и дверь, под дверью видно ноги
+  rect(stX - 6, gy - 48, 3, 48, '#7a8a7a');
+  const stOpen = (t > 5.1 && t < 5.6) || (t > 8.5 && t < 9);
+  if (!stOpen) { rect(stX - 3, gy - 46, 40, 40, '#9aaa9a'); rect(stX + 30, gy - 26, 3, 3, '#c8c8c0'); rect(stX + 2, gy - 40, 30, 1, '#8a9a8a'); }
+  if (!show && t < 8.6) {                     // ноги под дверью и мысли
+    rect(stX + 10, gy - 4, 5, 4, '#2a2018'); rect(stX + 19, gy - 4, 5, 4, '#2a2018');
+    if (t > 6 && t < 7) { ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#333'; ctx.fillText('♪', stX + 14 + Math.sin(t * 6) * 3, gy - 54 - (t - 6) * 6); }
+  }
+  if (quake) { for (let i = 0; i < 14; i++) { const q = ((t * .9 + i / 14) % 1); rect(h01(i * 31) * W, q * gy, 2, 2, 'rgba(120,110,90,.6)'); }
+    if (dark) { ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(0, 0, W, H); } }
+}
+function introStreet(s, t) {                  // сцена 2: улица днём, жук игрового размера сжирает копа
+  const gy = H - 34, carX = W * .42, holeX = W * .84, copX0 = W * .6, heroX = W * .2;
+  const sky = ctx.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, '#5a9ad8'); sky.addColorStop(1, '#c8e2f2'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, gy);
+  ell(W * .82, 30, 10, 10, '#fff4c0');
+  for (let i = 0; i < 3; i++) ell(((i * 150 + t * 8) % (W + 60)) - 30, 26 + i * 9, 20, 5, 'rgba(255,255,255,.9)');
+  dayCity(gy - 6, 0);
+  for (let i = 0; i < 3; i++) { const q = (t * .4 + i * .33) % 1; ell(W * .3 + i * 70, gy - 70 - q * 40, 6 + q * 12, 5 + q * 9, `rgba(60,60,60,${.45 * (1 - q)})`); }   // дым над городом
+  rect(0, gy - 6, W, H - gy + 6, '#55555c'); rect(0, gy - 6, W, 2, '#8a8a90');
+  for (let x = 6; x < W; x += 30) rect(x, gy + 10, 14, 2, '#e8e8d8');
+  ctx.strokeStyle = '#2a2a2e'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(holeX - 60, gy - 2); ctx.lineTo(holeX - 44, gy + 5); ctx.lineTo(holeX - 30, gy + 1); ctx.lineTo(holeX - 20, gy + 7); ctx.stroke();
+  rect(carX - 30, gy - 18, 60, 12, '#f0f0f4'); rect(carX - 18, gy - 27, 34, 10, '#f0f0f4'); rect(carX - 14, gy - 25, 12, 7, '#3a4a5a'); rect(carX + 2, gy - 25, 12, 7, '#3a4a5a');
+  rect(carX - 30, gy - 14, 60, 3, '#1a2a8a'); ell(carX - 18, gy - 6, 5, 5, '#111'); ell(carX + 18, gy - 6, 5, 5, '#111');
+  const bl = Math.floor(t * 6) % 2; rect(carX - 6, gy - 31, 5, 4, bl ? '#ff2a2a' : '#8a2020'); rect(carX + 1, gy - 31, 5, 4, bl ? '#3a5aff' : '#20208a');
+  ell(holeX, gy - 2, 18, 5, '#141210'); for (let i = 0; i < 5; i++) rect(holeX - 20 + i * 9, gy - 6 - h01(i) * 5, 5, 4, '#6a6058');
+  // мелкие жуки пробегают по улице
+  for (let i = 0; i < 2; i++) { const x = W + 30 - ((s - 1 - i * .7) * 120); if (x > -30 && x < W + 30 && s > 1) drawStreetBug(x, gy - 1, -1, t * 3 + i, 0, 'r'); }
+  // большой бронированный: вылезает, бросается на копа, жуёт, потом смотрит на героя
+  const rise = clamp((s - .6) / .9, 0, 1), lunge = clamp((s - 2.6) / .3, 0, 1), eaten = s > 2.9;
+  const bugX = holeX - lunge * (holeX - copX0 - 10), lift = Math.sin(lunge * Math.PI) * 12;
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, gy - 1 + (rise < 1 ? 0 : 20)); ctx.clip();
+  drawStreetBug(bugX, gy - 1 + (1 - rise) * 26 - lift, -1, s > 2.5 && s < 2.9 ? t * 4 : 0, eaten && s < 4.4 ? Math.abs(Math.sin(s * 14)) : s > 6 ? Math.abs(Math.sin(s * 10)) : 0, 'R');
+  ctx.restore();
+  if (!eaten) { drawSpr(COP_SPR.stand, copX0 - 7, gy - 24, 1); rect(copX0 + 5, gy - 12, 6, 2, '#222'); if (s > .4 && Math.floor(s * 7) % 2 === 0) ell(copX0 + 13, gy - 11, 3, 2, '#ffe9a0'); }
+  else if (s < 4) for (let i = 0; i < 10; i++) { const q = (s - 2.9) * 2 + i * .07; ell(copX0 + Math.cos(i * 1.7) * q * 26, gy - 16 - Math.sin(i * 2.3) * q * 18 + q * q * 18, 1.5, 1.5, i % 2 ? '#c8102e' : '#7a0a10'); }
+  if (eaten && s < 4.4) rect(copX0 - 4 + Math.sin(s * 20) * 2, gy - 6, 6, 3, '#1a2448');   // от копа остались ботинки
+  const gunT = clamp((s - 2.9) / 1, 0, 1);
+  if (eaten && s < 4.9) { const gx = copX0 + (heroX + 18 - copX0) * gunT, gyy = gy - 14 - Math.sin(gunT * Math.PI) * 46 + gunT * 10;
+    ctx.save(); ctx.translate(gx, Math.min(gy - 3, gyy)); ctx.rotate(gunT < 1 ? s * 14 : 0); rect(-4, -2, 8, 3, '#2a2a2e'); rect(-4, 0, 3, 4, '#2a2a2e'); ctx.restore(); }
+  const hx = Math.min(heroX, -14 + s * 90); let fr = s * 90 - 14 < heroX ? HERO_SPR['r' + (1 + Math.floor(t * 10) % 4)] : HERO_SPR.stand;
+  if (s > 4.4 && s < 4.9) fr = HERO_SPR.crouch;
+  drawSpr(fr, hx, gy - fr.height, 1);
+  if (s > 4.9) { rect(hx + 11, gy - 13, 8, 3, '#2a2a2e'); if (s > 6 && Math.floor(s * 8) % 2 === 0) ell(hx + 21, gy - 12, 3, 2, '#ffe9a0'); }
 }
 function drawIntro() {
   const t = stateT;
@@ -5476,110 +5567,55 @@ function drawIntro() {
     ctx.font = 'bold 12px monospace'; ctx.fillStyle = Math.floor(time * 2) % 2 ? '#ffd23f' : '#a08a2a'; ctx.fillText('▶ коснись экрана', W / 2, H / 2);
     ctx.font = '8px monospace'; ctx.fillStyle = '#666'; ctx.fillText('со звуком интереснее', W / 2, H / 2 + 16); ctx.textAlign = 'left'; return;
   }
-  const gy = H - 34, cap = (s, col, y) => { ctx.textAlign = 'center'; ctx.font = 'bold 10px monospace'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(s, W / 2, y || H - 12); ctx.fillStyle = col || '#fff'; ctx.fillText(s, W / 2, y || H - 12); ctx.textAlign = 'left'; };
-  if (t < 6.6) {                               // --- сцена 1: офис ---
-    const quake = t > 3, wx0 = Math.round(W * .52), wx1 = W - 16, wy0 = 26, wy1 = gy - 46;
-    rect(0, 0, W, H, '#262a32'); rect(0, gy, W, H - gy, '#1a1c22'); rect(0, gy, W, 2, '#3a3e48');
-    for (let x = 0; x < W; x += 40) rect(x, 0, 1, gy, '#22262e');                      // панели стены
-    const sky = ctx.createLinearGradient(0, wy0, 0, wy1); sky.addColorStop(0, '#2a1a3a'); sky.addColorStop(1, '#c86a3a');
-    ctx.fillStyle = sky; ctx.fillRect(wx0, wy0, wx1 - wx0, wy1 - wy0);
-    ctx.save(); ctx.beginPath(); ctx.rect(wx0, wy0, wx1 - wx0, wy1 - wy0); ctx.clip();
-    if (t > 3.4) { const q = Math.min(1, (t - 3.4) / 1.2); drawBigBug(wx0 + (wx1 - wx0) * .55, wy1 + 44 - q * 58, 1.6, -1, t, Math.sin(t * 6) * .5 + .5); }   // в окне поднимается жук
-    ctx.translate(wx0 - 10, 0); const W0 = W; introCity(wy1 + 4, t, quake); ctx.restore();
-    rect(wx0 - 3, wy0 - 3, wx1 - wx0 + 6, 3, '#4a4e58'); rect(wx0 - 3, wy1, wx1 - wx0 + 6, 3, '#4a4e58');
-    rect(wx0 - 3, wy0, 3, wy1 - wy0, '#4a4e58'); rect(wx1, wy0, 3, wy1 - wy0, '#4a4e58'); rect((wx0 + wx1) / 2 - 1, wy0, 2, wy1 - wy0, '#4a4e58');
-    if (t > 3.3) { ctx.strokeStyle = 'rgba(230,240,255,.7)'; ctx.lineWidth = 1; ctx.beginPath(); const cx = wx0 + 40, cy = wy0 + 30;   // трещина по стеклу
-      for (let i = 0; i < 6; i++) { const a = i * 1.05 + .3; ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * 18, cy + Math.sin(a) * 14); ctx.lineTo(cx + Math.cos(a + .2) * 34, cy + Math.sin(a + .2) * 26); } ctx.stroke(); }
-    rect(20, gy - 52, 24, 52, '#3a2e24'); rect(22, gy - 50, 20, 48, '#4a3a2c'); rect(38, gy - 28, 3, 3, '#c8a040');   // дверь
-    rect(W * .3 - 6, 6, 40, 3, '#4a4e58');                                            // лампа
-    const lamp = !quake || Math.random() > .35; if (lamp) { ctx.fillStyle = 'rgba(255,240,200,.06)'; ctx.beginPath(); ctx.moveTo(W * .3 - 6, 9); ctx.lineTo(W * .3 + 34, 9); ctx.lineTo(W * .3 + 70, gy); ctx.lineTo(W * .3 - 40, gy); ctx.fill(); }
-    rect(W * .44, gy - 18, 8, 18, '#2a4a2a'); ell(W * .44 + 4, gy - 22, 9, 8, '#3a6a32');   // фикус
-    // герой: сидел за компом, на толчке вскакивает и бежит к двери
-    let hx = W * .3 + 6, hf = 1, fr = HERO_SPR.stand;
-    if (t > 5.1) { const q = t - 5.1; hx = W * .3 + 6 - q * 150; hf = -1; fr = HERO_SPR['r' + (1 + Math.floor(t * 10) % 4)]; }
-    else if (t > 4.4) hf = -1;
-    if (hx > 30) drawSpr(fr, hx, gy - fr.height, hf);
-    rect(W * .3 - 4, gy - 16, 52, 4, '#5a4a3a'); rect(W * .3, gy - 12, 3, 12, '#3a2e24'); rect(W * .3 + 41, gy - 12, 3, 12, '#3a2e24');   // стол
-    if (t < 3.5) { rect(W * .3 + 22, gy - 34, 22, 16, '#111'); rect(W * .3 + 24, gy - 32, 18, 12, '#1a3a6a');                          // монитор
-      for (let i = 0; i < 4; i++) rect(W * .3 + 26, gy - 30 + i * 3, 4 + h01(i + Math.floor(t * 3)) * 10, 1, '#7ab0e8'); rect(W * .3 + 31, gy - 18, 4, 2, '#111'); }
-    else { ctx.save(); ctx.translate(W * .3 + 44, gy); ctx.rotate(Math.min(1.5, (t - 3.5) * 4)); rect(-22, -16, 22, 16, '#111'); ctx.restore(); }   // упал
-    if (quake) { for (let i = 0; i < 12; i++) { const q = ((t * .9 + i / 12) % 1); rect(h01(i * 31) * W, q * gy, 2, 2, 'rgba(180,170,150,.6)'); }   // пыль с потолка
-      if (!lamp) { ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H); } }
-    if (t < 3) cap('Город N1. Обычный вечер в офисе.');
-    else if (t > 4.2 && t < 5.6) cap('ЧТО ЭТО?!', '#ff5a5a');
-    if (t > 6) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (t - 6) / .5)})`; ctx.fillRect(0, 0, W, H); }
+  const cap = (s, col) => { ctx.textAlign = 'center'; ctx.font = 'bold 10px monospace'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(s, W / 2, H - 12); ctx.fillStyle = col || '#fff'; ctx.fillText(s, W / 2, H - 12); ctx.textAlign = 'left'; };
+  if (t < 10.9) {
+    introOffice(t);
+    if (t < 3) cap('Город N1. Обычный рабочий день.');
+    else if (t > 3.4 && t < 5.4) cap('Пять минут перерыва...');
+    else if (t > 7.2 && t < 8.6) cap('Толчок... прямо в толчке!', '#ff5a5a');
+    else if (t > 8.8 && t < 10.2) cap('Что за чертовщина?!', '#ffd23f');
+    if (t > 10.3) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (t - 10.3) / .5)})`; ctx.fillRect(0, 0, W, H); }
     return;
   }
-  if (t < 14.2) {                              // --- сцена 2: улица ---
-    const s = t - 6.6, carX = W * .4, holeX = W * .86, copX0 = W * .56;
-    const sky = ctx.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, '#0e0814'); sky.addColorStop(1, '#4a1a14'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, gy);
-    introCity(gy - 6, t, true);
-    rect(0, gy - 6, W, H - gy + 6, '#1c1c20'); rect(0, gy - 6, W, 2, '#3a3a40');
-    for (let x = 6; x < W; x += 30) rect(x, gy + 10, 14, 2, '#5a5a4a');                // разметка
-    ctx.strokeStyle = '#0a0a0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(holeX - 70, gy); ctx.lineTo(holeX - 50, gy + 6); ctx.lineTo(holeX - 30, gy + 2); ctx.lineTo(holeX - 20, gy + 8); ctx.stroke();
-    for (const lx of [W * .12, W * .7]) { rect(lx, gy - 70, 2, 64, '#2a2a30'); rect(lx - 6, gy - 72, 10, 3, '#2a2a30'); ctx.fillStyle = 'rgba(255,220,150,.08)'; ctx.beginPath(); ctx.moveTo(lx - 5, gy - 69); ctx.lineTo(lx + 4, gy - 69); ctx.lineTo(lx + 22, gy - 6); ctx.lineTo(lx - 24, gy - 6); ctx.fill(); }
-    // полицейская машина с мигалкой
-    rect(carX - 30, gy - 18, 60, 12, '#e8e8ec'); rect(carX - 18, gy - 27, 34, 10, '#e8e8ec'); rect(carX - 14, gy - 25, 12, 7, '#2a3a4a'); rect(carX + 2, gy - 25, 12, 7, '#2a3a4a');
-    rect(carX - 30, gy - 14, 60, 3, '#1a2a6a'); ell(carX - 18, gy - 6, 5, 5, '#111'); ell(carX + 18, gy - 6, 5, 5, '#111');
-    const bl = Math.floor(t * 6) % 2; rect(carX - 6, gy - 31, 5, 4, bl ? '#ff2a2a' : '#5a1010'); rect(carX + 1, gy - 31, 5, 4, bl ? '#2a3aff' : '#10105a');
-    ctx.fillStyle = bl ? 'rgba(255,40,40,.07)' : 'rgba(40,60,255,.07)'; ctx.fillRect(0, 0, W, H);
-    ell(holeX, gy - 2, 24, 6, '#050404'); for (let i = 0; i < 6; i++) rect(holeX - 26 + i * 9, gy - 6 - h01(i) * 6, 5, 4, '#3a3028');   // дыра в асфальте
-    // жук: вылезает, бросается на копа, потом смотрит на героя
-    const rise = clamp((s - .6) / 1.4, 0, 1), lunge = clamp((s - 2.6) / .35, 0, 1), turn = s > 5.6;
-    const bugX = holeX - lunge * (holeX - copX0 - 34), bugY = gy + 22 - rise * 22 - Math.sin(lunge * Math.PI) * 14;
-    const eaten = s > 2.95;
-    if (!eaten) {                                // коп стреляет по жуку
-      drawSpr(COP_SPR.stand, copX0 - 7, gy - 24, 1);
-      rect(copX0 + 5, gy - 12, 6, 2, '#222');
-      if (s > .4 && Math.floor(s * 7) % 2 === 0) { ell(copX0 + 13, gy - 11, 3, 2, '#ffe9a0'); }
-    }
-    drawBigBug(bugX, bugY, 1.5, turn ? -1 : -1, t, eaten && s < 4.2 ? Math.abs(Math.sin(s * 9)) : s > 5.8 ? .8 + Math.sin(t * 20) * .2 : .2);
-    if (eaten && s < 3.8) for (let i = 0; i < 10; i++) { const q = (s - 2.95) * 2 + i * .07; ell(copX0 + Math.cos(i * 1.7) * q * 30, gy - 16 - Math.sin(i * 2.3) * q * 20 + q * q * 18, 2, 2, i % 2 ? '#c8102e' : '#7a0a10'); }
-    // пистолет: вылетает дугой к ногам героя
-    const heroX = W * .2, gunT = clamp((s - 2.95) / 1, 0, 1);
-    if (s > 2.95) { const gx = copX0 + (heroX + 18 - copX0) * gunT, gyy = gy - 14 - Math.sin(gunT * Math.PI) * 50 + gunT * 10;
-      if (s < 4.9) { ctx.save(); ctx.translate(gx, Math.min(gy - 3, gyy)); ctx.rotate(gunT < 1 ? s * 14 : 0); rect(-4, -2, 8, 3, '#2a2a2e'); rect(-4, 0, 3, 4, '#2a2a2e'); ctx.restore(); } }
-    // герой: выбегает слева, смотрит, поднимает пистолет
-    let hx = Math.min(heroX, -14 + s * 90), fr = s * 90 - 14 < heroX ? HERO_SPR['r' + (1 + Math.floor(t * 10) % 4)] : HERO_SPR.stand;
-    if (s > 4.4 && s < 4.9) fr = HERO_SPR.crouch;
-    drawSpr(fr, hx, gy - fr.height, 1);
-    if (s > 4.9) { rect(hx + 11, gy - 13, 8, 3, '#2a2a2e'); if (s > 6 && Math.floor(s * 8) % 2 === 0) ell(hx + 21, gy - 12, 3, 2, '#ffe9a0'); }   // в руке, стреляет
-    if (s < 1.6) cap('Улица. Сирены. Крики.', '#ccc');
-    else if (s > 3 && s < 4.3) cap('Пистолет копа отлетает прямо под ноги...', '#fff');
-    else if (s > 5 && s < 7.3) cap('Ну, понеслось!', '#ffd23f');
+  if (t < 18.5) {
+    const s = t - 10.9; introStreet(s, t);
+    if (s < 1.6) cap('Улица. Сирены. Крики.');
+    else if (s > 3 && s < 4.3) cap('Пистолет копа отлетает прямо под ноги...');
+    else if (s > 5 && s < 7.2) cap('Ну, понеслось!', '#ffd23f');
     if (s > 7.1) { ctx.fillStyle = `rgba(255,255,240,${Math.min(1, (s - 7.1) / .5)})`; ctx.fillRect(0, 0, W, H); }
     return;
   }
-  // --- сцена 3: название ---
-  const s = t - 14.2; rect(0, 0, W, H, '#060406');
+  const s = t - 18.5; rect(0, 0, W, H, '#060406');   // --- сцена 3: название ---
   ctx.strokeStyle = '#2a0a0a'; ctx.lineWidth = 2; ctx.beginPath();
   for (let i = 0; i < 7; i++) { let x = W / 2, y = H / 2 + 6; ctx.moveTo(x, y); for (let k = 0; k < 6; k++) { x += Math.cos(i * .9 + k * .3) * 18; y += Math.sin(i * .9 + k * .5) * 10; ctx.lineTo(x, y); } } ctx.stroke();
   if (s < .3) { ctx.fillStyle = `rgba(255,255,240,${1 - s / .3})`; ctx.fillRect(0, 0, W, H); }
   const k = Math.min(1, s / .25), fs = Math.round(60 - 28 * k);
   ctx.textAlign = 'center'; ctx.font = `bold ${fs}px monospace`; ctx.lineWidth = 4; ctx.strokeStyle = '#000';
   ctx.strokeText('СУДНЫЙ ДЕНЬ', W / 2, H / 2 - 4); ctx.fillStyle = '#ffd23f'; ctx.fillText('СУДНЫЙ ДЕНЬ', W / 2, H / 2 - 4);
-  if (s > 1) { ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#ff6a4a'; ctx.fillText('пробейся!', W / 2, H / 2 + 22); }
+  if (s > 1) { ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#ff6a4a'; ctx.fillText('выживи. пробейся!', W / 2, H / 2 + 22); }
   ctx.textAlign = 'left';
   if (s > 3) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (s - 3) / .6)})`; ctx.fillRect(0, 0, W, H); }
 }
 function updIntro(dt, k) {                     // звук и переходы заставки
   if (!introGo) { if (anyTap || k.aPressed) { introGo = true; stateT = 0; audioOn(); } anyTap = false; return; }
-  const t = stateT, at = x => t >= x && t - dt < x;
-  if (at(3)) { shake = 1.2; boom(.14); beep(60, 30, 1.2, 'sawtooth', .05); }
-  if (t > 3 && t < 5.5) shake = Math.max(shake, .35);
-  if (at(3.3)) beep(2400, 1800, .15, 'square', .02);                      // стекло
-  if (at(3.6)) beep(140, 60, .3, 'square', .04);                          // монитор упал
-  if (at(4.2)) beep(80, 50, .8, 'sawtooth', .04);                         // рык за окном
-  if (t > 6.6 && t < 9.6 && Math.floor(t * 6) !== Math.floor((t - dt) * 6)) beep(Math.floor(t * 6) % 2 ? 950 : 700, Math.floor(t * 6) % 2 ? 700 : 950, .16, 'triangle', .02);   // сирена
-  if (t > 7 && t < 9.5 && Math.floor((t - 6.6) * 7) !== Math.floor((t - dt - 6.6) * 7) && Math.floor((t - 6.6) * 7) % 2 === 0) beep(900, 120, .06, 'square', .04);   // коп стреляет
-  if (at(7.4)) { boom(.1); shake = .6; }                                  // жук вылезает
-  if (at(9.4)) { beep(1200, 300, .4, 'sawtooth', .04); boom(.08); shake = .8; }   // хвать
-  if (at(10.6)) beep(300, 500, .05, 'square', .03);                       // пистолет звякнул
-  if (at(12.4)) beep(70, 40, .9, 'sawtooth', .06);                        // жук рычит на героя
-  if (t > 12.6 && t < 13.9 && Math.floor(t * 8) !== Math.floor((t - dt) * 8) && Math.floor(t * 8) % 2 === 0) beep(1100, 140, .05, 'square', .04);   // герой стреляет
-  if (at(14.2)) { shake = 1.4; boom(.16); beep(55, 30, 1.5, 'sawtooth', .06); }
+  const t = stateT, at = x => t >= x && t - dt < x, S = 10.9;
+  if (t < 3.2 && Math.random() < dt * 14) beep(1800 + Math.random() * 600, 1700, .015, 'square', .006);   // стучат клавиатуры
+  if (at(4.4) || at(5.1)) beep(220, 180, .08, 'square', .02);             // дверь
+  if (at(7)) { shake = 1.3; boom(.14); beep(60, 30, 1.2, 'sawtooth', .05); }
+  if (t > 7 && t < 9.5) shake = Math.max(shake, .35);
+  if (at(7.2)) beep(2400, 1800, .15, 'square', .02);                      // стекло
+  if (at(7.5)) beep(900, 1300, .5, 'sawtooth', .025);                     // крики
+  if (at(8.5)) beep(260, 160, .1, 'square', .03);                         // дверь кабинки
+  if (t > S && t < S + 3 && Math.floor(t * 6) !== Math.floor((t - dt) * 6)) beep(Math.floor(t * 6) % 2 ? 950 : 700, Math.floor(t * 6) % 2 ? 700 : 950, .16, 'triangle', .02);   // сирена
+  if (t > S + .4 && t < S + 2.8 && Math.floor((t - S) * 7) !== Math.floor((t - dt - S) * 7) && Math.floor((t - S) * 7) % 2 === 0) beep(900, 120, .06, 'square', .04);   // коп стреляет
+  if (at(S + .7)) { boom(.08); shake = .5; }                              // жук вылезает
+  if (at(S + 2.8)) { beep(1200, 300, .4, 'sawtooth', .04); boom(.07); shake = .7; }   // хвать
+  if (at(S + 3.9)) beep(300, 500, .05, 'square', .03);                    // пистолет звякнул
+  if (at(S + 5.8)) beep(90, 50, .7, 'sawtooth', .05);                     // жук шипит на героя
+  if (t > S + 6 && t < S + 7.2 && Math.floor(t * 8) !== Math.floor((t - dt) * 8) && Math.floor(t * 8) % 2 === 0) beep(1100, 140, .05, 'square', .04);   // герой стреляет
+  if (at(18.5)) { shake = 1.4; boom(.16); beep(55, 30, 1.5, 'sawtooth', .06); }
   shake = Math.max(0, shake - dt * .8);
-  if (t > 18 || (t > .8 && (anyTap || k.aPressed))) { try { localStorage.setItem('strel-intro', '1'); } catch (e) {} setState('title'); }
+  if (t > 22.3 || (t > .8 && (anyTap || k.aPressed))) setState('title');
   anyTap = false;
 }
 
@@ -5877,7 +5913,7 @@ godBtn.onclick = () => { IMMORTAL = !IMMORTAL; try { localStorage.setItem('strel
 const QC = location.search.match(/[?&]city=(\d+)/), QL = +(location.search.match(/[?&]lvl=(\d+)/)?.[1] || 1);
 const START = clamp((QC ? cityStart(+QC[1] - 1) : 0) + QL - 1, 0, LEVELS.length - 1);   // ?city=2&lvl=3 — сразу в подуровень
 resetGear(START); startLevel(START); setState('title');
-try { if (!location.search && !localStorage.getItem('strel-intro')) setState('intro'); } catch (e) {}   // заставка — при первом запуске
+if (!location.search) setState('intro');   // заставка — при каждом запуске (друг, msg 1803), тапом пропускается
 const SIM = +(location.search.match(/[?&]speed=(\d+)/)?.[1] || 1);   // ускорение для проверок
 let last = performance.now(), acc = 0;
 function frame(now) {
