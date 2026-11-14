@@ -66,6 +66,8 @@
   #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; justify-content: center; gap: 12px; z-index: 5; }
   #tmenu button { font: 800 15px system-ui, sans-serif; letter-spacing: 2px; color: #ffd23f; background: rgba(10,10,8,.78); border: 2px solid #ffd23f;
     border-radius: 4px; padding: 10px 18px; min-height: 46px; min-width: 120px; }
+  #iskip { position: fixed; right: calc(env(safe-area-inset-right) + 14px); bottom: calc(env(safe-area-inset-bottom) + 14px); display: none; z-index: 6;
+    font: 800 13px system-ui, sans-serif; letter-spacing: 1px; color: #fff; background: rgba(10,10,8,.7); border: 2px solid #ffd23f; border-radius: 4px; padding: 10px 14px; min-height: 44px; }
   #tmenu #t-go { background: #8a1218; border-color: #ff5a4a; color: #fff; }
   #help { position: fixed; inset: 0; background: rgba(8,8,10,.95); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; z-index: 21;
     color: #ddd; font: 600 14px system-ui, sans-serif; text-align: center; padding: 10px; }
@@ -87,6 +89,7 @@
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
 <div id="m">☰</div>
 <div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="m-map">КАРТА</button><button id="m-intro">ЗАСТАВКА</button><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<button id="iskip">ПРОПУСТИТЬ ▶▶</button>
 <div id="tmenu"><button id="t-go">▶ НАЧАТЬ</button><button id="t-map">УРОВНИ</button><button id="t-help">УПРАВЛЕНИЕ</button></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
@@ -5443,7 +5446,9 @@ const WORK_SPR = [                             // коллеги: рубашки
   mkHeroSpr({ j: '#8a2a3a', J: '#5a1a24', k: '#c8c8d0', h: '#1a1a1a', H: '#2a2a2a', s: '#b07a52', S: '#7a5034', p: '#3a3428', P: '#2a241a' }),
   mkHeroSpr({ j: '#5a8ac8', J: '#3a5a8a', k: '#e8e8f0', h: '#c8a050', H: '#e8c870', p: '#2a2a32', P: '#1a1a22' }),
   mkHeroSpr({ j: '#e8e0c8', J: '#b8b098', k: '#6a2a2a', h: '#4a2a1a', H: '#6a3a2a', s: '#e8b890', p: '#4a4a5a', P: '#2a2a3a' })];
-let introGo = false;
+let introGo = false, introSeen = false;
+try { introSeen = !!localStorage.getItem('strel-intro'); } catch (e) {}
+function introEnd() { introSeen = true; try { localStorage.setItem('strel-intro', '1'); } catch (e) {} setState('title'); }
 const h01 = n => (hash(Math.floor(n), 7) % 1000) / 1000;   // псевдослучайное 0..1 для картинок заставки
 function drawSpr(img, x, y, f, rows) {       // rows — сколько строк спрайта рисовать (сидит за столом — только верх)
   const h = rows || img.height; ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(f, 1);
@@ -5615,7 +5620,7 @@ function updIntro(dt, k) {                     // звук и переходы �
   if (t > S + 6 && t < S + 7.2 && Math.floor(t * 8) !== Math.floor((t - dt) * 8) && Math.floor(t * 8) % 2 === 0) beep(1100, 140, .05, 'square', .04);   // герой стреляет
   if (at(18.5)) { shake = 1.4; boom(.16); beep(55, 30, 1.5, 'sawtooth', .06); }
   shake = Math.max(0, shake - dt * .8);
-  if (t > 22.3 || (t > .8 && (anyTap || k.aPressed))) setState('title');
+  if (t > 22.3 || (introSeen && t > .5 && k.aPressed)) introEnd();
   anyTap = false;
 }
 
@@ -5878,14 +5883,15 @@ document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, 
   addEventListener('resize', () => { if (mapOpen) { mapTw = null; mapFit(); } });
 }
 // ===== Титульное меню: Начать / Уровни / Управление =====
-const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help');
+const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help'), skipEl = document.getElementById('iskip');
+skipEl.onclick = () => { if (state === 'intro') introEnd(); };
 document.getElementById('t-go').onclick = () => { audioOn(); score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); };
 document.getElementById('t-map').onclick = () => { audioOn(); mapShow(true); };
 document.getElementById('t-help').onclick = () => { helpEl.style.display = 'flex'; };
 document.getElementById('hclose').onclick = () => { helpEl.style.display = 'none'; };
 document.getElementById('m-map').onclick = () => { openMenu(false); mapShow(true); };
 document.getElementById('m-intro').onclick = () => { openMenu(false); audioOn(); introGo = true; setState('intro'); };
-for (const el of [mapEl, tMenu, helpEl]) for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend', 'wheel']) el.addEventListener(t, e => e.stopPropagation());
+for (const el of [mapEl, tMenu, helpEl, skipEl]) for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend', 'wheel']) el.addEventListener(t, e => e.stopPropagation());
 
 const musBtn = document.getElementById('mus');
 window.musLabel = () => { musBtn.textContent = `МУЗЫКА: ${MUS.on ? 'ВКЛ' : 'ВЫКЛ'}`; musBtn.classList.toggle('on', MUS.on); };
@@ -5920,7 +5926,8 @@ function frame(now) {
   acc += Math.min(.1, (now - last) / 1000) * SIM; last = now;
   while (acc >= 1 / 60) { window.__botTick?.(); update(1 / 60); acc -= 1 / 60; }
   document.body.classList.toggle('noctl', state !== 'play');
-  tMenu.style.display = state === 'title' && !menuOpen && !mapOpen ? 'flex' : 'none';   // титул, карточка, «ты погиб» — кнопки прячем, текст виден (аудит №10)
+  tMenu.style.display = state === 'title' && !menuOpen && !mapOpen ? 'flex' : 'none';
+  skipEl.style.display = state === 'intro' && introGo && introSeen && stateT > .5 && !menuOpen ? 'block' : 'none';   // титул, карточка, «ты погиб» — кнопки прячем, текст виден (аудит №10)
   if (!badOn('lag') || fN++ % 7 === 0) draw();      // баг: лаг — картинка дёргается
   requestAnimationFrame(frame);
 }
