@@ -1995,7 +1995,7 @@ let hordeGone = 0, leaveCd = 0;            // ушли вперёд к горо�
 function hordeLeave(dt) {                  // по одному: самый старый уходит вперёд, если рядом толпа больше 12
   if (L.obj !== 'carnage' || (leaveCd -= dt) > 0) return;
   leaveCd = rnd(1.5, 3);
-  const stay = allies.filter(a => a.leaving === undefined && a.k !== 'AL');
+  const stay = allies.filter(a => a.leaving === undefined && a.k !== 'AL' && !a.flyer);
   if (stay.length <= 12) return;
   let old = stay[0]; for (const a of stay) if ((a.age || 0) > (old.age || 0)) old = a;
   if ((old.age || 0) > 12) old.leaving = 0;
@@ -2004,8 +2004,9 @@ let allies = [], rising = [], infected = 0, jarsAll = 0, desKilled = 0, desSent 
 const ALLY_MAX = 30;
 const BIG = ['AL', 'LB', 's', 'Z'];
 // Жуки прошлых уровней (друг, msg 1599): стоят в своих зонах, чуют Альфу и встают в орду, когда герой рядом
-const KIN = { 'ЛАГЕРЬ': ['r', 'j', 'R', 'r', 'j', 'r'], 'ВОЕННАЯ БАЗА': ['N', 'D', 'Z', 'N', 'j', 'D'], 'ЛАБОРАТОРИЯ': ['k', 'x', 'k', 'x', 'q', 'k'],
-  'НОРА': ['e', 'j', 'LB', 'R', 'e', 'j'], 'ЛЕС': ['M', 'A', 'H', 'M', 'A', 'M'] };   // по 6 на зону, с мини-боссами
+const KIN = { 'ЛАГЕРЬ': ['r', 'j', 'F', 'R', 'r', 'F', 'j', 'r'], 'ВОЕННАЯ БАЗА': ['N', 'D', 'F', 'Z', 'N', 'j', 'D', 'F'], 'ЛАБОРАТОРИЯ': ['k', 'x', 'v', 'k', 'x', 'q', 'v', 'k'],
+  'НОРА': ['e', 'j', 'v', 'LB', 'R', 'v', 'e', 'j'], 'ЛЕС': ['M', 'A', 'F', 'H', 'v', 'M', 'A', 'F'] };   // по 8 на зону, с летающими и мини-боссами
+const FLYK = ['F', 'v'];                     // летающие в орде: стрекоза-игла и оса   // по 6 на зону, с мини-боссами
 // Бойня (друг, msg 1607): люди и техника подходят волнами по кд — спереди и сзади, по зоне
 let spawnT = 3;
 const CARN = { 'БОЛЬНИЦА': ['UUK', 2.6, 5], 'ЛАГЕРЬ': ['UUUKKJ', 1.6, 10], 'ВОЕННАЯ БАЗА': ['KKKUJB', 1.5, 10], 'ЛАБОРАТОРИЯ': ['UUKK', 1.8, 9], 'НОРА': ['KKU', 2, 8], 'ЛЕС': ['KKUJ', 1.9, 9] };
@@ -2036,7 +2037,13 @@ function updCarnage(dt) {
     if (TECH.includes(k) && alive.some(e => TECH.includes(e.k) && Math.abs(e.x - P.x) < 600)) k = 'K';   // техника — не больше одной рядом
     const side = Math.random() < .72 ? P.face : -P.face, cx = Math.floor((side > 0 ? cam + W + 30 + i * 24 : cam - 30 - i * 24) / T);   // строго за краем экрана
     if (cx < 2 || cx > COLS - 3) continue;
-    const fr = findFloor(cx, Math.floor((P.y + P.h - 1) / T)); if (fr === null) continue;
+    let fr = findFloor(cx, Math.floor((P.y + P.h - 1) / T));
+    if (Math.random() < .55) {                 // друг (msg 1687): враги везде — на вышках, крышах, этажах
+      const top = Math.max(3, Math.floor(camY / T) + 1), bot = Math.min(ROWS - 1, Math.floor((camY + H) / T)), fl = [];
+      for (let r = top; r <= bot; r++) if (solid(cx, r) && !solid(cx, r - 1) && !solid(cx, r - 2)) fl.push(r);
+      if (fl.length) fr = pick(fl);
+    }
+    if (fr === null) continue;
     const e = mkBug(k, cx * T + 8 - BUGS[k][0] / 2, fr * T, -side);
     if (inSolid(e)) continue;
     Object.assign(e, { sleep: false, spawned: true }); enemies.push(e);
@@ -2054,11 +2061,31 @@ function placeKin() {
     }
   });
 }
-function updKin() {
-  for (const q of kin) if (!q.gone && !P.dead && Math.abs(q.x - P.x - 5) < 110 && Math.abs(q.y - P.y - P.h) < 70 && allies.length < ALLY_MAX) {
-    q.gone = true; const a = addAlly(q.k, q.x, q.y); if (a) { a.vy = -200; showToast(`🪲 жук примкнул к орде (${allies.length + 1})`, 1.2); }
+function updKin() {                        // жуки не стоят на виду: вылезают из-под земли рядом, летающие прилетают из-за края экрана
+  for (const q of kin) if (!q.gone && !P.dead && Math.abs(q.x - P.x - 5) < (FLYK.includes(q.k) ? W * .5 : 120 + (q.ph % 1) * 60) && allies.length < ALLY_MAX) {
+    q.gone = true;
+    if (FLYK.includes(q.k)) {                // из-за края экрана, сверху
+      const a = addAlly(q.k, P.face > 0 ? cam + W + 16 : cam - 16, camY + 30 + Math.random() * 40, true);
+      if (a) { a.flyer = true; a.vy = 0; showToast('🦟 летун примкнул к орде', 1.1); }
+    } else {                                 // из-под земли: взрыв грунта, выпрыгивает
+      const a = addAlly(q.k, q.x, q.y, true);
+      if (a) { a.vy = -330; explode(q.x, q.y - 2, 18, ['#4a3624', '#6a5038', '#2a1e12', '#8a7050']); boom(.05); shake = Math.max(shake, .15); showToast('🪲 вылез из-под земли — в орду', 1.1); }
+    }
   }
   kin = kin.filter(q => !q.gone);
+}
+function flyAllyAI(a, dt) {                  // летун в орде: кружит над толпой, пикирует на людей позади героя
+  a.fl -= dt; a.bite -= dt; a.run += dt;
+  const cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+  let foe = P.dead ? null : nearestHuman(cx, cy + 20, 220, 140);
+  if (foe && L.obj === 'carnage' && (foe.x + foe.w / 2 - (P.x + 5)) * P.face > -6) foe = null;
+  let tx, ty;
+  if (foe) { tx = foe.x + foe.w / 2; ty = foe.y + 6; if (hit(a, foe) && a.bite <= 0) { a.bite = .5; hurtEnemy(foe, 1); explode(tx, foe.y + 8, 3, ['#c8102e', '#7a0a10']); beep(rnd(900, 1300), 400, .05, 'sawtooth', .02); } }
+  else { tx = P.x + 5 - P.face * (20 + (a.slot % 90)) + Math.sin(time * 1.3 + a.ph) * 18; ty = P.y - 34 - (a.slot % 28) + Math.sin(time * 2.1 + a.ph) * 8; }
+  const sp = SPEED * 1.25;
+  a.vx = clamp((tx - cx) * 2.2, -sp, sp); a.vy = clamp((ty - cy) * 2.2, -sp, sp);
+  a.x += a.vx * dt; a.y += a.vy * dt; a.on = false; a.dir = Math.sign(a.vx) || a.dir;
+  if (Math.abs(a.x - P.x) > W + 120) { a.x = P.face > 0 ? cam - 20 : cam + W + 20; a.y = camY + 30; }   // отстал — влетает из-за края
 }
 function addAlly(k, x, y, quiet) {          // y — пол под ним
   if (allies.length >= ALLY_MAX) return null;
@@ -2097,6 +2124,7 @@ function nearestHuman(x, y, rx, ry) {
   return best;
 }
 function allyAI(a, i, dt) {                 // свита: бежит за героем, людей рвёт на части
+  if (a.flyer || FLYK.includes(a.k)) { a.flyer = true; flyAllyAI(a, dt); return; }
   a.fl -= dt; a.bite -= dt; a.age = (a.age || 0) + dt;
   if (BIG.includes(a.k) && a.hp < a.max && (a.hurtT = (a.hurtT || 0) - dt) <= 0) a.hp = Math.min(a.max, a.hp + dt * 2);   // мини-боссы затягивают раны
   if (a.leaving !== undefined) {            // бегут к городу и пропадают за краем экрана
@@ -2208,7 +2236,7 @@ function humanAI(e, dt) {
   if (!t) { e.vx = 0; return; }
   const dx = t.x + t.w / 2 - (e.x + e.w / 2), dy = t.y + t.h - (e.y + e.h), dir = Math.sign(dx) || 1, adx = Math.abs(dx);
   if (e.sleep) {
-    if (adx < ({ U: 170, K: 230, V: 380 }[e.k] || 260) && Math.abs(dy) < (e.k === 'V' ? 260 : 80)) { e.sleep = false; if (e.k !== 'V') beep(e.k === 'U' ? 900 : 500, 300, .12, 'square', .025); }
+    if (L.obj === 'carnage' ? Math.abs(e.x + e.w / 2 - P.x - 5) < W * .5 + 40 && Math.abs(e.y - P.y) < H : adx < ({ U: 170, K: 230, V: 380 }[e.k] || 260) && Math.abs(dy) < (e.k === 'V' ? 260 : 80)) { e.sleep = false; if (e.k !== 'V') beep(e.k === 'U' ? 900 : 500, 300, .12, 'square', .025); }
     else { e.vx = 0; return; }
   }
   if (e.k === 'U' && !e.gun) {              // безоружный: бежит прочь, загнали в угол — трясётся
@@ -2268,11 +2296,6 @@ function drawAllies() {
     const x = a.x - cam;
     if (x < -40 || x > W + 40) continue;
     drawMon(a, x, a.y, a.fl > 0, a.dir > 0 ? 1 : -1, a.run || 0);
-  }
-  for (const q of kin) {                    // жуки ждут Альфу: стоят и покачиваются
-    const x = q.x - cam; if (x < -40 || x > W + 40) continue;
-    const [w, h] = BUGS[q.k], f = P.x + 5 > q.x ? 1 : -1;
-    drawMon({ k: q.k, w, h, st: 'walk', x: q.x - w / 2, y: q.y - h }, x - w / 2, q.y - h + Math.sin(time * 2 + q.ph), false, f, (Math.sin(time * 1.5 + q.ph) + 1) * .05);
   }
   ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;   // тросы десанта
   const heli = enemies.find(q => q.k === 'V' && q.hp > 0);
