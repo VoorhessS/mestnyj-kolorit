@@ -2001,6 +2001,7 @@ const KIN = { 'ЛАГЕРЬ': ['r', 'j', 'R', 'r', 'j', 'r'], 'ВОЕННАЯ Б
 // Бойня (друг, msg 1607): люди и техника подходят волнами по кд — спереди и сзади, по зоне
 let spawnT = 3;
 const CARN = { 'БОЛЬНИЦА': ['UUK', 2.6, 5], 'ЛАГЕРЬ': ['UUUKKJ', 1.6, 10], 'ВОЕННАЯ БАЗА': ['KKKUJB', 1.5, 10], 'ЛАБОРАТОРИЯ': ['UUKK', 1.8, 9], 'НОРА': ['KKU', 2, 8], 'ЛЕС': ['KKUJ', 1.9, 9] };
+function floorBelow(c, r0) { for (let r = Math.max(3, r0); r < ROWS; r++) if (solid(c, r) && !solid(c, r - 1) && !solid(c, r - 2)) return r; return findFloor(c, r0); }   // пол под точкой — орда выбегает по земле
 function findFloor(c, r0) { for (let d = 0; d <= 6; d++) for (const r of [r0 + d, r0 - d]) if (r > 2 && r < ROWS && solid(c, r) && !solid(c, r - 1) && !solid(c, r - 2)) return r; return null; }
 function updCarnage(dt) {
   if (L.obj !== 'carnage' || P.dead || state !== 'play' || (spawnT -= dt) > 0) return;
@@ -2102,13 +2103,14 @@ function allyAI(a, i, dt) {                 // свита: бежит за ге�
   moveBody(a, dt);
   if (a.vx) a.dir = Math.sign(a.vx);
   if (a.vx || !a.on) a.run += dt;
-  if (Math.abs(a.x - P.x) > Math.max(420, W + 60) || Math.abs(a.y - P.y) > 220 || a.y > MAPH || touches(a, ACID)) {   // отстал или упал — догоняет из-за края экрана, а не из воздуха (друг, msg 1620)
+  if (Math.abs(a.x - P.x) > Math.max(420, W + 60) || (Math.abs(a.y - P.y) > 220 && P.on) || a.y > MAPH || touches(a, ACID)) {   // герой летит — по высоте не догоняют (msg 1666)   // отстал или упал — догоняет из-за края экрана, а не из воздуха (друг, msg 1620)
     if (P.dead) return;
-    const ex = P.face > 0 ? cam - a.w - 6 : cam + W + 6, fr = findFloor(Math.floor((ex + a.w / 2) / T), Math.floor((P.y + P.h - 1) / T));
+    const ex = P.face > 0 ? cam - a.w - 6 : cam + W + 6, fr = floorBelow(Math.floor((ex + a.w / 2) / T), Math.floor((P.y + P.h - 1) / T));
     if (fr !== null) { a.x = ex; a.y = fr * T - a.h; }
-    else { a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; if (inSolid(a)) a.x = P.x + 5 - a.w / 2; explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']); }
+    else if (P.on) { a.x = P.x + 5 - a.w / 2 - P.face * clamp(a.slot, -100, 120); a.y = P.y + P.h - a.h; if (inSolid(a)) a.x = P.x + 5 - a.w / 2; explode(a.x + a.w / 2, a.y + a.h / 2, 6, ['#2a3a1a', '#4a6a2a']); }
+    else return;                                   // герой в воздухе, пола нет — подождёт
     a.vx = 0; a.vy = 0;
-    if (inSolid(a)) { a.x = P.x + 5 - a.w / 2; a.y = P.y + P.h - a.h; }
+    if (inSolid(a) && P.on) { a.x = P.x + 5 - a.w / 2; a.y = P.y + P.h - a.h; }
   }
 }
 function humanDown(e) {                     // человек повержен: рвут на части, а он встаёт уже в свите
