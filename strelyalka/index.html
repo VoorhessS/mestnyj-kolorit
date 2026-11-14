@@ -1372,45 +1372,45 @@ function boom(vol = .12) {
 
 // ===== Музыка (друг, msg 1645): 8-бит металкор и ню-метал — свой трек на каждый город =====
 // Рифф: 16 шагов; x — глухой «чаг» на тонике, 0–c — квинт-аккорд на ступени (полутонах от тоники), - — тянуть, . — пауза
-const TRACKS = [
-  { name: 'ГОРОД N1', st: 'mc', bpm: 168, root: 40, A: 'x.xxx.x.3-1-x.xx', B: '0-------5---3---', C: 'x..x..x.x...1---', L: '7-5-3-2-0-----3-' },
-  { name: 'ЛЕС', st: 'nu', bpm: 100, root: 38, A: 'x..x.3x..xx.5-3.', B: '0-..0-..5-3-1-..', C: 'x.x...x.x...x.1-', L: '..c.a...7.5.....' },
-  { name: 'НОРА', st: 'nu', bpm: 92, root: 37, A: 'x...x.1.x..x.6-.', B: '0-------1-------', C: 'x..x..x..x..x.1.', L: 'c-.b-.c-.6---...' },
-  { name: 'ЛАБОРАТОРИЯ', st: 'mc', bpm: 180, root: 42, A: 'xx3xx5xx6xx5xx3x', B: '0---3---5---6---', C: 'x.x.x...x.x.x...', L: '037c037c7307c730' },
-  { name: 'ВОЕННАЯ БАЗА', st: 'mc', bpm: 160, root: 38, A: 'x.xxx.xxx.x.5-6-', B: '0---5---3---1---', C: 'x...x...x.x.x...', L: '7---8---7-5-3---' },
-  { name: 'ЛАГЕРЬ', st: 'nu', bpm: 104, root: 35, A: 'x.x..3.x.x..5.3.', B: '0---3---5---3---', C: 'x..x..x.....x.x.', L: 'c...a...7...5-3-' },
-  { name: 'ОРДА', st: 'mc', bpm: 192, root: 36, A: 'xxxxxxxx1-xxxx3-', B: '0-------1---6---', C: 'x..x..x.x..x1-0-', L: '0---1---3---1---', blast: true },
+const TRACKS = [   // друг (msg 1653): «больше на рэп похоже» — риффы плотнее, тремоло в припевах, темп выше, без скретчей
+  { name: 'ГОРОД N1', st: 'mc', bpm: 184, root: 40, A: 'xxxxxx3-xxxxxx1-', B: '0000000055553333', C: 'xx.xx.xxxx.xx1--', L: '7-5-3-2-0---3-5-' },
+  { name: 'ЛЕС', st: 'nu', bpm: 118, root: 38, A: 'xxx.xx3-xxx.xx5-', B: '0000333355551111', C: 'x.xx.xx.x.xx1-0-', L: 'c---a---7---5---' },
+  { name: 'НОРА', st: 'nu', bpm: 112, root: 37, A: 'xx1-xx.xxx6-xx1-', B: '0000000011111111', C: 'xx.xx.xx.xx.x6--', L: 'c-b-c-6---------' },
+  { name: 'ЛАБОРАТОРИЯ', st: 'mc', bpm: 196, root: 42, A: 'xx3xx5xx6xx5xx3x', B: '0000333355556666', C: 'xxx.xxx.xxx.x1--', L: '037c037c7307c730' },
+  { name: 'ВОЕННАЯ БАЗА', st: 'mc', bpm: 176, root: 38, A: 'xxxxxxxx5-6-xxxx', B: '0000555533331111', C: 'xx..xx..xx.xx.x.', L: '7---8---7-5-3---' },
+  { name: 'ЛАГЕРЬ', st: 'nu', bpm: 120, root: 35, A: 'xxx.xx3-xx.xx5-3', B: '0000333355553333', C: 'xx.x.xx.x.xx.x1-', L: 'c---a---7---5-3-' },
+  { name: 'ОРДА', st: 'mc', bpm: 200, root: 36, A: 'xxxxxxxx1-xxxx3-', B: '0000000011116666', C: 'xx.xx.xxx.xx1-0-', L: '0---1---3---1---', blast: true },
 ];
-const SONG = { mc: 'AABBACBC', nu: 'AABAABCC' };
+const SONG = { mc: 'AABBACBC', nu: 'AABBAACB' };
 const DRUM = {
-  mc: { A: ['x.x.x.x.x.x.x.x.', '....x.......x...', 'x.x.x.x.x.x.x.x.'], B: ['xxxxxxxxxxxxxxxx', '....x.......x...', '..x...x...x...x.'] },
-  nu: { A: ['x..x..x...x.x...', '....x.......x...', 'x.x.x.x.x.x.x.x.'], B: ['x...x.x...x.x...', '....x.......x...', 'x.x.x.x.x.x.x.x.'] },
+  mc: { A: ['xxxxxxxxxxxxxxxx', '....x.......x...', 'x...x...x...x...'], B: ['xxxxxxxxxxxxxxxx', '....x.......x...', 'x.x.x.x.x.x.x.x.'] },
+  nu: { A: ['x.xx..x.x.xx..x.', '....x.......x...', 'x...x...x...x...'], B: ['x.x.x.x.x.x.x.x.', '....x.......x...', 'x.x.x.x.x.x.x.x.'] },
 };
 const MUS = { on: true, cur: -1, step: 0, next: 0 };
 try { MUS.on = localStorage.getItem('strel-music') !== '0'; } catch (e) {}
 const mtof = m => 440 * 2 ** ((m - 69) / 12), ofs = ch => parseInt(ch, 36);
 function musBus() {
   if (MUS.g) return;
-  MUS.g = ac.createGain(); MUS.g.gain.value = .5; const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
-  const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 25) * x / (1 + 25 * Math.abs(x)); } MUS.curve = c;
+  MUS.g = ac.createGain(); MUS.g.gain.value = .75; const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
+  const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 70) * x / (1 + 70 * Math.abs(x)); } MUS.curve = c;
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; MUS.noise = nb;
   const re = new Float32Array(32), im = new Float32Array(32); for (let k = 1; k < 32; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25); MUS.pulse = ac.createPeriodicWave(re, im);   // пульс 25% — «NES»
 }
 function env(g, t, vol, dur, rel = .03) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .003); g.gain.setValueAtTime(vol * .8, t + Math.max(.004, dur - rel)); g.gain.linearRampToValueAtTime(0, t + dur); }
 function gtr(t, m, dur, mute) {                    // гитара: квинт-аккорд на квадратах через перегруз
   const ws = ac.createWaveShaper(), f = ac.createBiquadFilter(), g = ac.createGain(); ws.curve = MUS.curve;
-  f.type = 'lowpass'; f.frequency.value = mute ? 700 : 2400; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .075 : .06, dur);
-  for (const iv of mute ? [0, 7] : [0, 7, 12]) for (const dt of [-7, 7]) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .22; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }
+  f.type = 'lowpass'; f.frequency.value = mute ? 1300 : 3200; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .11 : .095, dur, .015);
+  for (const [iv, ty] of mute ? [[0, 'square'], [-12, 'sawtooth'], [7, 'square']] : [[0, 'square'], [-12, 'sawtooth'], [7, 'square'], [12, 'sawtooth']]) for (const dt of [-9, 9]) { const o = ac.createOscillator(); o.type = ty; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .2; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }
 }
 function bass(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = mtof(m - 12); o.connect(g).connect(MUS.g); env(g, t, .2, dur); o.start(t); o.stop(t + dur + .02); }
-function lead(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.setPeriodicWave(MUS.pulse); o.frequency.value = mtof(m); v.frequency.value = 6; vg.gain.value = 5; v.connect(vg).connect(o.detune); o.connect(g).connect(MUS.g); env(g, t, .05, dur, .06); o.start(t); v.start(t); o.stop(t + dur + .02); v.stop(t + dur + .02); }
+function lead(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.setPeriodicWave(MUS.pulse); o.frequency.value = mtof(m); v.frequency.value = 6; vg.gain.value = 5; v.connect(vg).connect(o.detune); o.connect(g).connect(MUS.g); env(g, t, .07, dur, .06); o.start(t); v.start(t); o.stop(t + dur + .02); v.stop(t + dur + .02); }
 function noiseHit(t, type, freq, vol, dur, sweep) {
   const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = MUS.noise; f.type = type; f.frequency.setValueAtTime(freq, t);
   if (sweep) { f.Q.value = 6; f.frequency.exponentialRampToValueAtTime(freq * 3, t + dur * .5); f.frequency.exponentialRampToValueAtTime(freq, t + dur); }
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f).connect(g).connect(MUS.g); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
 }
-function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .1); g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.001, t + .14); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .15); }
-function snare(t) { noiseHit(t, 'bandpass', 1900, .32, .12); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(140, t + .06); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .07); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .08); }
+function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .1); g.gain.setValueAtTime(.42, t); g.gain.exponentialRampToValueAtTime(.001, t + .11); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .15); }
+function snare(t) { noiseHit(t, 'bandpass', 1900, .24, .11); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(140, t + .06); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .07); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .08); }
 function musWant() { if (!MUS.on || !ac) return -1; if (window.__musForce >= 0) return window.__musForce; return state === 'title' ? 0 : clamp((L && L.city) || 0, 0, TRACKS.length - 1); }
 function musTick() {
   if (!ac || ac.state !== 'running') return;
@@ -1425,7 +1425,7 @@ function musTick() {
     const ch = riff[s16];
     if (ch !== '.' && ch !== '-') {               // гитара и бас
       let n = 1; while (s16 + n < 16 && riff[s16 + n] === '-') n++;
-      const mute = ch === 'x', m = tr.root + (mute ? 0 : ofs(ch)), dur = mute ? sp * .8 : sp * n * .95;
+      const mute = ch === 'x', m = tr.root + (mute ? 0 : ofs(ch)), dur = mute ? sp * .92 : sp * n * .97;
       gtr(t, m, dur, mute); bass(t, m, dur);
     }
     if (sec === 'B') { const lc = tr.L[s16]; if (lc !== '.' && lc !== '-') { let n = 1; while (s16 + n < 16 && tr.L[s16 + n] === '-') n++; lead(t, tr.root + 24 + ofs(lc), sp * n * .9); } }
@@ -1433,12 +1433,11 @@ function musTick() {
       if (ch !== '.' && ch !== '-') kick(t);
       if (s16 === 8) snare(t);
       if (s16 === 0) noiseHit(t, 'highpass', 4000, .14, .9);
-      if (tr.st === 'nu' && bar % 2 && s16 === 12) noiseHit(t, 'bandpass', 900, .3, .22, true);   // скретч
     } else {
       const dp = tr.blast && sec === 'B' ? ['x.x.x.x.x.x.x.x.', '.x.x.x.x.x.x.x.x', '................'] : DRUM[tr.st][sec];
       if (dp[0][s16] === 'x') kick(t);
       if (dp[1][s16] === 'x') snare(t);
-      if (dp[2][s16] === 'x') noiseHit(t, 'highpass', 7000, .07, .03);
+      if (dp[2][s16] === 'x') noiseHit(t, 'highpass', 6000, .06, .09);   // райд
       if (s16 === 0 && bar % 2 === 0) noiseHit(t, 'highpass', 4000, .12, .7);
     }
     MUS.next += sp; MUS.step++;
