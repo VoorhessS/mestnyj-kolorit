@@ -2065,7 +2065,7 @@ function addAlly(k, x, y, quiet) {          // y — пол под ним
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
   const n = allies.length, fr = false, j = n;   // друг (msg 1677): вся орда позади героя — передние враги его   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
   const big = BIG.includes(k);
-  Object.assign(a, { ally: true, human: false, hp: big ? 40 : 8, max: big ? 40 : 8, dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
+  Object.assign(a, { ally: true, human: false, hp: big ? 40 : 12, max: big ? 40 : 12, dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
     sp: SPEED * (fr ? rnd(.86, .96) : k === 'D' ? .84 : rnd(.62, .78)),
     slot: 26 + j * 12 + rnd(0, 10), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
@@ -2171,8 +2171,18 @@ function mutAttack(k) {                     // мутант-таракан: то
   }
   P.slash = .18; P.cd = .22; beep(420, 160, .07, 'sawtooth', .03);   // взмах впустую
 }
-function foeOf(e) {                         // в кого стреляют люди: в героя или в ближайшего из свиты
+function foeOf(e, dt = 1 / 60) {                         // в кого стреляют люди: в героя или в ближайшего из свиты
   const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
+  if (MUT()) {                               // друг (msg 1680): фокус распределён по всей орде — у каждого своя цель, меняется раз в 2–4 с
+    const ok = t => t && (t === P ? !P.dead : t.hp > 0 && t.leaving === undefined && allies.includes(t));
+    if (!ok(e.tgt) || (e.tgtT = (e.tgtT ?? 0) - dt) <= 0) {
+      e.tgtT = rnd(2, 4);
+      const near = allies.filter(a => a.hp > 0 && a.leaving === undefined && Math.abs(a.x - ex) < 320 && Math.abs(a.y - ey) < 160)
+        .sort((a, b) => Math.abs(a.x - ex) - Math.abs(b.x - ex)).slice(0, 6);
+      e.tgt = !P.dead && (Math.random() < .35 || !near.length) ? P : near.length ? pick(near) : null;
+    }
+    return e.tgt;
+  }
   let best = P.dead ? null : P, bd = P.dead ? 1e9 : Math.hypot(P.x + 5 - ex, P.y + 11 - ey);
   for (const a of allies) { const d = Math.hypot(a.x + a.w / 2 - ex, a.y + a.h / 2 - ey) + 24; if (d < bd) { bd = d; best = a; } }
   return best;
@@ -2192,7 +2202,7 @@ function shellBoom(x, y) {
   if (!P.dead && Math.hypot(P.x + 5 - x, P.y + 11 - y) < 38) { hurt(0); P.vy = -200; }
 }
 function humanAI(e, dt) {
-  const t = foeOf(e); e.cd -= dt; e.shot = Math.max(0, (e.shot || 0) - dt);
+  const t = foeOf(e, dt); e.cd -= dt; e.shot = Math.max(0, (e.shot || 0) - dt);
   if (!t) { e.vx = 0; return; }
   const dx = t.x + t.w / 2 - (e.x + e.w / 2), dy = t.y + t.h - (e.y + e.h), dir = Math.sign(dx) || 1, adx = Math.abs(dx);
   if (e.sleep) {
