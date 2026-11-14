@@ -1320,7 +1320,7 @@ function touches(b, t) {
 function canStand(b) {                    // хватит ли места встать во весь рост
   const top = b.y + b.h - 22, c0 = Math.floor(b.x / T), c1 = Math.floor((b.x + b.w - .01) / T);
   for (let cy = Math.floor(top / T); cy <= Math.floor((b.y + b.h - .01) / T); cy++)
-    for (let cx = c0; cx <= c1; cx++) if (solid(cx, cy)) return false;
+    for (let cx = c0; cx <= c1; cx++) if (solid(cx, cy) && !(underSlope(cx, cy) && cy * T >= b.y + b.h - T - 1)) return false;   // блок под ступенькой у ног — не потолок (друг, msg 1811: на лестнице приседал)
   return true;
 }
 
