@@ -1401,25 +1401,26 @@ try { MUS.on = localStorage.getItem('strel-music') !== '0'; } catch (e) {}
 const mtof = m => 440 * 2 ** ((m - 69) / 12), ofs = ch => parseInt(ch, 36);
 function musBus() {
   if (MUS.g) return;
-  MUS.g = ac.createGain(); MUS.g.gain.value = .26;   // фоном: эффекты важнее (друг, msg 1673) const comp = ac.createDynamicsCompressor(); MUS.g.connect(comp).connect(ac.destination);
+  MUS.g = ac.createGain(); MUS.g.gain.value = .3; const comp = ac.createDynamicsCompressor(), lo = ac.createBiquadFilter(); lo.type = 'lowshelf'; lo.frequency.value = 160; lo.gain.value = -9; MUS.g.connect(lo).connect(comp).connect(ac.destination); MUS.out = comp;   // меньше гула, больше середины — телефонный динамик низ не играет (msg 1698)
   const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + 70) * x / (1 + 70 * Math.abs(x)); } MUS.curve = c;
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; MUS.noise = nb;
   const re = new Float32Array(32), im = new Float32Array(32); for (let k = 1; k < 32; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25); MUS.pulse = ac.createPeriodicWave(re, im);   // пульс 25% — «NES»
 }
 function env(g, t, vol, dur, rel = .03) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .003); g.gain.setValueAtTime(vol * .8, t + Math.max(.004, dur - rel)); g.gain.linearRampToValueAtTime(0, t + dur); }
-function gtr(t, m, dur, mute) {                    // гитара: квинт-аккорд на квадратах через перегруз
+function gtr(t, m, dur, mute) {                    // гитара: квинт-аккорд на квадратах через перегруз; на октаву выше, чтобы было слышно в динамике телефона (друг, msg 1698)
   const ws = ac.createWaveShaper(), f = ac.createBiquadFilter(), g = ac.createGain(); ws.curve = MUS.curve;
-  f.type = 'lowpass'; f.frequency.value = mute ? 1300 : 3200; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .11 : .095, dur, .015);
-  for (const [iv, ty, dt] of mute ? [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0]] : [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0], [7, 'square', 0]]) { const o = ac.createOscillator(); o.type = ty; o.frequency.value = mtof(m + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .26; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }   // поменьше генераторов — телефону легче
+  f.type = 'lowpass'; f.frequency.value = mute ? 2600 : 4800; ws.connect(f).connect(g).connect(MUS.g); env(g, t, mute ? .16 : .14, dur, .015);
+  for (const [iv, ty, dt] of mute ? [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0]] : [[0, 'square', -9], [0, 'square', 9], [-12, 'sawtooth', 0], [7, 'square', 0]]) { const o = ac.createOscillator(); o.type = ty; o.frequency.value = mtof(m + 12 + iv); o.detune.value = dt; const og = ac.createGain(); og.gain.value = .26; o.connect(og).connect(ws); o.start(t); o.stop(t + dur + .02); }   // поменьше генераторов — телефону легче
 }
-function bass(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = mtof(m - 12); o.connect(g).connect(MUS.g); env(g, t, .2, dur); o.start(t); o.stop(t + dur + .02); }
+function bass(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = mtof(m - 12); o.connect(g).connect(MUS.g); env(g, t, .2, dur); o.start(t); o.stop(t + dur + .02);
+  const h = ac.createOscillator(), hg = ac.createGain(); h.type = 'square'; h.frequency.value = mtof(m + 12); h.connect(hg).connect(MUS.g); env(hg, t, .025, dur); h.start(t); h.stop(t + dur + .02); }   // призвук баса — чтобы бас был слышен в маленьком динамике
 function lead(t, m, dur) { const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.setPeriodicWave(MUS.pulse); o.frequency.value = mtof(m); v.frequency.value = 6; vg.gain.value = 5; v.connect(vg).connect(o.detune); o.connect(g).connect(MUS.g); env(g, t, .07, dur, .06); o.start(t); v.start(t); o.stop(t + dur + .02); v.stop(t + dur + .02); }
 function noiseHit(t, type, freq, vol, dur, sweep) {
   const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = MUS.noise; f.type = type; f.frequency.setValueAtTime(freq, t);
   if (sweep) { f.Q.value = 6; f.frequency.exponentialRampToValueAtTime(freq * 3, t + dur * .5); f.frequency.exponentialRampToValueAtTime(freq, t + dur); }
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f).connect(g).connect(MUS.g); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
 }
-function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .1); g.gain.setValueAtTime(.42, t); g.gain.exponentialRampToValueAtTime(.001, t + .11); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .15); }
+function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .1); g.gain.setValueAtTime(.42, t); g.gain.exponentialRampToValueAtTime(.001, t + .11); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .15); noiseHit(t, 'bandpass', 3000, .12, .02); }   // щелчок бочки
 function snare(t) { noiseHit(t, 'bandpass', 1900, .24, .11); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(140, t + .06); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .07); o.connect(g).connect(MUS.g); o.start(t); o.stop(t + .08); }
 function musWant() { if (!MUS.on || !ac) return -1; if (window.__musForce >= 0) return window.__musForce; return state === 'title' ? 0 : clamp((L && L.city) || 0, 0, TRACKS.length - 1); }
 function musTick() {
