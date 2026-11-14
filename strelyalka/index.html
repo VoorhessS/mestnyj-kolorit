@@ -1911,6 +1911,17 @@ function updatePlayer(dt, k) {
   const slideWall = !P.on && !wet && P.vy > 0 && k.dx ? wallSide() : 0;
   if (!k.a && P.vy < -120 && !wet) P.vy = -120;          // отпустил прыжок раньше — прыжок ниже
   P.vy = wet ? Math.min(P.vy + GRAV * .3 * dt, 60) : Math.min(P.vy + GRAV * (good?.k === 'moon' ? .38 : 1) * dt, 520);   // баг: лунный прыжок
+  if (MUT() && HERO_V === 'C') {                   // друг (msg 1661): у таракана крылья — в воздухе держи A и лети
+    if (P.on || wet) { P.flyOn = false; P.wing = Math.min(WING, (P.wing ?? WING) + dt * 1.6); }
+    else if (k.a && (P.flyOn || P.vy > -40) && !P.kick) {
+      P.flip = false; P.rot = P.face > 0 ? 0 : Math.PI;
+      if ((P.wing ?? WING) > 0) {                  // машет: поднимается
+        P.flyOn = true; P.wing = (P.wing ?? WING) - dt; P.vy = Math.max(P.vy - (GRAV + 700) * dt, -112);
+        if (P.y < T * 1.5 && P.vy < 0) P.vy = 0;   // выше края карты не улетает
+        if ((P.flapT = (P.flapT || 0) - dt) <= 0) { P.flapT = .09; beep(rnd(120, 160), 80, .05, 'sawtooth', .014); }
+      } else { P.flyOn = true; if (P.vy > 55) P.vy = 55; }   // силы кончились — планирует
+    } else P.flyOn = false;
+  }
   if (slideWall && slideWall === k.dx && P.vy > 75) P.vy = 75;   // прижался к стене — сползаешь медленно
   moveBody(P, dt, P.drop <= 0);
   if (P.on || wet) P.wj = 0;
@@ -3624,6 +3635,7 @@ let HERO_V = 'C', ALPHA_V = 'C';                   // друг выбрал: г�
 try { HERO_V = (location.search.match(/[?&]hv=([ABC])/) || [])[1] || 'C'; ALPHA_V = (location.search.match(/[?&]av=([ABC])/) || [])[1] || 'C'; } catch (e) {}
 const HERO_MUTS = {}; for (const k in HERO_PALS) HERO_MUTS[k] = mkHeroSpr(HERO_PALS[k]);
 const HERO_MUT = HERO_MUTS[HERO_V];
+const WING = 2.2;                                     // запас полёта таракана, с
 function spr(img, x, y, flip) {
   x = Math.round(x); y = Math.round(y);
   if (!flip) { ctx.drawImage(img, x, y); return; }
@@ -3664,6 +3676,14 @@ function drawHero() {
 function mutBack(x, top, f, v) {                   // за спиной: панцирь жука, крылья таракана
   const X = c => f > 0 ? x - 2 + c : x - 2 + 13 - c;
   if (v === 'A') { ell(X(3), top + 13, 4.5, 6.5, '#0a0a0e'); ell(X(3), top + 13, 3.5, 5.5, '#2a1e2e'); ell(X(3) - f, top + 11, 1.5, 3, '#6a5a7a'); rect(X(3), top + 8, 1, 11, '#140e16'); }
+  if (v === 'C' && P.flyOn) {                       // летит: крылья раскрыты и машут
+    const fl = Math.sin(time * 48) , a1 = -f * (1.1 + fl * .5), a2 = -f * (.75 + fl * .45);
+    ctx.fillStyle = 'rgba(40,20,8,.6)'; ctx.beginPath(); ctx.ellipse(X(4), top + 6, 5, 18, a1, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(220,160,90,.75)'; ctx.beginPath(); ctx.ellipse(X(4), top + 6, 4, 17, a1, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(170,105,50,.85)'; ctx.beginPath(); ctx.ellipse(X(6), top + 8, 3.5, 14, a2, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(90,45,15,.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(X(4), top + 6, 1.5, 15, a1, 0, 7); ctx.stroke();
+    return;
+  }
   if (v === 'C') {
     ctx.fillStyle = 'rgba(200,140,70,.6)'; ctx.beginPath(); ctx.ellipse(X(3), top + 16, 3, 10, f * .22, 0, 7); ctx.fill();
     ctx.fillStyle = 'rgba(150,95,45,.75)'; ctx.beginPath(); ctx.ellipse(X(5), top + 15, 2.5, 9, f * .12, 0, 7); ctx.fill();
@@ -5094,6 +5114,7 @@ function drawHud() {
   if (MUT()) {                                     // мутант: вместо жизней — размер орды
     ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#9aff5a'; ctx.fillText(`ОРДА: ${allies.length + 1 + hordeGone}`, 8, 16);
     ctx.fillStyle = hpFlash > 0 ? '#fff' : '#ff6a5a'; ctx.font = 'bold 7px monospace'; ctx.fillText('БЕССМЕРТЕН', 8, 24);
+    if (HERO_V === 'C') { const w = clamp((P.wing ?? WING) / WING, 0, 1); ctx.fillStyle = '#c8884a'; ctx.fillText('КРЫЛЬЯ', 8, 54); rect(40, 49, 40, 4, 'rgba(0,0,0,.5)'); rect(40, 49, Math.round(40 * w), 4, w > .25 ? '#e8b060' : '#ff6a3a'); }
   } else {
   for (let i = 0; i < lives; i++) { rect(8 + i * 10, 8, 6, 9, '#ffd23f'); rect(9 + i * 10, 17, 4, 3, '#c8102e'); }
   const hx = 8 + Math.max(3, lives) * 10 + 4, hw = 64, hf = hp / HP_MAX;                // шкала здоровья
