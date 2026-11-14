@@ -3322,15 +3322,63 @@ function drawBg1() {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ell(W * .72, 34, 16, 16, 'rgba(255,250,232,.55)');
   const sy = Math.min(H + 40, L.ground * T - camY);  // уровень земли на экране
+  const live = !L.mut && !L.calm;                   // живой фон: город воюет и горит (друг, msg 1850)
+  const fires = [];
   for (let i = -1; i < W / 30 + 2; i++) {          // дальние дома в дымке
     const n = i + Math.floor(cam * .15 / 30), x = i * 30 - (cam * .15) % 30, h = 90 + hash(n, 11) % 120;
     rect(x, sy - h, 28, h + 60, '#8a8e94');
+    if (live && hash(n, 23) % 4 === 0) fires.push([x + 14, sy - h, n, .7]);
   }
+  if (live) drawBattle(sy);
   for (let i = -1; i < W / 26 + 2; i++) {          // ближние дома
-    const n = i + Math.floor(cam * .3 / 26), x = i * 26 - (cam * .3) % 26, h = 60 + hash(n, 7) % 110;
+    const n = i + Math.floor(cam * .3 / 26), x = i * 26 - (cam * .3) % 26, h = 60 + hash(n, 7) % 110, burn = live && hash(n, 29) % 5 === 0;
     rect(x, sy - h, 24, h + 60, '#5e636c');
-    for (let w = 0; w < 4; w++) if (hash(n, w) % 3) rect(x + 4 + (w % 2) * 10, sy - h + 8 + Math.floor(w / 2) * 14, 5, 7, '#454a52');
+    for (let w = 0; w < 4; w++) if (hash(n, w) % 3) rect(x + 4 + (w % 2) * 10, sy - h + 8 + Math.floor(w / 2) * 14, 5, 7, burn && w < 2 ? (Math.sin(time * 9 + w + n) > -.3 ? '#ff8a2a' : '#c85a1a') : '#454a52');
+    if (burn) fires.push([x + 12, sy - h, n, 1]);
   }
+  if (live) { for (const [fx, fy, n, k] of fires) drawRoofFire(fx, fy, n, k); drawStreetLife(sy); }
+}
+function drawRoofFire(x, y, n, k) {                // пожар на крыше: дым столбом и языки огня
+  for (let j = 0; j < 6; j++) { const yy = y - 8 - j * 14 - (time * 8 + n) % 14, r = (6 + j * 4) * k; ell(x + Math.sin(time * .5 + j + n) * 4 * k + j * 3, yy, r, r * .75, `rgba(50,48,46,${(.3 - j * .045) * k})`); }
+  const f = 1 + Math.sin(time * 13 + n) * .25;
+  ell(x, y - 3, 8 * k * f, 6 * k * f, 'rgba(255,110,30,.75)'); ell(x - 3, y - 4, 3 * k * f, 6 * k * f, 'rgba(255,220,110,.9)'); ell(x + 4, y - 3, 2.5 * k * f, 5 * k * f, 'rgba(255,200,90,.85)');
+}
+function drawBattle(sy) {                          // где-то идёт бой: трассеры, вспышки, вертолёт
+  for (let i = 0; i < 3; i++) {                    // очереди трассеров
+    const per = 4 + i * 1.7, ph = (time + i * 2.3) % per; if (ph > 1.1) continue;
+    const ox = ((hash(Math.floor((time + i * 2.3) / per), i + 50) % 100) / 100) * W, oy = sy - 40 - (hash(i, 51) % 50), dir = i % 2 ? 1 : -1;
+    for (let j = 0; j < 4; j++) { const u = (ph * 3 + j * .22) % 1; rect(ox + dir * u * 70, oy - u * 22 + u * u * 10, 3, 1, 'rgba(255,230,120,.9)'); }
+  }
+  for (let i = 0; i < 2; i++) {                    // вспышка взрыва за домами
+    const per = 6.5 + i * 2.9, ph = (time + i * 3.1) % per; if (ph > .9) continue;
+    const ex = ((hash(Math.floor((time + i * 3.1) / per), i + 60) % 100) / 100) * W, a = 1 - ph / .9;
+    ell(ex, sy - 70, 30 * (1 - a * .5), 22 * (1 - a * .5), `rgba(255,200,120,${a * .55})`); ell(ex, sy - 72, 12, 9, `rgba(255,250,210,${a * .8})`);
+  }
+  const hp = 26, hph = time % hp;                  // вертолёт пролетает раз в полминуты
+  if (hph < 9) {
+    const hx = -40 + hph / 9 * (W + 80), hy = 46 + Math.sin(time * 1.3) * 4;
+    ctx.fillStyle = '#3a3e44'; ctx.beginPath(); ctx.ellipse(hx, hy, 11, 4.5, 0, 0, 7); ctx.fill(); rect(hx - 22, hy - 1, 14, 2, '#3a3e44'); rect(hx - 24, hy - 4, 2, 5, '#3a3e44');
+    rect(hx - 14 + Math.sin(time * 40) * 12, hy - 6, 28 - Math.abs(Math.sin(time * 40)) * 10, 1, 'rgba(40,44,50,.8)'); rect(hx - 6, hy + 5, 14, 1, '#3a3e44');
+    if (hph % 1.6 < .5) for (let j = 0; j < 3; j++) rect(hx + 10 + j * 9 + (hph % .5) * 40, hy + 3 + j * 4, 3, 1, 'rgba(255,230,120,.85)');   // стреляет вниз
+  }
+}
+function drawStreetLife(sy) {                      // у подножия домов: бегут люди, за кем-то жук, едет техника
+  const y = sy - 12; ctx.globalAlpha = .55;            // вдали, в дымке — не путать с тем, что рядом
+  for (let i = 0; i < 6; i++) {
+    const sp = 22 + (hash(i, 70) % 20), dir = i % 3 ? -1 : 1, per = (W + 120) / sp, ph = (time + hash(i, 71) % 40) % per;
+    const x = dir > 0 ? -60 + ph * sp : W + 60 - ph * sp, leg = Math.sin(time * 14 + i) * 2;
+    rect(x, y - 7, 2, 4, '#3a3e46'); rect(x - .5, y - 9, 3, 2, '#3a3e46'); rect(x + leg * .5, y - 3, 1, 3, '#3a3e46'); rect(x + 1 - leg * .5, y - 3, 1, 3, '#3a3e46');   // бегущий человечек
+    rect(x + dir * 2, y - 7 + (leg > 0 ? 0 : 1), 1, 3, '#3a3e46');                                                                  // машет рукой
+    if (i % 2 === 0) { const bx = x - dir * (14 + Math.sin(time * 2 + i) * 4); ell(bx, y - 3, 5, 3, '#2e2a26'); rect(bx + dir * 4, y - 4, 2, 2, '#2e2a26'); for (let l = 0; l < 3; l++) rect(bx - 3 + l * 3, y - 1, 1, 1 + (Math.sin(time * 20 + l) > 0 ? 1 : 0), '#2e2a26'); }   // жук гонится
+  }
+  const tp = 34, tph = (time + 11) % tp;          // БТР раз в полминуты, крутит башней и стреляет
+  if (tph < 14) {
+    const tx = W + 50 - tph / 14 * (W + 100);
+    rect(tx - 16, y - 8, 32, 6, '#3c4234'); rect(tx - 12, y - 11, 18, 3, '#3c4234'); rect(tx - 2, y - 14, 8, 3, '#3c4234'); rect(tx - 10, y - 13, 9, 1, '#3c4234');
+    for (let w = 0; w < 4; w++) ell(tx - 12 + w * 8, y - 1, 2.5, 2.5, '#1e2018');
+    if (tph % 2 < .3) { ell(tx - 12, y - 13, 3, 2, 'rgba(255,220,120,.9)'); rect(tx - 40, y - 13, 26, 1, 'rgba(255,230,140,.6)'); }
+  }
+  ctx.globalAlpha = 1;
 }
 function drawBgCell(x, y, cx, cy) {
   const pal = L.pal, hs = hash(cx, cy);
@@ -3883,7 +3931,7 @@ function drawProps() {
     }
     if (lm.post) {                                   // фонарный столб
       let fy = Math.floor(y / T); while (fy < ROWS && !solid(Math.floor(lm.x / T), fy)) fy++;
-      rect(x - 1, y, 2, fy * T - y, '#2a2a30'); rect(x - 5, y - 2, 8, 3, '#3a3a40');
+      rect(x - 1, y, 2, fy * T - y, '#3a3e46'); rect(x - 5, y - 2, 8, 3, '#3a3a40');
     } else { rect(x - 1, y - 3, 2, 3, '#3a3a40'); rect(x - 4, y, 8, 3, '#4a4a50'); }
   }
   for (const c of cracks) {                          // трещина в стене
@@ -3903,7 +3951,7 @@ function drawProps() {
       ell(x + 8, y + 8, 13, 9, '#3a2a22'); rect(x - 5, y + 8, 26, 24, '#3a2a22');
       ell(x + 8, y + 9, 8, 6, '#030202'); rect(x, y + 9, 16, 23, '#030202');
     } else {
-      rect(x - 3, y - 2, 22, 34, '#2a2a30'); rect(x, y + 1, 16, 31, '#0a0a0e');
+      rect(x - 3, y - 2, 22, 34, '#3a3e46'); rect(x, y + 1, 16, 31, '#0a0a0e');
       rect(x + 3, y + 4, 10, 26, done ? '#14261a' : '#1c1414');
     }
   }
@@ -4142,7 +4190,7 @@ const MON_DEF = {
       for (const [x, y] of [[7, 14], [9, 16]]) p.set(x, y, '#4a3a52');
     }
     else { p.blob(8.5, 5, 3.5, 3.5, SK); p.rect(5, 1, 7, 2, '#2a1a10'); p.set(5, 3, '#2a1a10'); p.set(10, 5, '#141414'); p.set(11, 7, '#5a2a20'); }
-    if (gun) { p.rect(10, 11, 4, 2, JK[2]); p.rect(13, 10, 3, 2, '#2a2a30'); p.set(13, 12, '#2a2a30'); }
+    if (gun) { p.rect(10, 11, 4, 2, JK[2]); p.rect(13, 10, 3, 2, '#3a3e46'); p.set(13, 12, '#3a3e46'); }
     else if (zom) { p.poly([[10, 11], [14, 12], [15, 10]], SK[2]); p.set(15, 9, '#e8e0c8'); }
     else { p.rect(10, 12, 2, 5, JK[1]); p.set(10, 17, SK[2]); }
     return p; },
