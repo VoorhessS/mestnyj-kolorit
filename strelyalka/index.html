@@ -1150,7 +1150,7 @@ function build(def) {
   for (let cy = 0; cy < ROWS - 1; cy++) for (let cx = 0; cx < COLS; cx++)
     if (grid[cy][cx] === ACID && open(grid[cy + 1][cx])) grid[cy + 1][cx] = SOLID;
   B.fill(0, 0, 0, ROWS - 1); B.fill(COLS - 1, 0, COLS - 1, ROWS - 1); B.fill(0, ROWS - 1, COLS - 1, ROWS - 1);
-  if (!o.lift && !o.cart && !def.stages) o.saves = autoSaves(o, def) || o.saves;   // у длинной орды — ручные, у начала каждой части   // в лифте и вагонетке — ручные
+  if (!o.lift && !o.cart && !def.stages) { const a = autoSaves(o, def); if (a && a.length) o.saves = a; }   // у длинной орды — ручные, у начала каждой части   // в лифте и вагонетке — ручные
   return o;
 }
 // Сохранения (друг, 11.11): путь от старта до выхода делим на 4 равные части,
@@ -1158,8 +1158,8 @@ function build(def) {
 // Путь ищем поиском в ширину по свободным клеткам, потом опускаем точку на пол.
 function autoSaves(o, def) {
   const pass = t => t !== ACID && (!isSolid(t) || t === DOOR || t === GRATE || t === ROCK || t === CRUMBLE);
-  const A = o.arena, g = o.exit || o.heli;
-  if (!A && !g) return null;
+  const A = o.arena, g = o.exit || o.heli, it0 = o.items.find(i => i[0] === def.obj);
+  if (!A && !g && !it0) return null;                 // без выхода (больница) — путь до предмета задания
   const bfs = ([sx, sy], isGoal) => {                // кратчайший путь по свободным клеткам
     const prev = new Int32Array(COLS * ROWS).fill(-1), q = [sy * COLS + sx]; let end = -1; prev[q[0]] = q[0];
     for (let h = 0; h < q.length; h++) {
@@ -1177,15 +1177,19 @@ function autoSaves(o, def) {
   };
   // путь: старт → цель задания (предмет или дальний из свиты) → выход
   const pts = [[o.start[0], o.start[1] - 1]];
-  const it = o.items.find(i => i[0] === def.obj); if (it) pts.push([it[1], it[2] - 1]);
+  const it = (A || g) && it0; if (it) pts.push([it[1], it[2] - 1]);
   if (def.obj === 'guards') {
     const gs = o.bugs.filter(b => b[2] === (def.guard || 's')).sort((a, b) => Math.abs(b[0] - o.start[0]) - Math.abs(a[0] - o.start[0]));
     if (gs[0]) pts.push([gs[0][0], gs[0][1] - 1]);
   }
+  if (def.obj === 'nests' && o.nests.length) {       // гнёзда: путь идёт через самое дальнее от старта (друг, msg 1708)
+    const ns = o.nests.slice().sort((a, b) => Math.abs(b[0] - o.start[0]) + Math.abs(b[1] - o.start[1]) - Math.abs(a[0] - o.start[0]) - Math.abs(a[1] - o.start[1]));
+    pts.push([ns[0][0], ns[0][1] - 1]);
+  }
   let path = [];
   for (let i = 0; i < pts.length; i++) {
     const last = i === pts.length - 1, t = pts[i + 1];
-    const seg = bfs(pts[i], last ? (cx, cy) => A ? cx === A.gate - 1 : Math.abs(cx - g[0]) <= 1 && cy === g[1] - 1
+    const seg = bfs(pts[i], last ? (cx, cy) => A ? cx === A.gate - 1 : g ? Math.abs(cx - g[0]) <= 1 && cy === g[1] - 1 : Math.abs(cx - it0[1]) <= 1 && Math.abs(cy - it0[2] + 1) <= 1
       : (cx, cy) => Math.abs(cx - t[0]) <= 1 && Math.abs(cy - t[1]) <= 1);
     if (!seg) return null;
     path = path.concat(path.length ? seg.slice(1) : seg);
@@ -5230,7 +5234,17 @@ function drawHud() {
 function centerText(lines) {
   ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
-  lines.forEach(([txt, size, col, y]) => { ctx.font = `bold ${size}px monospace`; ctx.fillStyle = col; ctx.fillText(txt, W / 2, y); });
+  let dy = 0; const maxW = W - 14;
+  lines.forEach(([txt, size, col, y]) => {           // длинная строка не влезает в узкий экран — переносим на две и ужимаем (msg 1708)
+    ctx.font = `bold ${size}px monospace`; ctx.fillStyle = col;
+    if (ctx.measureText(txt).width <= maxW || !txt.includes(' ')) { ctx.fillText(txt, W / 2, y + dy); return; }
+    const mid = txt.length / 2; let k = -1;
+    for (let i = 0; i < txt.length; i++) if (txt[i] === ' ' && (k < 0 || Math.abs(i - mid) < Math.abs(k - mid))) k = i;
+    const parts = [txt.slice(0, k), txt.slice(k + 1)];
+    let sz = size; while (sz > 6 && Math.max(...parts.map(t => (ctx.font = `bold ${sz}px monospace`, ctx.measureText(t).width))) > maxW) sz -= .5;
+    ctx.font = `bold ${sz}px monospace`;
+    ctx.fillText(parts[0], W / 2, y + dy); dy += sz + 1; ctx.fillText(parts[1], W / 2, y + dy);
+  });
   ctx.textAlign = 'left';
 }
 function draw() {
