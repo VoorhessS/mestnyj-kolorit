@@ -1247,12 +1247,12 @@ function autoSaves(o, def) {
     if (!(f === SOLID || f === STICKY || f === PLAT) || !air(grid[y][cx]) || !air(grid[y - 1]?.[cx])) return null;
     return [cx, y + 1];
   };
-  const out = [], far = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) >= 8;
+  const out = [], far = (a, b, m) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) >= m;   // друг (msg 1818): путь туда-обратно ставил две дискеты рядом — держим 20 клеток
   for (let k = 1; k <= 3; k++) {
-    const i0 = Math.round(path.length * k / 4), span = Math.round(path.length / 8);
+    const i0 = Math.round(path.length * k / 4), span = Math.round(path.length / 6);
     for (let d = 0; d <= span; d++) {
       const p = path[i0 + d] && land(path[i0 + d]) || path[i0 - d] && land(path[i0 - d]);
-      if (p && far(p, o.start) && out.every(s => far(p, s))) { out.push(p); break; }
+      if (p && far(p, o.start, 12) && out.every(s => far(p, s, 20))) { out.push(p); break; }
     }
   }
   return out;
