@@ -2065,7 +2065,7 @@ function addAlly(k, x, y, quiet) {          // y — пол под ним
   const a = mkBug(k, x - BUGS[k][0] / 2, y, P ? P.face : 1);
   const n = allies.length, fr = false, j = n;   // друг (msg 1677): вся орда позади героя — передние враги его   // друг (msg 1586, 1592): толпа растянута, герой в середине — часть свиты идёт впереди
   const big = BIG.includes(k);
-  Object.assign(a, { ally: true, human: false, hp: big ? 40 : 12, max: big ? 40 : 12, dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
+  Object.assign(a, { ally: true, human: false, hp: big ? 60 : 8, max: big ? 60 : 8,   /* друг (msg 1684): обычные гибнут, боссы крепче */ dmg: big ? 3 : 1, sleep: false, vx: 0, vy: -150, bite: 0,
     sp: SPEED * (fr ? rnd(.86, .96) : k === 'D' ? .84 : rnd(.62, .78)),
     slot: 26 + j * 12 + rnd(0, 10), ph: rnd(0, 6.3), lag: rnd(8, 22), jd: rnd(0, .35) });
   allies.push(a);
@@ -2084,7 +2084,8 @@ function hordeStart() {
   if (L.obj === 'carnage') { const al = addAlly('AL', (sx + .5) * T, sy * T, true); if (al) { al.slot = 34; al.vy = 0; al.x = Math.max(T + 1, al.x - 20); } }   // Альфа ведёт орду вместе с героем
 }
 function hurtAlly(a, d) {
-  a.hp -= d; a.fl = .08;
+  if (a.k === 'AL') { a.fl = .08; return; }   // Альфа не погибает (msg 1684)
+  a.hp -= d; a.fl = .08; a.hurtT = 2;
   if (a.hp <= 0) { explode(a.x + a.w / 2, a.y + a.h / 2, 14, ['#c8102e', '#5a0a10', '#6a8a3a']); beep(220, 60, .15, 'sawtooth', .03); }
 }
 function nearestHuman(x, y, rx, ry) {
@@ -2097,6 +2098,7 @@ function nearestHuman(x, y, rx, ry) {
 }
 function allyAI(a, i, dt) {                 // свита: бежит за героем, людей рвёт на части
   a.fl -= dt; a.bite -= dt; a.age = (a.age || 0) + dt;
+  if (BIG.includes(a.k) && a.hp < a.max && (a.hurtT = (a.hurtT || 0) - dt) <= 0) a.hp = Math.min(a.max, a.hp + dt * 2);   // мини-боссы затягивают раны
   if (a.leaving !== undefined) {            // бегут к городу и пропадают за краем экрана
     a.leaving += dt; a.st = 'walk'; a.dir = 1; a.vx = SPEED * 1.35;
     if (a.on && a.wall) a.vy = -380;
