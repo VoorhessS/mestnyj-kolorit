@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Город">
-<title>Судный день</title>
+<meta name="apple-mobile-web-app-title" content="Багокалипсис">
+<title>Багокалипсис</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
@@ -6089,7 +6089,7 @@ function draw() {
   if (state === 'title') {
     ctx.restore();
     const blink = Math.floor(time * 2) % 2;
-    centerText([['СУДНЫЙ ДЕНЬ', 32, '#ffd23f', 62], ['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 90], ['выживи. пробейся!', 9, '#ff6a4a', 103]]);
+    centerText([['БАГОКАЛИПСИС', 30, '#ffd23f', 62], ['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 90], ['выживи. пробейся!', 9, '#ff6a4a', 103]]);
     ctx.fillStyle = `rgba(200,16,46,${.25 + .15 * Math.sin(time * 3)})`; ctx.fillRect(W / 2 - 90, 78, 180, 2);
     return;
   }
@@ -6369,7 +6369,7 @@ function drawIntro() {
   if (s < .3) { ctx.fillStyle = `rgba(255,255,240,${1 - s / .3})`; ctx.fillRect(0, 0, W, H); }
   const k = Math.min(1, s / .25), fs = Math.round(60 - 28 * k);
   ctx.textAlign = 'center'; ctx.font = `bold ${fs}px monospace`; ctx.lineWidth = 4; ctx.strokeStyle = '#000';
-  ctx.strokeText('СУДНЫЙ ДЕНЬ', W / 2, H / 2 - 4); ctx.fillStyle = '#ffd23f'; ctx.fillText('СУДНЫЙ ДЕНЬ', W / 2, H / 2 - 4);
+  ctx.strokeText('БАГОКАЛИПСИС', W / 2, H / 2 - 4); ctx.fillStyle = '#ffd23f'; ctx.fillText('БАГОКАЛИПСИС', W / 2, H / 2 - 4);
   if (s > 1) { ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#ff6a4a'; ctx.fillText('выживи. пробейся!', W / 2, H / 2 + 22); }
   ctx.textAlign = 'left';
   if (s > 3) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (s - 3) / .6)})`; ctx.fillRect(0, 0, W, H); }
