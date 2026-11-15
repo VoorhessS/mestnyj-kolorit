@@ -2167,7 +2167,7 @@ function updStory(dt) {
       }
       if (!amb.rev && amb.end - dt <= 0) { amb.end = .001; return; }   // воспоминания кончились — ждём напарника
     }
-    if ((amb.end -= dt) <= 0) { amb = null; P.ko = false; nextLevel(); }
+    if ((amb.end -= dt) <= 0) { const co = amb.co && NET.ready; amb = null; P.ko = false; if (co) pvpStart(); else nextLevel(); }
     return;
   }
   amb.t -= dt; amb.sp -= dt;
@@ -2302,7 +2302,7 @@ function updatePlayer(dt, k) {
   P.h = P.crouch ? 12 : 22; P.y = feet - P.h;
   const flow = wet && L.flow && (!L.fx || (P.x > L.fx[0] * T && P.x < L.fx[1] * T)) ? L.flow : 0;   // течение только в реке
   const fr = Math.floor((P.y + P.h + 1) / T), stick = P.on && (tile(Math.floor((P.x + 1) / T), fr) === STICKY || tile(Math.floor((P.x + P.w - 1) / T), fr) === STICKY);
-  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (MUT() ? .86 : 1) * (wet ? .6 : 1) * (stick ? .42 : 1) * (badOn('tpose') ? .5 : 1) + flow;   // в слизи вязнешь
+  P.vx = k.dx * (P.crouch ? CRAWL : SPEED) * (MUT() ? .86 : pvpMut() ? 1.2 : 1) * (wet ? .6 : 1) * (stick ? .42 : 1) * (badOn('tpose') ? .5 : 1) + flow;   // в слизи вязнешь
   if (stick && k.dx && Math.random() < .04) beep(90, 60, .08, 'sine', .03);
   if (P.slide > 0) {                          // подкат: едешь низко и быстро, жуки не задевают
     P.slide -= dt; P.vx = P.face * SPEED * (1.15 + 2.2 * Math.max(0, P.slide));
@@ -2355,7 +2355,7 @@ function updatePlayer(dt, k) {
   shoot(k);
 }
 function shoot(k) {
-  if (MUT()) { mutAttack(k); return; }
+  if (MUT() || pvpMut()) { mutAttack(k); return; }
   if (k.wPressed) for (let i = 1; i <= 4; i++) {           // следующее оружие, где есть патроны
     const j = (wpn + i) % 4;
     if (owned[j] && (j === 0 || ammo[j] > 0)) {
@@ -2610,6 +2610,13 @@ function updRising(dt) {                    // заражённые бьются
 }
 function mutAttack(k) {                     // мутант-таракан: только ближний бой — удар косами (друг, 13.11)
   if (!k.b || P.cd > 0 || badOn('tpose')) return;
+  if (pvpMut() && pvp.ph === 'fight') {       // махач: косой по напарнику
+    const m = NET.remote, f = P.face, box = { x: f > 0 ? P.x + P.w - 4 : P.x - 26, y: P.y - 6, w: 30, h: P.h + 10 };
+    P.slash = .18; P.cd = .38;
+    if (m && hit(box, { x: m.x, y: m.y, w: 10, h: m.h || 22 })) { pvp.hpG = Math.max(0, pvp.hpG - 9); beep(700, 140, .1, 'sawtooth', .05); shake = Math.max(shake, .15); explode(m.x + 5, m.y + 8, 6, ['#c8102e', '#ff6a5a']); }
+    else beep(420, 160, .07, 'sawtooth', .03);
+    return;
+  }
   const f = P.face, reach = P.ay < 0 ? { x: P.x - 10, y: P.y - 30, w: P.w + 20, h: 36 }      // вверх — по вертолёту
     : { x: f > 0 ? P.x + P.w - 4 : P.x - 26, y: P.y - (P.on ? 6 : 16), w: 30, h: P.h + (P.on ? 10 : 22) };
   const near = enemies.filter(e => e.hp > 0 && e.human && hit(reach, e));
@@ -2855,7 +2862,7 @@ function update(dt) {
     }
     if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
       if (state === 'over') { lives = NET && NET.ready ? COOP_LIVES : 3; respawn(); setState('play'); if (NET && NET.ready) netSend({ t: 'cont' }); }   // продолжаем с сохранения
-      else if (state === 'win') setState('title');
+      else if (state === 'win') { cureEnd = false; setState('title'); }
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
       else { score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
@@ -2873,6 +2880,7 @@ function update(dt) {
   lvT += dt;
   if (waveT > 0 && (waveT -= dt) <= 0) spawnWave();
   updStory(dt);
+  if (HO) pvpTick(dt);
   updGlitch(dt, k);
   for (const it of items) if (it.fall && !it.got) {      // ящики патронов и оружие падают на пол
     it.vy = Math.min(it.vy + GRAV * dt, 400); moveBody(it, dt, true);
@@ -3087,6 +3095,9 @@ function update(dt) {
     for (let st = 0; st < n && b.life > 0; st++) {
       if (b.g) b.vy += b.g * h;
       b.x += b.vx * h; b.y += b.vy * h; b.life -= h;
+      if (GU && NET.pv && NET.pv.ph === 'fight' && NET.rs && b.k !== 'gren' && hit(b, { x: NET.rs.x, y: NET.rs.y, w: 10, h: NET.rs.h || 22 })) {
+        b.life = 0; netSend({ t: 'phit', d: (b.dmg || 1) * (b.k === 'pel' ? 2 : 3) }); explode(b.x, b.y, 4, ['#9aff5a', '#2a3a1a']); beep(300, 120, .05, 'square', .03); break;
+      }
       if (b.k === 'gren' && b.life <= 0) { blast(b.x + 2, b.y + 2); break; }
       for (const e of enemies) if (e.hp > 0 && !e.burrow && b.life > 0 && hit(b, e) && !(b.hitL && b.hitL.includes(e))) {
         if (b.k === 'gren') { b.life = 0; blast(b.x + 2, b.y + 2); break; }
@@ -4309,7 +4320,7 @@ function spr(img, x, y, flip) {
 }
 function drawHero() {
   if (P.dead > 0 || (P.inv > 0 && Math.floor(time * 20) % 2)) return;
-  const x = P.x - cam, y = P.y, f = P.face, MU = MUT(), HS = HERO_OVR || (GUEST() ? (MU ? HERO_MUTS.A : HERO_SPR2) : MU ? HERO_MUT : HERO_SPR);
+  const x = P.x - cam, y = P.y, f = P.face, MU = MUT() || pvpMut() || !!P.mateMut, HS = HERO_OVR || (GUEST() ? (MU ? HERO_MUTS.A : HERO_SPR2) : MU ? HERO_MUT : HERO_SPR);
   if (P.flip) {                                     // сальто: сгруппировался и крутится, ствол — по прицелу
     ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot - P.rot0); ctx.scale(P.spin, 1);
     rect(-6, -5, 12, 10, '#0a0a0e'); rect(-5, -11, 9, 8, '#0a0a0e'); rect(0, 2, 8, 5, '#0a0a0e'); rect(3, -2, 5, 8, '#0a0a0e');   // контур
@@ -5766,6 +5777,7 @@ function drawEyes() {                     // глаза жуков горят в
 }
 function drawStory() {
   if (GUEST()) drawGuestSting();
+  drawPvp();
   drawThink();
   if (dlg) {                                          // реплика главного внизу экрана
     const [who, txt] = dlg.lines[dlg.i], n = Math.min(txt.length, Math.floor(dlg.t * 40));
@@ -6036,7 +6048,9 @@ function draw() {
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
-  if (state === 'win' && L.mut) centerText([['ОРДА ИДЁТ НА ГОРОД', 20, '#9aff5a', 70], ['люди ещё спят. им осталось недолго.', 9, '#fff', 92], ['конец главы · продолжение следует…', 9, '#ffd23f', 106],
+  if (state === 'win' && cureEnd) centerText([['ЛЮДИ ОТБИЛИСЬ', 20, '#ffd23f', 70], ['сыворотка подействовала. вы снова вдвоём — люди.', 9, '#fff', 92],
+    ['дальше — логово Альфы · продолжение следует…', 9, '#9aff5a', 106], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
+  else if (state === 'win' && L.mut) centerText([['ОРДА ИДЁТ НА ГОРОД', 20, '#9aff5a', 70], ['люди ещё спят. им осталось недолго.', 9, '#fff', 92], ['конец главы · продолжение следует…', 9, '#ffd23f', 106],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 128], ['нажми, чтобы выйти в меню', 10, '#ccc', 156]]);
   else if (state === 'win') centerText([[L.city === 5 ? 'ТЫ ЗАРАЖЁН' : `ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, L.city === 5 ? '#9aff5a' : '#ffd23f', 76],
     [L.city === 5 ? 'лекарства у тебя. но в крови уже что-то шевелится.' : 'продолжение следует…', 9, '#fff', 96], [L.city === 5 ? 'продолжение следует…' : '', 9, '#ffd23f', 108],
@@ -6605,7 +6619,7 @@ function netSnap() {                           // хозяин → напарн�
     it: items.filter(i => !i.got && i.k !== 'gun').map(i => pk(id(i))), eb: ebullets.filter(nd).map(o => pk(id(o))),
     b: b ? Object.assign(pk(b), { bon: boss.on, bdead: boss.dead }) : null, al: MUT() ? allies.filter(nd).map(a => pk(id(a))) : null,
     lift: lift ? pk({ y: lift.y, go: lift.go, fix: lift.fix }) : null, cart: cart ? pk({ x: cart.x, go: cart.go, stop: cart.stop, v: cart.v }) : null,
-    am: amb ? pk({ t: amb.t, end: amb.end, co: !!amb.co, rev: !!amb.rev }) : null, hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
+    pv: pvp ? pk(pvp) : null, am: amb ? pk({ t: amb.t, end: amb.end, co: !!amb.co, rev: !!amb.rev }) : null, hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
 }
 function netMerge(cur, arr, skip) {            // новые данные хозяина поверх своих: координаты — целью для плавного движения
   const old = new Map(); for (const e of cur) if (e.nid) old.set(e.nid, e);
@@ -6639,6 +6653,8 @@ function netWorld(m) {                         // напарник: примен
   if (cart && m.cart) { cart.tx = m.cart.x; cart.go = m.cart.go; cart.stop = m.cart.stop; cart.v = m.cart.v; }
   if (m.hl !== undefined && state !== 'over') lives = m.hl;
   NET.am = m.am || null;
+  const pv0 = NET.pv; NET.pv = m.pv || null;
+  if (pv0 && NET.pv && NET.pv.hpG < pv0.hpG) { hpFlash = .35; shake = Math.max(shake, .2); beep(220, 90, .15, 'square', .04); navigator.vibrate?.(40); explode(P.x + 5, P.y + 10, 6, ['#c8102e', '#fff', '#ff7a7a']); }
   if (swarm && m.sw) Object.assign(swarm, m.sw);
   if (fume && m.fu) Object.assign(fume, m.fu);
   const r = boss.parts[0];
@@ -6685,6 +6701,49 @@ function drawGuestSting() {                    // напарник видит, �
   ctx.save(); if (f > 0) { ctx.translate(Math.round(ax) + 60, 0); ctx.scale(-1, 1); ctx.translate(-Math.round(ax), 0); }
   outlined(() => ctx.drawImage(fr.img, Math.round(ax), Math.round(ay))); ctx.restore();
   if (strike) { ctx.fillStyle = 'rgba(160,255,90,.25)'; ctx.fillRect(0, 0, W, H); }
+}
+// ===== Кооп: махач — мутант против напарника =====
+let pvp = null, cureEnd = false;
+function pvpMut() { return !!(pvp && !pvp.cured && NET && NET.role === 'host'); }
+function pvpStart() {
+  pvp = { ph: 'intro', t: 0, hpH: 100, hpG: 100, win: '', cured: false };
+  for (const e of enemies) if (e.k !== 'n') e.hp = 0;
+  P.inv = 1; shake = .8; boom(.12); beep(90, 40, 1.2, 'sawtooth', .06); navigator.vibrate?.([60, 40, 160]);
+  explode(P.x + 5, P.y + 10, 20, ['#6a8a3a', '#9aff5a', '#2a3a1a']);
+}
+function pvpTick(dt) {                         // у хозяина: фазы и победитель
+  if (!pvp) return;
+  pvp.t += dt;
+  if (pvp.ph === 'intro' && pvp.t > 3.4) { pvp.ph = 'fight'; pvp.t = 0; boom(.1); beep(200, 900, .3, 'square', .05); }
+  else if (pvp.ph === 'fight' && (pvp.hpH <= 0 || pvp.hpG <= 0 || !NET.ready)) {
+    pvp.ph = 'end'; pvp.t = 0; pvp.win = pvp.hpG <= 0 || !NET.ready ? 'mut' : 'man'; if (pvp.win === 'man') pvp.cured = true;
+    shake = 1; boom(.14); beep(pvp.win === 'mut' ? 120 : 600, pvp.win === 'mut' ? 50 : 1400, .9, pvp.win === 'mut' ? 'sawtooth' : 'triangle', .06);
+  } else if (pvp.ph === 'end' && pvp.t > 6) {
+    const w = pvp.win; pvp = null;
+    if (w === 'mut') nextLevel();               // оба мутанты — дальше орда
+    else { netSend({ t: 'cure' }); cureEnd = true; setState('win'); }
+  }
+}
+function drawPvp() {                           // полоски здоровья и подписи (в экранных координатах)
+  const v = HOST() ? pvp : GUEST() ? NET.pv : null; if (!v) return;
+  const me = HOST(), my = me ? v.hpH : v.hpG, his = me ? v.hpG : v.hpH, mut = me ? !v.cured : false;
+  const bar = (x, val, col, lab) => { rect(x, 30, 100, 7, '#222'); rect(x + 1, 31, 98 * val / 100, 5, col); ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace'; ctx.fillText(lab, x, 27); };
+  ctx.textAlign = 'left'; bar(W / 2 - 112, my, mut ? '#9aff5a' : '#3fd25a', mut ? 'ТЫ · МУТАНТ' : 'ТЫ');
+  bar(W / 2 + 12, his, me || v.cured ? '#3fd25a' : '#9aff5a', me || v.cured ? 'НАПАРНИК' : 'НАПАРНИК · МУТАНТ');
+  ctx.textAlign = 'center';
+  const big = (t, col, y = H * .32, sz = 16) => { ctx.font = `bold ${sz}px monospace`; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(t, W / 2, y); ctx.fillStyle = col; ctx.fillText(t, W / 2, y); };
+  if (v.ph === 'intro') {
+    if (me) { big('ЗОВ АЛЬФЫ ГУДИТ В ГОЛОВЕ', '#9aff5a', H * .3, 12); big('УБЕЙ ЧЕЛОВЕКА', '#ff5a5a', H * .3 + 18, 14); }
+    else { big('ОН ВСТАЛ… НО ГЛАЗА ЗЕЛЁНЫЕ', '#9aff5a', H * .3, 12); big('ЗАЩИЩАЙСЯ!', '#ffd23f', H * .3 + 18, 14); }
+    if (v.t > 2.2) big('МАХАЧ!', '#ff5a5a', H * .52, 22);
+  } else if (v.ph === 'fight' && v.t < .8) big('МАХАЧ!', '#ff5a5a', H * .52, 22);
+  else if (v.ph === 'end') {
+    const mw = v.win === 'mut';
+    if (me) big(mw ? 'ТЫ ВЦЕПИЛСЯ ЕМУ В ШЕЮ' : 'ИГЛА… ХОЛОД… ТЫ СНОВА ЧЕЛОВЕК', mw ? '#9aff5a' : '#ffd23f', H * .32, 12);
+    else big(mw ? 'ОН УКУСИЛ ТЕБЯ. ЯД УЖЕ В КРОВИ' : 'ТЫ СБИЛ ЕГО И ВКОЛОЛ СЫВОРОТКУ', mw ? '#9aff5a' : '#ffd23f', H * .32, 12);
+    if (v.t > 2) big(mw ? 'теперь вы оба — мутанты' : 'вы снова оба — люди', '#fff', H * .32 + 18, 10);
+  }
+  ctx.textAlign = 'left';
 }
 function arenaPull(mx, my) {                   // бой начал напарник — решётка закрылась бы перед тобой: переносим к нему
   const A = lv.arena, m = mx !== undefined ? { x: mx, y: my, lvl: lvlN } : NET.remote; if (!A || !m || m.lvl !== lvlN || !P || P.dead) return;
@@ -6740,6 +6799,8 @@ function netMsg(m) {
   else if (m.t === 'lvl' && NET.role === 'guest') { introCoop = false; openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
   else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
+  else if (m.t === 'phit' && NET.role === 'host') { if (pvp && pvp.ph === 'fight') { pvp.hpH = Math.max(0, pvp.hpH - m.d); hpFlash = .3; beep(160, 70, .08, 'square', .03); explode(P.x + 5, P.y + 10, 4, ['#6a8a3a', '#9aff5a']); } }
+  else if (m.t === 'cure' && NET.role === 'guest') { cureEnd = true; NET.pv = null; setState('win'); }
   else if (m.t === 'rp' && NET.role === 'host') { if (amb && amb.co) { amb.rp = m.v; if (m.v >= 1) amb.rev = true; } }
   else if (m.t === 'intro' && NET.role === 'guest') { openMenu(false); mapShow(false); introCoop = true; introGo = true; setState('intro'); }
   else if (m.t === 'over') { if (state === 'play') { NET.rx = true; lives = 0; setState('over'); NET.rx = false; } }
@@ -6770,19 +6831,20 @@ function netTick() {                          // 20 раз в секунду —
   if (NET.rxT && now - NET.rxT > 15000) { netLost(); return; }
   if (state !== 'play' || !P) return; if (now - NET.sendT < 50) return; NET.sendT = now;
   netSend({ t: 'p', lvl: lvlN, x: Math.round(P.x), y: Math.round(P.y), face: P.face, ax: P.ax, ay: P.ay, crouch: P.crouch, climb: P.climb, rot: P.rot, on: P.on,
-    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, ko: !!P.ko, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
+    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, ko: !!P.ko, slash: P.slash || 0, bl: NET.role === 'guest' ? bullets.slice(0, 10).map(b => [Math.round(b.x), Math.round(b.y)]) : null, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
   if (NET.role === 'host' && now - (NET.wT || 0) > 80) { NET.wT = now; netSend(netSnap()); }   // ~12 раз в секунду — мир напарнику
 }
 function drawMate() {                         // напарник: свой цвет, табличка над головой, плавное движение
   const m = NET.remote; if (!NET.ready || !m || !NET.rs || m.lvl !== lvlN || state !== 'play') return;
+  if (m.bl) for (const [bx, by] of m.bl) { rect(bx - cam, by, 4, 3, '#ffd23f'); rect(bx - cam + 1, by + 1, 2, 1, '#fff'); }   // пули напарника
   const r = NET.rs, k = .35; r.x += (m.x - r.x) * k; r.y += (m.y - r.y) * k; Object.assign(r, { ...m, x: r.x, y: r.y });
-  const s0 = P; HERO_OVR = NET.role === 'guest' ? (MUT() ? HERO_MUT : HERO_SPR) : MUT() ? HERO_MUTS.A : HERO_SPR2;
+  const s0 = P; HERO_OVR = NET.role === 'guest' ? (MUT() || NET.pv && !NET.pv.cured ? HERO_MUT : HERO_SPR) : MUT() ? HERO_MUTS.A : HERO_SPR2;
   if (r.ko) {                                  // хозяин без сознания — лежит на полу
     const img = HERO_OVR.stand, bx = Math.round(r.x - cam), by = Math.round(r.y + 22);
     ctx.save(); ctx.translate(bx + 11, by - 1); ctx.rotate(-Math.PI / 2 * (r.face || 1)); outlined(() => ctx.drawImage(img, -img.width / 2, -img.height + 2)); ctx.restore();
     HERO_OVR = null; drawRevive(r); return;
   }
-  P = Object.assign({}, s0, r, { inv: 0 });
+  P = Object.assign({}, s0, r, { inv: 0, mateMut: NET.role === 'guest' && !!NET.pv && !NET.pv.cured });   // в махаче напарник видит мутанта
   drawHero(); HERO_OVR = null; P = s0;
   if (r.dead > 0) return;
   ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; const tx = Math.round(r.x - cam + 7), ty = Math.round(r.y - 5);
