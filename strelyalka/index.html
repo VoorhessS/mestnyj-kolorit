@@ -1967,21 +1967,94 @@ function wrapTxt(s, maxW) {               // перенос по словам п
   for (const w of s.split(' ')) { const t = cur ? cur + ' ' + w : w; if (cur && ctx.measureText(t).width > maxW) { out.push(cur); cur = w; } else cur = t; }
   if (cur) out.push(cur); return out;
 }
+// ===== Портреты для рамки диалога (друг, msg 1894): 16×16, контур дорисовывается сам =====
+const PORTRAIT = {};
+function mkPortrait(fn) {
+  const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
+  const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  fn(r);
+  const d = g.getImageData(0, 0, 16, 16), a = d.data, o = new Uint8Array(256);   // чёрный контур снаружи, как у спрайтов
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (!a[(y * 16 + x) * 4 + 3]) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < 16 && Y < 16 && a[(Y * 16 + X) * 4 + 3]) { o[y * 16 + x] = 1; break; } }
+  for (let i = 0; i < 256; i++) if (o[i]) { a[i * 4] = 10; a[i * 4 + 1] = 10; a[i * 4 + 2] = 14; a[i * 4 + 3] = 255; }
+  g.putImageData(d, 0, 0); return c;
+}
+const face = (r, P, o = {}) => {               // общая основа лица
+  r(2, 13, 12, 3, P.j); r(2, 13, 2, 3, P.J); r(6, 13, 4, 1, P.k);                       // плечи, ворот
+  r(6, 11, 4, 3, P.S);                                                                    // шея
+  r(4, 4, 8, 8, P.s); r(10, 5, 2, 7, P.S); r(5, 11, 5, 1, P.S);                           // лицо и тень
+  r(5, 7, 2, 1, P.w || '#f0f0f0'); r(9, 7, 2, 1, P.w || '#f0f0f0');                     // белки
+  r(6, 7, 1, 1, P.e); r(10, 7, 1, 1, P.e);                                                // зрачки
+  r(5, 6, 2, 1, P.br || P.h); r(9, 6, 2, 1, P.br || P.h);                                 // брови
+  r(8, 8, 1, 2, P.S); r(6, 10, 4, 1, P.m || '#7a3a2a');                                  // нос, рот
+};
+PORTRAIT.hero = mkPortrait(r => {               // герой-человек: тёмно-русые вихры, щетина, зелёная куртка
+  const P = { h: '#3a2a20', H: '#5a4030', s: '#d8a47a', S: '#9a6a4a', e: '#141414', j: '#3a5a3a', J: '#24382a', k: '#5a7a4a' };
+  face(r, P); r(3, 1, 10, 4, P.h); r(3, 4, 1, 4, P.h); r(12, 4, 1, 3, P.h); r(5, 1, 4, 1, P.H); r(4, 2, 2, 1, P.H); r(11, 0, 2, 2, P.h);
+  r(5, 11, 1, 1, '#8a5a3a'); r(7, 11, 1, 1, '#8a5a3a'); r(9, 11, 1, 1, '#8a5a3a');      // щетина
+});
+PORTRAIT.mut = mkPortrait(r => {                // герой-таракан: хитин, рыжие глаза, усики
+  const P = { h: '#3a2214', H: '#7a4a24', s: '#9a6434', S: '#6a3e1c', e: '#ff7a1a', w: '#3a1a08', j: '#4a2a18', J: '#2a180e', k: '#6a3a1e', m: '#1a0a04' };
+  face(r, P); r(3, 2, 10, 3, P.h); r(5, 2, 4, 1, P.H); r(5, 7, 2, 1, P.e); r(9, 7, 2, 1, P.e);
+  r(4, 0, 1, 2, P.H); r(3, 0, 1, 1, P.H); r(11, 0, 1, 2, P.H); r(12, 0, 1, 1, P.H);     // усики
+  r(5, 10, 1, 2, P.h); r(10, 10, 1, 2, P.h);                                              // жвалы
+});
+PORTRAIT.pilot = mkPortrait(r => {              // Сокол-2: лётный шлем, очки на лбу, микрофон
+  const P = { h: '#4a5040', s: '#e0b088', S: '#a07050', e: '#141414', j: '#5a6a4a', J: '#3a4630', k: '#c8a040' };
+  face(r, P); r(3, 1, 10, 4, '#6a7058'); r(3, 4, 2, 6, '#6a7058'); r(11, 4, 2, 6, '#6a7058'); r(5, 1, 5, 1, '#8a9070');
+  r(4, 3, 8, 2, '#2a3a4a'); r(5, 3, 2, 1, '#7ab8e8'); r(9, 3, 2, 1, '#7ab8e8');          // очки
+  r(2, 9, 2, 2, '#2a2a2a'); r(3, 10, 4, 1, '#2a2a2a'); r(7, 10, 1, 1, '#555');           // наушник и микрофон
+});
+PORTRAIT.chief = mkPortrait(r => {              // главный лагеря: седой, борода, шрам, бандана
+  const P = { h: '#9a9a94', br: '#7a7a74', s: '#c89070', S: '#8a5a40', e: '#141414', j: '#5a4a32', J: '#3a3020', k: '#8a2a22' };
+  face(r, P); r(3, 1, 10, 3, '#8a2a22'); r(4, 1, 4, 1, '#b04a3a'); r(12, 2, 2, 2, '#8a2a22'); r(13, 4, 1, 2, '#8a2a22');   // бандана с узлом
+  r(4, 9, 8, 4, P.h); r(5, 12, 6, 2, P.h); r(6, 10, 4, 1, '#5a3a2a'); r(5, 9, 6, 1, '#b8b8b0');   // борода и усы
+  r(10, 5, 1, 3, '#e8b8a0');                                                              // шрам
+});
+const PORTRAIT_OF = who => ({ 'ГЛАВНЫЙ': 'chief' })[who] || 'hero';
+let DLG_V = 'B'; try { DLG_V = (location.search.match(/[?&]dv=([AB])/) || [])[1] || 'B'; } catch (e) {}   // друг выбрал B — тёмная, в цвет игры
+function talkSlot() {                         // внизу между крестовиной и кнопкой «огонь» (друг, msg 1901); без кнопок — по центру
+  const cr = cv.getBoundingClientRect(), k = W / (cr.width || innerWidth);
+  if (!document.body.classList.contains('noctl')) {
+    const pr = padEl.getBoundingClientRect(), br = bEl.getBoundingClientRect();
+    if (pr.width && br.width) { const l = (pr.right - cr.left) * k + 6, r = (br.left - cr.left) * k - 6; if (r - l > 110) return [l, r]; }
+  }
+  return [20, W - 20];
+}
+function drawTalkBox(name, txt, n, por, mode, alpha = 1) {   // рамка «как в покемоне»: портрет слева, имя, текст по буквам, ▼
+  const [sl, sr] = talkSlot(), bw = Math.round(Math.min(sr - sl, 340)), nar = bw < 230, fs = nar ? 8 : 10, lh = nar ? 10 : 13;   // узкая щель — всё мельче
+  ctx.font = `bold ${fs}px monospace`;
+  const bx = Math.round((sl + sr - bw) / 2), ps = nar ? 28 : 36, tx = bx + ps + (nar ? 12 : 16), lines = wrapTxt(txt, bx + bw - tx - 6);
+  const bh = Math.max(ps + 12, (nar ? 20 : 24) + lines.length * lh), by = H - 6 - bh;
+  const light = DLG_V === 'A', think = mode === 'think', radio = mode === 'radio';
+  const bg = light ? (think ? '#e4e8f0' : '#f6f2e4') : 'rgba(10,12,20,.92)', ink = light ? '#1a1c24' : '#eef2f8';
+  const edge = radio ? '#9aff7a' : think ? '#8ec8ff' : '#ffd23f', tag = light ? (radio ? '#5ab04a' : think ? '#6a8ab8' : '#c8a040') : edge;
+  ctx.globalAlpha = alpha;
+  rect(bx - 3, by - 3, bw + 6, bh + 6, light ? '#1a1c24' : '#000');                     // двойная рамка
+  rect(bx - 1, by - 1, bw + 2, bh + 2, tag);
+  rect(bx, by, bw, bh, bg);
+  const px = bx + 6, py = by + 6;                                                         // окошко портрета
+  rect(px - 2, py - 2, ps + 4, ps + 4, light ? '#1a1c24' : edge); rect(px, py, ps, ps, radio ? '#16301a' : think ? '#26324a' : '#3a3428');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(PORTRAIT[por], px + 2, py + 2, ps - 4, ps - 4);
+  if (radio) for (let y = 0; y < ps; y += 2) rect(px, py + y, ps, 1, 'rgba(120,255,120,.14)');   // помехи рации
+  if (radio && Math.random() < .06) rect(px, py + Math.random() * ps, ps, 2, 'rgba(200,255,200,.4)');
+  ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left';                                // табличка с именем на верхней кромке
+  const nw = ctx.measureText(name).width + 12;
+  rect(tx - 4, by - 9, nw + 2, 13, light ? '#1a1c24' : '#000'); rect(tx - 3, by - 8, nw, 11, tag);
+  ctx.fillStyle = light ? '#fff' : '#0a0a10'; ctx.fillText(name, tx + 3, by + 1);
+  if (radio) for (let i = 0; i < 6; i++) { const hh = 1 + Math.abs(Math.sin(time * 9 + i)) * 5; rect(bx + bw - 12 - i * 4, by + 12 - hh, 2, hh, light ? '#3a8a2a' : edge); }
+  ctx.font = (think ? 'italic ' : '') + `bold ${fs}px monospace`; ctx.fillStyle = think ? (light ? '#3a4a6a' : '#b8d4f0') : ink;
+  let left = n;
+  lines.forEach((ln, i) => { const k = Math.max(0, Math.min(ln.length, left)); ctx.fillText(ln.slice(0, k), tx, by + (nar ? 18 : 22) + i * lh); left -= ln.length + 1; });
+  if (n >= txt.length && Math.floor(time * 3) % 2) { const ax = bx + bw - 12, ay = by + bh - 9; rect(ax, ay, 6, 2, ink); rect(ax + 1, ay + 2, 4, 1, ink); rect(ax + 2, ay + 3, 2, 1, ink); }   // ▼ «дальше»
+  ctx.globalAlpha = 1;
+}
 function drawThink() {
   if (!think || dlg || think.t < 0 || state !== 'play') return;
   const ln0 = think.lines[think.i], s = thTxt(ln0), radio = thRadio(ln0), n = Math.min(s.length, Math.floor(think.t * 40));
   const fade = clamp((thinkDur(ln0) - think.t) / .3, 0, 1) * clamp(think.t / .15, 0, 1);
-  ctx.font = 'bold 10px monospace';
-  const bw = Math.min(W - 150, 340), bx = (W - bw) / 2, lines = wrapTxt(s, bw - 20), bh = 22 + lines.length * 13, by = 56;   // сверху: внизу герой и кнопки
-  ctx.globalAlpha = fade;
-  const hc = radio ? '#9aff7a' : '#8ec8ff';
-  rect(bx, by, bw, bh, 'rgba(8,10,16,.8)'); rect(bx, by, 2, bh, hc);
-  ctx.font = 'bold 8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = hc; ctx.fillText(radio ? '📻 РАЦИЯ · СОКОЛ-2' : 'ГЕРОЙ · МЫСЛИ', bx + 10, by + 12);
-  if (radio) for (let i = 0; i < 6; i++) rect(bx + bw - 14 - i * 4, by + 10 - Math.abs(Math.sin(time * 9 + i)) * 5, 2, 1 + Math.abs(Math.sin(time * 9 + i)) * 5, hc);   // «эквалайзер» рации
-  ctx.font = 'bold 10px monospace'; ctx.fillStyle = radio ? '#d8ffcc' : '#e8eef8';
-  let left = n;
-  lines.forEach((ln, i) => { const k = Math.max(0, Math.min(ln.length, left)); ctx.fillText(ln.slice(0, k), bx + 10, by + 25 + i * 13); left -= ln.length + 1; });
-  ctx.globalAlpha = 1;
+  drawTalkBox(radio ? 'СОКОЛ-2 · РАЦИЯ' : MUT() ? 'ТЫ · ЗОВ' : 'ТЫ · МЫСЛИ', s, n, radio ? 'pilot' : MUT() ? 'mut' : 'hero', radio ? 'radio' : 'think', fade);
 }
 function startAmbush() {
   amb = { t: L.hold, sp: 1.2, end: 0 };
@@ -5544,9 +5617,7 @@ function drawStory() {
   drawThink();
   if (dlg) {                                          // реплика главного внизу экрана
     const [who, txt] = dlg.lines[dlg.i], n = Math.min(txt.length, Math.floor(dlg.t * 40));
-    rect(40, H - 58, W - 80, 44, 'rgba(8,8,12,.88)'); rect(40, H - 58, W - 80, 2, '#ffd23f');
-    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#ffd23f'; ctx.fillText(who, 50, H - 44);
-    ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#fff'; ctx.fillText(txt.slice(0, n), 50, H - 28);
+    drawTalkBox(who, txt, n, PORTRAIT_OF(who), 'talk');
   }
   if (amb && amb.end) {                              // Альфа спускается из вентиляции и жалит (друг, 13.11)
     const t = 6.5 - amb.end, sx = P.x - cam + 5, sy = P.y - camY + 6, f = P.face || 1;
