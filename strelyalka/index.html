@@ -3471,21 +3471,27 @@ function bugAI(e, dt) {
   if (touches(e, ACID) || touches(e, WATER)) e.hp = -1;     // в кислоте и в воде тонут
   if (e.spawned && (Math.abs(e.x - P.x) > 700 || Math.abs(e.y - P.y) > 400)) e.hp = -1;
 }
-function leapAI(e, dt) {                     // впереди вода / кислота (или яма, на дне которой жижа) — прыжок на землю за ней, а нет земли — разворот
+function leapAI(e, dt) {                     // впереди вода / кислота / глубокий пролёт — прыжок на землю за ним (до 4 клеток выше), а нет земли — разворот (друг, msg 2056, 2071)
   if (e.leap > 0) { e.leap -= dt; if (!e.on) e.vx = e.leapVx; return; }
   if (!e.on || !e.vx) return;
   const d = Math.sign(e.vx), fy = Math.floor((e.y + e.h + 2) / T), c0 = Math.floor((e.x + (d > 0 ? e.w + 2 : -2)) / T);
-  const wet = t => t === ACID || t === WATER, walk = (c, r) => (solid(c, r) || tile(c, r) === PLAT) && !wet(tile(c, r)) && !solid(c, r - 1);
-  const hazard = c => { for (let r = fy - 1; r <= fy + 3; r++) { const t = tile(c, r); if (wet(t)) return true; if (solid(c, r) || t === PLAT) return false; } return false; };
+  const wet = t => t === ACID || t === WATER, gr = (c, r) => solid(c, r) || tile(c, r) === PLAT;
+  const walk = (c, r) => gr(c, r) && !wet(tile(c, r)) && !solid(c, r - 1) && !solid(c, r - 2) && !wet(tile(c, r - 1)) && !wet(tile(c, r - 2));   // дно бассейна — не земля
+  const hazard = c => {                      // что под этой клеткой: жижа или пропасть глубже 10 клеток — опасно; пол ниже — просто спуск
+    for (let r = fy - 1; r <= fy + 10; r++) { if (r >= ROWS) return true; const t = tile(c, r); if (wet(t)) return true; if (gr(c, r)) return false; }
+    return true;
+  };
   if (!hazard(c0)) return;
-  for (let n = 1; n <= 6; n++) {
+  for (let n = 1; n <= 7; n++) {
     const c = c0 + d * n;
-    if (solid(c, fy - 1) && solid(c, fy - 2)) break;                                   // стена — не перепрыгнуть
-    if (walk(c, fy) || walk(c, fy - 1)) {
-      const dist = Math.abs(c * T + T / 2 - (e.x + e.w / 2)) + e.w / 2 + 4, vy = 330, tf = 2 * vy / GRAV;
-      e.vy = -vy; e.leapVx = d * clamp(dist / tf, 70, 280); e.vx = e.leapVx; e.leap = tf + .1; e.on = false;
+    let land = -1; for (let r = fy - 4; r <= fy + 2; r++) if (walk(c, r)) { land = r; break; }
+    if (land >= 0) {
+      const up = Math.max(0, (fy - land) * T), vy = clamp(Math.sqrt(2 * GRAV * (up + 22)), 330, 540);
+      const tf = (vy + Math.sqrt(Math.max(0, vy * vy - 2 * GRAV * up))) / GRAV, dist = Math.abs(c * T + T / 2 - (e.x + e.w / 2)) + e.w / 2 + 4;
+      e.vy = -vy; e.leapVx = d * clamp(dist / tf, 70, 300); e.vx = e.leapVx; e.leap = tf + .1; e.on = false;
       return;
     }
+    if (solid(c, fy - 5) && solid(c, fy - 1)) break;                                   // стена выше прыжка
   }
   e.vx = -e.vx; if (e.wd) e.wd = -e.wd;                                                  // перепрыгнуть некуда — назад
 }
