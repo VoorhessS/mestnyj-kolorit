@@ -7138,6 +7138,7 @@ async function netHost() {
     const peer = new Peer(NET_PFX + code, { debug: 0 }); Object.assign(NET, { role: 'host', peer, code });
     peer.on('open', () => netNote(`код комнаты <span class="code">${code}</span> — скажи напарнику · ждём…`));
     peer.on('connection', c => { if (NET.conn) { c.on('open', () => c.close()); return; } netBind(c); });
+    peer.on('disconnected', () => netRevive(peer));   // айфон усыпил вкладку (ушёл в Телеграм за кодом) — комната вернётся на сервер
     peer.on('error', e => { if (e.type === 'unavailable-id' && k < 5) { peer.destroy(); tryOpen(k + 1); } else netNote('ошибка связи: ' + (e.type || e)); });
   };
   tryOpen();
@@ -7150,6 +7151,10 @@ async function netJoin(code) {
   peer.on('open', () => netBind(peer.connect(NET_PFX + code, { reliable: true, serialization: 'json' })));
   peer.on('error', e => netNote(e.type === 'peer-unavailable' ? `комната ${code} не найдена` : 'ошибка связи: ' + (e.type || e)));
 }
+function netRevive(peer) {                     // друг, msg 2045: комната пропадала, пока вкладка спит
+  setTimeout(() => { try { if (NET.peer === peer && !peer.destroyed && peer.disconnected && !document.hidden) peer.reconnect(); } catch (e) {} }, 400);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && NET.peer && NET.peer.disconnected) netRevive(NET.peer); });
 function netBind(c) {
   NET.conn = c;
   c.on('open', () => { NET.ready = true; NET.rxT = performance.now(); beep(600, 1200, .15, 'square', .03); netSend({ t: 'hi' }); titleHome(); });
