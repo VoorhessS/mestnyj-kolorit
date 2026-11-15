@@ -63,7 +63,13 @@
   #mi-n { font: 800 15px monospace; color: #ffd23f; } #mi-z { font: 700 10px system-ui; color: #9a9478; letter-spacing: 1px; margin: 1px 0 3px; }
   #mi-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #mi-go { background: #6a1218; border-color: #ff4040; color: #fff; font-size: 15px; }
-  #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; justify-content: center; gap: 12px; z-index: 5; }
+  #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; flex-direction: column; align-items: center; gap: 8px; z-index: 5; }
+  #tmenu .row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  #tmenu button:disabled { opacity: .35; }
+  #tmenu #t-back { min-width: 56px; }
+  #tm-note { font: 700 12px monospace; color: #e8e0c0; text-shadow: 0 1px 2px #000; min-height: 14px; letter-spacing: 1px; }
+  #tm-note b { color: #ffd23f; }
+  #mi-lock { color: #ff8a6a; font: 700 12px system-ui, sans-serif; display: none; white-space: nowrap; }
   #tmenu button { font: 800 15px system-ui, sans-serif; letter-spacing: 2px; color: #ffd23f; background: rgba(10,10,8,.78); border: 2px solid #ffd23f;
     border-radius: 4px; padding: 10px 18px; min-height: 46px; min-width: 120px; }
   #iskip { position: fixed; right: calc(env(safe-area-inset-right) + 14px); bottom: calc(env(safe-area-inset-bottom) + 14px); display: none; z-index: 6;
@@ -90,18 +96,21 @@
 <div id="m">☰</div>
 <div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="m-map">КАРТА</button><button id="m-intro">ЗАСТАВКА</button><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
-<div id="tmenu"><button id="t-go">▶ НАЧАТЬ</button><button id="t-map">УРОВНИ</button><button id="t-help">УПРАВЛЕНИЕ</button><button id="t-vid">ВИДЕО</button></div>
+<div id="tmenu"><div id="tm-note"></div>
+  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help">УПРАВЛЕНИЕ</button><button id="t-vid">ВИДЕО</button></div>
+  <div class="row" id="tm2" style="display:none"><button id="t-back">←</button><button id="t-go">▶ НОВАЯ ИГРА</button><button id="t-cont">ПРОДОЛЖИТЬ</button></div></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
   <div>вверх/вниз у лестницы — лезть, вниз + вбок — ползти</div>
   <div>вниз + A на перекрытии — спрыгнуть · у стены в прыжке A — отскок</div>
   <div>с разбега A — сальто, стреляешь по кругу · бег + вниз — подкат (в подкате не ранят)</div>
   <div>💾 дискеты — сохранения · гнёзда можно расстрелять</div>
+  <div>прогресс сохраняется сам · <b>ПРОДОЛЖИТЬ</b> — карта, оттуда любой пройденный уровень</div>
   <div>☰ справа вверху — меню: уровни, музыка, бессмертие</div>
   <button class="mbtn" id="hclose" style="margin-top:10px">ПОНЯЛ</button></div>
 <div id="map"><canvas id="mapc"></canvas>
   <div class="bar"><button class="mbtn" id="mback" style="display:none">← КАРТА</button><b id="mtitle">КАРТА ЗОНЫ</b><small id="mhint">выбери зону</small><button class="mbtn" id="mclose">✕</button></div>
-  <div id="minfo"><div class="tx"><div id="mi-n"></div><div id="mi-z"></div><div id="mi-t"></div></div><button class="mbtn" id="mi-go">В БОЙ ▶</button></div></div>
+  <div id="minfo"><div class="tx"><div id="mi-n"></div><div id="mi-z"></div><div id="mi-t"></div></div><span id="mi-lock">🔒 сначала пройди предыдущие</span><button class="mbtn" id="mi-go">В БОЙ ▶</button></div></div>
 <div id="port"><div class="ic">📱</div>Поверни телефон боком</div>
 <script>
 'use strict';
@@ -1673,7 +1682,7 @@ function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
 function showToast(t, d = 2) { toastTxt = t; toast = d; }
 
 function startLevel(n) {
-  lvlN = n; L = LEVELS[n]; D = diff(n);
+  lvlN = n; L = LEVELS[n]; D = diff(n); saveReach(n);
   lv = build(L);
   saves = lv.saves.map(([x, y]) => ({ x: x * T + 2, y: y * T - 14, w: 12, h: 14, on: false }));
   save = { x: lv.start[0] * T, y: lv.start[1] * T - 14, w: 12, h: 14, on: true, hidden: true };
@@ -1797,7 +1806,7 @@ function respawn() {
 }
 // Камера может заехать за край карты: герой у стены не прячется под крестовиной или кнопками
 const camX = () => clamp(P.x + 5 - W * (L && L.mirror ? .55 : .45), -W * .3, MAPW - W * .75);   // по ходу движения видно больше
-function setState(s) { state = s; stateT = 0; }
+function setState(s) { state = s; stateT = 0; if (s === 'title') try { titleStep(1); } catch (e) {} }   // титул всегда начинается с выбора режима
 function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 120;
@@ -2728,6 +2737,7 @@ function update(dt) {
       if (state === 'over') { lives = 3; respawn(); setState('play'); }   // продолжаем с сохранения
       else if (state === 'win') setState('title');
       else if (state === 'card') setState('play');
+      else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
       else { score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
     }
     anyTap = false;
@@ -5804,7 +5814,7 @@ function openMenu(on) {
     for (let i = 0; i < cityCount(c); i++) {
       const n = cityStart(c) + i, b = document.createElement('button');
       b.textContent = `${i + 1}. ${LEVELS[n].name}`; if (n === lvlN && state !== 'title') b.className = 'cur';
-      b.onclick = () => { openMenu(false); score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n); };
+      b.onclick = () => { openMenu(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n); };
       row.appendChild(b);
     }
   });
@@ -6023,8 +6033,20 @@ const MZONE = [                                // зона: полигон, по
 const HORDE = [[104, 252], [200, 284], [420, 280], [470, 222], [760, 210], [952, 248], [966, 548]];
 const MICON = { boss: 'boss', nests: 'nest', guards: 'shield', reach: 'flag', carnage: 'claw', switch: 'bolt', lift: 'lift',
   talk: 'talk', food: 'crate', arms: 'crate', meds: 'cross' };
-function doneSet() { try { return new Set(JSON.parse(localStorage.getItem('strel-done') || '[]')); } catch (e) { return new Set(); } }
-function markDone(n) { try { const s = doneSet(); s.add(n); localStorage.setItem('strel-done', JSON.stringify([...s])); } catch (e) {} }
+// ===== Сохранение (друг, msg 1908): у каждого режима свой прогресс — пройденные уровни и докуда дошёл =====
+let MODE = 'solo', gameOn = false, mapFree = true;   // gameOn — идёт «настоящая» игра (не выбор из меню разработки); mapFree — карта без замков
+const saveKey = m => 'strel-save-' + m;
+function saveGet(m = MODE) {
+  try { const v = JSON.parse(localStorage.getItem(saveKey(m)) || 'null'); if (v) return v; } catch (e) {}
+  if (m === 'solo') try { const d = JSON.parse(localStorage.getItem('strel-done') || '[]'); if (d.length) return { done: d, at: Math.min(Math.max(...d) + 1, LEVELS.length - 1) }; } catch (e) {}   // старые галочки — в соло
+  return null;
+}
+function savePut(v, m = MODE) { v.t = Date.now(); try { localStorage.setItem(saveKey(m), JSON.stringify(v)); } catch (e) {} }
+function saveReach(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (n > v.at) { v.at = n; savePut(v); } else if (!saveGet()) savePut(v); }
+function saveWipe(m = MODE) { try { localStorage.removeItem(saveKey(m)); if (m === 'solo') localStorage.removeItem('strel-done'); } catch (e) {} }
+function doneSet() { const v = saveGet(); return new Set(v ? v.done : []); }
+function markDone(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (!v.done.includes(n)) v.done.push(n); v.at = Math.max(v.at, Math.min(n + 1, LEVELS.length - 1)); savePut(v); }
+const mapLocked = i => !mapFree && i > ((saveGet() || { at: 0 }).at);
 
 const mapEl = document.getElementById('map'), mapC = document.getElementById('mapc'), mx = mapC.getContext('2d');
 const mInfo = document.getElementById('minfo');
@@ -6192,6 +6214,7 @@ function drawMap() {
     if (!lvOf(i)) continue;
     const [wx, wy] = MPOS[i], x = sx(wx), y = sy(wy), lv = LEVELS[i], boss = lv.obj === 'boss', isD = done.has(i), sel = i === mapSel;
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) continue;
+    const lk = mapLocked(i); g.globalAlpha = lk ? .45 : 1;
     if (sel) { g.strokeStyle = `rgba(255,210,63,${.5 + .5 * Math.sin(t * 6)})`; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r + 5 + Math.sin(t * 6) * 2, 0, 7); g.stroke(); }
     g.fillStyle = boss ? 'rgba(90,10,14,.92)' : 'rgba(18,20,16,.92)'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
     g.strokeStyle = sel ? '#ffd23f' : boss ? '#ff4040' : isD ? '#5fd35f' : '#c8b878'; g.lineWidth = 1.6; g.stroke();
@@ -6200,6 +6223,8 @@ function drawMap() {
     g.font = `700 ${clamp(r * 1.1, 8, 12)}px monospace`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)';
     const lbl = `${i + 1} ${lv.name}`;
     g.strokeText(lbl, x + r + 3, y); g.fillStyle = sel ? '#ffd23f' : '#e8e0c0'; g.fillText(lbl, x + r + 3, y);
+    if (lk) { g.globalAlpha = 1; g.fillStyle = '#c8b878'; g.fillRect(x - 4, y - 1, 8, 6); g.strokeStyle = '#c8b878'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y - 2, 3, Math.PI, 0); g.stroke(); }   // замок
+    g.globalAlpha = 1;
   }
   // компас и масштаб
   g.textAlign = 'center'; g.save(); g.translate(cw - 34, ch - 44); g.strokeStyle = '#c8b878'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 16, 0, 7); g.stroke();
@@ -6207,12 +6232,13 @@ function drawMap() {
   g.font = '700 10px system-ui'; g.fillText('С', 0, -24); g.restore();
   g.fillStyle = '#c8b878'; g.fillRect(14, ch - 22, 100 * z, 3); g.font = '600 10px monospace'; g.textAlign = 'left'; g.fillText('500 м', 14, ch - 32);
 }
-function mapShow(on) {
+function mapShow(on, free = true) {
   mapOpen = on; mapEl.style.display = on ? 'block' : 'none'; releaseAll();
   cancelAnimationFrame(mapAnim);
   if (!on) return;
+  mapFree = free;
   if (!mapBg) mapBg = buildMapBg();
-  const cur = state === 'title' ? -1 : lvlN;
+  const cur = state === 'title' ? (free ? -1 : (saveGet() || { at: 0 }).at) : lvlN;
   mapFocus(cur >= 0 ? LEVELS[cur].city || 0 : -1, true); if (cur >= 0) mapPick(cur);
   drawMap();
 }
@@ -6222,11 +6248,12 @@ function mapPick(i) {
   document.getElementById('mi-n').textContent = `${String(i + 1).padStart(2, '0')} · ${lv.name}`;
   document.getElementById('mi-z').textContent = `${CITY[lv.city || 0]}${lv.obj === 'boss' ? ' · БОСС' : ''}${done ? ' · ✔ ПРОЙДЕН' : ''}`;
   document.getElementById('mi-t').textContent = lv.task || '';
+  const lk = mapLocked(i); document.getElementById('mi-lock').style.display = lk ? 'inline' : 'none'; document.getElementById('mi-go').style.display = lk ? 'none' : '';
   mInfo.style.display = 'flex';
 }
 document.getElementById('mi-go').onclick = () => {
-  const n = mapSel; if (n < 0) return;
-  mapShow(false); openMenu(false); score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n);
+  const n = mapSel; if (n < 0 || mapLocked(n)) return;
+  gameOn = !mapFree; mapShow(false); openMenu(false); score = 0; playT = 0; lives = 3; resetGear(n); startLevel(n);
 };
 document.getElementById('mclose').onclick = () => mapShow(false);
 document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, .05, 'square', .02); };
@@ -6263,8 +6290,28 @@ document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, 
 // ===== Титульное меню: Начать / Уровни / Управление =====
 const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help'), skipEl = document.getElementById('iskip');
 skipEl.onclick = () => { if (state === 'intro') introEnd(); };
-document.getElementById('t-go').onclick = () => { audioOn(); score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); };
-document.getElementById('t-map').onclick = () => { audioOn(); mapShow(true); };
+const tm1 = document.getElementById('tm1'), tm2 = document.getElementById('tm2'), tmNote = document.getElementById('tm-note'), tGo = document.getElementById('t-go'), tCont = document.getElementById('t-cont');
+let tStep = 1, wipeAsk = false;
+function titleStep(n, mode) {                 // 1 — выбор режима, 2 — новая игра / продолжить
+  tStep = n; if (mode) MODE = mode; wipeAsk = false;
+  tm1.style.display = n === 1 ? '' : 'none'; tm2.style.display = n === 2 ? '' : 'none';
+  tGo.textContent = '▶ НОВАЯ ИГРА';
+  const v = n === 2 ? saveGet() : null; tCont.disabled = !v;
+  tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? 'КООП' : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.length} из ${LEVELS.length} · дошёл до «${LEVELS[v.at].name}»` : 'сохранения нет'}`;
+}
+function newGame() { gameOn = true; score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
+document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
+document.getElementById('t-coop').onclick = () => { audioOn(); tmNote.innerHTML = '<b>КООП</b> · в разработке — скоро!'; beep(300, 200, .08, 'square', .02); };
+document.getElementById('t-back').onclick = () => titleStep(1);
+tGo.onclick = () => {
+  audioOn();
+  if (saveGet() && !wipeAsk) { wipeAsk = true; tGo.textContent = 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ'; return; }
+  saveWipe(); titleStep(1); newGame();
+};
+tCont.onclick = () => { audioOn(); if (saveGet()) mapShow(true, false); };
+function titleKey() {                         // клавиатура на титуле: A — дальше по меню
+  if (tStep === 1) document.getElementById('t-solo').click(); else if (saveGet()) tCont.click(); else tGo.click();
+}
 document.getElementById('t-help').onclick = () => { helpEl.style.display = 'flex'; };
 document.getElementById('t-vid').onclick = () => { location.href = 'video.html'; };
 document.getElementById('hclose').onclick = () => { helpEl.style.display = 'none'; };
