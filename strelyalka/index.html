@@ -3482,7 +3482,7 @@ function guardAI(e, dt, dx, dyF, dir) {
   }
 }
 function nextLevel() {
-  if (NET && NET.ready && NET.role === 'guest') { if (!NET.waitT || time - NET.waitT > 3) { NET.waitT = time; showToast('⏳ ждём хозяина — он ведёт отряд', 2); } return; }   // уровни переключает хозяин
+  if (NET && NET.ready && NET.role === 'guest') { if (!NET.waitT || time - NET.waitT > 3) { NET.waitT = time; showToast('⏳ ждём напарника — уровень переключает он', 2); } return; }   // уровни переключает хозяин
   beep(300, 900, .3, 'triangle', .05); markDone(lvlN);   // галочка на карте
   if (lvlN + 1 >= LEVELS.length) { setState(L.mut ? 'fin' : 'win'); return; }   // орда дошла — финальная сцена
   if ((LEVELS[lvlN + 1].city || 0) !== (L.city || 0)) { cutHit = false; setState('cut'); return; }   // заставка: вертолёт сбит
@@ -3490,7 +3490,7 @@ function nextLevel() {
 }
 function target() {                     // куда показывает жёлтая стрелка
   if (amb) return { x: P.x + 5, y: P.y - 6, txt: amb.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(amb.t)} с` };
-  if (GUEST() && NET.am) { const m = NET.remote; return NET.am.end && m && m.ko ? { x: m.x + 5, y: m.y - 6, txt: NET.am.rev ? 'он приходит в себя…' : 'к хозяину!' } : { x: P.x + 5, y: P.y - 6, txt: NET.am.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(NET.am.t)} с` }; }
+  if (GUEST() && NET.am) { const m = NET.remote; return NET.am.end && m && m.ko ? { x: m.x + 5, y: m.y - 6, txt: NET.am.rev ? 'он приходит в себя…' : 'к напарнику!' } : { x: P.x + 5, y: P.y - 6, txt: NET.am.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(NET.am.t)} с` }; }
   if (dlg) return { x: P.x + 5, y: P.y - 6, txt: '' };
   if (!done) {
     if (ITEM[L.obj]) { const it = items.find(i => !i.got && i.k === L.obj); if (!it) return { x: P.x + 5, y: P.y - 6, txt: '' }; return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты', radio: 'найди рацию', card: 'найди пропуск', flare: 'достань ракетницу', food: 'найди провизию', arms: 'найди патроны', meds: 'найди лекарства', talk: 'поговори с главным' }[L.obj] }; }
@@ -6673,7 +6673,7 @@ function drawRevive(r) {                       // над лежащим хозя
   const near = Math.abs(P.x - r.x) < 28;
   ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - 46, y - 2, 92, 10);
   ctx.fillStyle = Math.floor(time * 3) % 2 ? '#ffd23f' : '#fff';
-  ctx.fillText(NET.amT < 2.6 ? 'АЛЬФА УЖАЛИЛА ХОЗЯИНА!' : near ? 'держи ▼ — приведи в чувство' : 'беги к нему!', x, y + 6);
+  ctx.fillText(NET.amT < 2.6 ? 'АЛЬФА УЖАЛИЛА НАПАРНИКА!' : near ? 'держи ▼ — приведи в чувство' : 'беги к нему!', x, y + 6);
   rect(x - 24, y + 10, 48, 4, '#222'); rect(x - 24, y + 10, 48 * pr, 4, '#9aff5a');
   ctx.textAlign = 'left';
 }
@@ -6786,7 +6786,7 @@ function drawMate() {                         // напарник: свой цв
   drawHero(); HERO_OVR = null; P = s0;
   if (r.dead > 0) return;
   ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; const tx = Math.round(r.x - cam + 7), ty = Math.round(r.y - 5);
-  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(tx - 18, ty - 7, 36, 9); ctx.fillStyle = '#8ab8ff'; ctx.fillText(NET.role === 'host' ? 'НАПАРНИК' : 'ХОЗЯИН', tx, ty); ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(tx - 18, ty - 7, 36, 9); ctx.fillStyle = '#8ab8ff'; ctx.fillText('НАПАРНИК', tx, ty); ctx.textAlign = 'left';
 }
 // ===== Титульное меню: Начать / Уровни / Управление =====
 const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help'), skipEl = document.getElementById('iskip');
@@ -6798,7 +6798,7 @@ function titleStep(n, mode) {                 // 1 — режим, 2 — нов�
   tStep = n; if (mode) MODE = mode; wipeAsk = false;
   [tm1, tm2, tm3, tm4, tm5].forEach((el, i) => el.style.display = n === i + 1 ? '' : 'none');
   if (n >= 3) { if (n === 3) netNote('играть вдвоём со своих телефонов или ПК'); if (n === 4) { netNote('введи код комнаты напарника'); setTimeout(() => document.getElementById('t-code').focus(), 50); }
-    if (n === 5) netNote('подключено! хозяин выбирает уровень…'); return; }
+    if (n === 5) netNote('подключено! создатель комнаты выбирает уровень…'); return; }
   tGo.textContent = '▶ НОВАЯ ИГРА';
   const v = n === 2 ? saveGet() : null; tCont.disabled = !v;
   tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? 'КООП · напарник с тобой' : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.length} из ${LEVELS.length} · дошёл до «${LEVELS[v.at].name}»` : 'сохранения нет'}`;
