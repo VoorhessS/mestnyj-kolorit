@@ -1134,9 +1134,27 @@ const LEVELS = [
       B.exit(536, 15, 'К ГОРОДУ');
       B.start(3, 22);
     } },
+  // ===================== ЛОГОВО АЛЬФЫ — только кооп, ветка «сыворотка» (друг, msg 1960: в коопе у человечества есть шанс) =====================
+  { city: 7, coopEnd: true, name: 'ЛОГОВО АЛЬФЫ', task: 'Вдвоём — убейте Альфу', obj: 'boss', bossTxt: 'в логово', need: 'сначала победите Альфу', ground: 99, dark: .82,
+    cols: 96, rows: 24, base: SOLID, pal: PAL.nora, spawn: ['m', 'r', 'j'],
+    tips: ['пригнулась — сейчас рванёт рогами. отскочи, а врежется в стену — бей, пока оглушена', 'зелёные плевки оставляют облако яда — не стой в нём'],
+    build(B) {
+      const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
+      B.room(1, 3, 30, 7);                                                          // нора, пол — 8
+      B.ramp(31, 8, 16);                                                            // спуск в гнездо
+      B.room(39, 4, 94, 15);                                                        // гнездо Альфы, пол — 16
+      B.plat(48, 53, 12); B.plat(60, 65, 10); B.plat(72, 77, 12); B.plat(84, 89, 10);
+      for (const [x, y] of [[6, 4], [20, 4], [44, 6], [58, 5], [70, 6], [88, 6]]) gore(x, y);
+      for (const [x, f, k] of [[12, 8, 'bugbody'], [24, 8], [46, 16, 'bugbody'], [58, 16], [68, 16, 'bugbody'], [80, 16], [90, 16, 'bugbody']]) body(x, f, k);
+      B.lamp(10, 3); B.lamp(24, 3); B.lamp(52, 4); B.lamp(70, 4); B.lamp(88, 4);
+      B.arena({ gate: 41, l: 42, top: 16, drop: 72, boss: 'alpha' });
+      B.exit(93, 16, 'НАРУЖУ');
+      B.bug(16, 8, 'r'); B.bug(25, 8, 'j');
+      B.start(3, 8); B.save(9, 8);
+    } },
 ];
 
-const CITY = ['ГОРОД', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ', 'ОРДА'];
+const CITY = ['ГОРОД', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ', 'ОРДА', 'ЛОГОВО АЛЬФЫ'];
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
 let L, lvlN = 0, lv;
@@ -1745,7 +1763,9 @@ function startLevel(n) {
   L.exitNear = !!exit && !L.stages && !['reach', 'boss', 'lift', 'talk', 'food', 'arms', 'meds'].includes(L.obj) && Math.abs(lv.exit[0] - lv.start[0]) < 25;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
   const A = lv.arena;
-  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'roach'
+  boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'alpha'
+    ? [{ k: 'alpha', x: A.drop * T, y: A.top * T - 50, w: 34, h: 50, hp: 240, max: 240, fl: 0, st: 'sleep', t: 0, dir: -1, vx: 0, vy: 0, on: false }]
+    : A.boss === 'roach'
     ? [{ k: 'roach', x: A.drop * T, y: A.top * T - 52, w: 30, h: 52, hp: 200, max: 200, fl: 0, st: 'sleep', t: 0, dir: -1, vx: 0, vy: 0, on: false }]
     : A.boss === 'chimera'
     ? [{ k: 'chimera', x: A.drop * T, y: A.top * T - 44, w: 56, h: 44, hp: 170, max: 170, fl: 0, st: 'sleep', t: 0, dir: -1, vx: 0, vy: 0, on: false }]
@@ -2187,7 +2207,7 @@ function updStory(dt) {
     shake = 1.2; boom(); beep(900, 60, 1.4, 'sawtooth', .07); navigator.vibrate?.([80, 60, 200]);
   }
 }
-const BOSS_NAME = { mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА', chimera: 'ХИМЕРА', roach: 'ЧЕЛОВЕК-ТАРАКАН' };
+const BOSS_NAME = { alpha: 'АЛЬФА', mantis: 'БОГОМОЛ', rhino: 'ЖУК-НОСОРОГ', larva: 'ЛИЧИНКА-МАТКА', chimera: 'ХИМЕРА', roach: 'ЧЕЛОВЕК-ТАРАКАН' };
 
 // Жук-носорог: ходит к игроку, замирает и таранит до стены, оглушён, иногда прыгает
 function rhino(dt, b, pc) {
@@ -2737,7 +2757,7 @@ function hurtBoss(r, d) {
     for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
     gate(false);
     if (L.after) sayLines(L.after, 1.5);
-    done = true; showToast({ mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! за ней — старый тоннель', rhino: 'носорог убит! к вертолёту!', chimera: 'химера повержена! путь на базу открыт', roach: 'человек-таракан повержен! база зачищена' }[r.k], 3); rocks = [];
+    done = true; showToast({ alpha: 'АЛЬФА ПОВЕРЖЕНА! рой без вожака — к выходу', mantis: 'богомол повержен! лес свободен', larva: 'матка повержена! за ней — старый тоннель', rhino: 'носорог убит! к вертолёту!', chimera: 'химера повержена! путь на базу открыт', roach: 'человек-таракан повержен! база зачищена' }[r.k], 3); rocks = [];
   }
 }
 function blast(x, y) {                          // взрыв гранаты
@@ -2862,7 +2882,7 @@ function update(dt) {
     }
     if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
       if (state === 'over') { lives = NET && NET.ready ? COOP_LIVES : 3; respawn(); setState('play'); if (NET && NET.ready) netSend({ t: 'cont' }); }   // продолжаем с сохранения
-      else if (state === 'win') { cureEnd = false; setState('title'); }
+      else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); }
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
       else { score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
@@ -3065,7 +3085,7 @@ function update(dt) {
   }
   if (GU) { if (boss.parts[0]) netLerp(boss.parts[0], dt); }
   else if (boss.on && !boss.dead) {
-    const bp = boss.parts[0], fn = ({ mantis, rhino, larva, chimera, roach: chimera })[bp.k], mt = mateFor(bp);
+    const bp = boss.parts[0], fn = ({ mantis, rhino, larva, chimera, roach: chimera, alpha })[bp.k], mt = mateFor(bp);
     if (mt) { const s0 = P; P = mt; NET.px = true; try { fn(edt, bp, { x: mt.x + 2, y: mt.y + 3, w: mt.w - 4, h: mt.h - 5 }); } finally { P = s0; NET.px = false; } }
     else fn(edt, bp, pc);
   }
@@ -3451,6 +3471,68 @@ function chimera(dt, b, pc) {
   }
   if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
+// Альфа (друг, msg 1960): рывок рогами до стены (врезалась — оглушена, урон ×2), прыжок с ударной волной,
+// ядовитые плевки, зовёт рой. Меньше половины здоровья — злее и быстрее.
+function alpha(dt, b, pc) {
+  b.fl -= dt; b.t -= dt;
+  const A = lv.arena, left = A.l * T + 2, right = (COLS - 1) * T - 2, cx = b.x + b.w / 2, dx = P.x + 5 - cx, dir = Math.sign(dx) || -1;
+  const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1;
+  if (rage && !b.raged) { b.raged = true; showToast('АЛЬФА В ЯРОСТИ!', 2); shake = 1; boom(.14); beep(70, 30, 1.4, 'sawtooth', .07); }
+  if (b.st === 'sleep') { b.vx = 0; b.st = 'wake'; b.t = 1.6; b.woke = true; shake = 1; boom(.16); beep(80, 30, 1.6, 'sawtooth', .07); explode(cx, b.y + 10, 30, ['#9aff5a', '#4a6a2a', '#fff']); }
+  else if (b.st === 'wake') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = .8; } }
+  else if (b.st === 'walk') {
+    b.dir = dir; b.vx = dir * 52 * sp;
+    if (b.t <= 0 && b.on) {
+      const kids = enemies.filter(e => e.boss).length, r = Math.random();
+      if (Math.abs(dx) > 90 && r < .38) { b.st = 'aim'; b.t = .75 / sp; b.dir = dir; beep(140, 60, .6, 'sawtooth', .05); }
+      else if (Math.abs(dx) < 150 && r < .6) { b.st = 'crouch'; b.t = .55; beep(300, 80, .5, 'sawtooth', .04); }
+      else if (kids < (rage ? 6 : 4) && r < .78) { b.st = 'call'; b.t = .9; }
+      else { b.st = 'spit'; b.t = .6; }
+    }
+  } else if (b.st === 'aim') { b.vx = 0; if (b.t <= 0) { b.st = 'dash'; b.t = 1.6; b.vx = b.dir * 330 * sp; boom(.08); } }
+  else if (b.st === 'dash') {
+    b.vx = b.dir * 330 * sp;
+    if (Math.random() < .5) explode(cx - b.dir * 14, b.y + b.h - 2, 1, ['#5a4a3a', '#3a2a22']);
+    if (b.x <= left + 1 || b.x + b.w >= right - 1 || b.t <= 0) {          // врезалась
+      b.st = 'stuck'; b.t = rage ? 1.3 : 1.8; b.vx = 0; shake = 1; boom(.16); beep(90, 40, .8, 'square', .06);
+      explode(b.dir > 0 ? b.x + b.w : b.x, b.y + b.h / 2, 18, ['#8a8478', '#5a5650', '#fff']);
+      throwRock(clamp(P.x + rnd(-40, 40), left + 8, right - 8), true, true);
+    }
+  } else if (b.st === 'crouch') { b.vx = 0; if (b.t <= 0) { b.st = 'leap'; b.vy = -460; b.vx = clamp(dx / .95, -260, 260); b.dir = dir; boom(.06); } }
+  else if (b.st === 'spit') {
+    b.vx = 0;
+    if (b.t <= 0) {
+      const n = rage ? 4 : 3, v = clamp(dx / .85, -260, 260);
+      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * 16, y: b.y + 10, w: 7, h: 7, vx: v * (.6 + i * .7 / (n - 1)), vy: -280, g: 620, life: 2.4, k: 'glob' });
+      beep(200, 90, .45, 'square', .04); b.st = 'walk'; b.t = rnd(1, 1.8) / sp;
+    }
+  } else if (b.st === 'call') {
+    b.vx = 0;
+    if (b.t <= 0) {                                                       // зов: рой лезет из стен гнезда
+      for (let i = 0; i < (rage ? 4 : 3); i++) { const x = rnd(left + 20, right - 30), e = mkBug(pick(['m', 'r', 'j']), x, A.top * T, Math.sign(P.x - x) || 1); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -150; enemies.push(e); explode(x + 6, A.top * T - 6, 6, ['#4a4048', '#2a2228']); }
+      beep(1400, 300, .6, 'sawtooth', .04); shake = .4; b.st = 'walk'; b.t = rnd(1.2, 2) / sp;
+    }
+  } else if (b.st === 'dizzy' || b.st === 'stuck') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.6, 1.2) / sp; } }
+  b.vy = Math.min(b.vy + GRAV * dt, 600);
+  const air = !b.on;
+  moveBody(b, dt);
+  if (b.x < left) b.x = left;
+  if (b.x + b.w > right) b.x = right - b.w;
+  if (b.on && air && b.st === 'leap') {
+    b.st = 'dizzy'; b.t = rage ? .9 : 1.3; b.vx = 0; shake = .9; boom(.14);
+    for (const sd of [-1, 1]) ebullets.push({ x: cx + sd * 24 - 5, y: b.y + b.h - 8, w: 10, h: 8, vx: sd * 190, vy: 0, g: 0, life: 1, k: 'wave' });
+    explode(cx, b.y + b.h, 16, ['#5a4a3a', '#8a7a5a', '#fff']);
+  }
+  if (!P.dead && hit(pc, b)) hurt(b.st === 'dash' ? BOSS_DMG : 30);
+}
+function drawAlphaBoss(b) {                    // жук-рогач из заставок, в полный рост
+  const strike = b.st === 'dash' || b.st === 'leap' || b.st === 'aim', fo = MON[strike ? 'ALs' : 'AL'][Math.floor(time * (b.st === 'dash' ? 10 : 3)) % 2], fr = b.fl > 0 && fo.wh ? fo.wh : fo.img;
+  const sh = b.st === 'aim' || b.st === 'call' ? (Math.random() - .5) * 3 : 0, st = b.st === 'stuck' || b.st === 'dizzy';
+  const x = Math.round(b.x + b.w / 2 - fr.width / 2 - cam + sh), y = Math.round(b.y + b.h - fr.height + 2);
+  spr(fr, x, y, b.dir > 0);                    // спрайт смотрит влево
+  if (st) for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.1; rect(b.x + b.w / 2 - cam + Math.cos(a) * 14, b.y - 6 + Math.sin(a) * 3, 3, 3, '#ffd23f'); }   // звёздочки — оглушена
+  if (b.st === 'call') { ctx.strokeStyle = `rgba(154,255,90,${.5 + .5 * Math.sin(time * 20)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(b.x + b.w / 2 - cam, b.y + 10, 20 + (1 - b.t / .9) * 30, 0, 7); ctx.stroke(); }
+}
 function lunger(e, dt, dx, dyF, dir) {     // богомолы: подбегают и делают выпад косой
   e.cd -= dt;
   if (e.st === 'lunge') { e.t -= dt; e.vx = e.dir * 210; if (e.t <= 0) { e.st = 'walk'; e.vx = e.dir * e.sp; } }
@@ -3495,7 +3577,7 @@ function guardAI(e, dt, dx, dyF, dir) {
 function nextLevel() {
   if (NET && NET.ready && NET.role === 'guest') { if (!NET.waitT || time - NET.waitT > 3) { NET.waitT = time; showToast('⏳ ждём напарника — уровень переключает он', 2); } return; }   // уровни переключает хозяин
   beep(300, 900, .3, 'triangle', .05); markDone(lvlN);   // галочка на карте
-  if (lvlN + 1 >= LEVELS.length) { setState(L.mut ? 'fin' : 'win'); return; }   // орда дошла — финальная сцена
+  if (lvlN + 1 >= LEVELS.length || LEVELS[lvlN + 1].coopEnd || L.coopEnd) { if (L.coopEnd) humansWon = true; setState(L.mut ? 'fin' : 'win'); if (L.coopEnd && HOST()) netSend({ t: 'hwin' }); return; }   // орда дошла — финальная сцена
   if ((LEVELS[lvlN + 1].city || 0) !== (L.city || 0)) { cutHit = false; setState('cut'); return; }   // заставка: вертолёт сбит
   startLevel(lvlN + 1);
 }
@@ -5716,6 +5798,7 @@ function drawDark() {
   if (fume) { dctx.fillStyle = 'rgba(0,0,0,.45)'; dctx.fillRect(0, fume.y + oy, W, H); }
   for (const b of blasts) glow(b.x - cam, b.y + oy, 80, .95);
   for (const r of rocks) glow(r.x - cam, r.gy - 4 + oy, 22, .6);
+  if (boss.on && !boss.dead && boss.parts[0] && boss.parts[0].k === 'alpha') { const ab = boss.parts[0]; glow(ab.x - cam + ab.w / 2, ab.y + ab.h / 2 + oy, 80, .75); }   // Альфу видно в темноте: панцирь светится
   if (lift) glow(lift.x - cam + lift.w / 2, lift.y - 10 + oy, 90, .5);
   if (cart) { glow(cart.x - cam + cart.w + 30, cart.y - 8 + oy, 100, .9); glow(cart.x - cam + cart.w / 2, cart.y + oy, 50, .6); }
   if (P && !P.dead) {
@@ -6010,7 +6093,7 @@ function draw() {
   }
   ctx.translate(0, -Math.round(camY));
   drawTiles(); if (L.zones) useZone(zoneMid()); drawDeco(); drawProps();
-  outlined(() => { if (MUT()) drawAllies(); drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera, roach: drawRoach })[boss.parts[0].k](boss.parts[0]); });
+  outlined(() => { if (MUT()) drawAllies(); drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera, roach: drawRoach, alpha: drawAlphaBoss })[boss.parts[0].k](boss.parts[0]); });
   drawPlayer();
   if (fume) drawFume();
   drawWater(); drawFore();
@@ -6048,7 +6131,10 @@ function draw() {
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
-  if (state === 'win' && cureEnd) centerText([['ЛЮДИ ОТБИЛИСЬ', 20, '#ffd23f', 70], ['сыворотка подействовала. вы снова вдвоём — люди.', 9, '#fff', 92],
+  if (state === 'win' && humansWon) centerText([['У ЧЕЛОВЕЧЕСТВА ЕСТЬ ШАНС', 18, '#ffd23f', 66], ['Альфа мертва. рой без вожака рассыпается по норам.', 9, '#fff', 88],
+    ['вы вдвоём вышли из логова. город ещё можно отбить.', 9, '#9aff5a', 100],
+    [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 124], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
+  else if (state === 'win' && cureEnd) centerText([['ЛЮДИ ОТБИЛИСЬ', 20, '#ffd23f', 70], ['сыворотка подействовала. вы снова вдвоём — люди.', 9, '#fff', 92],
     ['дальше — логово Альфы · продолжение следует…', 9, '#9aff5a', 106], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
   else if (state === 'win' && L.mut) centerText([['ОРДА ИДЁТ НА ГОРОД', 20, '#9aff5a', 70], ['люди ещё спят. им осталось недолго.', 9, '#fff', 92], ['конец главы · продолжение следует…', 9, '#ffd23f', 106],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 128], ['нажми, чтобы выйти в меню', 10, '#ccc', 156]]);
@@ -6703,7 +6789,7 @@ function drawGuestSting() {                    // напарник видит, �
   if (strike) { ctx.fillStyle = 'rgba(160,255,90,.25)'; ctx.fillRect(0, 0, W, H); }
 }
 // ===== Кооп: махач — мутант против напарника =====
-let pvp = null, cureEnd = false;
+let pvp = null, cureEnd = false, humansWon = false;
 function pvpMut() { return !!(pvp && !pvp.cured && NET && NET.role === 'host'); }
 function pvpStart() {
   pvp = { ph: 'intro', t: 0, hpH: 100, hpG: 100, win: '', cured: false };
@@ -6721,7 +6807,7 @@ function pvpTick(dt) {                         // у хозяина: фазы и
   } else if (pvp.ph === 'end' && pvp.t > 6) {
     const w = pvp.win; pvp = null;
     if (w === 'mut') nextLevel();               // оба мутанты — дальше орда
-    else { netSend({ t: 'cure' }); cureEnd = true; setState('win'); }
+    else { const n = LEVELS.findIndex(l => l.coopEnd); showToast('сыворотка подействовала. вдвоём — в логово Альфы!', 3); startLevel(n); }   // человек победил — бой с Альфой
   }
 }
 function drawPvp() {                           // полоски здоровья и подписи (в экранных координатах)
@@ -6800,6 +6886,7 @@ function netMsg(m) {
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
   else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
   else if (m.t === 'phit' && NET.role === 'host') { if (pvp && pvp.ph === 'fight') { pvp.hpH = Math.max(0, pvp.hpH - m.d); hpFlash = .3; beep(160, 70, .08, 'square', .03); explode(P.x + 5, P.y + 10, 4, ['#6a8a3a', '#9aff5a']); } }
+  else if (m.t === 'hwin' && NET.role === 'guest') { humansWon = true; setState('win'); }
   else if (m.t === 'cure' && NET.role === 'guest') { cureEnd = true; NET.pv = null; setState('win'); }
   else if (m.t === 'rp' && NET.role === 'host') { if (amb && amb.co) { amb.rp = m.v; if (m.v >= 1) amb.rev = true; } }
   else if (m.t === 'intro' && NET.role === 'guest') { openMenu(false); mapShow(false); introCoop = true; introGo = true; setState('intro'); }
