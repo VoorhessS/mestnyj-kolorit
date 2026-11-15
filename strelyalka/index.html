@@ -3798,6 +3798,7 @@ function target() {                     // куда показывает жёл�
       let best = null, bd = 1e9;
       for (const e of enemies) if (want(e)) { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
       const n = enemies.filter(want).length;
+      if (GUEST()) { if (nest) nestsAll = Math.max(nestsAll, n); else guardsAll = Math.max(guardsAll, n); }   // у напарника враги с хоста (в коопе их больше) — «4 из 2» (друг, msg 2068)
       if (!best) return { x: P.x + 5, y: P.y - 6, txt: '' };   // защита: целей не осталось (аудит №21)
       return { x: best.x + best.w / 2, y: best.y, txt: nest ? `${L.nestTxt || (L.pal.nora ? 'кладки' : 'гнёзда')}: ${n} из ${nestsAll}` : `${L.guardTxt || 'свита'}: ${n} из ${guardsAll}` };
     }
