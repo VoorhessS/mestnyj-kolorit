@@ -72,17 +72,18 @@
   #mi-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #mi-go { background: #6a1218; border-color: #ff4040; color: #fff; font-size: 15px; }
   #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; flex-direction: column; align-items: center; gap: 8px; z-index: 5; }
-  #tmenu .row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  #tmenu .row { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 230px; }   /* друг (msg 2010): кнопки столбиком */
+  #tmenu .row > [id^="t-back"] { order: 9; }
   #tmenu button:disabled { opacity: .35; }
   #tmenu #t-back { min-width: 56px; }
   #tm-note { font: 700 12px monospace; color: #e8e0c0; text-shadow: 0 1px 2px #000; min-height: 14px; letter-spacing: 1px; }
   #tm-note b { color: #ffd23f; }
   #tm-note .code { font: 800 22px monospace; color: #fff; letter-spacing: 6px; background: rgba(10,10,8,.8); border: 2px solid #ffd23f; padding: 2px 10px; border-radius: 4px; }
-  #t-code { font: 800 20px monospace; letter-spacing: 6px; text-transform: uppercase; width: 130px; text-align: center; color: #fff; background: rgba(10,10,8,.85);
+  #t-code { font: 800 20px monospace; letter-spacing: 6px; text-transform: uppercase; width: 100%; text-align: center; color: #fff; background: rgba(10,10,8,.85);
     border: 2px solid #ffd23f; border-radius: 4px; min-height: 46px; box-sizing: border-box; }
   #mi-lock { color: #ff8a6a; font: 700 12px system-ui, sans-serif; display: none; white-space: nowrap; }
   #tmenu button { font: 800 15px system-ui, sans-serif; letter-spacing: 2px; color: #ffd23f; background: rgba(10,10,8,.78); border: 2px solid #ffd23f;
-    border-radius: 4px; padding: 10px 18px; min-height: 46px; min-width: 120px; }
+    border-radius: 4px; padding: 7px 14px; min-height: 44px; min-width: 120px; }
   #iskip { position: fixed; right: calc(env(safe-area-inset-right) + 14px); bottom: calc(env(safe-area-inset-bottom) + 14px); display: none; z-index: 6;
     font: 800 13px system-ui, sans-serif; letter-spacing: 1px; color: #fff; background: rgba(10,10,8,.7); border: 2px solid #ffd23f; border-radius: 4px; padding: 10px 14px; min-height: 44px; }
   #tmenu #t-go { background: #8a1218; border-color: #ff5a4a; color: #fff; }
@@ -6164,7 +6165,7 @@ function drawAtmoGlow() {                    // в тёмных уровнях �
   }
   ctx.globalAlpha = 1;
 }
-// ===== Пиксельный логотип (друг, msg 1975/1991): свой шрифт 5×7, «БАГ» ядовитый и глючит, из последней «С» — хвост Скорпика =====
+// ===== Логотип «Сдвиг» (друг, msg 2005/2010): одна мысль — баги. Название само сломано: куски слова съезжают с цветным расслоением =====
 let LOGO = null;
 function makeLogo() {
   const F = {
@@ -6173,36 +6174,34 @@ function makeLogo() {
     'К': ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'], 'Л': ['..###', '.#..#', '.#..#', '.#..#', '.#..#', '#...#', '#...#'],
     'И': ['#...#', '#...#', '#..##', '#.#.#', '##..#', '#...#', '#...#'], 'П': ['#####', '#...#', '#...#', '#...#', '#...#', '#...#', '#...#'],
     'С': ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'] };
-  const shape = new Map(), top = 17, left = 4;
-  const word = (txt, x, tag) => { for (const ch of txt) { const g = F[ch]; for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r][c] === '#') for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 3; dx++) shape.set((x + c * 2 + dx) + ',' + (top + r * 2 + dy), { tag, ry: r * 2 + dy }); x += 13; } return x; };
-  const xe = word('БАГ', left, 'bag'), x2 = word('ОКАЛИПСИС', xe + 1, 'oka') - 2;
-  [[x2 - 1, top + 1, 2.4], [x2 + 2, top - 3, 2.4], [x2 + 3, top - 8, 2.2], [x2 + 1, top - 12, 2], [x2 - 3, top - 14, 1.8], [x2 - 7, top - 13, 1.7]].forEach(([cx, cy, r]) => {
-    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r + .3 && !shape.has(x + ',' + y)) shape.set(x + ',' + y, { tag: 'tail', ry: y - cy + r }); });
-  for (const [x, y] of [[x2 - 10, top - 13], [x2 - 11, top - 12], [x2 - 11, top - 11], [x2 - 12, top - 11], [x2 - 12, top - 10], [x2 - 12, top - 9], [x2 - 9, top - 13], [x2 - 10, top - 12]]) shape.set(x + ',' + y, { tag: 'sting' });
-  const w = x2 + 9, h = top + 14 + 8, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
-  const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); }, at = (x, y) => shape.has(x + ',' + y);
-  const PAL = { bag: ['#eaffd0', '#9aff5a', '#4ad01a', '#1f8a10'], oka: ['#ffd0c8', '#ff4a4a', '#c8102e', '#7a0818'], tail: ['#ff6a6a', '#c8102e', '#7a0818'] };
-  for (const [k, o] of shape) if (o.tag === 'bag') { const [x, y] = k.split(',').map(Number); px(y % 5 < 3 ? x - 2 : x + 2, y, y % 5 < 3 ? '#00e5ff' : '#ff2ad4'); }
+  const PD = 3, shape = new Map(); let x = PD + 6;
+  for (const ch of 'БАГОКАЛИПСИС') { const g = F[ch]; for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r][c] === '#') for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 3; dx++) shape.set((x + c * 2 + dx) + ',' + (PD + r * 2 + dy), r * 2 + dy); x += 13; }
+  const w = x - 2 + PD + 6, h = 14 + PD * 2, at = (x, y) => shape.has(x + ',' + y);
+  const mk = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
+  const [L, g] = mk(), px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
   const ring = new Set();
   for (const k of shape.keys()) { const [x, y] = k.split(',').map(Number); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!at(x + dx, y + dy)) ring.add((x + dx) + ',' + (y + dy)); }
-  for (const k of [...shape.keys(), ...ring]) { const [x, y] = k.split(',').map(Number); px(x + 1, y + 2, '#2a0606'); px(x + 2, y + 3, '#2a0606'); }
+  for (const k of [...shape.keys(), ...ring]) { const [x, y] = k.split(',').map(Number); px(x + 1, y + 1, '#1a0606'); px(x + 2, y + 2, '#1a0606'); }
   for (const k of ring) { const [x, y] = k.split(',').map(Number); px(x, y, '#000'); }
-  for (const [k, o] of shape) {
-    const [x, y] = k.split(',').map(Number);
-    if (o.tag === 'sting') { px(x, y, '#9aff5a'); continue; }
-    const r = PAL[o.tag]; px(x, y, !at(x, y - 1) ? r[0] : o.tag === 'tail' ? (o.ry < 2.5 ? r[1] : r[2]) : o.ry < 6 ? r[1] : o.ry < 10 ? r[2] : r[3]);
-  }
-  px(x2 - 12, top - 8, '#eaffd0');
-  const im = g.getImageData(left - 3, top + 5, xe - left + 5, 2); g.putImageData(im, left - 1, top + 5);   // «БАГ» глючит: полоса съехала
-  for (const [x, l] of [[left + 2, 3], [left + 13, 2], [left + 27, 4]]) for (let k = 1; k <= l; k++) px(x, top + 13 + k, k === l ? '#eaffd0' : '#4ad01a');   // яд капает
-  return { c, bagW: xe + 2, top };
+  for (const [k, ry] of shape) { const [x, y] = k.split(',').map(Number); px(x, y, ry === 0 ? '#ffffff' : ry < 8 ? '#efe9dc' : '#c8c0b0'); }
+  const tint = col => { const [c, t] = mk(); t.drawImage(L, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = col; t.fillRect(0, 0, w, h); return c; };
+  const [O, og] = mk();
+  return { L, cy: tint('#00e5ff'), mg: tint('#ff2ad4'), O, og, w, h, PD };
 }
-function drawLogo(cx, y, k) {                  // k — масштаб; «БАГ» иногда дёргается
+function drawLogo(cx, y, k) {                  // k — масштаб. Полосы стоят как на картинке, иногда срываются сильнее
   if (!LOGO) LOGO = makeLogo();
-  const c = LOGO.c, w = c.width * k, x = Math.round(cx - w / 2);
-  ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, Math.round(y), Math.round(w), Math.round(c.height * k));
-  const gl = Math.sin(time * 5.3) + Math.sin(time * 8.1);
-  if (gl > 1.6) { const sy = Math.floor((time * 37) % 12) + LOGO.top, d = (gl > 1.8 ? 2 : -2) * k; ctx.drawImage(c, 0, sy, LOGO.bagW, 3, x + d, Math.round(y + sy * k), Math.round(LOGO.bagW * k), Math.round(3 * k)); }
+  const { L, cy, mg, O, og, w, h, PD } = LOGO;
+  og.clearRect(0, 0, w, h); og.drawImage(L, 0, 0);
+  const burst = Math.sin(time * 5.3) + Math.sin(time * 8.1) > 1.5, n = Math.floor(time * 18);
+  const bands = [[PD + 5, 3, 3, 36, 76], [PD + 11, 2, -2, 106, 146]];
+  if (burst) bands.push([PD + hash(n, 1) % 12, 1 + hash(n, 2) % 3, (hash(n, 3) % 2 ? 1 : -1) * (2 + hash(n, 4) % 4), hash(n, 5) % 80, 80 + hash(n, 6) % 80]);
+  for (const [y0, hh, dx, x0, x1] of bands) {
+    const d = burst && y0 < PD + 9 ? dx + (n % 2 ? 1 : -1) : dx, sw = Math.min(w, x1) - x0;
+    og.clearRect(x0, y0, sw, hh);
+    og.globalAlpha = .85; og.drawImage(cy, x0, y0, sw, hh, x0 + d - 1, y0, sw, hh); og.drawImage(mg, x0, y0, sw, hh, x0 + d + 1, y0, sw, hh); og.globalAlpha = 1;
+    og.drawImage(L, x0, y0, sw, hh, x0 + d, y0, sw, hh);
+  }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(O, Math.round(cx - w * k / 2), Math.round(y), Math.round(w * k), Math.round(h * k));
 }
 function draw() {
   ctx.save();
@@ -6215,8 +6214,8 @@ function draw() {
   if (state === 'title') {
     ctx.restore();
     const blink = Math.floor(time * 2) % 2;
-    centerText([['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 90], ['выживи. пробейся!', 9, '#ff6a4a', 103]]);   // centerText затемняет фон —
-    drawLogo(W / 2, 6, Math.min(2, (W - 12) / 170));                                                                                   // логотип поверх
+    centerText([['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 66], ['выживи. пробейся!', 9, '#ff6a4a', 78]]);   // centerText затемняет фон —
+    drawLogo(W / 2, 12, Math.min(2.2, (W - 70) / 172));                                                                                   // логотип поверх
     return;
   }
   ctx.translate(0, -Math.round(camY));
@@ -6493,8 +6492,8 @@ function drawIntro() {
   ctx.strokeStyle = '#2a0a0a'; ctx.lineWidth = 2; ctx.beginPath();
   for (let i = 0; i < 7; i++) { let x = W / 2, y = H / 2 + 6; ctx.moveTo(x, y); for (let k = 0; k < 6; k++) { x += Math.cos(i * .9 + k * .3) * 18; y += Math.sin(i * .9 + k * .5) * 10; ctx.lineTo(x, y); } } ctx.stroke();
   if (s < .3) { ctx.fillStyle = `rgba(255,255,240,${1 - s / .3})`; ctx.fillRect(0, 0, W, H); }
-  const k = Math.min(1, s / .25), lk = Math.min(2, (W - 12) / 170) * (1.8 - .8 * k);
-  drawLogo(W / 2, H / 2 - 4 - 23 * lk, lk);
+  const k = Math.min(1, s / .25), lk = Math.min(2.2, (W - 12) / 172) * (1.8 - .8 * k);
+  drawLogo(W / 2, H / 2 - 4 - 15 * lk, lk);
   ctx.textAlign = 'center';
   if (s > 1) { ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#ff6a4a'; ctx.fillText('выживи. пробейся!', W / 2, H / 2 + 22); }
   ctx.textAlign = 'left';
