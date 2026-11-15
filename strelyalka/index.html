@@ -3021,7 +3021,7 @@ function updGlitch(dt, k) {
 // ===== Обновление =====
 function update(dt) {
   if (menuOpen || mapOpen) return;         // открыто меню или карта — игра стоит
-  if (NET && NET.ready && NET.mp && state === 'play') return;   // напарник в меню — стоим вместе
+  if (NET && NET.ready && NET.mpause && state === 'play') return;   // напарник в меню — стоим вместе
   if (innerHeight > innerWidth && 'ontouchstart' in window) return;   // телефон вертикально — пауза под заставкой (аудит №7)
   time += dt; stateT += dt;
   if (state !== 'play') {
@@ -6369,7 +6369,7 @@ function draw() {
   if (L.alarm && state === 'play') { ctx.fillStyle = `rgba(255,20,20,${.06 + .06 * Math.sin(time * 5)})`; ctx.fillRect(0, 0, W, H); }   // тревога: красная мигалка
   ctx.save(); ctx.translate(0, -Math.round(camY)); drawSigns(); if (HORROR) drawEyes(); ctx.restore();
   drawHud(); drawStory();
-  if (NET && NET.ready && NET.mp && state === 'play' && !menuOpen) {   // напарник поставил паузу
+  if (NET && NET.ready && NET.mpause && state === 'play' && !menuOpen) {   // напарник поставил паузу
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center';
     ctx.font = 'bold 18px monospace'; ctx.fillStyle = '#ffd23f'; ctx.fillText('ПАУЗА', W / 2, H / 2 - 4);
     ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#ddd'; ctx.fillText('напарник в меню — ждём', W / 2, H / 2 + 12); ctx.textAlign = 'left';
@@ -7163,7 +7163,7 @@ function netBind(c) {
 }
 function netLost() {
   if (!NET.role) return;
-  const was = NET.ready; NET.mp = false; NET.myP = false; netClose(true);
+  const was = NET.ready; NET.mpause = false; NET.myP = false; netClose(true);
   if (state === 'title') { titleStep(3, 'coop'); netNote('напарник отключился'); } else if (was) showToast('⚠ связь с напарником потеряна', 3);
 }
 function netSend(o) { if (NET.conn && NET.ready) try { NET.conn.send(o); } catch (e) {} }
@@ -7184,7 +7184,7 @@ function netMsg(m) {
   else if (m.t === 'died' && NET.role === 'host') { if (state === 'play') { lives--; if (lives < 0 || (lives === 0 && P.dead)) { lives = 0; setState('over'); } } }
   else if (m.t === 'pull' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.pullTo = m.x; P.pullT = m.d; } }
   else if (m.t === 'dmg' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) hurt(m.d); }
-  else if (m.t === 'pause') { NET.mp = !!m.on; }
+  else if (m.t === 'pause') { NET.mpause = !!m.on; }
   else if (m.t === 'kill' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.inv = 0; killPlayer(); } }
   else if (m.t === 'done' && NET.role === 'guest' && m.lvl === lvlN && state !== 'title') { if (L.stages && m.stg !== stg) stageOn(m.stg); NET.rx = true; complete(m.msg); NET.rx = false; }
   else if (m.t === 'rock' && m.lvl === lvlN && state !== 'title') { if (tile(m.cx, m.cy) === ROCK) { NET.rx = true; breakRock(m.cx, m.cy); NET.rx = false; } }
