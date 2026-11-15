@@ -1738,7 +1738,8 @@ function musTick() {
 setInterval(musTick, 50);
 document.addEventListener('visibilitychange', () => {   // свернул игру — звук на паузу; вернулся — музыка идёт дальше без догонялок (друг, msg 1670)
   if (!ac) return;
-  if (document.hidden) { ac.suspend(); acStale = true; } else ac.resume().then(() => { if (ac) MUS.next = ac.currentTime + .06; }).catch(() => {});
+  if (document.hidden) { ac.suspend(); acStale = true; }
+  else if (!acStale) ac.resume().then(() => { if (ac) MUS.next = ac.currentTime + .06; }).catch(() => {});   // друг (msg 2073): после фона старый звук заикается — не будим его, первое касание создаст новый (audioOn)
 });
 // включил музыку заново — звук с чистого листа (лечит сбой на iPhone вручную)
 function musToggle() { MUS.on = !MUS.on; if (MUS.on) { quietKick(); audioReset(); audioOn(); } try { localStorage.setItem('strel-music', MUS.on ? '1' : '0'); } catch (e) {} if (window.musLabel) musLabel(); }
