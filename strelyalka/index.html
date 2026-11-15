@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Город N1">
+<meta name="apple-mobile-web-app-title" content="Город">
 <title>Судный день</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none;
@@ -1115,7 +1115,7 @@ const LEVELS = [
     } },
 ];
 
-const CITY = ['ГОРОД N1', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ', 'ОРДА'];
+const CITY = ['ГОРОД', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ', 'ОРДА'];
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
 let L, lvlN = 0, lv;
@@ -1500,7 +1500,7 @@ function boom(vol = .12) {
 // ===== Музыка (друг, msg 1645): 8-бит металкор и ню-метал — свой трек на каждый город =====
 // Рифф: 16 шагов; x — глухой «чаг» на тонике, 0–c — квинт-аккорд на ступени (полутонах от тоники), - — тянуть, . — пауза
 const TRACKS = [   // друг (msg 1653): «больше на рэп похоже» — риффы плотнее, тремоло в припевах, темп выше, без скретчей
-  { name: 'ГОРОД N1', st: 'mc', bpm: 184, root: 40, A: 'xxxxxx3-xxxxxx1-', B: '0000000055553333', C: 'xx.xx.xxxx.xx1--', L: '7-5-3-2-0---3-5-' },
+  { name: 'ГОРОД', st: 'mc', bpm: 184, root: 40, A: 'xxxxxx3-xxxxxx1-', B: '0000000055553333', C: 'xx.xx.xxxx.xx1--', L: '7-5-3-2-0---3-5-' },
   { name: 'ЛЕС', st: 'nu', bpm: 118, root: 38, A: 'xxx.xx3-xxx.xx5-', B: '0000333355551111', C: 'x.xx.xx.x.xx1-0-', L: 'c---a---7---5---' },
   { name: 'НОРА', st: 'nu', bpm: 112, root: 37, A: 'xx1-xx.xxx6-xx1-', B: '0000000011111111', C: 'xx.xx.xx.xx.x6--', L: 'c-b-c-6---------' },
   { name: 'ЛАБОРАТОРИЯ', st: 'mc', bpm: 196, root: 42, A: 'xx3xx5xx6xx5xx3x', B: '0000333355556666', C: 'xxx.xxx.xxx.x1--', L: '037c037c7307c730' },
@@ -5882,7 +5882,7 @@ function drawIntro() {
   const cap = (s, col) => { ctx.textAlign = 'center'; ctx.font = 'bold 10px monospace'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(s, W / 2, H - 12); ctx.fillStyle = col || '#fff'; ctx.fillText(s, W / 2, H - 12); ctx.textAlign = 'left'; };
   if (t < 10.9) {
     introOffice(t);
-    if (t < 3) cap('Город N1. Обычный рабочий день.');
+    if (t < 3) cap('Город. Обычный рабочий день.');
     else if (t > 3.4 && t < 5.4) cap('Пять минут перерыва...');
     else if (t > 7.2 && t < 8.6) cap('Толчок... прямо в толчке!', '#ff5a5a');
     else if (t > 8.8 && t < 10.2) cap('Что за чертовщина?!', '#ffd23f');
