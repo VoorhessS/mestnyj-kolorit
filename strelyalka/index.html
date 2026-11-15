@@ -1137,7 +1137,7 @@ const LEVELS = [
   // ===================== ЛОГОВО АЛЬФЫ — только кооп, ветка «сыворотка» (друг, msg 1960: в коопе у человечества есть шанс) =====================
   { city: 7, coopEnd: true, name: 'ЛОГОВО АЛЬФЫ', task: 'Вдвоём — убейте Альфу', obj: 'boss', bossTxt: 'в логово', need: 'сначала победите Альфу', ground: 99, dark: .82,
     cols: 96, rows: 24, base: SOLID, pal: PAL.nora, spawn: ['m', 'r', 'j'],
-    tips: ['пригнулась — сейчас рванёт рогами. отскочи, а врежется в стену — бей, пока оглушена', 'зелёные плевки оставляют облако яда — не стой в нём'],
+    tips: ['пригнулась — сейчас рванёт клешнями. отскочи, а врежется в стену — бей, пока оглушена', 'зелёные плевки оставляют облако яда — не стой в нём'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
       B.room(1, 3, 30, 7);                                                          // нора, пол — 8
@@ -3565,7 +3565,7 @@ function alpha(dt, b, pc) {
   }
   if (!P.dead && hit(pc, b)) hurt(b.st === 'dash' ? BOSS_DMG : 30);
 }
-function drawAlphaBoss(b) {                    // жук-рогач из заставок, в полный рост
+function drawAlphaBoss(b) {                    // Скорпик из заставок, в полный рост
   const strike = b.st === 'dash' || b.st === 'leap' || b.st === 'aim', fo = MON[strike ? 'ALs' : 'AL'][Math.floor(time * (b.st === 'dash' ? 10 : 3)) % 2], fr = b.fl > 0 && fo.wh ? fo.wh : fo.img;
   const sh = b.st === 'aim' || b.st === 'call' ? (Math.random() - .5) * 3 : 0, st = b.st === 'stuck' || b.st === 'dizzy';
   const x = Math.round(b.x + b.w / 2 - fr.width / 2 - cam + sh), y = Math.round(b.y + b.h - fr.height + 2);
@@ -4428,8 +4428,8 @@ const HERO_PALS = {
   B: { h: '#3a5a2a', H: '#5a8a3a', s: '#8aa070', S: '#5a7a4a', e: '#c8ff6a', j: '#2a3a22', J: '#1a2616', k: '#4a6a32', b: '#1a2414', B: '#5a8a3a', p: '#26301e', P: '#182014', q: '#34422a' },   // богомол
   C: { h: '#3a2214', H: '#7a4a24', s: '#9a6434', S: '#6a3e1c', e: '#ff7a1a', j: '#4a2a18', J: '#2a180e', k: '#6a3a1e', b: '#1a1008', B: '#7a4a24', p: '#2e2018', P: '#1e140e', q: '#3e2c20' },   // таракан
 };
-let HERO_V = 'C', ALPHA_V = 'C';                   // друг выбрал: герой — таракан, Альфа — жук-рогач (13.11)
-try { HERO_V = (location.search.match(/[?&]hv=([ABC])/) || [])[1] || 'C'; ALPHA_V = (location.search.match(/[?&]av=([ABC])/) || [])[1] || 'C'; } catch (e) {}
+let HERO_V = 'C', ALPHA_V = 'D';                   // друг выбрал: герой — таракан (13.11), Альфа — Скорпик (msg 1989)
+try { HERO_V = (location.search.match(/[?&]hv=([ABC])/) || [])[1] || 'C'; ALPHA_V = (location.search.match(/[?&]av=([ABCD])/) || [])[1] || 'D'; } catch (e) {}
 const HERO_MUTS = {}; for (const k in HERO_PALS) HERO_MUTS[k] = mkHeroSpr(HERO_PALS[k]);
 const HERO_MUT = HERO_MUTS[HERO_V];
 const HERO_SPR2 = mkHeroSpr({ h: '#8a6a3a', H: '#aa8a5a', j: '#3a4a7a', J: '#242e52', k: '#5a6a9a' });   // напарник: светлые волосы, синяя куртка
@@ -4725,6 +4725,37 @@ const MON_DEF = {
     for (const d of [0, 1]) p.poly(arm.map(([x, y]) => [x, y + d]), CH[2 + d]);
     p.set(arm[1][0], arm[1][1] - 1, '#d8c8a0'); p.poly([arm[2], [arm[2][0] + 4, arm[2][1] - 2]], '#d8c8a0'); p.poly([arm[2], [arm[2][0] + 4, arm[2][1] + 2]], '#d8c8a0');
     for (const [x, y] of [[25, 27], [31, 31], [27, 35]]) p.set(x, y, '#9aff5a');
+    return p; },
+  ALD: (ph, strike) => {                           // Альфа Г: Скорпик — сбежал в лабу, облился из пробирки, сожрал других мутантов (друг, msg 1984)
+    const p = PixSpr(72, 58), CH = ['#0a120e', '#1c3426', '#356448', '#5f9a72'], CR = '#d8d0b0', TX = '#9aff5a';
+    const T0 = [15, 40], C = strike ? [6, -8] : [-2, 12 + ph], E = strike ? [48, 10] : [30, 5 + ph], N = 30, pts = [];
+    for (let i = 0; i <= N; i++) { const u = i / N; pts.push([(1 - u) ** 2 * T0[0] + 2 * (1 - u) * u * C[0] + u * u * E[0], (1 - u) ** 2 * T0[1] + 2 * (1 - u) * u * C[1] + u * u * E[1], u]); }
+    for (const [x, y, u] of pts) p.blob(x, y, 3.8 - u * 1.3, 3.8 - u * 1.3, CH);                     // хвост бусинами
+    for (let i = 5; i < N; i += 5) { const [x, y, u] = pts[i], [x2, y2] = pts[i + 1], nx = -(y2 - y), ny = x2 - x, l = Math.hypot(nx, ny) || 1, r = 3.6 - u * 1.3; p.line(x - nx / l * r, y - ny / l * r, x + nx / l * r, y + ny / l * r, CH[0]); p.set(pts[i - 2][0], pts[i - 2][1], TX); }
+    const [sx, sy] = E; p.blob(sx + 2, sy + 1, 3, 2.4, CH);                                           // жало
+    const hook = strike ? [[sx + 4, sy + 2], [sx + 7, sy + 6], [sx + 7, sy + 9]] : [[sx + 4, sy + 2], [sx + 7, sy + 4], [sx + 7, sy + 7]];
+    p.poly(hook, TX); p.poly(hook.map(([x, y]) => [x - 1, y]), TX); p.set(hook[2][0], hook[2][1] + 1, '#eaffd0');
+    for (let i = 0; i < 4; i++) {                                                                      // ноги шагают
+      const lx = 19 + i * 5.5, k = (i + ph) % 2, kx = lx - 4 + k * 2, fx = lx - 7 + k * 4;
+      for (const d of [0, 1]) p.poly([[lx + d, 45], [kx + d, 49], [fx + d, 55]], d ? CH[2] : CH[1]);
+      p.set(kx, 49, CH[3]); p.set(fx, 55, '#d8c8a0'); p.set(fx + 1, 55, '#d8c8a0');
+    }
+    for (let i = 0; i < 5; i++) { const cx = 18 + i * 5, cy = 42 - i * 1.3; p.blob(cx, cy, 4.6, 5, CH); p.line(cx - 2.5, cy - 4, cx - 2.5, cy + 4, CH[0]); }   // тело
+    for (const [x, y] of [[20, 42], [26, 40], [31, 39], [35, 37]]) p.set(x, y, TX);                   // вены
+    p.line(18, 38, 22, 45, '#b8c4b0'); p.line(19, 38, 23, 45, '#5a6a5a'); p.line(31, 36, 34, 41, '#b8c4b0'); p.line(41, 33, 44, 37, '#b8c4b0'); p.set(14, 30, '#b8c4b0'); p.set(15, 29, '#b8c4b0');   // шрамы от драк
+    p.blob(43, 36, 6.2, 5, CH);                                                                        // голова
+    for (let k = 0; k < 5; k++) { const bx = 38.5 + k * 2.3, h = k === 2 ? 6 : k === 1 || k === 3 ? 4.5 : 3; p.line(bx, 32, bx + .5, 32 - h, CR); p.line(bx + 1, 32, bx + .5, 32 - h + 1, CR); p.set(bx + .5, 32 - h, TX); }   // корона вожака
+    p.rect(38, 31, 11, 1, CR);
+    p.set(46, 34, TX); p.set(48, 34, TX); p.set(47, 35, TX); p.set(46, 33, '#ffffff');
+    const arm = strike ? [[46, 38], [52, 33], [55, 26]] : [[46, 39], [51, 42], [55, 37]];
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 6; j++) p.blob(arm[i][0] + (arm[i + 1][0] - arm[i][0]) * j / 6, arm[i][1] + (arm[i + 1][1] - arm[i][1]) * j / 6, 1.8, 1.8, CH);
+    const [wx, wy] = arm[2], open = strike ? 3 : 2;
+    p.blob(wx + 2, wy - 2, 4, 3.4, CH);                                                                // клешня
+    for (const d of [0, 1]) {
+      p.poly([[wx + 4, wy - 4 + d], [wx + 9, wy - 6 - open + d], [wx + 13, wy - 5 - open + d], [wx + 14, wy - 3 - open + d]], d ? CH[2] : CH[3]);
+      p.poly([[wx + 4, wy + d], [wx + 9, wy + open + d], [wx + 12, wy + open - 1 + d], [wx + 13, wy + open - 3 + d]], d ? CH[1] : CH[2]);
+    }
+    p.set(wx + 14, wy - 3 - open, '#d8c8a0'); p.set(wx + 13, wy + open - 3, '#d8c8a0');
     return p; },
   r: ph => {                                       // бегун А: многоглазый
     const p = PixSpr(26, 15), R = ['#1a1418', '#3a2430', '#5a3446', '#8a5068'];
