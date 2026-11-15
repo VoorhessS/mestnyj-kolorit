@@ -42,6 +42,8 @@
   #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
   #menu button { font: 600 13px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 12px; min-height: 44px; min-width: 44px; }   /* под палец (аудит №25) */
   #menu button.cur { border-color: #ffd23f; }
+  body:not(.dev) .devonly { display: none !important; }
+  #menu #close { background: #6a1218; border-color: #ff4040; }
   #menu #god.on, #menu #mus.on, #menu #auto.on { background: #1f6a2a; border-color: #4f4; }
   #menu #close { background: #5a1a22; border-color: #c8102e; }
   #port { position: fixed; inset: 0; background: #111; color: #fff; display: none; align-items: center;
@@ -94,10 +96,10 @@
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
 <div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>Выбор уровня</h2><button id="m-map">КАРТА</button><button id="m-intro">ЗАСТАВКА</button><button id="god">БЕССМЕРТИЕ: ВЫКЛ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="auto">АВТОПИЛОТ: ВЫКЛ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="close">✕ НАЗАД</button></div><div id="lvls"></div></div>
+<div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
 <div id="tmenu"><div id="tm-note"></div>
-  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help">УПРАВЛЕНИЕ</button><button id="t-vid">ВИДЕО</button></div>
+  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button></div>
   <div class="row" id="tm2" style="display:none"><button id="t-back">←</button><button id="t-go">▶ НОВАЯ ИГРА</button><button id="t-cont">ПРОДОЛЖИТЬ</button></div></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
@@ -5961,7 +5963,8 @@ window.__overview = (n, s = 4) => {
 
 // ===== Меню разработки: выбор уровня и бессмертие (пока делаем игру) =====
 let menuOpen = false, IMMORTAL = false;
-try { IMMORTAL = localStorage.getItem('strel-god') === '1'; } catch (e) {}
+const DEV = /[?&]dev\b/.test(location.search); document.body.classList.toggle('dev', DEV);   // тестовые кнопки — только с ?dev
+try { IMMORTAL = DEV && localStorage.getItem('strel-god') === '1'; } catch (e) {}
 const menuEl = document.getElementById('menu'), mBtn = document.getElementById('m'), godBtn = document.getElementById('god');
 function godLabel() { godBtn.textContent = `БЕССМЕРТИЕ: ${IMMORTAL ? 'ВКЛ' : 'ВЫКЛ'}`; godBtn.classList.toggle('on', IMMORTAL); }
 function openMenu(on) {
@@ -5979,10 +5982,13 @@ function openMenu(on) {
     }
   });
   godLabel(); document.getElementById('back').style.display = state === 'play' ? '' : 'none';
+  document.getElementById('m-home').style.display = state === 'title' ? 'none' : '';
+  menuEl.querySelector('h2').textContent = state === 'title' ? 'НАСТРОЙКИ' : 'ПАУЗА';
 }
 for (const el of [menuEl, mBtn]) for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend']) el.addEventListener(t, e => e.stopPropagation());   // мимо управления игрой
 mBtn.onclick = () => openMenu(true);
 document.getElementById('close').onclick = () => openMenu(false);
+document.getElementById('m-home').onclick = () => { openMenu(false); amb = null; dlg = null; think = null; setState('title'); };   // прогресс уже сохранён после каждого уровня
 document.getElementById('back').onclick = () => {   // застрял — вернуться к последней дискете (друг, 11.11)
   openMenu(false); if (state !== 'play' || P.dead) return;
   respawn(); showToast('↩ вернулся к последней дискете', 1.8); beep(1500, 300, .2, 'square', .03);
