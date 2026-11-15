@@ -13,6 +13,8 @@ Object.assign(EN, { 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ': 'SURE? PROG
 Object.assign(EN, { 'напарник в меню — ждём': 'partner is in the menu — waiting' });
 Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи ко мне в Багокалипсис! Код комнаты': 'Join me in Bugpocalypse! Room code', 'ссылка скопирована — вставь в чат': 'link copied — paste it in a chat' });
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
+Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
+Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
 const EN_KEYS = Object.keys(EN).filter(k => k.length > 1 && !EN[k].startsWith('<')).sort((a, b) => b.length - a.length);
 const CYR = /[А-Яа-яЁё]/, trMemo = new Map();
 const KB_SUB = [                              // ПК (друг, msg 2032): в подсказках — клавиши вместо кнопок телефона
@@ -438,7 +440,7 @@ const LEVELS = [
     } },
   { name: 'КРЫША', task: 'Убей жука-носорога и улетай', obj: 'boss', sky: true, day: true, ground: 24, dark: .9,
     cols: 150, rows: 26, base: AIR, pal: PAL.roof, spawn: ['r', 'R'],
-    tips: ['прыгай с крыши на крышу, внизу кислота', 'носорог таранит — перепрыгивай его'],
+    tips: ['прыгай с крыши на крышу, внизу кислота', 'носорог таранит — перепрыгивай его', 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай'],
     build(B) {
       B.acid(1, 148, 24); B.fill(0, 25, 149, 25);
       B.fill(1, 12, 30, 23); B.fill(10, 9, 14, 11); B.deco('hut', 10, 9, 14, 11);
@@ -1897,7 +1899,7 @@ function startLevel(n) {
     ? [{ k: 'larva', x: A.drop * T, y: A.top * T - 28, w: 84, h: 28, hp: 140, max: 140, fl: 0, st: 'under', t: 1.2, dir: -1, vx: 0, vy: 0, hide: true, on: false }]
     : A.boss === 'mantis'
     ? [{ k: 'mantis', x: A.drop * T, y: -90, w: 26, h: 60, hp: 100, max: 100, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, arm: 0, on: false }]
-    : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 40 + 5 * lvlN, max: 40 + 5 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
+    : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 80 + 10 * lvlN, max: 80 + 10 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
   if (HOST()) for (const b of boss.parts) b.hp = b.max = Math.round(b.max * 1.7);   // кооп: у боссов в 1.7 раза больше здоровья
   done = L.obj === 'reach';
   lives = Math.max(lives, NET && NET.ready ? COOP_LIVES : 3);
@@ -2378,16 +2380,23 @@ const BOSS_NAME = { alpha: 'АЛЬФА', mantis: 'БОГОМОЛ', rhino: 'ЖУ�
 function rhino(dt, b, pc) {
   b.fl -= dt; b.t -= dt;
   const left = lv.arena.l * T, right = (COLS - 1) * T;
+  if (b.rage && b.hp >= b.max / 2) b.rage = false;   // подлечился после смерти игрока — снова спокойный
+  if (!b.rage && b.hp < b.max / 2) { b.rage = true; showToast('носорог в ярости!', 2); beep(70, 40, .6, 'sawtooth', .07); shake = .8; }   // вторая половина боя злее
+  const RG = b.rage ? 1 : 0;
   if (b.st === 'walk') {
-    b.dir = Math.sign(P.x + 5 - (b.x + b.w / 2)) || -1; b.vx = b.dir * 38;
-    if (b.t <= 0) { b.st = 'prep'; b.t = .8; }
+    b.dir = Math.sign(P.x + 5 - (b.x + b.w / 2)) || -1; b.vx = b.dir * (RG ? 58 : 38);
+    if (b.t <= 0) {
+      if (Math.abs(P.x + 5 - (b.x + b.w / 2)) < 120 && Math.random() < .45) { b.st = 'rear'; b.vy = -300; b.vx = 0; beep(140, 60, .3, 'sawtooth', .05); }   // друг (msg 2080): вблизи — подпрыгнул и топнул, по полу волна
+      else { b.st = 'prep'; b.t = RG ? .45 : .65; }
+    }
   } else if (b.st === 'prep') {
     b.vx = 0;
-    if (b.t <= 0) { b.st = 'charge'; b.vx = b.dir * 175; beep(90, 50, .4, 'sawtooth', .05); }
+    if (b.t <= 0) { b.st = 'charge'; b.vx = b.dir * (RG ? 245 : 205); beep(90, 50, .4, 'sawtooth', .05); }
   } else if (b.st === 'stun') {
     b.vx = 0;
     if (b.t <= 0) {
-      if (Math.random() < .35) { b.st = 'hop'; b.vy = -330; b.vx = Math.sign(P.x - b.x) * 90 || -90; }
+      if (RG && Math.random() < .55) { b.dir = Math.sign(P.x + 5 - (b.x + b.w / 2)) || -b.dir; b.st = 'prep'; b.t = .35; }   // в ярости сразу таранит обратно
+      else if (Math.random() < .35) { b.st = 'hop'; b.vy = -330; b.vx = Math.sign(P.x - b.x) * 90 || -90; }
       else { b.st = 'walk'; b.t = 1.2 + Math.random(); }
     }
   }
@@ -2396,8 +2405,15 @@ function rhino(dt, b, pc) {
   moveBody(b, dt);
   if (b.x < left) { b.x = left; b.wall = true; }
   if (b.x + b.w > right) { b.x = right - b.w; b.wall = true; }
+  if (b.on && air && b.st === 'rear') {      // топот: волна в обе стороны — перепрыгни
+    for (const sd of [-1, 1]) ebullets.push({ x: b.x + b.w / 2 + sd * 26 - 5, y: b.y + b.h - 8, w: 10, h: 8, vx: sd * 185, vy: 0, g: 0, life: 1.1, k: 'wave' });
+    b.st = 'walk'; b.t = 1 + Math.random() * .6; shake = .8; boom(.13); navigator.vibrate?.(50);
+  }
   if (b.on && air && (b.st === 'drop' || b.st === 'hop')) { b.st = 'walk'; b.t = 1.2; shake = .6; boom(.1); }
-  if (b.st === 'charge' && b.wall) { b.st = 'stun'; b.t = 1.3; b.vx = 0; shake = .6; boom(.1); explode(b.dir > 0 ? b.x + b.w : b.x, b.y + 10, 10, ['#8a6a4a', '#5a4030', '#fff']); }
+  if (b.st === 'charge' && b.wall) {
+    b.st = 'stun'; b.t = RG ? .9 : 1.3; b.vx = 0; shake = .6; boom(.1); explode(b.dir > 0 ? b.x + b.w : b.x, b.y + 10, 10, ['#8a6a4a', '#5a4030', '#fff']);
+    for (let i = 0; i < 2 + RG; i++) throwRock(clamp(P.x + 5 + (i === 2 ? 0 : (i ? 1 : -1) * rnd(10, 40)), left + 8, right - 8), true, 1);   // от удара сверху летят обломки (с меткой)
+  }
   if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
 }
 
