@@ -30,6 +30,10 @@
   #g { right: calc(env(safe-area-inset-right) + 58px); bottom: calc(env(safe-area-inset-bottom) + 182px); background: #3a2050; }
   #g.full { background: #9b3dff; opacity: .85; animation: pulse .5s infinite alternate; }
   @keyframes pulse { to { transform: scale(1.1); } }
+  #g.tut::after { content: 'ЖМИ ▶'; position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); color: #e0a0ff; font: bold 14px monospace; white-space: nowrap; text-shadow: 0 0 4px #000, 0 0 2px #000; animation: nudge .35s infinite alternate; pointer-events: none; }
+  @keyframes nudge { to { margin-right: -5px; } }
+  #tutkey { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); color: #e0a0ff; font: bold 14px monospace; text-shadow: 0 0 4px #000; pointer-events: none; display: none; }
+  body.tutk #tutkey { display: block; }
   .lbl { position: absolute; left: 0; right: 0; top: 74px; font: 600 11px system-ui, sans-serif; color: #fff; opacity: .9; }
   /* Меню разработки: выбор уровня и бессмертие */
   #m { position: fixed; top: calc(env(safe-area-inset-top) + 40px); right: calc(env(safe-area-inset-right) + 10px); width: 40px; height: 32px;
@@ -97,7 +101,7 @@
 <div id="b" class="ctl btn" data-z="b">B<div class="lbl">огонь</div></div>
 <div id="a" class="ctl btn" data-z="a">A<div class="lbl">прыжок</div></div>
 <div id="w" class="ctl btn sm" data-z="w">⟳<div class="lbl">оружие</div></div>
-<div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div>
+<div id="g" class="ctl btn sm" data-z="g">БАГ<div class="lbl">баг</div></div><div id="tutkey">жми V — БАГ</div>
 <div id="m">☰</div>
 <div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
@@ -1752,7 +1756,7 @@ function startLevel(n) {
     : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 40 + 5 * lvlN, max: 40 + 5 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
   if (HOST()) for (const b of boss.parts) b.hp = b.max = Math.round(b.max * 1.7);   // кооп: у боссов в 1.7 раза больше здоровья
   done = L.obj === 'reach';
-  lives = Math.max(lives, 3);
+  lives = Math.max(lives, NET && NET.ready ? COOP_LIVES : 3);
   snap = null; respawn(); takeSnap();
   infected = 0; hordeStart(); jarsAll = enemies.filter(e => e.jar).length; zoneP = null;
   if (L.obj === 'carnage') { for (const d of lv.doors) grid[d.y][d.x] = d.to; done = true; spawnT = 3; }   // бойня: всё открыто, люди идут волнами
@@ -1819,7 +1823,7 @@ function respawn() {
 }
 // Камера может заехать за край карты: герой у стены не прячется под крестовиной или кнопками
 const camX = () => clamp(P.x + 5 - W * (L && L.mirror ? .55 : .45), -W * .3, MAPW - W * .75);   // по ходу движения видно больше
-function setState(s) { state = s; stateT = 0; if (s === 'title') try { titleHome(); } catch (e) {} }   // титул всегда начинается с выбора режима
+function setState(s) { if (s === 'over' && state !== 'over' && NET && NET.ready && !NET.rx) netSend({ t: 'over' }); state = s; stateT = 0; if (s === 'title') try { titleHome(); } catch (e) {} }   // титул всегда начинается с выбора режима
 function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 120;
@@ -1851,6 +1855,7 @@ function killPlayer() {
   }
   if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
   P.dead = 1.2; lives--; shake = .3; P.climb = false;
+  if (GUEST()) netSend({ t: 'died' });                   // жизни общие — считает хозяин
   explode(P.x + 5, P.y + 10, 22, ['#4aa3ff', '#fff', '#ffd23f']);
   boom(); navigator.vibrate?.(120);
 }
@@ -1936,7 +1941,8 @@ ITEM.talk = '…'; NEED.talk = 'сначала поговори с главны�
 let dlg = null, amb = null;
 // ===== Мысли героя перед заданием (друг, msg 1850, 1855: «как будто рассуждает» — и откуда он это узнал) =====
 const THINK = [
-  ['Дверь подъезда заперта. Домофон мёртвый — тока нет.', 'Под дверью записка: «Ключ уронила в решётку. Тётя Валя».', 'Решётка ведёт в коллектор. Ну, лезем под землю.'],
+  ['Дверь подъезда заперта. Домофон мёртвый — тока нет.', 'Под дверью записка: «Ключ уронила в решётку. Тётя Валя».', 'Решётка ведёт в коллектор. Ну, лезем под землю.',
+   'И ещё... с тех пор как пришли жуки, мир глючит. Будто кто-то пишет его с ошибками.'],
   ['Дверь на лестницу на электрозамке. Света нет во всём доме.', 'Щиток — в подвале, я видел его, когда носил велик.', 'Армейское правило: нет тока — иди к щитку.'],
   ['Стены в коридоре шевелятся... Это гнёзда. Десятки.', 'Оставлю за спиной — к утру тут будет сотня жуков.', 'Зачищу этаж, потом дальше.'],
   ['Грузовой лифт. Жму кнопку — тишина.', 'Открыл щиток: провода перегрызены, контакты в слизи.', 'Утром сантехник тащил наверх ящик с инструментом. Мне туда.'],
@@ -2720,7 +2726,30 @@ function blast(x, y) {                          // взрыв гранаты
   for (let cy = Math.floor((y - R) / T); cy <= Math.floor((y + R) / T); cy++) for (let cx = Math.floor((x - R) / T); cx <= Math.floor((x + R) / T); cx++)
     if (tile(cx, cy) === ROCK && Math.hypot(cx * T + 8 - x, cy * T + 8 - y) < R + 8) breakRock(cx, cy);
 }
+// ===== Обучение багам: каждое «впервые» — один раз за игру =====
+let TUT = {}; try { TUT = JSON.parse(localStorage.getItem('strel-tut') || '{}'); } catch (e) {}
+let tutT = 0, slowT = 0;                       // tutT — сколько ещё показывать «ЖМИ ▶», slowT — замедление времени
+function tutOnce(k) { if (TUT[k]) return false; TUT[k] = 1; try { localStorage.setItem('strel-tut', JSON.stringify(TUT)); } catch (e) {} return true; }
+function tutSay(lines) {                       // вставляем после текущей мысли, не обрывая её
+  if (think && think.t >= 0 && !think.tut) think = { ...think, tut: true, lines: [...think.lines.slice(0, think.i + 1), ...lines, ...think.lines.slice(think.i + 1)] };
+  else think = { lines, i: 0, t: -.15, tut: true };            // прошлую подсказку заменяем — игрок уже нажал
+}
+const GOOD_TIP = { noclip: 'НОКЛИП: 3 секунды прохожу сквозь стены. Главное — не застрять, когда кончится.', clone: 'ДЮП-КЛОН: 10 секунд мой двойник идёт следом и стреляет сам.',
+  lag: 'ЛАГ ВРАГОВ: 6 секунд жуки еле ползут. Бей, пока тормозят!', moon: 'ЛУННЫЙ ПРЫЖОК: 8 секунд прыгаю как на Луне.', b404: 'ПУЛИ 404: 7 секунд пули летят сквозь стены и бьют вдвое сильнее.' };
+const BAD_TIP = { flip: 'ПЕРЕВОРОТ: мир вверх ногами. 5 секунд — переждать.', invert: 'УПРАВЛЕНИЕ НАОБОРОТ: 5 секунд влево — это вправо!', notex: 'НЕТ ТЕКСТУР: 6 секунд мир без картинок. Иду на ощупь.',
+  lag: 'ЛАГ С ОТКАТОМ: сейчас меня откинет туда, где я был пару секунд назад.', tpose: 'Т-ПОЗА: руки раскинуло — 3 секунды не стрелять и еле идти.' };
+function tutTick(dt) {                         // первая полная шкала: замедление, кнопка мигает, «ЖМИ ▶»
+  if (energy >= 100 && !good && roul <= 0 && !MUT() && tutOnce('full')) {
+    slowT = 1.2; tutT = 12; shake = .25; beep(90, 2400, .6, 'square', .04);
+    tutSay(['Мир дёргается... будто зависает. Это из-за жуков?', 'Чем больше их бью — тем сильнее глючит. Нажму БАГ — посмотрим.']);
+  }
+  if (tutT > 0) { tutT -= dt; if (good || roul > 0 || energy < 100) tutT = 0; }
+  const on = tutT > 0 && state === 'play';
+  gEl.classList.toggle('tut', on); document.body.classList.toggle('tutk', on && !('ontouchstart' in window));
+}
 function startGood(k) {
+  if (TUT.g1 !== 1 && tutOnce('g1')) k = 'clone';            // первый раз — всегда хороший и наглядный: двойник
+  if (tutOnce('g:' + k)) tutSay([['БАГ', GOOD_TIP[k]]]);
   good = { k, t: GOOD[k].d }; showToast('⚡ БАГ: ' + GOOD[k].n + '!', 2.2); beep(200, 2400, .5, 'square', .05); shake = .2;
   if (k === 'noclip') { P.sx = P.x; P.sy = P.y; P.climb = false; }
   if (k === 'clone') { clone = { x: P.x, y: P.y, face: P.face, cd: .3 }; trail = []; }
@@ -2743,6 +2772,7 @@ function endBad() {
   cv.style.transform = ''; bad = null;
 }
 function updGlitch(dt, k) {
+  tutTick(dt);
   if (k.gPressed && !good && roul <= 0) {
     if (energy >= 100) { energy = 0; roul = .9; }
     else showToast(`⚡ баг-энергия ${Math.floor(energy)}% — бей жуков`, 1.4);
@@ -2773,6 +2803,7 @@ function updGlitch(dt, k) {
       bad.warn -= dt; if (Math.random() < .5) beep(rnd(80, 3000), rnd(80, 3000), .03, 'sawtooth', .015);
       if (bad.warn <= 0) {
         showToast('💀 БАГ: ' + BAD[bad.k].n, 2); beep(1200, 60, .5, 'sawtooth', .05); shake = .3;
+        if (tutOnce('b:' + bad.k)) tutSay([...(tutOnce('b1') ? ['Это не я нажал... Мир сам сломался. Такие баги просто пережидаю.'] : []), ['БАГ', BAD_TIP[bad.k]]]);
         if (bad.k === 'lag') { bad.x = P.x; bad.y = P.y + P.h - 22; bad.sw = swarm?.x; bad.fu = fume?.y; bad.cx = cart?.x; bad.cv = cart?.v; }   // запоминаем и угрозы — откат честный
         cv.style.transform = bad.k === 'flip' ? 'rotate(180deg)' : '';
       }
@@ -2807,7 +2838,7 @@ function update(dt) {
       anyTap = false; return;
     }
     if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
-      if (state === 'over') { lives = 3; respawn(); setState('play'); }   // продолжаем с сохранения
+      if (state === 'over') { lives = NET && NET.ready ? COOP_LIVES : 3; respawn(); setState('play'); if (NET && NET.ready) netSend({ t: 'cont' }); }   // продолжаем с сохранения
       else if (state === 'win') setState('title');
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
@@ -6494,6 +6525,7 @@ document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, 
 }
 // ===== Кооп по сети (друг, msg 1915): WebRTC напрямую между устройствами, связка — бесплатный сервер PeerJS =====
 var NET = { role: null, peer: null, conn: null, code: '', ready: false, remote: null, rs: null, sendT: 0, waitT: 0, nid: 0, kill: new Map(), got: new Map(), ebHit: new Set() };
+const COOP_LIVES = 5;
 function GUEST() { return !!(NET && NET.ready && NET.role === 'guest'); }
 function HOST() { return !!(NET && NET.ready && NET.role === 'host'); }
 function mateAlive() { const m = NET && NET.ready && NET.remote; return !!(m && m.lvl === lvlN && !(m.dead > 0)); }
@@ -6523,7 +6555,7 @@ function netSnap() {                           // хозяин → напарн�
     it: items.filter(i => !i.got && i.k !== 'gun').map(i => pk(id(i))), eb: ebullets.filter(nd).map(o => pk(id(o))),
     b: b ? Object.assign(pk(b), { bon: boss.on, bdead: boss.dead }) : null, al: MUT() ? allies.filter(nd).map(a => pk(id(a))) : null,
     lift: lift ? pk({ y: lift.y, go: lift.go, fix: lift.fix }) : null, cart: cart ? pk({ x: cart.x, go: cart.go, stop: cart.stop, v: cart.v }) : null,
-    sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
+    hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
 }
 function netMerge(cur, arr, skip) {            // новые данные хозяина поверх своих: координаты — целью для плавного движения
   const old = new Map(); for (const e of cur) if (e.nid) old.set(e.nid, e);
@@ -6555,6 +6587,7 @@ function netWorld(m) {                         // напарник: примен
   if (m.al) allies = netMerge(allies, m.al);
   if (lift && m.lift) { lift.ty = m.lift.y; lift.go = m.lift.go; lift.fix = m.lift.fix; }
   if (cart && m.cart) { cart.tx = m.cart.x; cart.go = m.cart.go; cart.stop = m.cart.stop; cart.v = m.cart.v; }
+  if (m.hl !== undefined && state !== 'over') lives = m.hl;
   if (swarm && m.sw) Object.assign(swarm, m.sw);
   if (fume && m.fu) Object.assign(fume, m.fu);
   const r = boss.parts[0];
@@ -6620,6 +6653,9 @@ function netMsg(m) {
   else if (m.t === 'lvl' && NET.role === 'guest') { openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
   else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
+  else if (m.t === 'over') { if (state === 'play') { NET.rx = true; lives = 0; setState('over'); NET.rx = false; } }
+  else if (m.t === 'cont') { if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); } }
+  else if (m.t === 'died' && NET.role === 'host') { if (state === 'play') { lives--; if (lives < 0 || (lives === 0 && P.dead)) { lives = 0; setState('over'); } } }
   else if (m.t === 'dmg' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) hurt(m.d); }
   else if (m.t === 'kill' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.inv = 0; killPlayer(); } }
   else if (m.t === 'done' && NET.role === 'guest' && m.lvl === lvlN && state !== 'title') { if (L.stages && m.stg !== stg) stageOn(m.stg); NET.rx = true; complete(m.msg); NET.rx = false; }
@@ -6633,6 +6669,7 @@ function netMsg(m) {
     if (it && !it.got) {
       it.got = true;
       if (it.k === 'ammo') it.gone = true;
+      else if (it.k === 'life') lives++;
       else if (!['life', 'gun', 'talk', 'meds'].includes(it.k)) { if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3; complete(L.itemTxt || ITEM[it.k]); }
     }
   }
@@ -6735,7 +6772,7 @@ let last = performance.now(), acc = 0;
 const PACE = .72;                       // темп боя: 1 — как было; друг (msg 1850) попросил медленнее на ~30%
 function frame(now) {
   acc += Math.min(.1, (now - last) / 1000) * SIM; last = now;
-  while (acc >= 1 / 60) { window.__botTick?.(); update(state === 'play' ? PACE / 60 : 1 / 60); acc -= 1 / 60; }
+  while (acc >= 1 / 60) { window.__botTick?.(); update(state === 'play' ? PACE / 60 * (slowT > 0 ? .3 : 1) : 1 / 60); if (slowT > 0) slowT -= 1 / 60; acc -= 1 / 60; }
   netTick();
   document.body.classList.toggle('noctl', state !== 'play');
   tMenu.style.display = state === 'title' && !menuOpen && !mapOpen ? 'flex' : 'none';
