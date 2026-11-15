@@ -1832,6 +1832,7 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
 }
 let hp = HP_MAX, hurtT = 9, hpFlash = 0;
 function hurt(d) {                       // удар снимает часть шкалы, на нуле — минус жизнь
+  if (P.ko) return;                       // без сознания: рой рвётся к напарнику
   if (NET && NET.px) { if (time - (NET.dmgT || 0) > .25) { NET.dmgT = time; netSend({ t: 'dmg', d }); } return; }   // бьют напарника
   if (P.safe > 0 && !P.climb) return;     // друг (msg 1591): только что слез с лестницы — короткая передышка
   if (P.slide > 0) return;                // друг (msg 1735): в подкате героя не ранить
@@ -2153,8 +2154,22 @@ function updStory(dt) {
     dlg.t = 0; dlg.i++; beep(300, 360, .05, 'square', .02);
     if (dlg.i >= dlg.lines.length) { dlg = null; complete(L.itemTxt || 'договорились! ворота открыты — на вылазку'); }
   }
+  if (GUEST()) { guestAmb(dt); return; }                         // у напарника засаду ведёт хозяин
   if (!amb || P.dead) return;
-  if (amb.end) { if ((amb.end -= dt) <= 0) { amb = null; nextLevel(); } return; }
+  if (amb.end) {
+    if (amb.co) {                                                 // кооп: хозяин без сознания, рой лезет на напарника
+      if (!NET.ready) amb.rev = true;                             // напарник отключился — очнуться самому
+      const t = AMB_T - amb.end;
+      if (t > 3 && lv.ambs.length && (amb.sp -= dt) <= 0 && enemies.filter(e => e.k !== 'n').length < 10) {
+        const mr = NET.remote || P, near = lv.ambs.slice().sort((u, v) => Math.hypot(u[0] * T - mr.x, u[1] * T - mr.y) - Math.hypot(v[0] * T - mr.x, v[1] * T - mr.y)).slice(0, 3);
+        amb.sp = 1.5; const [x, y, d] = pick(near), k = pick(L.spawn);   // лезут рядом с напарником
+        hatch(k, x * T + 2, y * T, d || Math.sign(NET.remote ? NET.remote.x - x * T : 1) || 1, d ? -80 : 40, null); explode(x * T + 8, y * T - 4, 8, ['#3a4440', '#5a6a66', '#9ab0a8']);
+      }
+      if (!amb.rev && amb.end - dt <= 0) { amb.end = .001; return; }   // воспоминания кончились — ждём напарника
+    }
+    if ((amb.end -= dt) <= 0) { amb = null; P.ko = false; nextLevel(); }
+    return;
+  }
   amb.t -= dt; amb.sp -= dt;
   const alive = enemies.filter(e => e.k !== 'n').length;
   if (amb.sp <= 0 && alive < 13 && lv.ambs.length) {
@@ -2168,6 +2183,7 @@ function updStory(dt) {
   if (amb.t <= 0) {                                   // отбился… и тут его кусают
     amb.t = 0; amb.end = AMB_T;
     for (const e of enemies) if (e.k !== 'n') hurtEnemy(e, 999);
+    if (HOST() && mateAlive()) { amb.co = true; amb.rev = false; amb.rp = 0; amb.sp = 0; P.ko = true; }   // кооп: жалят хозяина, напарник остаётся один
     shake = 1.2; boom(); beep(900, 60, 1.4, 'sawtooth', .07); navigator.vibrate?.([80, 60, 200]);
   }
 }
@@ -2917,7 +2933,7 @@ function update(dt) {
     P.dead -= dt;
     if (P.dead <= 0) { if (lives <= 0) { lives = 0; setState('over'); return; } respawn(); }   // три сердечка — три смерти (аудит №18)
   } else {
-    updatePlayer(dt, k);
+    if (P.ko) { P.vx = 0; P.crouch = false; } else updatePlayer(dt, k);
     if (L.zones) { const z = zoneOf(Math.floor((P.x + 5) / T)); if (z !== zoneP) { if (zoneP) showToast(`— ${z.name} —`, 2); zoneP = z; } }
     if (P.on && !P.mv) {                               // встал на треснувший пол — он скоро осыплется
       const fr = Math.floor((P.y + P.h + 1) / T);
@@ -3474,6 +3490,7 @@ function nextLevel() {
 }
 function target() {                     // куда показывает жёлтая стрелка
   if (amb) return { x: P.x + 5, y: P.y - 6, txt: amb.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(amb.t)} с` };
+  if (GUEST() && NET.am) { const m = NET.remote; return NET.am.end && m && m.ko ? { x: m.x + 5, y: m.y - 6, txt: NET.am.rev ? 'он приходит в себя…' : 'к хозяину!' } : { x: P.x + 5, y: P.y - 6, txt: NET.am.end ? '' : `ДЕРЖИСЬ: ${Math.ceil(NET.am.t)} с` }; }
   if (dlg) return { x: P.x + 5, y: P.y - 6, txt: '' };
   if (!done) {
     if (ITEM[L.obj]) { const it = items.find(i => !i.got && i.k === L.obj); if (!it) return { x: P.x + 5, y: P.y - 6, txt: '' }; return { x: it.x + 6, y: it.y + 6, txt: { key: 'найди ключ', switch: 'найди рубильник', tools: 'найди инструменты', radio: 'найди рацию', card: 'найди пропуск', flare: 'достань ракетницу', food: 'найди провизию', arms: 'найди патроны', meds: 'найди лекарства', talk: 'поговори с главным' }[L.obj] }; }
@@ -4292,7 +4309,7 @@ function spr(img, x, y, flip) {
 }
 function drawHero() {
   if (P.dead > 0 || (P.inv > 0 && Math.floor(time * 20) % 2)) return;
-  const x = P.x - cam, y = P.y, f = P.face, MU = MUT(), HS = HERO_OVR || (MU ? HERO_MUT : HERO_SPR);
+  const x = P.x - cam, y = P.y, f = P.face, MU = MUT(), HS = HERO_OVR || (GUEST() ? (MU ? HERO_MUTS.A : HERO_SPR2) : MU ? HERO_MUT : HERO_SPR);
   if (P.flip) {                                     // сальто: сгруппировался и крутится, ствол — по прицелу
     ctx.save(); ctx.translate(Math.round(x + 5), Math.round(y + 11)); ctx.rotate(P.rot - P.rot0); ctx.scale(P.spin, 1);
     rect(-6, -5, 12, 10, '#0a0a0e'); rect(-5, -11, 9, 8, '#0a0a0e'); rect(0, 2, 8, 5, '#0a0a0e'); rect(3, -2, 5, 8, '#0a0a0e');   // контур
@@ -5748,6 +5765,7 @@ function drawEyes() {                     // глаза жуков горят в
   }
 }
 function drawStory() {
+  if (GUEST()) drawGuestSting();
   drawThink();
   if (dlg) {                                          // реплика главного внизу экрана
     const [who, txt] = dlg.lines[dlg.i], n = Math.min(txt.length, Math.floor(dlg.t * 40));
@@ -5773,6 +5791,13 @@ function drawStory() {
     if (t > 4.6 && t < 7) { ctx.font = 'bold 12px monospace'; ctx.fillStyle = `rgba(154,154,154,${clamp((7 - t) / .5, 0, 1)})`; ctx.fillText('ты теряешь сознание…', W / 2, H / 2); }
     ctx.textAlign = 'left';
     if (t >= 7) drawDream(t - 7);
+    if (amb.co && t > 7) {
+      ctx.textAlign = 'center'; ctx.font = 'bold 9px monospace';
+      const pr = clamp(amb.rp || 0, 0, 1);
+      if (amb.end <= .002) { ctx.fillStyle = '#9a9a9a'; ctx.fillText(pr > 0 ? '…кто-то трясёт тебя за плечо' : '…темно. где-то далеко стреляют', W / 2, H * .82); }
+      if (pr > 0) { rect(W / 2 - 40, H * .86, 80, 4, '#222'); rect(W / 2 - 40, H * .86, 80 * pr, 4, '#9aff5a'); }
+      ctx.textAlign = 'left';
+    }
   }
 }
 let SAFE = { l: 0, r: 0 };                   // вырез/камера/скругления: сколько отступить HUD слева и справа (друг, msg 1742) — браузер сам знает под каждый телефон
@@ -6070,11 +6095,12 @@ const WORK_SPR = [                             // коллеги: рубашки
   mkHeroSpr({ j: '#8a2a3a', J: '#5a1a24', k: '#c8c8d0', h: '#1a1a1a', H: '#2a2a2a', s: '#b07a52', S: '#7a5034', p: '#3a3428', P: '#2a241a' }),
   mkHeroSpr({ j: '#5a8ac8', J: '#3a5a8a', k: '#e8e8f0', h: '#c8a050', H: '#e8c870', p: '#2a2a32', P: '#1a1a22' }),
   mkHeroSpr({ j: '#e8e0c8', J: '#b8b098', k: '#6a2a2a', h: '#4a2a1a', H: '#6a3a2a', s: '#e8b890', p: '#4a4a5a', P: '#2a2a3a' })];
-let introGo = false, introSeen = false, introCoop = false;
+let introGo = false, introSeen = false, introCoop = false, introNew = false;
 try { introSeen = !!localStorage.getItem('strel-intro'); } catch (e) {}
 function introEnd() {
   introSeen = true; try { localStorage.setItem('strel-intro', '1'); } catch (e) {}
-  if (introCoop) { introCoop = false; if (HOST()) { newGame(true); return; } }   // кооп: хозяин запускает уровень, напарнику придёт lvl
+  const co = introCoop; introCoop = false;
+  if (introNew) { introNew = false; if (!co || HOST()) { newGame(true); return; } }   // после заставки — сразу в игру (в коопе уровень запускает хозяин)
   setState('title');
 }
 const h01 = n => (hash(Math.floor(n), 7) % 1000) / 1000;   // псевдослучайное 0..1 для картинок заставки
@@ -6557,7 +6583,7 @@ function mateIn(k) { return mateAlive() && NET.remote.mv === k; }
 function nearAny(x, y, rx, ry) { return (!P.dead && Math.abs(P.x - x) < rx && Math.abs(P.y - y) < ry) || (HOST() && mateAlive() && Math.abs(NET.remote.x - x) < rx && Math.abs(NET.remote.y - y) < ry); }
 function mateFor(e) {                          // хозяин: если напарник ближе к монстру — монстр «видит» его вместо тебя
   if (!HOST() || !mateAlive()) return null;
-  const m = NET.remote, dm = Math.hypot(m.x - e.x, m.y - e.y), dp = P.dead ? 1e9 : Math.hypot(P.x - e.x, P.y - e.y);
+  const m = NET.remote, dm = Math.hypot(m.x - e.x, m.y - e.y), dp = P.dead || P.ko ? 1e9 : Math.hypot(P.x - e.x, P.y - e.y);
   if (dm >= dp) return null;
   return NET.mp || (NET.mp = Object.assign({}, P, { x: m.x, y: m.y, h: m.h || P.h, face: m.face, on: m.on, crouch: m.crouch, climb: m.climb, vx: m.vx || 0, vy: 0, dead: 0, inv: 0, slide: 0, safe: 0, mv: null, mate: true }));
 }
@@ -6579,7 +6605,7 @@ function netSnap() {                           // хозяин → напарн�
     it: items.filter(i => !i.got && i.k !== 'gun').map(i => pk(id(i))), eb: ebullets.filter(nd).map(o => pk(id(o))),
     b: b ? Object.assign(pk(b), { bon: boss.on, bdead: boss.dead }) : null, al: MUT() ? allies.filter(nd).map(a => pk(id(a))) : null,
     lift: lift ? pk({ y: lift.y, go: lift.go, fix: lift.fix }) : null, cart: cart ? pk({ x: cart.x, go: cart.go, stop: cart.stop, v: cart.v }) : null,
-    hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
+    am: amb ? pk({ t: amb.t, end: amb.end, co: !!amb.co, rev: !!amb.rev }) : null, hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
 }
 function netMerge(cur, arr, skip) {            // новые данные хозяина поверх своих: координаты — целью для плавного движения
   const old = new Map(); for (const e of cur) if (e.nid) old.set(e.nid, e);
@@ -6612,6 +6638,7 @@ function netWorld(m) {                         // напарник: примен
   if (lift && m.lift) { lift.ty = m.lift.y; lift.go = m.lift.go; lift.fix = m.lift.fix; }
   if (cart && m.cart) { cart.tx = m.cart.x; cart.go = m.cart.go; cart.stop = m.cart.stop; cart.v = m.cart.v; }
   if (m.hl !== undefined && state !== 'over') lives = m.hl;
+  NET.am = m.am || null;
   if (swarm && m.sw) Object.assign(swarm, m.sw);
   if (fume && m.fu) Object.assign(fume, m.fu);
   const r = boss.parts[0];
@@ -6622,6 +6649,42 @@ function netWorld(m) {                         // напарник: примен
     Object.assign(r, m.b); r.tx = m.b.x; r.ty = m.b.y; if (!far) { r.x = x; r.y = y; }
     if (m.b.bdead && !boss.dead) { NET.rx = true; hurtBoss(r, 1e6); NET.rx = false; }
   }
+}
+// ===== Кооп: больница — напарник приводит хозяина в чувство =====
+const REV_T = 5;                               // сколько секунд держать ▼ рядом
+function guestAmb(dt) {
+  const a = NET.am, m = NET.remote;
+  if (!a) { NET.rev = 0; NET.revSent = 0; NET.amT = 0; return; }
+  if (!a.end) { if (a.t > 0 && Math.floor(a.t) !== Math.floor(a.t + dt)) {} return; }
+  NET.amT = (NET.amT || 0) + dt;
+  if (!a.co || !m || !m.ko || P.dead) return;
+  const near = Math.abs(P.x - m.x) < 28 && Math.abs(P.y + P.h - m.y - (m.h || 22)) < 18, hold = near && padDir.dy > 0 || near && (keys.ArrowDown || keys.KeyS);
+  if (NET.amT > 2.6 && !a.rev) {
+    NET.rev = clamp((NET.rev || 0) + (hold ? dt : -dt * .4), 0, REV_T);
+    if (hold && Math.random() < dt * 3) beep(300, 340, .05, 'square', .02);
+    if (time - (NET.revSent || 0) > .25 || NET.rev >= REV_T) { NET.revSent = time; netSend({ t: 'rp', v: NET.rev / REV_T }); }
+    if (NET.rev >= REV_T && !NET.revDone) { NET.revDone = true; showToast('он открыл глаза… но они светятся зелёным', 3); beep(600, 1200, .4, 'triangle', .05); }
+  }
+}
+function drawRevive(r) {                       // над лежащим хозяином: подсказка и полоска
+  const a = NET.am; if (!a || !a.end || a.rev && NET.revDone) return;
+  const x = Math.round(r.x - cam + 5), y = Math.round(r.y - 22), pr = clamp((NET.rev || 0) / REV_T, 0, 1);
+  ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
+  const near = Math.abs(P.x - r.x) < 28;
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - 46, y - 2, 92, 10);
+  ctx.fillStyle = Math.floor(time * 3) % 2 ? '#ffd23f' : '#fff';
+  ctx.fillText(NET.amT < 2.6 ? 'АЛЬФА УЖАЛИЛА ХОЗЯИНА!' : near ? 'держи ▼ — приведи в чувство' : 'беги к нему!', x, y + 6);
+  rect(x - 24, y + 10, 48, 4, '#222'); rect(x - 24, y + 10, 48 * pr, 4, '#9aff5a');
+  ctx.textAlign = 'left';
+}
+function drawGuestSting() {                    // напарник видит, как Альфа спускается и жалит хозяина
+  const a = NET.am, m = NET.rs; if (!a || !a.end || !a.co || !m || NET.amT > 2.6) return;
+  const t = NET.amT || 0, sx = m.x - cam + 5, sy = m.y - camY + 6, f = m.face || 1;
+  const ay = Math.min(sy + 16 - 56, -60 + (t + 1) * 120), ax = sx + f * 36 - 30, strike = t > .5 && t < 1.3;
+  const fr = MON[strike ? 'ALs' : 'AL'][Math.floor(time * 3) % 2];
+  ctx.save(); if (f > 0) { ctx.translate(Math.round(ax) + 60, 0); ctx.scale(-1, 1); ctx.translate(-Math.round(ax), 0); }
+  outlined(() => ctx.drawImage(fr.img, Math.round(ax), Math.round(ay))); ctx.restore();
+  if (strike) { ctx.fillStyle = 'rgba(160,255,90,.25)'; ctx.fillRect(0, 0, W, H); }
 }
 function arenaPull(mx, my) {                   // бой начал напарник — решётка закрылась бы перед тобой: переносим к нему
   const A = lv.arena, m = mx !== undefined ? { x: mx, y: my, lvl: lvlN } : NET.remote; if (!A || !m || m.lvl !== lvlN || !P || P.dead) return;
@@ -6677,6 +6740,7 @@ function netMsg(m) {
   else if (m.t === 'lvl' && NET.role === 'guest') { introCoop = false; openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
   else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
+  else if (m.t === 'rp' && NET.role === 'host') { if (amb && amb.co) { amb.rp = m.v; if (m.v >= 1) amb.rev = true; } }
   else if (m.t === 'intro' && NET.role === 'guest') { openMenu(false); mapShow(false); introCoop = true; introGo = true; setState('intro'); }
   else if (m.t === 'over') { if (state === 'play') { NET.rx = true; lives = 0; setState('over'); NET.rx = false; } }
   else if (m.t === 'cont') { if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); } }
@@ -6706,13 +6770,19 @@ function netTick() {                          // 20 раз в секунду —
   if (NET.rxT && now - NET.rxT > 15000) { netLost(); return; }
   if (state !== 'play' || !P) return; if (now - NET.sendT < 50) return; NET.sendT = now;
   netSend({ t: 'p', lvl: lvlN, x: Math.round(P.x), y: Math.round(P.y), face: P.face, ax: P.ax, ay: P.ay, crouch: P.crouch, climb: P.climb, rot: P.rot, on: P.on,
-    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
+    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, ko: !!P.ko, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
   if (NET.role === 'host' && now - (NET.wT || 0) > 80) { NET.wT = now; netSend(netSnap()); }   // ~12 раз в секунду — мир напарнику
 }
 function drawMate() {                         // напарник: свой цвет, табличка над головой, плавное движение
   const m = NET.remote; if (!NET.ready || !m || !NET.rs || m.lvl !== lvlN || state !== 'play') return;
   const r = NET.rs, k = .35; r.x += (m.x - r.x) * k; r.y += (m.y - r.y) * k; Object.assign(r, { ...m, x: r.x, y: r.y });
-  const s0 = P; P = Object.assign({}, s0, r, { inv: 0 }); HERO_OVR = MUT() ? HERO_MUTS.A : HERO_SPR2;
+  const s0 = P; HERO_OVR = NET.role === 'guest' ? (MUT() ? HERO_MUT : HERO_SPR) : MUT() ? HERO_MUTS.A : HERO_SPR2;
+  if (r.ko) {                                  // хозяин без сознания — лежит на полу
+    const img = HERO_OVR.stand, bx = Math.round(r.x - cam), by = Math.round(r.y + 22);
+    ctx.save(); ctx.translate(bx + 11, by - 1); ctx.rotate(-Math.PI / 2 * (r.face || 1)); outlined(() => ctx.drawImage(img, -img.width / 2, -img.height + 2)); ctx.restore();
+    HERO_OVR = null; drawRevive(r); return;
+  }
+  P = Object.assign({}, s0, r, { inv: 0 });
   drawHero(); HERO_OVR = null; P = s0;
   if (r.dead > 0) return;
   ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; const tx = Math.round(r.x - cam + 7), ty = Math.round(r.y - 5);
@@ -6737,7 +6807,10 @@ function titleHome() {                        // куда вернуться н�
   if (NET && NET.ready) titleStep(NET.role === 'host' ? 2 : 5, 'coop'); else titleStep(1);
 }
 function newGame(noIntro) {
-  if (!noIntro && MODE === 'coop' && HOST()) { introCoop = true; introGo = true; netSend({ t: 'intro' }); setState('intro'); return; }   // кооп-заставка у обоих
+  if (!noIntro) {                              // сначала заставка, потом уровень (друг, msg 1947)
+    if (MODE === 'coop') { if (!HOST()) return; introCoop = true; netSend({ t: 'intro' }); } else introCoop = false;
+    introNew = true; introGo = true; audioOn(); setState('intro'); return;
+  }
   gameOn = true; score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
 document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-coop').onclick = () => { audioOn(); titleStep(3, 'coop'); beep(700, 900, .05, 'square', .02); };
@@ -6793,7 +6866,7 @@ godBtn.onclick = () => { IMMORTAL = !IMMORTAL; try { localStorage.setItem('strel
 const QC = location.search.match(/[?&]city=(\d+)/), QL = +(location.search.match(/[?&]lvl=(\d+)/)?.[1] || 1);
 const START = clamp((QC ? cityStart(+QC[1] - 1) : 0) + QL - 1, 0, LEVELS.length - 1);   // ?city=2&lvl=3 — сразу в подуровень
 resetGear(START); startLevel(START); setState('title');
-if (!location.search) setState('intro');   // заставка — при каждом запуске (друг, msg 1803), тапом пропускается
+// друг (msg 1947): сначала выбор режима, заставка — после «Новой игры» (соло — своя, кооп — с напарником)
 const SIM = +(location.search.match(/[?&]speed=(\d+)/)?.[1] || 1);   // ускорение для проверок
 let last = performance.now(), acc = 0;
 const PACE = .72;                       // темп боя: 1 — как было; друг (msg 1850) попросил медленнее на ~30%
