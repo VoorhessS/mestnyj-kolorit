@@ -2134,8 +2134,10 @@ function drawThink() {
 }
 const DREAM = [                               // пока герой без сознания — вспоминает (друг: герой ищет своего домашнего скорпиона, тот стал Альфой)
   'Скорпик... Мой скорпион. Пять лет жил в банке на подоконнике.',
-  'Сосед работал в той самой лаборатории. Попросил на неделю — «для опытов».',
-  'Я отдал. А через неделю — авария. Банка так и стоит пустая.',
+  'В ту ночь тряхнуло весь город. Банка упала, разбилась — и он удрал.',
+  'Уполз туда, где светилось зелёным. В лабораторию.',
+  'На него пролилось из пробирки. Как на всех жуков в ту ночь.',
+  'Его хотели сожрать. Он сожрал их. И с каждым становился сильнее.',
   'Это жало... Я его узнал. И он меня узнал.',
   'Он не убил меня. Он сделал меня своим.'];
 const DREAM_T = 3.6, AMB_T = 7 + DREAM.length * DREAM_T;
@@ -2143,23 +2145,59 @@ function drawDream(t) {                       // t — секунды от на�
   const i = Math.min(DREAM.length - 1, Math.floor(t / DREAM_T)), lt = t - i * DREAM_T, cx = W / 2, cy = H * .36;
   const a = clamp(lt / .5, 0, 1) * clamp((DREAM_T - lt) / .4, 0, 1);
   ctx.globalAlpha = a;
-  if (i <= 2) {                                // банка на подоконнике
+  if (i <= 1) {                                // банка на подоконнике
     ctx.save(); ctx.translate(cx, cy); ctx.scale(1.8, 1.8); ctx.translate(-cx, -cy);   // крупнее — видно скорпиона
     rect(cx - 60, cy + 22, 120, 4, '#3a3028'); rect(cx - 60, cy + 26, 120, 2, '#1a1410');
+    if (i === 1) {                             // тряхнуло: банка лежит разбитая, песок рассыпан, скорпион удирает
+      if (lt < 1) ctx.translate(Math.sin(time * 60) * 3 * (1 - lt), 0);
+      rect(cx - 40, cy + 18, 56, 4, '#a8884a'); rect(cx - 22, cy + 6, 30, 16, 'rgba(160,190,200,.18)'); rect(cx - 22, cy + 6, 30, 1, '#8aa0a8'); rect(cx - 22, cy + 21, 30, 1, '#8aa0a8');
+      rect(cx + 8, cy + 6, 1, 16, '#8aa0a8'); rect(cx + 10, cy + 2, 6, 4, '#7a5a3a');
+      for (const [x, y] of [[-30, 20], [-12, 19], [14, 20], [20, 18], [-4, 20]]) { rect(cx + x, cy + y, 3, 2, '#c8e0e8'); rect(cx + x + 1, cy + y - 1, 1, 1, '#fff'); }
+      const sx = cx + 24 + Math.min(lt, 3) * 9;
+      rect(sx, cy + 16, 8, 3, '#3a2a1a'); rect(sx + 8, cy + 15, 2, 2, '#3a2a1a'); rect(sx - 2, cy + 13, 2, 3, '#3a2a1a'); rect(sx - 1, cy + 11, 3, 2, '#3a2a1a'); rect(sx + 1, cy + 12, 1, 1, '#c8a040');
+    } else {
     rect(cx - 15, cy - 20, 30, 42, 'rgba(160,190,200,.18)'); rect(cx - 16, cy - 20, 1, 42, '#8aa0a8'); rect(cx + 15, cy - 20, 1, 42, '#8aa0a8');
     rect(cx - 16, cy + 21, 32, 1, '#8aa0a8'); rect(cx - 17, cy - 24, 34, 4, '#7a5a3a'); rect(cx - 15, cy + 14, 30, 7, '#a8884a');   // крышка, песок
-    if (i < 2) {                               // скорпион шевелит хвостом
+    }
+    if (i === 0) {                               // скорпион шевелит хвостом
       const w = Math.sin(time * 3) * 1.5;
       rect(cx - 7, cy + 10, 10, 4, '#3a2a1a'); rect(cx - 10, cy + 9, 3, 2, '#3a2a1a'); rect(cx - 11, cy + 8, 2, 1, '#3a2a1a');   // тело, клешня
       rect(cx + 3, cy + 8, 2, 3, '#3a2a1a'); rect(cx + 5, cy + 4, 2, 4, '#3a2a1a'); rect(cx + 3 + w, cy + 1, 3, 3, '#3a2a1a'); rect(cx + 2 + w, cy + 3, 1, 1, '#c8a040');   // хвост с жалом
       for (let k = 0; k < 3; k++) rect(cx - 6 + k * 3, cy + 14, 1, 1, '#2a1a10');
-    } else { ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#6a6a6a'; ctx.fillText('пусто', cx, cy + 2); ctx.textAlign = 'left'; }
+    }
     ctx.restore();
-    if (i === 1) { ctx.fillStyle = 'rgba(120,255,90,.08)'; ctx.fillRect(0, 0, W, H); }
+  } else if (i <= 4) {                         // лаборатория: зелёный свет, пробирка, драка
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(1.8, 1.8); ctx.translate(-cx, -cy);
+    rect(cx - 70, cy + 22, 140, 3, '#1a2a22');
+    if (i === 2) {                             // гермодверь приоткрыта, из щели зелёный свет, к ней ползёт скорпион
+      rect(cx + 10, cy - 30, 34, 52, '#2a3438'); rect(cx + 26, cy - 30, 3, 52, 'rgba(154,255,90,.85)');
+      ctx.fillStyle = 'rgba(154,255,90,.12)'; ctx.beginPath(); ctx.moveTo(cx + 27, cy - 30); ctx.lineTo(cx - 40, cy + 22); ctx.lineTo(cx + 27, cy + 22); ctx.fill();
+      const sx = cx - 50 + Math.min(lt, 3) * 18;
+      rect(sx, cy + 18, 8, 3, '#3a2a1a'); rect(sx + 8, cy + 17, 2, 2, '#3a2a1a'); rect(sx - 2, cy + 15, 2, 3, '#3a2a1a'); rect(sx - 1, cy + 13, 3, 2, '#3a2a1a'); rect(sx + 1, cy + 14, 1, 1, '#c8a040');
+    } else if (i === 3) {                      // стол, пробирка опрокинулась — жижа капает на скорпиона
+      rect(cx - 40, cy - 4, 70, 4, '#4a5458'); rect(cx - 36, cy, 3, 22, '#3a4448'); rect(cx + 24, cy, 3, 22, '#3a4448');
+      ctx.save(); ctx.translate(cx + 22, cy - 6); ctx.rotate(1.2); rect(-2, -12, 5, 12, 'rgba(200,230,240,.5)'); rect(-1, -6, 3, 6, '#9aff5a'); ctx.restore();
+      for (let k = 0; k < 4; k++) { const y = cy - 2 + ((lt * 30 + k * 7) % 22); rect(cx + 30, y, 2, 3, '#9aff5a'); }
+      const gl = .15 + .2 * Math.sin(time * 9);
+      rect(cx + 26, cy + 18, 10, 3, '#3a2a1a'); rect(cx + 36, cy + 17, 2, 2, '#3a2a1a'); rect(cx + 24, cy + 15, 2, 3, '#3a2a1a'); rect(cx + 25, cy + 13, 3, 2, '#3a2a1a');
+      ctx.fillStyle = `rgba(154,255,90,${gl})`; ctx.fillRect(cx + 22, cy + 10, 18, 12);
+    } else {                                   // драка: скорпион больше, вокруг ошмётки жуков
+      const k = 1 + Math.min(lt, 2.5) * .25;
+      ctx.save(); ctx.translate(cx, cy + 22); ctx.scale(k, k);
+      rect(-12, -8, 22, 7, '#1c3426'); rect(10, -10, 6, 6, '#1c3426'); rect(14, -14, 5, 4, '#356448'); rect(14, -6, 5, 3, '#356448');   // тело, клешни
+      rect(-16, -12, 4, 5, '#1c3426'); rect(-18, -18, 4, 6, '#1c3426'); rect(-15, -22, 5, 4, '#1c3426'); rect(-10, -22, 3, 3, '#9aff5a');   // хвост, жало
+      for (let j = 0; j < 4; j++) rect(-9 + j * 5, -2, 2, 2, '#0a120e');
+      rect(11, -9, 1, 1, '#9aff5a'); rect(-6, -6, 1, 1, '#9aff5a'); rect(2, -7, 1, 1, '#9aff5a');
+      ctx.restore();
+      for (const [x, y] of [[-46, 20], [-30, 21], [36, 20], [48, 21]]) { rect(cx + x, cy + y, 5, 2, '#2a1a10'); rect(cx + x + 1, cy + y - 1, 1, 1, '#6a8a3a'); }
+      if (lt % 1.2 < .1) { ctx.fillStyle = 'rgba(200,16,46,.25)'; ctx.fillRect(cx - 70, cy - 30, 140, 55); }
+    }
+    ctx.restore();
+    ctx.fillStyle = 'rgba(120,255,90,.06)'; ctx.fillRect(0, 0, W, H);
   } else {                                     // в темноте — глаза и жало Альфы
     const g = .6 + .4 * Math.sin(time * 4);
     for (const dx of [-14, 10]) { rect(cx + dx, cy - 4, 5, 3, `rgba(154,255,90,${g})`); rect(cx + dx + 1, cy - 3, 3, 1, '#eaffd0'); }
-    if (i === 3) { ctx.strokeStyle = 'rgba(80,70,60,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx + 40, cy + 30); ctx.quadraticCurveTo(cx + 60, cy - 30, cx + 20, cy - 26); ctx.stroke(); rect(cx + 16, cy - 28, 5, 4, '#c8ff8a'); }
+    if (i === 5) { ctx.strokeStyle = 'rgba(80,70,60,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx + 40, cy + 30); ctx.quadraticCurveTo(cx + 60, cy - 30, cx + 20, cy - 26); ctx.stroke(); rect(cx + 16, cy - 28, 5, 4, '#c8ff8a'); }
   }
   ctx.globalAlpha = 1;
   drawTalkBox('ТЫ · ПАМЯТЬ', DREAM[i], Math.min(DREAM[i].length, Math.floor(lt * 40)), 'hero', 'think', a);
