@@ -1155,8 +1155,10 @@ const LEVELS = [
 ];
 
 const CITY = ['ГОРОД', 'ЛЕС', 'НОРА', 'ЛАБОРАТОРИЯ', 'ВОЕННАЯ БАЗА', 'ЛАГЕРЬ ВЫЖИВШИХ', 'ОРДА', 'ЛОГОВО АЛЬФЫ'];
+const MAIN_N_ = () => LEVELS.filter(l => !l.coopEnd).length;   // уровни основной истории (без логова Альфы — оно только в коопе)
 const cityStart = c => LEVELS.findIndex(l => (l.city || 0) === c);
 const cityCount = c => LEVELS.filter(l => (l.city || 0) === c).length;
+const MAIN_N = MAIN_N_();
 let L, lvlN = 0, lv;
 // растяжка рядов: def.hi — границы (исходные ряды), перед которыми вставляется ряд; повтор — несколько рядов
 const hiMap = def => { const H = def.hi || []; return y => y + H.filter(s => s <= y).length; };
@@ -6624,7 +6626,11 @@ function mapShow(on, free = true) {
   if (!on) return;
   mapFree = free;
   if (!mapBg) mapBg = buildMapBg();
-  const cur = state === 'title' ? (free ? -1 : (saveGet() || { at: 0 }).at) : lvlN;
+  let cur = state === 'title' ? (free ? -1 : (saveGet() || { at: 0 }).at) : lvlN;
+  if (cur >= LEVELS.length || cur >= 0 && LEVELS[cur].coopEnd) {   // логово Альфы на карте нет (друг, msg 1966: была пустая карта)
+    if (LEVELS[cur] && MODE === 'coop' && state === 'title' && !free && HOST()) { mapShow(false); gameOn = true; startLevel(cur); return; }   // кооп: продолжить — сразу в логово
+    cur = MAIN_N - 1;
+  }
   mapFocus(cur >= 0 ? LEVELS[cur].city || 0 : -1, true); if (cur >= 0) mapPick(cur);
   drawMap();
 }
@@ -6950,7 +6956,7 @@ function titleStep(n, mode) {                 // 1 — режим, 2 — нов�
     if (n === 5) netNote('подключено! создатель комнаты выбирает уровень…'); return; }
   tGo.textContent = '▶ НОВАЯ ИГРА';
   const v = n === 2 ? saveGet() : null; tCont.disabled = !v;
-  tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? 'КООП · напарник с тобой' : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.length} из ${LEVELS.length} · дошёл до «${LEVELS[v.at].name}»` : 'сохранения нет'}`;
+  tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? 'КООП · напарник с тобой' : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.filter(i => i < MAIN_N).length} из ${MAIN_N} · ${v.at >= LEVELS.length || (LEVELS[v.at].coopEnd && MODE !== 'coop') ? 'всё пройдено' : `дошёл до «${LEVELS[v.at].name}»`}` : 'сохранения нет'}`;
 }
 function titleHome() {                        // куда вернуться на титуле: в кооп-комнате — к своему шагу
   if (NET && NET.ready) titleStep(NET.role === 'host' ? 2 : 5, 'coop'); else titleStep(1);
