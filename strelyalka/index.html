@@ -3499,18 +3499,7 @@ function leapAI(e, dt) {                     // впереди вода / кис
     for (let r = fy - 1; r <= fy + 10; r++) { if (r >= ROWS) return true; const t = tile(c, r); if (wet(t)) return true; if (gr(c, r)) return false; }
     return true;
   };
-  if (!hazard(c0)) return;
-  for (let n = 1; n <= 7; n++) {
-    const c = c0 + d * n;
-    let land = -1; for (let r = fy - 4; r <= fy + 2; r++) if (walk(c, r)) { land = r; break; }
-    if (land >= 0) {
-      const up = Math.max(0, (fy - land) * T), vy = clamp(Math.sqrt(2 * GRAV * (up + 22)), 330, 540);
-      const tf = (vy + Math.sqrt(Math.max(0, vy * vy - 2 * GRAV * up))) / GRAV, dist = Math.abs(c * T + T / 2 - (e.x + e.w / 2)) + e.w / 2 + 4;
-      e.vy = -vy; e.leapVx = d * clamp(dist / tf, 70, 300); e.vx = e.leapVx; e.leap = tf + .1; e.on = false;
-      return;
-    }
-    if (solid(c, fy - 5) && solid(c, fy - 1)) break;                                   // стена выше прыжка
-  }
+  if (!hazard(c0)) return;   // друг (msg 2089): прыжки отменили — жуки застревали наверху; впереди опасно — просто разворот
   e.vx = -e.vx; if (e.wd) e.wd = -e.wd;                                                  // перепрыгнуть некуда — назад
 }
 function cocoonAI(e, dt, dx) {             // кокон: задрожал — через 2.4 с вылупится оса
