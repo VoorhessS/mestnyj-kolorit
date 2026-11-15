@@ -11,6 +11,7 @@ const EN = {"УЛИЦА":"STREET","Найди ключ от подъезда —
 Object.assign(EN, { 'КЛАВИШИ': 'KEYS', '⌨ КЛАВИШИ · H': '⌨ KEYS · H', 'бег': 'run', 'прицел, лестница, пригнуться': 'aim, ladders, duck', 'Пробел Z': 'Space Z', 'пауза ·': 'pause ·', 'пауза · ': 'pause · ', 'музыка': 'music' });
 Object.assign(EN, { 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ': 'SURE? PROGRESS WILL BE ERASED', 'пройдено ': 'cleared ', 'МУЗЫКА: ': 'MUSIC: ', 'МУЗЫКА: ВЫКЛ': 'MUSIC: OFF' });
 Object.assign(EN, { 'напарник в меню — ждём': 'partner is in the menu — waiting' });
+Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи ко мне в Багокалипсис! Код комнаты': 'Join me in Bugpocalypse! Room code', 'ссылка скопирована — вставь в чат': 'link copied — paste it in a chat' });
 const EN_KEYS = Object.keys(EN).filter(k => k.length > 1 && !EN[k].startsWith('<')).sort((a, b) => b.length - a.length);
 const CYR = /[А-Яа-яЁё]/, trMemo = new Map();
 const KB_SUB = [                              // ПК (друг, msg 2032): в подсказках — клавиши вместо кнопок телефона
@@ -167,7 +168,8 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #tmenu #t-back { min-width: 56px; }
   #tm-note { font: 700 12px monospace; color: #e8e0c0; text-shadow: 0 1px 2px #000; min-height: 14px; letter-spacing: 1px; }
   #tm-note b { color: #ffd23f; }
-  #tm-note .code { font: 800 22px monospace; color: #fff; letter-spacing: 6px; background: rgba(10,10,8,.8); border: 2px solid #ffd23f; padding: 2px 10px; border-radius: 4px; }
+  #tm-note .share { display: block; margin: 6px auto 0; font: 800 14px system-ui, sans-serif; color: #111; background: #ffd23f; border: 0; border-radius: 6px; padding: 8px 16px; min-height: 40px; }
+  #tm-note .code { user-select: text; -webkit-user-select: text;  font: 800 22px monospace; color: #fff; letter-spacing: 6px; background: rgba(10,10,8,.8); border: 2px solid #ffd23f; padding: 2px 10px; border-radius: 4px; }
   #t-code { font: 800 20px monospace; letter-spacing: 6px; text-transform: uppercase; width: 100%; text-align: center; color: #fff; background: rgba(10,10,8,.85);
     border: 2px solid #ffd23f; border-radius: 4px; min-height: 46px; box-sizing: border-box; }
   #mi-lock { color: #ff8a6a; font: 700 12px system-ui, sans-serif; display: none; white-space: nowrap; }
@@ -7156,7 +7158,7 @@ async function netHost() {
   const tryOpen = (k = 0) => {
     const code = Array.from({ length: 4 }, () => NET_ABC[Math.floor(Math.random() * NET_ABC.length)]).join('');
     const peer = new Peer(NET_PFX + code, { debug: 0 }); Object.assign(NET, { role: 'host', peer, code });
-    peer.on('open', () => netNote(`код комнаты <span class="code">${code}</span> — скажи напарнику · ждём…`));
+    peer.on('open', () => netNote(`код комнаты <span class="code">${code}</span> — скажи напарнику · ждём…<button class="share" onclick="netShare()">📤 ПОДЕЛИТЬСЯ</button>`));
     peer.on('connection', c => { if (NET.conn) { c.on('open', () => c.close()); return; } netBind(c); });
     peer.on('disconnected', () => netRevive(peer));   // айфон усыпил вкладку (ушёл в Телеграм за кодом) — комната вернётся на сервер
     peer.on('error', e => { if (e.type === 'unavailable-id' && k < 5) { peer.destroy(); tryOpen(k + 1); } else netNote('ошибка связи: ' + (e.type || e)); });
@@ -7175,6 +7177,14 @@ function netRevive(peer) {                     // друг, msg 2045: комна
   setTimeout(() => { try { if (NET.peer === peer && !peer.destroyed && peer.disconnected && !document.hidden) peer.reconnect(); } catch (e) {} }, 400);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && NET.peer && NET.peer.disconnected) netRevive(NET.peer); });
+function netShare() {                          // друг (msg 2059): ссылка-приглашение — у напарника комната откроется сама
+  const code = NET.code; if (!code) return;
+  const url = location.origin + location.pathname + '?room=' + code;
+  const text = tr('Заходи ко мне в Багокалипсис! Код комнаты') + ' ' + code;
+  if (navigator.share) { navigator.share({ title: tr('Багокалипсис'), text, url }).catch(() => {}); return; }
+  const done = () => showToast(tr('ссылка скопирована — вставь в чат'), 2.5);
+  try { navigator.clipboard.writeText(text + ' ' + url).then(done, () => prompt(code, url)); } catch (e) { prompt(code, url); }
+}
 function netBind(c) {
   NET.conn = c;
   c.on('open', () => { NET.ready = true; NET.rxT = performance.now(); beep(600, 1200, .15, 'square', .03); netSend({ t: 'hi' }); titleHome(); });
@@ -7281,6 +7291,8 @@ document.getElementById('t-back5').onclick = () => { netClose(); titleStep(3); }
 document.getElementById('t-host').onclick = () => { audioOn(); netHost(); };
 document.getElementById('t-join').onclick = () => { audioOn(); titleStep(4); };
 document.getElementById('t-join-go').onclick = () => { audioOn(); netJoin(document.getElementById('t-code').value); };
+{ const QR = location.search.match(/[?&]room=([A-Za-z]{4})/);   // пришёл по ссылке-приглашению — сразу в комнату
+  if (QR) setTimeout(() => { titleStep(4, 'coop'); document.getElementById('t-code').value = QR[1].toUpperCase(); netJoin(QR[1]); }, 400); }
 document.getElementById('t-code').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') document.getElementById('t-join-go').click(); });
 document.getElementById('t-code').addEventListener('keyup', e => e.stopPropagation());
 tGo.onclick = () => {
