@@ -165,6 +165,7 @@ const PAL = {
   roof: { bg: '#17161b', bg2: '#1f1e24', pat: 'block', solid: '#4a3834', floor: '#77706a', road: '#3c3c44', earth: '#26242a' },
   shaft: { bg: '#1e2024', bg2: '#26292e', pat: 'block', solid: '#2e3036', floor: '#5a5e66' },
   forest: { forest: 1, bg: '#1c150e', bg2: '#2a2014', pat: 'root', solid: '#3a2a1a', floor: '#4a8a2a', road: '#3a2a1a', earth: '#2a1e12' },
+  ash: { forest: 1, ash: 1, bg: '#16120e', bg2: '#201a14', pat: 'root', solid: '#2e2620', floor: '#4a443c', floor2: '#2a2620', blade: '#5a544a', road: '#2e2620', earth: '#221c16' },   // лес после пожара
   nora: { forest: 1, nora: 1, bg: '#140f16', bg2: '#1e1722', pat: 'root', solid: '#2a1f26', floor: '#3a3048', floor2: '#231b2c', blade: '#6a58a8', deep: '#1c141a', road: '#2a1f26', earth: '#1c141a' },
   tunnel: { lab: 1, bg: '#16171a', bg2: '#1e2024', pat: 'block', solid: '#34353a', floor: '#5e5f64' },
   lab: { lab: 1, bg: '#151b1d', bg2: '#1c2427', pat: 'tile', solid: '#283034', floor: '#56666a' },
@@ -1041,7 +1042,7 @@ const LEVELS = [
     cols: 540, rows: 30, base: SOLID, pal: PAL.hosp, spawn: ['K', 'U'],
     zones: [{ x0: 0, name: 'БОЛЬНИЦА', pal: PAL.hosp, dark: .78 }, { x0: 70, name: 'ЛАГЕРЬ', pal: PAL.camp, sky: true, ground: 22, dark: .74 },
       { x0: 180, name: 'ВОЕННАЯ БАЗА', pal: PAL.base, dark: .8 }, { x0: 290, name: 'ЛАБОРАТОРИЯ', pal: PAL.lab, dark: .8 },
-      { x0: 380, name: 'НОРА', pal: PAL.nora, dark: .84 }, { x0: 440, name: 'ЛЕС', pal: PAL.forest, sky: true, ground: 22, dark: .7 }],
+      { x0: 380, name: 'НОРА', pal: PAL.nora, dark: .84 }, { x0: 440, name: 'ГАРЬ', pal: PAL.ash, sky: true, ground: 22, dark: .7 }],
     stages: [{ obj: 'infect', n: 8, x0: 70, x1: 180, done: 'лагерь твой! ворота базы открыты' },
       { obj: 'guards', guard: 'JB', txt: 'техника', x0: 180, x1: 290, done: 'техника уничтожена! гермодверь лаборатории открыта' },
       { obj: 'free', txt: 'образцы', x0: 290, x1: 380, done: 'образцы на свободе! гермозатвор в нору открыт' },
@@ -1718,6 +1719,7 @@ function startLevel(n) {
   lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post: !!post, kind: typeof post === 'string' ? post : null, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
+  L.exitNear = !!exit && !L.stages && !['reach', 'boss', 'lift', 'talk', 'food', 'arms', 'meds'].includes(L.obj) && Math.abs(lv.exit[0] - lv.start[0]) < 25;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
   const A = lv.arena;
   boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'roach'
@@ -1853,8 +1855,32 @@ function complete(msg) {                 // задание выполнено: �
   done = true;
   for (const d of lv.doors) grid[d.y][d.x] = d.to;
   if (L.after) sayLines(L.after, 1.2);
+  if (exitNear()) msg += ' · рядом выход!';
   showToast(msg, 2.6); beep(500, 1400, .4, 'triangle', .06); shake = .2;
   if (!['reach', 'boss', 'lift', 'talk', 'meds'].includes(L.obj) && !(L.mut && L.obj === 'guards' && L.guard === 'V')) waveT = 2.2;   // через пару секунд — новая волна
+}
+function exitNear() {                     // выход переезжает к герою: ближайшее место на его полу, куда можно дойти
+  if (!L.exitNear || !exit || exit.near) return false;
+  const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T);
+  const floor = (c, r) => { const t = tile(c, r); return isSolid(t) && t !== CRUMBLE && t !== DOOR || t === PLAT; };
+  const room = (c, r) => [r - 1, r - 2].every(y => [AIR, BG].includes(tile(c, y)));
+  let best = null, bs = 1e9;
+  for (let dy = -5; dy <= 5; dy++) for (let dx = -14; dx <= 14; dx++) {
+    const cx = pc + dx, fy = pr + dy;
+    if (Math.abs(dx) < 3 || cx < 1 || cx >= COLS - 1 || fy < 3 || fy >= ROWS) continue;
+    if (!floor(cx, fy) || !room(cx, fy) || !room(cx + (dx > 0 ? 1 : -1), fy) && !room(cx - (dx > 0 ? 1 : -1), fy)) continue;
+    if (dy === 0) {                                 // на своём полу: путь без стен, ям и кислоты
+      let ok = true;
+      for (let c = Math.min(pc, cx); c <= Math.max(pc, cx) && ok; c++) ok = floor(c, fy) && !isSolid(tile(c, fy - 1)) && tile(c, fy - 1) !== ACID;
+      if (!ok) continue;
+    }
+    const sc = Math.abs(dx) + (dy ? 40 + Math.abs(dy) * 6 : 0);
+    if (sc < bs) { bs = sc; best = [cx, fy]; }
+  }
+  if (!best) return false;
+  exit.x = best[0] * T; exit.y = best[1] * T - 32; exit.near = true;
+  explode(exit.x + 8, exit.y + 16, 10, ['#aaa', '#666', '#ffd060']); shake = Math.max(shake, .3); boom(.08);
+  return true;
 }
 // Задание сделано — на обратном пути новая волна (друг, 11.11): жуки встают в начальные места подальше от героя
 function spawnWave() {
@@ -1867,7 +1893,7 @@ function spawnWave() {
     e.sleep = true; e.vx = 0; e.id = proto.length; proto.push(structuredClone(e)); enemies.push(e);
   }
   for (const c of cracks) c.n = 0;                  // трещины снова оживают
-  showToast(MUT() ? '⚠ ПОДКРЕПЛЕНИЕ! рви их' : '⚠ НОВАЯ ВОЛНА! пробивайся назад', 2.6); boom(.1); shake = .4; beep(140, 60, .6, 'sawtooth', .05);
+  showToast(MUT() ? '⚠ ПОДКРЕПЛЕНИЕ! рви их' : (exit && exit.near ? '⚠ НОВАЯ ВОЛНА! скорей к выходу' : '⚠ НОВАЯ ВОЛНА! пробивайся назад'), 2.6); boom(.1); shake = .4; beep(140, 60, .6, 'sawtooth', .05);
 }
 const NEED = { key: 'сначала найди ключ', nests: 'сначала уничтожь все гнёзда', switch: 'сначала включи рубильник',
   tools: 'сначала найди инструменты', guards: 'сначала перебей свиту', lift: 'сначала почини лифт' };
@@ -3279,17 +3305,38 @@ function target() {                     // куда показывает жёл�
 function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 function ell(x, y, rx, ry, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(Math.round(x), Math.round(y), Math.max(.5, rx), Math.max(.5, ry), 0, 0, Math.PI * 2); ctx.fill(); }
 const hash = (a, b) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
+function drawAshBg(sy) {                  // лес после пожара: чёрные стволы без хвои, дым поднимается, тлеют угли, падает пепел
+  for (let i = 0; i < 6; i++) {                  // дым от пепелищ
+    const bx = ((hash(i, 43) % 900) - cam * .1) % (W + 160); const x = bx < -80 ? bx + W + 160 : bx;
+    for (let j = 0; j < 8; j++) { const yy = sy - 20 - j * 20 - (time * 5 % 20), r = 10 + j * 5; ell(x + Math.sin(time * .35 + j + i) * 7 + j * 5, yy, r, r * .7, `rgba(70,66,62,${.26 - j * .028})`); }
+  }
+  for (const [k, col, h0, hr, step] of [[.12, '#5e5a54', 70, 60, 20], [.3, '#2e2a26', 55, 70, 17]]) {
+    for (let i = -1; i < W / step + 2; i++) {
+      const n = i + Math.floor(cam * k / step), x = i * step - (cam * k) % step + step / 2, h = h0 + hash(n, 3) % hr, tw = k > .2 ? 3 : 2;
+      rect(x - tw / 2, sy - h, tw, h, col);
+      for (let b = 0; b < 3; b++) {                // голые обгоревшие сучья
+        const by = sy - h + 10 + b * (h / 4), dir = (hash(n, b + 5) % 2) ? 1 : -1, bl = 4 + hash(n, b + 7) % 6;
+        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + dir * bl, by - bl * .7); ctx.stroke();
+      }
+      if (k > .2 && hash(n, 19) % 4 === 0) ell(x, sy - 3, 4 + Math.sin(time * 4 + n) * 1.2, 2, `rgba(255,100,30,${.45 + .2 * Math.sin(time * 3 + n)})`);   // тлеет у корня
+    }
+  }
+  rect(0, sy - 2, W, H, '#2e2a26');
+  for (let i = 0; i < 26; i++) { const u = (time * .05 + hash(i, 35) / 991) % 1, x = (hash(i, 36) % W + Math.sin(time * .7 + i) * 14 - cam * .2 % W + W) % W; rect(x, u * (sy + 10), 1, 1, i % 4 ? '#b8b2a8' : '#ff8a40'); }   // пепел падает
+}
 function drawForestBg(sy, sp) {          // лес на фоне: дымка и ели в два слоя; burn — лес горит (друг, msg 1861)
-  const burn = L && L.burn, g = ctx.createLinearGradient(0, 0, 0, H);
-  if (burn) { g.addColorStop(0, '#6a6058'); g.addColorStop(.6, '#b08a68'); g.addColorStop(1, '#d09060'); }
+  const burn = L && L.burn, ash = L && L.pal && L.pal.ash, g = ctx.createLinearGradient(0, 0, 0, H);
+  if (ash) { g.addColorStop(0, '#55534f'); g.addColorStop(.6, '#7e7a72'); g.addColorStop(1, '#8e8476'); }
+  else if (burn) { g.addColorStop(0, '#6a6058'); g.addColorStop(.6, '#b08a68'); g.addColorStop(1, '#d09060'); }
   else { g.addColorStop(0, '#93a89a'); g.addColorStop(.75, '#c9d2bc'); g.addColorStop(1, '#d8dcc6'); }
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ell(W * .7, 30, 18, 18, burn ? 'rgba(255,150,90,.55)' : 'rgba(255,252,236,.6)');
+  ell(W * .7, 30, 18, 18, ash ? 'rgba(255,220,180,.22)' : burn ? 'rgba(255,150,90,.55)' : 'rgba(255,252,236,.6)');
+  if (ash) { drawAshBg(sy); return; }
   if (burn) for (let i = 0; i < 5; i++) {        // столбы дыма вдали
     const bx = ((hash(i, 41) % 900) - cam * .08) % (W + 160); const x = bx < -80 ? bx + W + 160 : bx;
     for (let j = 0; j < 7; j++) { const yy = sy - 60 - j * 22 - (time * 6 % 22), r = 14 + j * 5; ell(x + Math.sin(time * .4 + j + i) * 6 + j * 4, yy, r, r * .7, `rgba(60,52,48,${.22 - j * .025})`); }
   }
-  for (const [k, col, h0, hr, step] of [[.12, burn ? '#6e6a5e' : '#7f9686', 80, 60, 22], [.3, burn ? '#4a4a3c' : '#5c7562', 60, 70, 18]]) {
+  for (const [k, col, h0, hr, step] of [[.12, burn ? '#4e4a42' : '#7f9686', 80, 60, 22], [.3, burn ? '#2e3026' : '#5c7562', 60, 70, 18]]) {
     for (let i = -1; i < W / step + 2; i++) {
       const off = cam * k + sp * k * 4, n = i + Math.floor(off / step), x = i * step - off % step, h = h0 + hash(n, 3) % hr;
       ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x - 10, sy); ctx.lineTo(x + step / 2, sy - h); ctx.lineTo(x + step + 10, sy); ctx.fill();
@@ -3363,7 +3410,9 @@ function drawBattle(sy) {                          // где-то идёт бо�
   }
 }
 function drawStreetLife(sy) {                      // у подножия домов: бегут люди, за кем-то жук, едет техника
-  const y = sy - 12; ctx.globalAlpha = .55;            // вдали, в дымке — не путать с тем, что рядом
+  const y = sy - 12;
+  rect(0, y - 2, W, sy - y + 4, '#55585e'); rect(0, y - 2, W, 1, '#70737a'); for (let i = 0; i < W / 24 + 1; i++) rect(i * 24 - (cam * .3) % 24, y + 5, 10, 1, '#7a7c80');   // дальняя дорога: на ней люди и техника (друг, msg 1876: «БТР в воздухе»)
+  ctx.globalAlpha = .55;            // вдали, в дымке — не путать с тем, что рядом
   for (let i = 0; i < 6; i++) {
     const sp = 22 + (hash(i, 70) % 20), dir = i % 3 ? -1 : 1, per = (W + 120) / sp, ph = (time + hash(i, 71) % 40) % per;
     const x = dir > 0 ? -60 + ph * sp : W + 60 - ph * sp, leg = Math.sin(time * 14 + i) * 2;
@@ -3521,8 +3570,9 @@ function drawFore() {                     // кусты и водопад — п
     if (x > W + 20 || x + w < -20) continue;
     if (d.k === 'bush') {
       const sh = enemies.some(e => e.hide && Math.abs(e.x - d.x0 * T) < 24 && Math.abs(P.x - e.x) < 90) ? Math.sin(time * 30) * 1 : 0;
-      ell(x + w * .3 + sh, y + 9, w * .38, 9, '#2e5a1e'); ell(x + w * .7 - sh, y + 8, w * .38, 10, '#3a6e24'); ell(x + w * .5, y + 4, w * .3, 8, '#4a8a2e');
-      for (let i = 0; i < 4; i++) rect(x + 4 + hash(d.x0, i) % (w - 8), y + 2 + hash(i, d.x0) % 10, 2, 2, '#6ab03e');
+      const ab = ashAt(d.x0);                          // в гари куст обгорел
+      ell(x + w * .3 + sh, y + 9, w * .38, 9, ab ? '#2a2420' : '#2e5a1e'); ell(x + w * .7 - sh, y + 8, w * .38, 10, ab ? '#342c26' : '#3a6e24'); ell(x + w * .5, y + 4, w * .3, 8, ab ? '#40362e' : '#4a8a2e');
+      for (let i = 0; i < 4; i++) rect(x + 4 + hash(d.x0, i) % (w - 8), y + 2 + hash(i, d.x0) % 10, 2, 2, ab ? (i ? '#5a5048' : '#ff7a30') : '#6ab03e');
     } else if (d.k === 'fall') {
       ctx.globalAlpha = .82;
       rect(x, y, w, h, '#4a86b4');
@@ -3548,6 +3598,7 @@ function drawVents() {                    // лаз рисуется повер�
     }
   }
 }
+const ashAt = cx => !!(L.zones ? zoneOf(cx).pal.ash : L.pal.ash);
 function drawDeco() {
   for (const [wx, wy, ww, wh] of wins) {           // окна: днём из них падает свет
     const x = wx * T - cam, y = wy * T, w = ww * T, h = wh * T;
@@ -3607,9 +3658,16 @@ function drawDeco() {
       rect(x, y, w, h, '#3a3e46'); rect(x + w / 2 - 1, y, 2, h, '#1a1c20'); rect(x, y, w, 2, '#5a5e66');
       rect(x + 3, y + 6, 3, 3, Math.floor(time * 2 + d.y0) % 3 ? '#401010' : '#ff3b3b');
     } else if (d.k === 'tree') {                       // дерево на заднем плане
-      const ty = d.y1 * T, tt = d.y0 * T, tx = x + 8;
+      if (d.gy === undefined) { let g = d.y1 + 1; while (g < d.y1 + 12 && tile(d.x0, g) === AIR) g++; d.gy = tile(d.x0, g) === AIR ? d.y1 + 1 : g; }   // ствол до земли (друг, msg 1878: «деревья в воздухе»)
+      const ty = d.gy * T + 2, tt = d.y0 * T, tx = x + 8;
       rect(tx - 5, tt, 10, ty - tt, '#4a3220'); rect(tx - 5, tt, 3, ty - tt, '#5a4028');
-      for (let i = 0; i < 4; i++) ell(tx + (i % 2 ? 10 : -10), tt + 8 + i * 9, 20 - i * 2, 12, i % 2 ? '#2e5a24' : '#3a6a2a');
+      if (ashAt(d.x0)) {                               // обгоревшее: чёрный ствол, голые сучья, дымок
+        rect(tx - 5, tt, 10, ty - tt, '#241c16'); rect(tx - 5, tt, 3, ty - tt, '#3a2e24'); for (let j = 0; j < 5; j++) rect(tx - 4 + (j % 3) * 3, tt + 10 + j * 13, 2, 3, '#ff6a20' + (Math.sin(time * 3 + j + d.x0) > .3 ? 'cc' : '55'));
+        ctx.strokeStyle = '#241c16'; ctx.lineWidth = 2; ctx.beginPath();
+        for (let i = 0; i < 4; i++) { const by = tt + 6 + i * 10, dir = i % 2 ? 1 : -1; ctx.moveTo(tx, by); ctx.lineTo(tx + dir * (14 - i * 2), by - 8); }
+        ctx.stroke();
+        for (let i = 0; i < 4; i++) { const t2 = (time * .3 + i / 4 + d.x0 * .1) % 1; ell(tx + Math.sin(i * 2 + time) * 5, tt - t2 * 50, 4 + t2 * 10, 3 + t2 * 7, `rgba(80,76,72,${.4 * (1 - t2)})`); }
+      } else for (let i = 0; i < 4; i++) ell(tx + (i % 2 ? 10 : -10), tt + 8 + i * 9, 20 - i * 2, 12, i % 2 ? '#2e5a24' : '#3a6a2a');
     } else if (d.k === 'wreck') {                      // обломки нашего вертолёта
       ctx.save(); ctx.translate(x + w / 2, y + h - 10); ctx.rotate(-.18);
       ell(0, 0, w * .38, 12, '#3a4a3a'); ell(10, -3, 10, 7, '#1a2a3a'); rect(w * .3, -4, w * .3, 5, '#3a4a3a'); rect(-w * .4, 10, w * .6, 2, '#555');
@@ -3892,9 +3950,19 @@ function drawProps() {
   if (cart && L.raft) {                             // плот и горящие стволы над рекой
     for (const [bx, b0, b1] of lv.beams) {
       const x = bx * T - cam; if (x < -40 || x > W + 40) continue;
-      const yb = (b1 + 1) * T, fl = 1 + Math.sin(time * 12 + bx) * .2;
-      ell(x + 8, b0 * T - 30, 22, 14, '#2a3222'); ell(x - 4, b0 * T - 20, 12, 8, '#36402a');
-      rect(x + 2, b0 * T - 30, 12, yb - b0 * T + 30, '#3a2a1c'); rect(x + 4, b0 * T - 30, 2, yb - b0 * T + 30, '#5a4430'); rect(x + 11, b0 * T - 30, 1, yb - b0 * T + 30, '#22180e');
+      const yb = (b1 + 1) * T, fl = 1 + Math.sin(time * 12 + bx) * .2, wy = (b1 + 3) * T, top = b0 * T - 34;
+      ctx.lineCap = 'round';                                                        // упавшее дерево: корни у дальнего берега, ствол дугой над рекой
+      for (const [lw, col] of [[11, '#22180e'], [8, '#3a2a1c']]) {
+        ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(x + 64, wy + 4); ctx.quadraticCurveTo(x + 50, top, x + 8, b0 * T); ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+      for (let j = 0; j < 3; j++) { const u = .25 + j * .22, cx2 = (1 - u) * (1 - u) * (x + 64) + 2 * u * (1 - u) * (x + 50) + u * u * (x + 8), cy2 = (1 - u) * (1 - u) * (wy + 4) + 2 * u * (1 - u) * top + u * u * b0 * T;
+        ell(cx2, cy2, 3 * fl, 4 * fl, 'rgba(255,120,30,.7)'); }                     // ствол тлеет
+      rect(x + 58, wy - 2, 14, 4, '#22180e'); rect(x + 54, wy + 1, 6, 2, '#22180e'); rect(x + 70, wy + 1, 6, 2, '#22180e');   // вывороченные корни
+      rect(x + 2, b0 * T, 12, yb - b0 * T, '#3a2a1c'); rect(x + 4, b0 * T, 2, yb - b0 * T, '#5a4430'); rect(x + 11, b0 * T, 1, yb - b0 * T, '#22180e');   // свисающая верхушка
+      ctx.strokeStyle = '#2a1e12'; ctx.lineWidth = 2; ctx.beginPath();                // обгоревшие ветки кроны
+      for (let j = 0; j < 4; j++) { const by = b0 * T + 6 + j * ((yb - b0 * T) / 4), dir = j % 2 ? 1 : -1; ctx.moveTo(x + 8, by); ctx.lineTo(x + 8 + dir * 12, by + 6); }
+      ctx.stroke();
       rect(x + 2, yb - 6, 12, 6, '#1a1008');
       ell(x + 8, yb - 4, 9 * fl, 11 * fl, 'rgba(255,110,25,.65)'); ell(x + 8, yb - 6, 4 * fl, 7 * fl, 'rgba(255,225,120,.9)');
       if (Math.random() < .25) parts.push({ x: bx * T + 8 + rnd(-4, 4), y: yb - 8, vx: rnd(-20, 20), vy: rnd(-60, -20), life: .5, col: Math.random() < .5 ? '#ffb040' : '#ff6a20' });
@@ -6257,7 +6325,8 @@ window.__bot = (opts = {}) => {
     if (G.state !== 'play' || !P || P.dead) { releaseAll(); return; }
     if (G.lvl !== lvl) { lvl = G.lvl; i = first ? opts.start || 0 : 0; first = false; log.push('L' + (lvl + 1)); }
     const R = ROUTES[lvl], st0 = R[Math.min(i, R.length - 1)], hy = window.__hy || (y => y);
-    const st = st0.slice(); if (['go', 'climb', 'wj'].includes(st[0]) && st.length > 2) st[2] = hy(st[2]); if (st[0] === 'hunt' && st.length > 2) { st[1] = hy(st[1]); st[2] = hy(st[2]); }
+    let st = st0.slice(); if (['go', 'climb', 'wj'].includes(st[0]) && st.length > 2) st[2] = hy(st[2]); if (st[0] === 'hunt' && st.length > 2) { st[1] = hy(st[1]); st[2] = hy(st[2]); }
+    if (G.done && G.exit && G.exit.near) st = ['go', Math.floor(G.exit.x / T), Math.floor((G.exit.y + 32) / T)];   // выход открылся рядом
     const col = Math.floor((P.x + P.w / 2) / T), feetRow = Math.floor((P.y + P.h + 1) / T);
     set('KeyJ', true);
     if (jumpT > 0) { jumpT--; if (jumpT <= 0) set('KeyK', false); }
