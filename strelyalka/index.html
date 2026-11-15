@@ -1709,6 +1709,7 @@ function startLevel(n) {
     e.gd = L.obj === 'guards' && (L.guard || 's').includes(k);
     enemies.push(e);
   }
+  if (HOST()) coopMore();
   guardsAll = enemies.filter(e => e.gd).length;
   enemies.forEach((e, i) => e.id = i); proto = structuredClone(enemies);   // какими жуки были в начале уровня
   wins = lv.wins; ebullets = [];
@@ -1749,6 +1750,7 @@ function startLevel(n) {
     : A.boss === 'mantis'
     ? [{ k: 'mantis', x: A.drop * T, y: -90, w: 26, h: 60, hp: 100, max: 100, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, arm: 0, on: false }]
     : [{ k: 'rhino', x: A.drop * T, y: -60, w: 56, h: 34, hp: 40 + 5 * lvlN, max: 40 + 5 * lvlN, fl: 0, st: 'drop', t: 0, dir: -1, vx: 0, vy: 0, on: false }] };
+  if (HOST()) for (const b of boss.parts) b.hp = b.max = Math.round(b.max * 1.7);   // кооп: у боссов в 1.7 раза больше здоровья
   done = L.obj === 'reach';
   lives = Math.max(lives, 3);
   snap = null; respawn(); takeSnap();
@@ -1790,10 +1792,11 @@ function restoreSnap(rx, ry) {
   enemies = enemies.filter(e => e.hp > 0);
 }
 function respawn() {
-  if (snap && !boss.dead && !MUT()) restoreSnap(save.x, save.y);   // мутанта не откатываем: он бессмертен
+  const solo = !(NET && NET.ready) || (NET.role === 'host' && !mateAlive());
+  if (snap && !boss.dead && !MUT() && !(NET && NET.ready)) restoreSnap(save.x, save.y);   // в коопе мир не откатываем: напарник-то жив   // мутанта не откатываем: он бессмертен
   bullets = []; parts = []; good = null; clone = null; roul = 0; waveT = 0;
   if (bad) { bad = null; cv.style.transform = ''; }
-  if (boss && boss.on && !boss.dead) {          // погиб на арене: босс ждёт заново, решётка открыта
+  if (boss && boss.on && !boss.dead && solo) {          // погиб на арене: босс ждёт заново, решётка открыта
     boss.on = false; gate(false);
     const b = boss.parts[0];
     b.hp = Math.min(b.max, Math.ceil(b.hp + (b.max - b.hp) / 2));   // друг (msg 1745): после твоей смерти босс лечит половину потерянного
@@ -1803,10 +1806,11 @@ function respawn() {
     enemies = enemies.filter(e => !e.boss);
   }
   ebullets = [];
-  if (cart) Object.assign(cart, { x: clamp(save.x - 14, cart.x0, cart.end - cart.w), go: false, stop: false, v: 0, dx: 0, wait: 1.2 });   // вагонетка ждёт у сохранения
-  if (swarm) Object.assign(swarm, { x: save.x - 170, on: false, t: 1.2 });
-  if (fume) Object.assign(fume, { y: Math.min(MAPH + 40, save.y + 14 + 170), on: false, t: 2 });   // газ снова внизу
-  const cab = lift && lift.go ? lift : cart, sx = cab ? cab.x + cab.w / 2 - 5 : save.x, sy = cab ? cab.y - 22 : save.y + 14 - 22;
+  if (cart && solo) Object.assign(cart, { x: clamp(save.x - 14, cart.x0, cart.end - cart.w), go: false, stop: false, v: 0, dx: 0, wait: 1.2 });   // вагонетка ждёт у сохранения
+  if (swarm && solo) Object.assign(swarm, { x: save.x - 170, on: false, t: 1.2 });
+  if (fume && solo) Object.assign(fume, { y: Math.min(MAPH + 40, save.y + 14 + 170), on: false, t: 2 });   // газ снова внизу
+  const cab = lift && lift.go ? lift : cart; let sx = cab ? cab.x + cab.w / 2 - 5 : save.x, sy = cab ? cab.y - 22 : save.y + 14 - 22;
+  if (mateAlive() && state === 'play') { sx = NET.remote.x; sy = NET.remote.y; }   // кооп: встаёшь рядом с напарником
   enemies = enemies.filter(e => !e.spawned || Math.hypot(e.x - sx, e.y - sy) > 220);   // жуков у точки возрождения убираем
   hp = HP_MAX; hurtT = 9;
   if (amb && !amb.end) Object.assign(amb, { t: L.hold, sp: 1.5 });   // погиб в засаде — держаться заново
@@ -1824,6 +1828,7 @@ function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) 
 }
 let hp = HP_MAX, hurtT = 9, hpFlash = 0;
 function hurt(d) {                       // удар снимает часть шкалы, на нуле — минус жизнь
+  if (NET && NET.px) { if (time - (NET.dmgT || 0) > .25) { NET.dmgT = time; netSend({ t: 'dmg', d }); } return; }   // бьют напарника
   if (P.safe > 0 && !P.climb) return;     // друг (msg 1591): только что слез с лестницы — короткая передышка
   if (P.slide > 0) return;                // друг (msg 1735): в подкате героя не ранить
   if (MUT()) {                            // мутант бессмертен: только вздрагивает
@@ -1838,6 +1843,7 @@ function hurt(d) {                       // удар снимает часть �
   explode(P.x + 5, P.y + 10, 6, ['#c8102e', '#fff', '#ff7a7a']);
 }
 function killPlayer() {
+  if (NET && NET.px) { netSend({ t: 'kill' }); return; }
   if (MUT()) {                            // упал в пропасть или кислоту — вылезает у последней дискеты
     if (P.dead) return;
     P.dead = .7; P.climb = false; explode(P.x + 5, P.y + 10, 14, ['#6a8a3a', '#9aff5a', '#2a3a1a']); beep(300, 60, .4, 'sawtooth', .05);
@@ -1864,6 +1870,8 @@ function stageOn(i) {                       // этап орды: своя це�
 }
 function complete(msg) {                 // задание выполнено: двери открываются
   if (done) return;
+  if (GUEST() && !NET.rx) return;                                        // в коопе задание засчитывает хозяин
+  if (HOST()) netSend({ t: 'done', lvl: lvlN, msg, stg });
   if (L.stages) {                         // орда: открывается только проход этого этапа
     for (const d of lv.doors) if ((d.stage ?? 0) === stg) { grid[d.y][d.x] = d.to; explode(d.x * T + 8, d.y * T + 8, 3, ['#aaa', '#666']); }
     showToast(msg, 2.8); beep(500, 1400, .4, 'triangle', .06); shake = .3; boom(.08);
@@ -1905,7 +1913,8 @@ function spawnWave() {
   const spots = proto.filter(e => e.k !== 'n' && e.k !== 'o' && e.k !== 'w' && !e.gd && !e.jar && !e.hang && Math.hypot(e.x - P.x, e.y - P.y) > 220).map(e => [e.x + e.w / 2, e.y + e.h]);
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
   if (!spots.length) return;
-  const n = clamp(Math.round(spots.length * .5) + 1, 4, 8);       // мест мало — по двое на место
+  if (GUEST()) { showToast('⚠ НОВАЯ ВОЛНА!', 2.6); boom(.1); shake = .4; return; }   // волну присылает хозяин
+  const n = Math.round(clamp(Math.round(spots.length * .5) + 1, 4, 8) * (D.co || 1));       // мест мало — по двое на место
   for (let i = 0; i < n; i++) {
     const k = pick(L.spawn), [sx, sy] = spots[i % spots.length], e = mkBug(k, sx - BUGS[k][0] / 2 + (i >= spots.length ? 10 : 0), sy);
     e.sleep = true; e.vx = 0; e.id = proto.length; proto.push(structuredClone(e)); enemies.push(e);
@@ -2355,17 +2364,19 @@ function shoot(k) {
 }
 function hurtEnemy(e, d) {
   if (e.hp <= 0) return;
+  if (GUEST() && !NET.rx && e.nid) netSend({ t: 'hit', id: e.nid, d });   // напарник: попадание считает хозяин
   if (e.k === 'V' && (L.desant || L.obj === 'carnage')) { e.fl = .05; return; }   // при высадке вертолёт не сбить — бьём десант
   e.hp = Math.max(0, e.hp - d); e.fl = .08;
-  if (e.hp <= 0 && e.human && MUT()) humanDown(e);
+  if (e.hp <= 0 && e.nid && GUEST()) NET.kill.set(e.nid, time);
+  if (e.hp <= 0 && e.human && MUT() && !GUEST()) humanDown(e);
   if (e.sleep || e.hang) { e.sleep = false; e.hang = false; e.vx = (Math.sign(P.x - e.x) || 1) * (e.sp || D.spd); }
   if (e.lure) { e.lure = false; e.dir = Math.sign(P.x - e.x) || 1; }        // подстреленный светляк бросается в атаку
   if (e.jar && e.hp > 0) breakJar(e);                                         // пуля разбила колбу
   if (e.hp <= 0) {
-    score += e.k === 'n' ? SCORE.n : e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, e.k === 'n' ? 24 : e.k === 's' ? 30 : 14, e.human ? ['#c8102e', '#7a0a10', '#3a3a3a'] : GOO); boom(e.k === 's' ? .1 : .06);
-    energy = Math.min(100, energy + (e.k === 'n' ? 14 : e.gd ? 12 : 7));
+    if (!NET.rx) score += e.k === 'n' ? SCORE.n : e.sc; explode(e.x + e.w / 2, e.y + e.h / 2, e.k === 'n' ? 24 : e.k === 's' ? 30 : 14, e.human ? ['#c8102e', '#7a0a10', '#3a3a3a'] : GOO); boom(e.k === 's' ? .1 : .06);
+    if (!NET.rx) energy = Math.min(100, energy + (e.k === 'n' ? 14 : e.gd ? 12 : 7));
     const have = [1, 2, 3].filter(i => owned[i]);       // иногда выпадает ящик патронов
-    if (have.length && !MUT() && Math.random() < (e.k === 'n' ? .45 : e.gd ? .5 : .07))
+    if (have.length && !MUT() && !GUEST() && Math.random() < (e.k === 'n' ? .45 : e.gd ? .5 : .07))
       items.push({ k: 'ammo', g: pick(have), x: e.x + e.w / 2 - 6, y: e.y - 4, w: 12, h: 10, vx: 0, vy: -140, fall: true, life: 15, got: false });
   }
 }
@@ -2689,6 +2700,7 @@ function drawAllies() {
   for (const e of enemies) if (e.rope && e.hp > 0) { const x = Math.round(e.x + e.w / 2 - cam) + .5; ctx.beginPath(); ctx.moveTo(x, heli ? heli.y + heli.h - 2 : e.y - 80); ctx.lineTo(x, e.y + 2); ctx.stroke(); }
 }
 function hurtBoss(r, d) {
+  if (GUEST() && !NET.rx) { netSend({ t: 'bh', d }); r.fl = .06; beep(200, 120, .05, 'sawtooth', .03); return; }   // здоровье босса — у хозяина
   r.hp -= d * (r.st === 'stuck' || r.st === 'dizzy' ? 2 : 1); r.fl = .06; beep(200, 120, .05, 'sawtooth', .03);
   if (r.hp <= 0 && !boss.dead) {
     boss.dead = true; score += 5000; shake = 1.5; boom();
@@ -2810,6 +2822,7 @@ function update(dt) {
   flickT -= dt; flick -= dt;
   if (flickT <= 0) { flick = 1.4; flickT = 15 + Math.random() * 15; }
   const k = input();
+  const GU = GUEST(), HO = HOST(); if (NET) NET.mp = null;
   lvT += dt;
   if (waveT > 0 && (waveT -= dt) <= 0) spawnWave();
   updStory(dt);
@@ -2822,13 +2835,14 @@ function update(dt) {
   blasts = blasts.filter(b => b.t > 0);
 
   // --- Грузовой лифт: едет вверх, как только встал в кабину ---
-  if (lift) {
+  if (lift && GU) netMover(lift, 'y', dt);
+  else if (lift) {
     lift.dy = 0;
     if (!lift.go && !P.dead) {
-      if (P.mv === lift) {                          // оборона: пока чиню лифт, жуки лезут со всех сторон
+      if (P.mv === lift || HO && mateIn('lift')) {                          // оборона: пока чиню лифт, жуки лезут со всех сторон
         if (lift.fix === undefined) { lift.fix = 0; if (L.fix) { showToast(`🔧 чиню лифт — продержись ${L.fix} с!`, 2.4); boom(.06); } }
         lift.fix += dt; lift.away = 0; lift.spawn = (lift.spawn ?? 1.5) - dt;
-        if (L.fix && lift.spawn <= 0 && enemies.filter(e => e.hp > 0 && e.k !== 'n').length < 9) {
+        if (L.fix && lift.spawn <= 0 && enemies.filter(e => e.hp > 0 && e.k !== 'n').length < 9 * (D.co || 1)) {
           lift.spawn = 2.3 - 1.3 * lift.fix / L.fix;
           const k = pick(L.spawn);
           if (Math.random() < .4) hatch(k, lift.x + 8 + Math.random() * (lift.w - 30), lift.y - 150, Math.sign(P.x - lift.x) || 1, 40, null);   // падают из шахты
@@ -2847,9 +2861,10 @@ function update(dt) {
     }
   }
 
-  if (cart) {                                          // вагонетка: едет сама, пока не упрётся
+  if (cart && GU) netMover(cart, 'x', dt);
+  else if (cart) {                                          // вагонетка: едет сама, пока не упрётся
     cart.dx = 0;
-    if (!cart.go && !cart.stop && P.mv === cart && !P.dead && (cart.wait -= dt) <= 0) { cart.go = true; showToast(L.raft ? 'поплыли! горящий ствол — пригнись' : 'поехали! балка — пригнись', 2); boom(.06); }
+    if (!cart.go && !cart.stop && (P.mv === cart && !P.dead || HO && mateIn('cart')) && (cart.wait -= dt) <= 0) { cart.go = true; showToast(L.raft ? 'поплыли! горящий ствол — пригнись' : 'поехали! балка — пригнись', 2); boom(.06); }
     if (cart.go) {
       const rap = L.rapids && L.rapids.some(([a, b]) => cart.x >= a * T && cart.x < b * T), vmax = (L.cartV || 110) * (rap ? 1.6 : 1);   // пороги несут быстрее
       cart.v = cart.v < vmax ? Math.min(vmax, cart.v + 120 * dt) : Math.max(vmax, cart.v - 90 * dt);
@@ -2887,10 +2902,10 @@ function update(dt) {
     if (swarm && P.dead <= 0) {                    // погоня: стая догоняет, если отстаёшь — подтягивается
       if (!swarm.on) { if ((swarm.t -= dt) <= 0) { swarm.on = true; showToast(L.fire ? '🔥 ПОЖАР! БЕГИ!' : '🦗 СТАЯ! БЕГИ!', 2); boom(.12); shake = .5; } }
       else {
-        const gap = P.x - swarm.x;
-        swarm.x = Math.min(MAPW, swarm.x + (L.chase + Math.max(0, gap - 240) * 1.5) * dt * (good?.k === 'lag' ? .25 : 1));
+        const gap = Math.min(P.x, HO && mateAlive() ? NET.remote.x : 1e9) - swarm.x;   // кооп: стая гонится за отстающим
+        if (!GU) swarm.x = Math.min(MAPW, swarm.x + (L.chase + Math.max(0, gap - 240) * 1.5) * dt * (good?.k === 'lag' ? .25 : 1));
         if (Math.random() < dt * 10) { if (L.fire) beep(rnd(80, 160), 50, .08, 'sawtooth', .015); else beep(rnd(1200, 2600), 600, .03, 'square', .012); }   // треск огня / стрекот стаи
-        for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w < swarm.x) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, L.fire ? ['#ffb020', '#ff5a1a', '#3a2a1a'] : GOO); }   // стая жрёт / огонь сжигает всех на пути
+        if (!GU) for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w < swarm.x) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, L.fire ? ['#ffb020', '#ff5a1a', '#3a2a1a'] : GOO); }   // стая жрёт / огонь сжигает всех на пути
         if (gap < 130) shake = Math.max(shake, .06);
         if (P.x < swarm.x + 2) { P.inv = 0; killPlayer(); if (P.dead) showToast(L.fire ? 'огонь догнал!' : 'стая догнала!', 1.8); }
       }
@@ -2898,10 +2913,10 @@ function update(dt) {
     if (fume && P.dead <= 0) {                     // выброс газа: поднимается снизу, отстанешь — подтягивается
       if (!fume.on) { if ((fume.t -= dt) <= 0) { fume.on = true; showToast('☣ ВЫБРОС ГАЗА! ЛЕЗЬ НАВЕРХ!', 2.2); boom(.12); shake = .5; } }
       else {
-        const gap = fume.y - (P.y + P.h);
-        fume.y -= (L.fume + Math.max(0, gap - 190) * 1.2) * dt * (good?.k === 'lag' ? .25 : 1);
+        const gap = fume.y - Math.max(P.y + P.h, HO && mateAlive() ? NET.remote.y + (NET.remote.h || 22) : -1e9);
+        if (!GU) fume.y -= (L.fume + Math.max(0, gap - 190) * 1.2) * dt * (good?.k === 'lag' ? .25 : 1);
         if (Math.random() < dt * 4) beep(rnd(60, 110), 40, .2, 'sawtooth', .012);
-        for (const e of enemies) if (e.hp > 0 && e.y > fume.y + 6) e.hp = -1;   // газ душит и мутантов
+        if (!GU) for (const e of enemies) if (e.hp > 0 && e.y > fume.y + 6) e.hp = -1;   // газ душит и мутантов
         if (gap < 60) shake = Math.max(shake, .05);
         if (P.y + P.h * .4 > fume.y) { P.inv = 0; killPlayer(); if (P.dead) showToast('газ догнал!', 1.8); }
       }
@@ -2912,6 +2927,11 @@ function update(dt) {
     }
     for (const it of items) if (!it.got && hit(P, it)) {
       it.got = true;
+      if (GU && it.k !== 'gun') {
+        if (it.k === 'talk' || it.k === 'meds') { it.got = false; continue; }   // разговор и засада — у хозяина
+        NET.got.set(it.nid, time); netSend({ t: 'got', id: it.nid, lvl: lvlN });
+        if (it.k !== 'ammo' && it.k !== 'life') continue;
+      }
       if (it.k === 'life') { lives++; showToast('❤ секрет! +1 жизнь', 2.4); beep(500, 1500, .5, 'triangle', .06); }
       else if (it.k === 'ammo') { it.gone = true; ammo[it.g] += WPN[it.g].box; showToast(`+${WPN[it.g].box} · ${WPN[it.g].n}`, 1.2); beep(700, 1100, .1, 'square', .04); }
       else if (it.k === 'gun') {
@@ -2955,9 +2975,8 @@ function update(dt) {
   // --- Арена: решётка закрывается, сверху падает носорог ---
   const A = lv.arena;
   if (A && !boss.on && !boss.dead && P.x > (A.l + 1) * T && P.y < A.top * T) {
-    boss.on = true;
-    gate(true);
-    boom(.1); shake = .4;
+    if (GU) { if (time - (NET.arT || 0) > 1) { NET.arT = time; netSend({ t: 'arena', lvl: lvlN, x: P.x, y: P.y }); } }
+    else { boss.on = true; gate(true); boom(.1); shake = .4; }
   }
 
   // --- Жуки ---
@@ -2965,21 +2984,23 @@ function update(dt) {
   const pc = { x: P.x + 2, y: P.y + 3, w: P.w - 4, h: P.h - 5 };   // хитбокс игрока чуть меньше картинки
   for (const e of enemies) {
     e.fl -= dt;
-    if (e.k === 'n') {                                // гнездо: выпускает жуков, когда герой рядом
-      const near = Math.abs(P.x - e.x) < 300 && Math.abs(P.y - e.y) < 120;
+    if (GU) netLerp(e, dt);
+    else if (e.k === 'n') {                                // гнездо: выпускает жуков, когда герой рядом
+      const near = nearAny(e.x, e.y, 300, 120);
       e.cd -= edt;
-      if (near && !P.dead && e.cd <= 0 && e.kids < D.kids) {
+      if (near && e.cd <= 0 && e.kids < D.kids) {
         e.cd = D.cd + Math.random() * 1.6;
         hatch(pick(L.spawn), e.x + 1, e.y + 8, Math.sign(P.x - e.x) || -1, -200, e);
         explode(e.x + 10, e.y + 2, 5, ['#3a2a1a', '#6a5030']);
       }
-    } else bugAI(e, edt);
+    } else { const mt = mateFor(e); if (mt) { const s0 = P; P = mt; NET.px = true; try { bugAI(e, edt); } finally { P = s0; NET.px = false; } } else bugAI(e, edt); }
     if (!P.dead && e.hp > 0 && !e.human && e.k !== 'n' && e.k !== 'o' && !e.hang && !e.burrow && !e.jar && !(P.slide > 0) && hit(pc, e)) hurt(DMG[e.k] || 15);
   }
-  if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); updKin(); updCarnage(dt); hordeLeave(dt); }
-  for (const c of cracks) {                           // трещины в стенах выпускают жуков
+  if (GU) { for (const a of allies) netLerp(a, dt); }
+  else if (MUT()) { allies.forEach((a, i) => allyAI(a, i, dt)); allies = allies.filter(a => a.hp > 0); updRising(dt); updKin(); updCarnage(dt); hordeLeave(dt); }
+  if (!GU) for (const c of cracks) {                           // трещины в стенах выпускают жуков
     c.cd -= dt;
-    if (!P.dead && c.cd <= 0 && c.n < (L.crackN || 3) && Math.abs(P.x - c.x) < 230 && Math.abs(P.y - c.y) < (L.crackRange || 60)) {
+    if (c.cd <= 0 && c.n < (L.crackN || 3) * (D.co || 1) && nearAny(c.x, c.y, 230, L.crackRange || 60)) {
       c.cd = (L.crackCd || D.crack) + Math.random() * 1.5; c.n++;
       const k = pick(L.spawn), w = BUGS[k][0], cx = Math.floor(c.x / T), row = Math.floor(c.y / T);
       const x = c.x + (solid(cx + 1, row) ? T - w - 1 : solid(cx - 1, row) ? 1 : (T - w) / 2);
@@ -2987,7 +3008,12 @@ function update(dt) {
       explode(c.x + 8, c.y + 8, 8, ['#4a4048', '#2a2228', '#6a6068']); beep(120, 60, .2, 'sawtooth', .04);
     }
   }
-  if (boss.on && !boss.dead) ({ mantis, rhino, larva, chimera, roach: chimera })[boss.parts[0].k](edt, boss.parts[0], pc);
+  if (GU) { if (boss.parts[0]) netLerp(boss.parts[0], dt); }
+  else if (boss.on && !boss.dead) {
+    const bp = boss.parts[0], fn = ({ mantis, rhino, larva, chimera, roach: chimera })[bp.k], mt = mateFor(bp);
+    if (mt) { const s0 = P; P = mt; NET.px = true; try { fn(edt, bp, { x: mt.x + 2, y: mt.y + 3, w: mt.w - 4, h: mt.h - 5 }); } finally { P = s0; NET.px = false; } }
+    else fn(edt, bp, pc);
+  }
   if (L.art && !P.dead && !boss.on && !boss.dead) {     // богомол издалека кидает камни; чем ближе к нему, тем чаще
     artT -= edt;
     if (artT <= 0) { artT = L.art * rnd(.7, 1.3); throwRock(clamp(P.x + 5 + rnd(-40, 150) * (P.face || 1), T * 2, MAPW - T * 2), !!L.under); }
@@ -3055,12 +3081,13 @@ function update(dt) {
       if (b.k === 'glob') gasCloud(b.x + 3, Math.floor((b.y + 2) / T) * T); else explode(b.x, b.y, 3, ['#9be22d', '#e6ff7a']);
     }
   }
+  if (GU) for (const b of ebullets) if (b.life <= 0 && b.nid) NET.ebHit.add(b.nid);   // у меня погасла — из снимков хозяина не возвращать
   ebullets = ebullets.filter(b => b.life > 0);
-  for (const e of enemies) if (e.k === 'l' && e.hp === 0 && !e.popped) {      // личинка лопается кислотой
+  if (!GU) for (const e of enemies) if (e.k === 'l' && e.hp === 0 && !e.popped) {      // личинка лопается кислотой
     e.popped = true; beep(220, 80, .2, 'sawtooth', .03);
     for (let i = 0; i < 4; i++) ebullets.push({ x: e.x + e.w / 2 - 2, y: e.y, w: 4, h: 4, vx: rnd(-90, 90), vy: rnd(-240, -150), g: 600, life: 1.5, k: 'acid' });
   }
-  for (const e of enemies) if (e.hp === 0 && !e.popped && !boss.dead && (e.k === 'x' || e.k === 't' || e.k === 'N')) {
+  if (!GU) for (const e of enemies) if (e.hp === 0 && !e.popped && !boss.dead && (e.k === 'x' || e.k === 't' || e.k === 'N')) {
     e.popped = true;
     if (e.k === 'N') swarmOut(e, 3);                                              // из спины носителя лезет мелюзга
     else if (e.k === 't') gasCloud(e.x + e.w / 2, e.y + e.h);                     // газовик лопается облаком
@@ -3071,11 +3098,11 @@ function update(dt) {
   }
   for (const e of enemies) if (e.hp <= 0 && e.mom) { e.mom.kids--; e.mom = null; }
   enemies = enemies.filter(e => e.hp > 0);
-  if (L.obj === 'nests' && !done && !enemies.some(e => e.k === 'n')) complete(L.nestDone || 'все гнёзда уничтожены! дверь открыта');
-  if (L.obj === 'infect' && !done && infected >= L.infect) complete(L.infDone || 'заражено!');
-  if (L.obj === 'desant' && !done && desKilled >= L.desant) { complete(L.desDone || 'десант разбит!'); for (const e of enemies) if (e.k === 'V') e.leave = true; }
-  if (L.obj === 'free' && !done && !enemies.some(e => e.jar && (!L.stages || inStage(e)))) complete(L.freeDone || 'все на свободе!');
-  if (L.obj === 'guards' && !done && !enemies.some(e => e.gd)) complete(L.guardDone || (L.guard ? 'свита богомола разбита! путь к логову открыт' : 'свита перебита! люк на крышу открыт'));
+  if (!GU && L.obj === 'nests' && !done && !enemies.some(e => e.k === 'n')) complete(L.nestDone || 'все гнёзда уничтожены! дверь открыта');
+  if (!GU && L.obj === 'infect' && !done && infected >= L.infect) complete(L.infDone || 'заражено!');
+  if (!GU && L.obj === 'desant' && !done && desKilled >= L.desant) { complete(L.desDone || 'десант разбит!'); for (const e of enemies) if (e.k === 'V') e.leave = true; }
+  if (!GU && L.obj === 'free' && !done && !enemies.some(e => e.jar && (!L.stages || inStage(e)))) complete(L.freeDone || 'все на свободе!');
+  if (!GU && L.obj === 'guards' && !done && !enemies.some(e => e.gd)) complete(L.guardDone || (L.guard ? 'свита богомола разбита! путь к логову открыт' : 'свита перебита! люк на крышу открыт'));
   for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; }
   parts = parts.filter(p => p.life > 0);
 }
@@ -3104,6 +3131,7 @@ function impact(r, pc) {
       if (tile(cx, cy) === ROCK) breakRock(cx, cy);
 }
 function breakRock(cx, cy) {
+  if (NET && NET.ready && !NET.rx) netSend({ t: 'rock', lvl: lvlN, cx, cy });
   grid[cy][cx] = L.sky && cy < L.ground ? AIR : BG; delete rockHit[cx + ',' + cy];
   explode(cx * T + 8, cy * T + 8, 8, ['#8a8478', '#5a5650', '#a89a88']); boom(.04);
 }
@@ -6465,7 +6493,83 @@ document.getElementById('mback').onclick = () => { mapFocus(-1); beep(500, 300, 
   addEventListener('resize', () => { if (mapOpen) { mapTw = null; mapFit(); } });
 }
 // ===== Кооп по сети (друг, msg 1915): WebRTC напрямую между устройствами, связка — бесплатный сервер PeerJS =====
-var NET = { role: null, peer: null, conn: null, code: '', ready: false, remote: null, rs: null, sendT: 0, waitT: 0 };
+var NET = { role: null, peer: null, conn: null, code: '', ready: false, remote: null, rs: null, sendT: 0, waitT: 0, nid: 0, kill: new Map(), got: new Map(), ebHit: new Set() };
+function GUEST() { return !!(NET && NET.ready && NET.role === 'guest'); }
+function HOST() { return !!(NET && NET.ready && NET.role === 'host'); }
+function mateAlive() { const m = NET && NET.ready && NET.remote; return !!(m && m.lvl === lvlN && !(m.dead > 0)); }
+function mateIn(k) { return mateAlive() && NET.remote.mv === k; }
+function nearAny(x, y, rx, ry) { return (!P.dead && Math.abs(P.x - x) < rx && Math.abs(P.y - y) < ry) || (HOST() && mateAlive() && Math.abs(NET.remote.x - x) < rx && Math.abs(NET.remote.y - y) < ry); }
+function mateFor(e) {                          // хозяин: если напарник ближе к монстру — монстр «видит» его вместо тебя
+  if (!HOST() || !mateAlive()) return null;
+  const m = NET.remote, dm = Math.hypot(m.x - e.x, m.y - e.y), dp = P.dead ? 1e9 : Math.hypot(P.x - e.x, P.y - e.y);
+  if (dm >= dp) return null;
+  return NET.mp || (NET.mp = Object.assign({}, P, { x: m.x, y: m.y, h: m.h || P.h, face: m.face, on: m.on, crouch: m.crouch, climb: m.climb, vx: m.vx || 0, vy: 0, dead: 0, inv: 0, slide: 0, safe: 0, mv: null, mate: true }));
+}
+function coopMore() {                          // кооп: монстров в 1.5 раза больше — каждому второму добавляем двойника рядом
+  const all = enemies.filter(e => e.k !== 'n'), ok = all.filter(e => !(e.hang || e.burrow || e.jar || e.lure || e.hide || 'oVIJB'.includes(e.k) || e.k === 'AL' || e.k === 'LB'));
+  const want = Math.round(all.length * .5), add = [];       // висящих, спрятанных и в колбах не клонируем — вместо них двойники ходячим
+  for (let i = 0; i < want && ok.length && i < ok.length * 2; i++) {
+    const e = ok[(i * 2 + (i >= ok.length ? 1 : 0)) % ok.length], c = structuredClone(e);
+    c.x += (i % 2 ? -1 : 1) * rnd(14, 34); c.cd = 1 + Math.random() * 2; unstick(c); add.push(c);
+  }
+  enemies.push(...add);
+  D.co = 1.5; D.kids = Math.round(D.kids * 1.5); D.cd *= .75; D.crack *= .75;   // гнёзда и трещины выпускают больше и чаще
+}
+const pk = o => { const r = {}; for (const k in o) { const v = o[k], t = typeof v; if (t === 'number') { if (isFinite(v)) r[k] = Math.round(v * 10) / 10; } else if (t === 'string' || t === 'boolean') r[k] = v; } return r; };
+function netSnap() {                           // хозяин → напарник: всё живое рядом с ним
+  const m = NET.remote, c = m && m.lvl === lvlN ? m : P, nd = o => Math.abs(o.x - c.x) < 640 && Math.abs(o.y - c.y) < 420;
+  const id = o => (o.nid || (o.nid = ++NET.nid), o), b = boss.parts[0];
+  return { t: 'w', lvl: lvlN, stg, e: enemies.filter(e => e.hp > 0 && (nd(e) || e.k === 'n' || e.gd || e.jar)).map(e => pk(id(e))),
+    it: items.filter(i => !i.got && i.k !== 'gun').map(i => pk(id(i))), eb: ebullets.filter(nd).map(o => pk(id(o))),
+    b: b ? Object.assign(pk(b), { bon: boss.on, bdead: boss.dead }) : null, al: MUT() ? allies.filter(nd).map(a => pk(id(a))) : null,
+    lift: lift ? pk({ y: lift.y, go: lift.go, fix: lift.fix }) : null, cart: cart ? pk({ x: cart.x, go: cart.go, stop: cart.stop, v: cart.v }) : null,
+    sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
+}
+function netMerge(cur, arr, skip) {            // новые данные хозяина поверх своих: координаты — целью для плавного движения
+  const old = new Map(); for (const e of cur) if (e.nid) old.set(e.nid, e);
+  const out = [];
+  for (const o of arr) {
+    if (skip && skip.has(o.nid)) continue;
+    const e = old.get(o.nid);
+    if (e && Math.abs(e.x - o.x) < 64 && Math.abs(e.y - o.y) < 64) { const x = e.x, y = e.y; Object.assign(e, o); e.tx = o.x; e.ty = o.y; e.x = x; e.y = y; out.push(e); }
+    else { o.tx = o.x; o.ty = o.y; out.push(o); }
+  }
+  return out;
+}
+function netLerp(e, dt) { if (e.tx === undefined) return; const k = Math.min(1, dt * 14); e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; }
+function netMover(o, ax, dt) {                 // лифт и вагонетка напарника едут по данным хозяина
+  const t = ax === 'y' ? o.ty : o.tx; o.dx = 0; o.dy = 0; if (t === undefined) return;
+  const v = o[ax] + (t - o[ax]) * Math.min(1, dt * 12); o[ax === 'y' ? 'dy' : 'dx'] = v - o[ax]; o[ax] = v;
+  if (o === cart && !P.dead && !P.on && !P.climb && Math.abs(P.x - cart.x - 15) < 60) P.x += cart.dx;
+}
+function netWorld(m) {                         // напарник: применяем снимок мира
+  if (m.lvl !== lvlN || !enemies || state === 'title') return;
+  for (const [id, t] of NET.kill) if (time - t > .8) NET.kill.delete(id);
+  for (const [id, t] of NET.got) if (time - t > 2) NET.got.delete(id);
+  if (L.stages && m.stg !== stg) stageOn(m.stg);
+  enemies = netMerge(enemies, m.e, NET.kill);
+  items = [...items.filter(i => i.k === 'gun' && !i.got), ...m.it.filter(i => !NET.got.has(i.nid))];
+  const ids = new Set(m.eb.map(b => b.nid)); for (const id of NET.ebHit) if (!ids.has(id)) NET.ebHit.delete(id);
+  const ob = new Map(ebullets.filter(b => b.nid).map(b => [b.nid, b]));
+  ebullets = [...ebullets.filter(b => !b.nid), ...m.eb.filter(b => !NET.ebHit.has(b.nid)).map(b => ob.get(b.nid) || b)];
+  if (m.al) allies = netMerge(allies, m.al);
+  if (lift && m.lift) { lift.ty = m.lift.y; lift.go = m.lift.go; lift.fix = m.lift.fix; }
+  if (cart && m.cart) { cart.tx = m.cart.x; cart.go = m.cart.go; cart.stop = m.cart.stop; cart.v = m.cart.v; }
+  if (swarm && m.sw) Object.assign(swarm, m.sw);
+  if (fume && m.fu) Object.assign(fume, m.fu);
+  const r = boss.parts[0];
+  if (r && m.b) {
+    if (m.b.bon && !boss.on) { boss.on = true; gate(true); boom(.1); shake = .4; arenaPull(); }
+    else if (!m.b.bon && boss.on && !boss.dead) { boss.on = false; gate(false); }
+    const x = r.x, y = r.y, far = Math.abs(x - m.b.x) > 80 || Math.abs(y - m.b.y) > 80;
+    Object.assign(r, m.b); r.tx = m.b.x; r.ty = m.b.y; if (!far) { r.x = x; r.y = y; }
+    if (m.b.bdead && !boss.dead) { NET.rx = true; hurtBoss(r, 1e6); NET.rx = false; }
+  }
+}
+function arenaPull(mx, my) {                   // бой начал напарник — решётка закрылась бы перед тобой: переносим к нему
+  const A = lv.arena, m = mx !== undefined ? { x: mx, y: my, lvl: lvlN } : NET.remote; if (!A || !m || m.lvl !== lvlN || !P || P.dead) return;
+  if (P.x <= (A.l + 1) * T + 2 && m.x > (A.l + 1) * T) { P.x = m.x; P.y = m.y; P.vx = 0; P.vy = 0; P.climb = false; P.mv = null; cam = camX(); showToast('⚔ напарник начал бой — ты рядом с ним', 2.2); }
+}
 const NET_PFX = 'strelsd-', NET_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 function netLoad() {
   if (window.Peer) return Promise.resolve();
@@ -6494,7 +6598,7 @@ async function netJoin(code) {
   netClose(true); netNote('подключаюсь к ' + code + '…');
   try { await netLoad(); } catch (e) { netNote('нет связи с интернетом'); return; }
   const peer = new Peer({ debug: 0 }); Object.assign(NET, { role: 'guest', peer, code });
-  peer.on('open', () => netBind(peer.connect(NET_PFX + code, { reliable: true })));
+  peer.on('open', () => netBind(peer.connect(NET_PFX + code, { reliable: true, serialization: 'json' })));
   peer.on('error', e => netNote(e.type === 'peer-unavailable' ? `комната ${code} не найдена` : 'ошибка связи: ' + (e.type || e)));
 }
 function netBind(c) {
@@ -6515,6 +6619,23 @@ function netMsg(m) {
   if (m.t === 'p') { NET.remote = m; if (!NET.rs || Math.abs(NET.rs.x - m.x) > 80 || Math.abs(NET.rs.y - m.y) > 80 || NET.rs.lvl !== m.lvl) NET.rs = { ...m }; }
   else if (m.t === 'lvl' && NET.role === 'guest') { openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
+  else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
+  else if (m.t === 'dmg' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) hurt(m.d); }
+  else if (m.t === 'kill' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.inv = 0; killPlayer(); } }
+  else if (m.t === 'done' && NET.role === 'guest' && m.lvl === lvlN && state !== 'title') { if (L.stages && m.stg !== stg) stageOn(m.stg); NET.rx = true; complete(m.msg); NET.rx = false; }
+  else if (m.t === 'rock' && m.lvl === lvlN && state !== 'title') { if (tile(m.cx, m.cy) === ROCK) { NET.rx = true; breakRock(m.cx, m.cy); NET.rx = false; } }
+  else if (NET.role === 'host' && m.lvl !== undefined && m.lvl !== lvlN) {}
+  else if (m.t === 'hit' && NET.role === 'host' && enemies) { const e = enemies.find(x => x.nid === m.id); if (e) { NET.rx = true; hurtEnemy(e, m.d); NET.rx = false; } }
+  else if (m.t === 'bh' && NET.role === 'host' && boss && boss.on && !boss.dead && boss.parts[0]) { NET.rx = true; hurtBoss(boss.parts[0], m.d); NET.rx = false; }
+  else if (m.t === 'arena' && NET.role === 'host' && lv && lv.arena && !boss.on && !boss.dead) { boss.on = true; gate(true); boom(.1); shake = .4; arenaPull(m.x, m.y); }
+  else if (m.t === 'got' && NET.role === 'host' && items) {
+    const it = items.find(i => i.nid === m.id);
+    if (it && !it.got) {
+      it.got = true;
+      if (it.k === 'ammo') it.gone = true;
+      else if (!['life', 'gun', 'talk', 'meds'].includes(it.k)) { if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3; complete(L.itemTxt || ITEM[it.k]); }
+    }
+  }
 }
 function netTick() {                          // 20 раз в секунду — где я и что делаю
   if (!NET.ready) return;
@@ -6523,7 +6644,8 @@ function netTick() {                          // 20 раз в секунду —
   if (NET.rxT && now - NET.rxT > 15000) { netLost(); return; }
   if (state !== 'play' || !P) return; if (now - NET.sendT < 50) return; NET.sendT = now;
   netSend({ t: 'p', lvl: lvlN, x: Math.round(P.x), y: Math.round(P.y), face: P.face, ax: P.ax, ay: P.ay, crouch: P.crouch, climb: P.climb, rot: P.rot, on: P.on,
-    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead });
+    h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
+  if (NET.role === 'host' && now - (NET.wT || 0) > 80) { NET.wT = now; netSend(netSnap()); }   // ~12 раз в секунду — мир напарнику
 }
 function drawMate() {                         // напарник: свой цвет, табличка над головой, плавное движение
   const m = NET.remote; if (!NET.ready || !m || !NET.rs || m.lvl !== lvlN || state !== 'play') return;
