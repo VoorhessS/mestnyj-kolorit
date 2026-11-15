@@ -1139,7 +1139,7 @@ const LEVELS = [
   // ===================== ЛОГОВО АЛЬФЫ — только кооп, ветка «сыворотка» (друг, msg 1960: в коопе у человечества есть шанс) =====================
   { city: 7, coopEnd: true, name: 'ЛОГОВО АЛЬФЫ', task: 'Вдвоём — убейте Альфу', obj: 'boss', bossTxt: 'в логово', need: 'сначала победите Альфу', ground: 99, dark: .82,
     cols: 96, rows: 24, base: SOLID, pal: PAL.nora, spawn: ['m', 'r', 'j'],
-    tips: ['пригнулась — сейчас рванёт клешнями. отскочи, а врежется в стену — бей, пока оглушена', 'зелёные плевки оставляют облако яда — не стой в нём'],
+    tips: ['«!» над головой — выстрелит клешнёй: прыгай или пригнись, иначе подтянет и ужалит', 'пригнулась — сейчас рванёт клешнями. отскочи, а врежется в стену — бей, пока оглушена', 'зелёные плевки оставляют облако яда — не стой в нём'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
       B.room(1, 3, 30, 7);                                                          // нора, пол — 8
@@ -2322,6 +2322,7 @@ function wallSide() {                       // стена вплотную сл�
   return 0;
 }
 function updatePlayer(dt, k) {
+  if (P.pullT > 0 && !P.dead) { P.pullT -= dt; P.x += (P.pullTo - P.x) * Math.min(1, dt * 10); P.vx = 0; P.vy = 0; P.climb = false; return; }   // Скорпик тянет клешнёй
   P.inv = Math.max(0, P.inv - dt); P.slash = Math.max(0, (P.slash || 0) - dt); P.safe = Math.max(0, (P.safe || 0) - dt); P.cd -= dt; P.drop -= dt; P.slideCd = (P.slideCd || 0) - dt;
   hurtT += dt; hpFlash -= dt; if (hurtT > 1.5 && hp < HP_MAX && !P.dead) hp = Math.min(HP_MAX, hp + 2.5 * dt);   // шкала сама восстанавливается
   const pdy = P.pdy; P.pdy = k.dy;
@@ -3516,7 +3517,7 @@ function chimera(dt, b, pc) {
 // Альфа (друг, msg 1960): рывок рогами до стены (врезалась — оглушена, урон ×2), прыжок с ударной волной,
 // ядовитые плевки, зовёт рой. Меньше половины здоровья — злее и быстрее.
 function alpha(dt, b, pc) {
-  b.fl -= dt; b.t -= dt;
+  b.fl -= dt; b.t -= dt; b.stab = Math.max(0, (b.stab || 0) - dt);
   const A = lv.arena, left = A.l * T + 2, right = (COLS - 1) * T - 2, cx = b.x + b.w / 2, dx = P.x + 5 - cx, dir = Math.sign(dx) || -1;
   const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1;
   if (rage && !b.raged) { b.raged = true; showToast('АЛЬФА В ЯРОСТИ!', 2); shake = 1; boom(.14); beep(70, 30, 1.4, 'sawtooth', .07); }
@@ -3527,11 +3528,25 @@ function alpha(dt, b, pc) {
     if (b.t <= 0 && b.on) {
       const kids = enemies.filter(e => e.boss).length, r = Math.random();
       if (Math.abs(dx) > 90 && r < .38) { b.st = 'aim'; b.t = .75 / sp; b.dir = dir; beep(140, 60, .6, 'sawtooth', .05); }
+      else if (Math.abs(dx) > 46 && Math.abs(dx) < 170 && r >= .3 && r < .55) { b.st = 'claw'; b.t = .6 / sp; b.dir = dir; b.cl = 0; beep(500, 900, .3, 'square', .04); }   // друг (msg 1999): клешня
       else if (Math.abs(dx) < 150 && r < .6) { b.st = 'crouch'; b.t = .55; beep(300, 80, .5, 'sawtooth', .04); }
       else if (kids < (rage ? 6 : 4) && r < .78) { b.st = 'call'; b.t = .9; }
       else { b.st = 'spit'; b.t = .6; }
     }
-  } else if (b.st === 'aim') { b.vx = 0; if (b.t <= 0) { b.st = 'dash'; b.t = 1.6; b.vx = b.dir * 330 * sp; boom(.08); } }
+  } else if (b.st === 'claw') { b.vx = 0; if (b.t <= 0) { b.st = 'reach'; b.t = .3; b.cl = 0; beep(900, 300, .15, 'sawtooth', .05); } }
+  else if (b.st === 'reach') {                                         // клешня летит по земле на уровне груди: прыгни или пригнись
+    b.vx = 0; b.cl = Math.min(175, b.cl + 640 * dt);
+    const tx = cx + b.dir * (22 + b.cl), fy = b.y + b.h;
+    if (!P.dead && hit({ x: tx - 6, y: fy - 24, w: 12, h: 8 }, pc)) {
+      const to = b.dir > 0 ? b.x + b.w + 2 : b.x - P.w - 2;
+      b.st = 'pull'; b.t = .55; b.gm = !!NET.px; beep(160, 90, .3, 'square', .06); shake = Math.max(shake, .4);
+      if (NET.px) netSend({ t: 'pull', x: to, d: .5 }); else { P.pullTo = to; P.pullT = .5; }
+    } else if (b.t <= 0) { b.st = 'back'; b.t = .3; }
+  } else if (b.st === 'pull') {
+    b.vx = 0; b.cl = Math.max(4, b.cl - 330 * dt);
+    if (b.t <= 0) { if (!!NET.px === b.gm && !P.dead) hurt(22); b.stab = .35; b.cl = 0; b.st = 'walk'; b.t = rnd(.9, 1.4) / sp; beep(1200, 200, .2, 'sawtooth', .05); }
+  } else if (b.st === 'back') { b.vx = 0; b.cl = Math.max(0, b.cl - 700 * dt); if (b.cl <= 0) { b.st = 'walk'; b.t = rnd(.5, 1) / sp; } }
+  else if (b.st === 'aim') { b.vx = 0; if (b.t <= 0) { b.st = 'dash'; b.t = 1.6; b.vx = b.dir * 330 * sp; boom(.08); } }
   else if (b.st === 'dash') {
     b.vx = b.dir * 330 * sp;
     if (Math.random() < .5) explode(cx - b.dir * 14, b.y + b.h - 2, 1, ['#5a4a3a', '#3a2a22']);
@@ -3568,10 +3583,18 @@ function alpha(dt, b, pc) {
   if (!P.dead && hit(pc, b)) hurt(b.st === 'dash' ? BOSS_DMG : 30);
 }
 function drawAlphaBoss(b) {                    // Скорпик из заставок, в полный рост
-  const strike = b.st === 'dash' || b.st === 'leap' || b.st === 'aim', fo = MON[strike ? 'ALs' : 'AL'][Math.floor(time * (b.st === 'dash' ? 10 : 3)) % 2], fr = b.fl > 0 && fo.wh ? fo.wh : fo.img;
+  const strike = b.st === 'dash' || b.st === 'leap' || b.st === 'aim' || b.stab > 0, fo = MON[strike ? 'ALs' : 'AL'][Math.floor(time * (b.st === 'dash' ? 10 : 3)) % 2], fr = b.fl > 0 && fo.wh ? fo.wh : fo.img;
   const sh = b.st === 'aim' || b.st === 'call' ? (Math.random() - .5) * 3 : 0, st = b.st === 'stuck' || b.st === 'dizzy';
   const x = Math.round(b.x + b.w / 2 - fr.width / 2 - cam + sh), y = Math.round(b.y + b.h - fr.height + 2);
-  spr(fr, x, y, b.dir > 0);                    // спрайт смотрит влево
+  spr(fr, x, y, b.dir < 0);                    // Скорпик нарисован мордой вправо
+  if (b.cl > 0 && (b.st === 'reach' || b.st === 'pull' || b.st === 'back')) {   // клешня на суставах
+    const d = b.dir, x0 = b.x + b.w / 2 + d * 22 - cam, ty = b.y + b.h - 20, tx = x0 + d * b.cl, sh = b.st === 'pull' ? 2 : 4;
+    for (let k = 0; k < b.cl; k += 5) { rect(x0 + d * k - 2, ty - 2, 5, 5, '#1c3426'); rect(x0 + d * k - 1, ty - 2, 2, 1, '#5f9a72'); if (k % 20 === 10) rect(x0 + d * k, ty, 1, 1, '#9aff5a'); }
+    ctx.lineCap = 'round';
+    for (const [w, c] of [[4, '#0a120e'], [2, '#5f9a72']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + d * 7, ty - 2 - sh); ctx.lineTo(tx + d * 12, ty - sh + 1); ctx.moveTo(tx, ty + 1); ctx.lineTo(tx + d * 7, ty + 2 + sh); ctx.lineTo(tx + d * 11, ty + sh); ctx.stroke(); }
+    rect(tx - 3, ty - 3, 7, 7, '#356448'); rect(tx - 2, ty - 3, 3, 1, '#5f9a72');
+  }
+  if (b.st === 'claw') { ctx.fillStyle = '#ff5a5a'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center'; ctx.fillText('!', b.x + b.w / 2 - cam, b.y - 8); ctx.textAlign = 'left'; }
   if (st) for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.1; rect(b.x + b.w / 2 - cam + Math.cos(a) * 14, b.y - 6 + Math.sin(a) * 3, 3, 3, '#ffd23f'); }   // звёздочки — оглушена
   if (b.st === 'call') { ctx.strokeStyle = `rgba(154,255,90,${.5 + .5 * Math.sin(time * 20)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(b.x + b.w / 2 - cam, b.y + 10, 20 + (1 - b.t / .9) * 30, 0, 7); ctx.stroke(); }
 }
@@ -5941,15 +5964,7 @@ function drawStory() {
   }
   if (amb && amb.end) {                              // Альфа спускается из вентиляции и жалит (друг, 13.11)
     const t = AMB_T - amb.end, sx = P.x - cam + 5, sy = P.y - camY + 6, f = P.face || 1;
-    if (t < 5.6) {
-      const ay = Math.min(sy + 16 - 56, -60 + t * 120), ax = sx + f * 36 - 30, strike = t > 1.5 && t < 2.3;
-      const fr = MON[strike ? 'ALs' : 'AL'][Math.floor(time * 3) % 2];
-      ctx.save(); if (f > 0) { ctx.translate(Math.round(ax) + 60, 0); ctx.scale(-1, 1); ctx.translate(-Math.round(ax), 0); }
-      outlined(() => ctx.drawImage(fr.img, Math.round(ax), Math.round(ay)));
-      ctx.restore();
-      if (t < 1.5) { ctx.strokeStyle = 'rgba(200,200,210,.4)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax + 30, 0); ctx.lineTo(ax + 30, ay + 4); ctx.stroke(); }   // спускается на нити
-      if (strike) { ctx.fillStyle = 'rgba(160,255,90,.35)'; ctx.fillRect(0, 0, W, H); rect(sx - 2, sy - 2, 5, 5, '#9aff5a'); }
-    }
+    if (t < 5.6) drawAlphaDrop(t, sx, sy, f, amb, .35);
     const g = clamp((t - 1.8) / 2, 0, 1), blk = clamp((t - 4.2) / 1.6, 0, 1);
     ctx.fillStyle = `rgba(60,160,40,${g * .5 * (.7 + .3 * Math.sin(time * 9))})`; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = `rgba(0,0,0,${blk})`; ctx.fillRect(0, 0, W, H);
@@ -6899,11 +6914,35 @@ function drawRevive(r) {                       // над лежащим хозя
 function drawGuestSting() {                    // напарник видит, как Альфа спускается и жалит хозяина
   const a = NET.am, m = NET.rs; if (!a || !a.end || !a.co || !m || NET.amT > 2.6) return;
   const t = NET.amT || 0, sx = m.x - cam + 5, sy = m.y - camY + 6, f = m.face || 1;
-  const ay = Math.min(sy + 16 - 56, -60 + (t + 1) * 120), ax = sx + f * 36 - 30, strike = t > .5 && t < 1.3;
-  const fr = MON[strike ? 'ALs' : 'AL'][Math.floor(time * 3) % 2];
-  ctx.save(); if (f > 0) { ctx.translate(Math.round(ax) + 60, 0); ctx.scale(-1, 1); ctx.translate(-Math.round(ax), 0); }
-  outlined(() => ctx.drawImage(fr.img, Math.round(ax), Math.round(ay))); ctx.restore();
-  if (strike) { ctx.fillStyle = 'rgba(160,255,90,.25)'; ctx.fillRect(0, 0, W, H); }
+  drawAlphaDrop(t + 1, sx, sy, f, a, .25);
+}
+let dropKey = null;
+function drawAlphaDrop(t, sx, sy, f, key, fl) {  // Скорпик на высоком стеллаже → прыжок → ударная волна → жало (друг, msg 1999). Экранные координаты
+  const fy = sy + 16, shx = Math.round(sx + f * 96), sh = 72, top = fy - sh, a = clamp(t / .35, 0, 1);
+  ctx.globalAlpha = a;                                                   // стеллаж больницы: стойки, полки, коробки и банки
+  rect(shx - 22, top, 3, sh, '#3a4048'); rect(shx + 19, top, 3, sh, '#3a4048');
+  for (let i = 0; i < 4; i++) {
+    const y = top + i * 24; rect(shx - 22, y, 44, 3, '#5a626c'); rect(shx - 22, y + 3, 44, 1, '#22262c');
+    if (i) for (let j = 0; j < 3; j++) if (hash(i, j) % 3) rect(shx - 18 + j * 13, y - 9 + hash(j, i) % 3, 9, 9 - hash(j, i) % 3, ['#8a7a5a', '#c8c0b0', '#6a8a9a'][hash(i * 3, j) % 3]);
+  }
+  ctx.globalAlpha = 1;
+  let ax, ay, cr = 0;                                                    // ax, ay — верх-лево спрайта 72×58, ноги на ay + 56
+  const land = sx + f * 50 - 36;
+  if (t < .8) { ax = shx - 36 + f * (14 - t * 10); ay = top - 56 + (t < .3 ? 6 * (1 - t / .3) : 0); }   // выполз на верх стеллажа
+  else if (t < 1.25) {                                                   // прыжок дугой к герою
+    const u = (t - .8) / .45, x0 = shx - 36 + f * 6; ax = x0 + (land - x0) * u; ay = top - 56 + (fy - top) * u - Math.sin(u * Math.PI) * 30;
+  } else { ax = land; ay = fy - 56; cr = t < 1.5 ? 1 - (t - 1.25) / .25 : 0; }
+  if (t >= 1.25 && dropKey !== key) { dropKey = key; shake = Math.max(shake, .9); boom(.16); beep(80, 30, .8, 'sawtooth', .07); navigator.vibrate?.(80); }   // приземлился
+  if (t > 1.25 && t < 1.9) {                                             // ударная волна по полу
+    const u = (t - 1.25) / .65, cx = land + 36;
+    ctx.strokeStyle = 'rgba(220,210,180,' + (1 - u) + ')'; ctx.lineWidth = 2;
+    for (const k of [1, .6]) { ctx.beginPath(); ctx.ellipse(cx, fy, 10 + u * 90 * k, 3 + u * 8 * k, 0, 0, 7); ctx.stroke(); }
+    for (let i = 0; i < 6; i++) rect(cx + (i - 2.5) * 16 * (1 + u), fy - 2 - Math.sin(u * 3 + i) * 6, 2, 2, '#8a8478');
+  }
+  const strike = t > 1.5 && t < 2.3, fr = MON[strike ? 'ALs' : 'AL'][Math.floor(time * (t < 1.25 ? 6 : 3)) % 2];
+  ctx.save(); ctx.translate(Math.round(ax) + 36, Math.round(ay + 58)); ctx.scale(f > 0 ? -1 : 1, 1 - cr * .18); ctx.translate(-36, -58);   // смотрит на героя; приседает после прыжка
+  outlined(() => ctx.drawImage(fr.img, 0, 0)); ctx.restore();
+  if (strike) { ctx.fillStyle = 'rgba(160,255,90,' + fl + ')'; ctx.fillRect(0, 0, W, H); rect(sx - 2, sy - 2, 5, 5, '#9aff5a'); }
 }
 // ===== Кооп: махач — мутант против напарника =====
 let pvp = null, cureEnd = false, humansWon = false;
@@ -7010,6 +7049,7 @@ function netMsg(m) {
   else if (m.t === 'over') { if (state === 'play') { NET.rx = true; lives = 0; setState('over'); NET.rx = false; } }
   else if (m.t === 'cont') { if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); } }
   else if (m.t === 'died' && NET.role === 'host') { if (state === 'play') { lives--; if (lives < 0 || (lives === 0 && P.dead)) { lives = 0; setState('over'); } } }
+  else if (m.t === 'pull' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.pullTo = m.x; P.pullT = m.d; } }
   else if (m.t === 'dmg' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) hurt(m.d); }
   else if (m.t === 'kill' && NET.role === 'guest') { if (state === 'play' && P && !P.dead) { P.inv = 0; killPlayer(); } }
   else if (m.t === 'done' && NET.role === 'guest' && m.lvl === lvlN && state !== 'title') { if (L.stages && m.stg !== stg) stageOn(m.stg); NET.rx = true; complete(m.msg); NET.rx = false; }
