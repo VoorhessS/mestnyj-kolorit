@@ -6070,9 +6070,13 @@ const WORK_SPR = [                             // коллеги: рубашки
   mkHeroSpr({ j: '#8a2a3a', J: '#5a1a24', k: '#c8c8d0', h: '#1a1a1a', H: '#2a2a2a', s: '#b07a52', S: '#7a5034', p: '#3a3428', P: '#2a241a' }),
   mkHeroSpr({ j: '#5a8ac8', J: '#3a5a8a', k: '#e8e8f0', h: '#c8a050', H: '#e8c870', p: '#2a2a32', P: '#1a1a22' }),
   mkHeroSpr({ j: '#e8e0c8', J: '#b8b098', k: '#6a2a2a', h: '#4a2a1a', H: '#6a3a2a', s: '#e8b890', p: '#4a4a5a', P: '#2a2a3a' })];
-let introGo = false, introSeen = false;
+let introGo = false, introSeen = false, introCoop = false;
 try { introSeen = !!localStorage.getItem('strel-intro'); } catch (e) {}
-function introEnd() { introSeen = true; try { localStorage.setItem('strel-intro', '1'); } catch (e) {} setState('title'); }
+function introEnd() {
+  introSeen = true; try { localStorage.setItem('strel-intro', '1'); } catch (e) {}
+  if (introCoop) { introCoop = false; if (HOST()) { newGame(true); return; } }   // кооп: хозяин запускает уровень, напарнику придёт lvl
+  setState('title');
+}
 const h01 = n => (hash(Math.floor(n), 7) % 1000) / 1000;   // псевдослучайное 0..1 для картинок заставки
 function drawSpr(img, x, y, f, rows) {       // rows — сколько строк спрайта рисовать (сидит за столом — только верх)
   const h = rows || img.height; ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(f, 1);
@@ -6157,7 +6161,7 @@ function introOffice(t) {                     // сцена 1: офис днём
     if (dark) { ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(0, 0, W, H); } }
 }
 function introStreet(s, t) {                  // сцена 2: улица днём, жук игрового размера сжирает копа
-  const gy = H - 34, carX = W * .42, holeX = W * .84, copX0 = W * .6, heroX = W * .2;
+  const gy = H - 34, carX = W * .42, holeX = W * .84, copX0 = W * .6, heroX = W * .2, IC = introCoop ? 2.4 : 0;
   const sky = ctx.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, '#5a9ad8'); sky.addColorStop(1, '#c8e2f2'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, gy);
   ell(W * .82, 30, 10, 10, '#fff4c0');
   for (let i = 0; i < 3; i++) ell(((i * 150 + t * 8) % (W + 60)) - 30, 26 + i * 9, 20, 5, 'rgba(255,255,255,.9)');
@@ -6176,7 +6180,7 @@ function introStreet(s, t) {                  // сцена 2: улица днё
   const rise = clamp((s - .6) / .9, 0, 1), lunge = clamp((s - 2.6) / .3, 0, 1), eaten = s > 2.9;
   const bugX = holeX - lunge * (holeX - copX0 - 10), lift = Math.sin(lunge * Math.PI) * 12;
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, gy - 1 + (rise < 1 ? 0 : 20)); ctx.clip();
-  drawStreetBug(bugX, gy - 1 + (1 - rise) * 26 - lift, -1, s > 2.5 && s < 2.9 ? t * 4 : 0, eaten && s < 4.4 ? Math.abs(Math.sin(s * 14)) : s > 6 ? Math.abs(Math.sin(s * 10)) : 0, 'R');
+  drawStreetBug(bugX, gy - 1 + (1 - rise) * 26 - lift, -1, s > 2.5 && s < 2.9 ? t * 4 : 0, eaten && s < 4.4 ? Math.abs(Math.sin(s * 14)) : s > 6 + IC ? Math.abs(Math.sin(s * 10)) : 0, 'R');
   ctx.restore();
   if (!eaten) { drawSpr(COP_SPR.stand, copX0 - 7, gy - 24, 1); rect(copX0 + 5, gy - 12, 6, 2, '#222'); if (s > .4 && Math.floor(s * 7) % 2 === 0) ell(copX0 + 13, gy - 11, 3, 2, '#ffe9a0'); }
   else if (s < 4) for (let i = 0; i < 10; i++) { const q = (s - 2.9) * 2 + i * .07; ell(copX0 + Math.cos(i * 1.7) * q * 26, gy - 16 - Math.sin(i * 2.3) * q * 18 + q * q * 18, 1.5, 1.5, i % 2 ? '#c8102e' : '#7a0a10'); }
@@ -6187,7 +6191,21 @@ function introStreet(s, t) {                  // сцена 2: улица днё
   const hx = Math.min(heroX, -14 + s * 90); let fr = s * 90 - 14 < heroX ? HERO_SPR['r' + (1 + Math.floor(t * 10) % 4)] : HERO_SPR.stand;
   if (s > 4.4 && s < 4.9) fr = HERO_SPR.crouch;
   drawSpr(fr, hx, gy - fr.height, 1);
-  if (s > 4.9) { rect(hx + 11, gy - 13, 8, 3, '#2a2a2e'); if (s > 6 && Math.floor(s * 8) % 2 === 0) ell(hx + 21, gy - 12, 3, 2, '#ffe9a0'); }
+  if (s > 4.9) { rect(hx + 11, gy - 13, 8, 3, '#2a2a2e'); if ((s > 6 + IC || IC && s > 4.95 && s < 5.45) && Math.floor(s * 8) % 2 === 0) ell(hx + 21, gy - 12, 3, 2, '#ffe9a0'); }
+  if (IC) {                                    // кооп: мимо бежит блондин, за ним жук; хозяин спасает; у машины копа — второй ствол
+    const px0 = W + 20, pv = 150, pStop = heroX + 30, run = s > 3.4 ? Math.min(px0 - pStop, (s - 3.4) * pv) : 0, px = px0 - run;
+    const carGun = carX - 26;
+    if (s < 7.1) { rect(carGun - 4, gy - 4, 8, 3, '#2a2a2e'); rect(carGun - 4, gy - 2, 3, 2, '#2a2a2e'); if (s > 5.9 && Math.floor(s * 4) % 2) ell(carGun, gy - 3, 7, 3, 'rgba(255,230,120,.35)'); }
+    const cx = px + 34 + Math.sin(s * 9) * 2, dead = s > 5.45;
+    if (s > 3.4 && !dead) drawStreetBug(cx, gy - 1, -1, t * 3, 0, 'r');
+    if (dead && s < 6.3) for (let i = 0; i < 9; i++) { const q = (s - 5.45) * 2 + i * .05; ell(cx + Math.cos(i * 1.9) * q * 18, gy - 8 - Math.sin(i * 2.1) * q * 12 + q * q * 14, 1.5, 1.5, i % 2 ? '#9be22d' : '#4a7a1a'); }
+    let x = px, fr = null, f = -1;
+    if (s < 3.4) {}
+    else if (run < px0 - pStop) fr = HERO_SPR2['r' + (1 + Math.floor(t * 12) % 4)];
+    else if (s < 6) fr = HERO_SPR2.stand;
+    else { const w = clamp((s - 6) / .7, 0, 1); x = pStop + (carGun - 8 - pStop) * w; f = 1; fr = w < 1 ? HERO_SPR2['r' + (1 + Math.floor(t * 10) % 4)] : s > 6.7 && s < 7.1 ? HERO_SPR2.crouch : HERO_SPR2.stand; }
+    if (fr) { drawSpr(fr, x + (f < 0 ? fr.width : 0), gy - fr.height, f); if (s > 7.1) { rect(x + 11, gy - 13, 8, 3, '#2a2a2e'); if (s > 8.4 && Math.floor(s * 8 + 1) % 2 === 0) ell(x + 21, gy - 12, 3, 2, '#ffe9a0'); } }
+  }
 }
 function drawIntro() {
   const t = stateT;
@@ -6206,15 +6224,18 @@ function drawIntro() {
     if (t > 10.3) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (t - 10.3) / .5)})`; ctx.fillRect(0, 0, W, H); }
     return;
   }
-  if (t < 18.5) {
+  const IC = introCoop ? 2.4 : 0;                // кооп: сцена на улице длиннее
+  if (t < 18.5 + IC) {
     const s = t - 10.9; introStreet(s, t);
     if (s < 1.6) cap('Улица. Сирены. Крики.');
     else if (s > 3 && s < 4.3) cap('Пистолет копа отлетает прямо под ноги...');
-    else if (s > 5 && s < 7.2) cap('Ну, понеслось!', '#ffd23f');
-    if (s > 7.1) { ctx.fillStyle = `rgba(255,255,240,${Math.min(1, (s - 7.1) / .5)})`; ctx.fillRect(0, 0, W, H); }
+    else if (IC && s > 4.4 && s < 5.9) cap('Мимо бежит парень — за ним жук!', '#ffd23f');
+    else if (IC && s > 6 && s < 7.4) cap('У машины копа — второй ствол.');
+    else if (s > 5 + IC && s < 7.2 + IC) cap(IC ? 'Вдвоём — понеслось!' : 'Ну, понеслось!', '#ffd23f');
+    if (s > 7.1 + IC) { ctx.fillStyle = `rgba(255,255,240,${Math.min(1, (s - 7.1 - IC) / .5)})`; ctx.fillRect(0, 0, W, H); }
     return;
   }
-  const s = t - 18.5; rect(0, 0, W, H, '#060406');   // --- сцена 3: название ---
+  const s = t - 18.5 - IC; rect(0, 0, W, H, '#060406');   // --- сцена 3: название ---
   ctx.strokeStyle = '#2a0a0a'; ctx.lineWidth = 2; ctx.beginPath();
   for (let i = 0; i < 7; i++) { let x = W / 2, y = H / 2 + 6; ctx.moveTo(x, y); for (let k = 0; k < 6; k++) { x += Math.cos(i * .9 + k * .3) * 18; y += Math.sin(i * .9 + k * .5) * 10; ctx.lineTo(x, y); } } ctx.stroke();
   if (s < .3) { ctx.fillStyle = `rgba(255,255,240,${1 - s / .3})`; ctx.fillRect(0, 0, W, H); }
@@ -6227,7 +6248,7 @@ function drawIntro() {
 }
 function updIntro(dt, k) {                     // звук и переходы заставки
   if (!introGo) { if (anyTap || k.aPressed) { introGo = true; stateT = 0; audioOn(); } anyTap = false; return; }
-  const t = stateT, at = x => t >= x && t - dt < x, S = 10.9;
+  const t = stateT, at = x => t >= x && t - dt < x, S = 10.9, IC = introCoop ? 2.4 : 0;
   if (t < 3.2 && Math.random() < dt * 14) beep(1800 + Math.random() * 600, 1700, .015, 'square', .006);   // стучат клавиатуры
   if (at(4.4) || at(5.1)) beep(220, 180, .08, 'square', .02);             // дверь
   if (at(7)) { shake = 1.3; boom(.14); beep(60, 30, 1.2, 'sawtooth', .05); }
@@ -6240,11 +6261,14 @@ function updIntro(dt, k) {                     // звук и переходы �
   if (at(S + .7)) { boom(.08); shake = .5; }                              // жук вылезает
   if (at(S + 2.8)) { beep(1200, 300, .4, 'sawtooth', .04); boom(.07); shake = .7; }   // хвать
   if (at(S + 3.9)) beep(300, 500, .05, 'square', .03);                    // пистолет звякнул
-  if (at(S + 5.8)) beep(90, 50, .7, 'sawtooth', .05);                     // жук шипит на героя
-  if (t > S + 6 && t < S + 7.2 && Math.floor(t * 8) !== Math.floor((t - dt) * 8) && Math.floor(t * 8) % 2 === 0) beep(1100, 140, .05, 'square', .04);   // герой стреляет
-  if (at(18.5)) { shake = 1.4; boom(.16); beep(55, 30, 1.5, 'sawtooth', .06); }
+  if (IC && t > S + 4.95 && t < S + 5.45 && Math.floor(t * 8) !== Math.floor((t - dt) * 8)) beep(1100, 140, .05, 'square', .04);   // кооп: спасаем напарника
+  if (IC && at(S + 5.45)) { beep(400, 80, .2, 'sawtooth', .04); boom(.05); }
+  if (IC && at(S + 7.1)) beep(300, 500, .05, 'square', .03);              // второй ствол
+  if (at(S + 5.8 + IC)) beep(90, 50, .7, 'sawtooth', .05);                     // жук шипит на героя
+  if (t > S + 6 + IC && t < S + 7.2 + IC && Math.floor(t * 8) !== Math.floor((t - dt) * 8) && Math.floor(t * 8) % 2 === 0) beep(1100, 140, .05, 'square', .04);   // герой стреляет
+  if (at(18.5 + IC)) { shake = 1.4; boom(.16); beep(55, 30, 1.5, 'sawtooth', .06); }
   shake = Math.max(0, shake - dt * .8);
-  if (t > 22.3 || (introSeen && t > .5 && k.aPressed)) introEnd();
+  if (t > 22.3 + IC || (introSeen && t > .5 && k.aPressed)) introEnd();
   anyTap = false;
 }
 
@@ -6650,9 +6674,10 @@ function netMsg(m) {
   NET.rxT = performance.now();
   if (!m || !m.t) return;
   if (m.t === 'p') { NET.remote = m; if (!NET.rs || Math.abs(NET.rs.x - m.x) > 80 || Math.abs(NET.rs.y - m.y) > 80 || NET.rs.lvl !== m.lvl) NET.rs = { ...m }; }
-  else if (m.t === 'lvl' && NET.role === 'guest') { openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
+  else if (m.t === 'lvl' && NET.role === 'guest') { introCoop = false; openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
   else if (m.t === 'w' && NET.role === 'guest') netWorld(m);
+  else if (m.t === 'intro' && NET.role === 'guest') { openMenu(false); mapShow(false); introCoop = true; introGo = true; setState('intro'); }
   else if (m.t === 'over') { if (state === 'play') { NET.rx = true; lives = 0; setState('over'); NET.rx = false; } }
   else if (m.t === 'cont') { if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); } }
   else if (m.t === 'died' && NET.role === 'host') { if (state === 'play') { lives--; if (lives < 0 || (lives === 0 && P.dead)) { lives = 0; setState('over'); } } }
@@ -6711,7 +6736,9 @@ function titleStep(n, mode) {                 // 1 — режим, 2 — нов�
 function titleHome() {                        // куда вернуться на титуле: в кооп-комнате — к своему шагу
   if (NET && NET.ready) titleStep(NET.role === 'host' ? 2 : 5, 'coop'); else titleStep(1);
 }
-function newGame() { gameOn = true; score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
+function newGame(noIntro) {
+  if (!noIntro && MODE === 'coop' && HOST()) { introCoop = true; introGo = true; netSend({ t: 'intro' }); setState('intro'); return; }   // кооп-заставка у обоих
+  gameOn = true; score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
 document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-coop').onclick = () => { audioOn(); titleStep(3, 'coop'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-back').onclick = () => { if (MODE === 'coop') { netClose(); titleStep(3); } else titleStep(1); };
