@@ -15,6 +15,20 @@ Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи к�
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
 Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
+Object.assign(EN, { 'ТВОЙ НИК': 'YOUR NICKNAME', 'КООП · с': 'CO-OP · with', 'впиши свой ник — с каждым напарником у тебя будет своё сохранение': 'enter your nickname — you get a separate save with each partner',
+  'сначала впиши свой ник ↑': 'enter your nickname first ↑', 'впиши свой ник и нажми «ВОЙТИ ПО КОДУ» — код уже вставлен': 'enter your nickname and tap “JOIN BY CODE” — the code is already filled in' });
+for (const [w, we] of [['', ''], [' (канал закрыт)', ' (channel closed)'], [' (ошибка канала)', ' (channel error)'], [' (нет ответа 25 с)', ' (no reply for 25 s)']]) Object.assign(EN, {
+  ['⚠ напарник отключился' + w + ' — ждём, вдруг вернётся']: '⚠ partner disconnected' + we + ' — waiting for them to come back',
+  ['⚠ связь потеряна' + w + ' — переподключаюсь…']: '⚠ connection lost' + we + ' — reconnecting…', ['связь потеряна' + w + ' — переподключаюсь…']: 'connection lost' + we + ' — reconnecting…',
+  ['напарник отключился' + w + ' — код ']: 'partner disconnected' + we + ' — code ' });
+Object.assign(EN, { ' ещё работает, ждём…': ' still works, waiting…' });
+Object.assign(EN, { 'сервер комнат пропал — восстанавливаю… код ': 'room server dropped — restoring… code ', ' тот же': ' stays the same', 'сервер комнат не отвечает — пробую ещё…': 'room server not responding — retrying…' });
+Object.assign(EN, { 'код — 4 цифры': 'the code is 4 digits', 'нет связи с сервером комнат — проверь интернет': 'no connection to the room server — check your internet', 'связь вернулась!': 'connection restored!',
+  'в комнате ': 'nobody in room ', ' никого — проверь код. жду хозяина…': ' — check the code. waiting for the host…' });
+for (const [w, we] of [[' (напарник вышел из сети)', ' (partner went offline)'], [' (пропал интернет)', ' (internet dropped)']]) Object.assign(EN, {
+  ['⚠ напарник отключился' + w + ' — ждём, вдруг вернётся']: '⚠ partner disconnected' + we + ' — waiting for them to come back',
+  ['⚠ связь потеряна' + w + ' — переподключаюсь…']: '⚠ connection lost' + we + ' — reconnecting…', ['связь потеряна' + w + ' — переподключаюсь…']: 'connection lost' + we + ' — reconnecting…',
+  ['напарник отключился' + w + ' — код ']: 'partner disconnected' + we + ' — code ' });
 const EN_KEYS = Object.keys(EN).filter(k => k.length > 1 && !EN[k].startsWith('<')).sort((a, b) => b.length - a.length);
 const CYR = /[А-Яа-яЁё]/, trMemo = new Map();
 const KB_SUB = [                              // ПК (друг, msg 2032): в подсказках — клавиши вместо кнопок телефона
@@ -78,6 +92,7 @@ function setLang(l) {
   const w = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_TEXT); let n;
   while ((n = w.nextNode())) { const m = trNodes.get(n); if (m) { const v = tr(m.ru); m.shown = v; n.data = v; } }
   const code = document.getElementById('t-code'); if (code) code.placeholder = l === 'en' ? 'CODE' : 'КОД';
+  const nk = document.getElementById('t-nick'); if (nk) nk.placeholder = l === 'en' ? 'YOUR NICKNAME' : 'ТВОЙ НИК';
   const b = document.getElementById('t-lang'); if (b) b.textContent = l === 'en' ? '🌐 РУССКИЙ' : '🌐 ENGLISH';
   try { LOGO = null; } catch (e) {}
 }
@@ -173,6 +188,8 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #tm-note b { color: #ffd23f; }
   #tm-note .share { display: block; margin: 6px auto 0; font: 800 14px system-ui, sans-serif; color: #111; background: #ffd23f; border: 0; border-radius: 6px; padding: 8px 16px; min-height: 40px; }
   #tm-note .code { user-select: text; -webkit-user-select: text;  font: 800 22px monospace; color: #fff; letter-spacing: 6px; background: rgba(10,10,8,.8); border: 2px solid #ffd23f; padding: 2px 10px; border-radius: 4px; }
+  #t-nick { font: 800 17px system-ui, sans-serif; width: 100%; text-align: center; color: #fff; background: rgba(10,10,8,.85);
+    border: 2px solid #8ab8ff; border-radius: 4px; min-height: 44px; box-sizing: border-box; }
   #t-code { font: 800 20px monospace; letter-spacing: 6px; text-transform: uppercase; width: 100%; text-align: center; color: #fff; background: rgba(10,10,8,.85);
     border: 2px solid #ffd23f; border-radius: 4px; min-height: 46px; box-sizing: border-box; }
   #mi-lock { color: #ff8a6a; font: 700 12px system-ui, sans-serif; display: none; white-space: nowrap; }
@@ -214,8 +231,8 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
 <div id="tmenu"><div id="tm-note"></div>
   <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button><button id="t-lang">🌐 ENGLISH</button></div>
   <div class="row" id="tm2" style="display:none"><button id="t-back">←</button><button id="t-go">▶ НОВАЯ ИГРА</button><button id="t-cont">ПРОДОЛЖИТЬ</button></div>
-  <div class="row" id="tm3" style="display:none"><button id="t-back3">←</button><button id="t-host">СОЗДАТЬ КОМНАТУ</button><button id="t-join">ВОЙТИ ПО КОДУ</button></div>
-  <div class="row" id="tm4" style="display:none"><button id="t-back4">←</button><input id="t-code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД"><button id="t-join-go">ВОЙТИ ▶</button></div>
+  <div class="row" id="tm3" style="display:none"><button id="t-back3">←</button><input id="t-nick" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ТВОЙ НИК"><button id="t-host">СОЗДАТЬ КОМНАТУ</button><button id="t-join">ВОЙТИ ПО КОДУ</button></div>
+  <div class="row" id="tm4" style="display:none"><button id="t-back4">←</button><input id="t-code" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" placeholder="КОД"><button id="t-join-go">ВОЙТИ ▶</button></div>
   <div class="row" id="tm5" style="display:none"><button id="t-back5">← ВЫЙТИ ИЗ КОМНАТЫ</button></div></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
@@ -6713,17 +6730,25 @@ const MICON = { boss: 'boss', nests: 'nest', guards: 'shield', reach: 'flag', ca
   talk: 'talk', food: 'crate', arms: 'crate', meds: 'cross' };
 // ===== Сохранение (друг, msg 1908): у каждого режима свой прогресс — пройденные уровни и докуда дошёл =====
 let MODE = 'solo', gameOn = false, mapFree = true;   // gameOn — идёт «настоящая» игра (не выбор из меню разработки); mapFree — карта без замков
-const saveKey = m => 'strel-save-' + m;
+const nickNorm = n => String(n || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 12);
+const saveKey = m => m === 'coop' && NET.mateNick ? 'strel-save-coop~' + nickNorm(NET.mateNick) : 'strel-save-' + m;   // друг (msg 2112): кооп-прогресс — свой с каждым напарником
 function saveGet(m = MODE) {
   try { const v = JSON.parse(localStorage.getItem(saveKey(m)) || 'null'); if (v) return v; } catch (e) {}
   if (m === 'solo') try { const d = JSON.parse(localStorage.getItem('strel-done') || '[]'); if (d.length) return { done: d, at: Math.min(Math.max(...d) + 1, LEVELS.length - 1) }; } catch (e) {}   // старые галочки — в соло
   return null;
 }
 function savePut(v, m = MODE) { v.t = Date.now(); try { localStorage.setItem(saveKey(m), JSON.stringify(v)); } catch (e) {} }
-function saveReach(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (n > v.at) { v.at = n; savePut(v); } else if (!saveGet()) savePut(v); }
-function saveWipe(m = MODE) { try { localStorage.removeItem(saveKey(m)); if (m === 'solo') localStorage.removeItem('strel-done'); } catch (e) {} }
+function saveReach(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (n > v.at) { v.at = n; savePut(v); } else if (!saveGet()) savePut(v); saveSync(); }
+function saveWipe(m = MODE, rx) { try { localStorage.removeItem(saveKey(m)); if (m === 'solo') localStorage.removeItem('strel-done'); } catch (e) {} if (m === 'coop' && !rx) netSend({ t: 'sv', wipe: true }); }
+function saveSync() { if (MODE === 'coop' && NET.ready && NET.mateNick) netSend({ t: 'sv', v: saveGet('coop') }); }   // прогресс пары — и напарнику
+function saveMerge(v) {                        // напарник прислал ваш общий прогресс — объединяем
+  if (!v || !NET.mateNick) return; const a = saveGet('coop') || { done: [], at: 0 };
+  const done = [...new Set([...a.done, ...(v.done || [])])]; const at = Math.max(a.at || 0, v.at || 0);
+  if (done.length !== a.done.length || at !== a.at || !saveGet('coop')) savePut({ done, at }, 'coop');
+}
+function myNick() { try { return (localStorage.getItem('strel-nick') || '').trim().slice(0, 12); } catch (e) { return ''; } }
 function doneSet() { const v = saveGet(); return new Set(v ? v.done : []); }
-function markDone(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (!v.done.includes(n)) v.done.push(n); v.at = Math.max(v.at, Math.min(n + 1, LEVELS.length - 1)); savePut(v); }
+function markDone(n) { if (!gameOn) return; const v = saveGet() || { done: [], at: 0 }; if (!v.done.includes(n)) v.done.push(n); v.at = Math.max(v.at, Math.min(n + 1, LEVELS.length - 1)); savePut(v); saveSync(); }
 const mapLocked = i => !mapFree && i > ((saveGet() || { at: 0 }).at);
 
 const mapEl = document.getElementById('map'), mapC = document.getElementById('mapc'), mx = mapC.getContext('2d');
@@ -7155,47 +7180,51 @@ function arenaPull(mx, my) {                   // бой начал напарн
   const A = lv.arena, m = mx !== undefined ? { x: mx, y: my, lvl: lvlN } : NET.remote; if (!A || !m || m.lvl !== lvlN || !P || P.dead) return;
   if (P.x <= (A.l + 1) * T + 2 && m.x > (A.l + 1) * T) { P.x = m.x; P.y = m.y; P.vx = 0; P.vy = 0; P.climb = false; P.mv = null; cam = camX(); showToast('⚔ напарник начал бой — ты рядом с ним', 2.2); }
 }
-const NET_PFX = 'strelsd-', NET_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-function netLoad() {
-  if (window.Peer) return Promise.resolve();
-  return new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'; sc.onload = ok; sc.onerror = bad; document.head.appendChild(sc); });
-}
+const NET_API = 'https://babushka-online.17homosapiens.workers.dev';   // сервер комнат друга (Cloudflare); ?api=… — для проверки на локальном сервере
+const netApi = () => { const q = location.search.match(/[?&]api=([^&]+)/); return q ? decodeURIComponent(q[1]) : NET_API; };
 function netNote(h) { tmNote.innerHTML = '<b>КООП</b> · ' + h; }
+const netCodeNote = () => netNote(`код комнаты <span class="code">${NET.code}</span> — скажи напарнику · ждём…<button class="share" onclick="netShare()">📤 ПОДЕЛИТЬСЯ</button>`);
 function netClose(silent) {
-  try { NET.conn && NET.conn.close(); } catch (e) {} try { NET.peer && NET.peer.destroy(); } catch (e) {}
-  Object.assign(NET, { role: null, peer: null, conn: null, code: '', ready: false, remote: null, rs: null });
+  const ws = NET.ws; NET.ws = null; clearTimeout(NET.wsT); try { ws && ws.close(); } catch (e) {}
+  Object.assign(NET, { role: null, ws: null, conn: null, code: '', ready: false, remote: null, rs: null, mateNick: null, seen: false });
   if (!silent) beep(400, 200, .1, 'square', .02);
 }
-async function netHost() {
+async function netHost(k = 0) {
   netClose(true); netNote('создаю комнату…');
-  try { await netLoad(); } catch (e) { netNote('нет связи с интернетом'); return; }
-  const tryOpen = (k = 0) => {
-    const code = Array.from({ length: 4 }, () => NET_ABC[Math.floor(Math.random() * NET_ABC.length)]).join('');
-    const peer = new Peer(NET_PFX + code, { debug: 0 }); Object.assign(NET, { role: 'host', peer, code });
-    peer.on('open', () => netNote(`код комнаты <span class="code">${code}</span> — скажи напарнику · ждём…<button class="share" onclick="netShare()">📤 ПОДЕЛИТЬСЯ</button>`));
-    peer.on('connection', c => { if (NET.conn) { c.on('open', () => c.close()); return; } netBind(c); });
-    peer.on('disconnected', () => netRevive(peer));   // айфон усыпил вкладку (ушёл в Телеграм за кодом) — комната вернётся на сервер
-    peer.on('error', e => { if (e.type === 'unavailable-id' && k < 5) { peer.destroy(); tryOpen(k + 1); } else netNote('ошибка связи: ' + (e.type || e)); });
-  };
-  tryOpen();
+  let code = null;
+  try { const r = await fetch(netApi() + '/free'); code = (await r.json()).code; } catch (e) {}
+  if (NET.role) return;                          // пока ждали — уже зашли куда-то ещё
+  if (!code) {
+    if (k < 3) { netNote('сервер комнат не отвечает — пробую ещё…'); setTimeout(() => { if (!NET.role && tStep === 3) netHost(k + 1); }, 2500); }
+    else netNote('нет связи с сервером комнат — проверь интернет');
+    return;
+  }
+  Object.assign(NET, { role: 'host', code: String(code) }); netCodeNote(); netSock();
 }
-async function netJoin(code) {
-  code = (code || '').toUpperCase().replace(/[^A-Z]/g, ''); if (code.length !== 4) { netNote('код — 4 буквы'); return; }
+function netJoin(code) {
+  code = String(code || '').replace(/\D/g, ''); if (code.length !== 4) { netNote('код — 4 цифры'); return; }
   netClose(true); netNote('подключаюсь к ' + code + '…');
-  try { await netLoad(); } catch (e) { netNote('нет связи с интернетом'); return; }
-  const peer = new Peer({ debug: 0 }); Object.assign(NET, { role: 'guest', peer, code });
-  peer.on('open', () => netBind(peer.connect(NET_PFX + code, { reliable: true, serialization: 'json' })));
-  peer.on('error', e => netNote(e.type === 'peer-unavailable' ? `комната ${code} не найдена` : 'ошибка связи: ' + (e.type || e)));
+  Object.assign(NET, { role: 'guest', code }); netSock();
+  setTimeout(() => { if (NET.role === 'guest' && NET.code === code && !NET.ready && !NET.seen) netNote(`в комнате ${code} никого — проверь код. жду хозяина…`); }, 8000);
 }
-function netRevive(peer) {                     // друг, msg 2045: комната пропадала, пока вкладка спит
-  setTimeout(() => { try { if (NET.peer === peer && !peer.destroyed && peer.disconnected && !document.hidden) peer.reconnect(); } catch (e) {} }, 400);
+function netSock(k = 0) {                        // сокет в комнату: оборвался — переподключаемся сами, пока не вышли из комнаты
+  const role = NET.role, code = NET.code; if (!role || NET.ws) return;
+  let ws; try { ws = new WebSocket(netApi().replace(/^http/, 'ws') + '/room/' + code + '?role=' + role + '&take=1'); } catch (e) { netRetry(k); return; }
+  NET.ws = ws;
+  ws.onopen = () => { if (NET.ws !== ws) return; k = 0; if (role === 'host' && !NET.ready && state === 'title' && tStep === 3) netCodeNote(); };
+  ws.onmessage = ev => {
+    if (NET.ws !== ws) return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.t === 'peer') { if (m.on) { NET.seen = true; if (!NET.ready) netUp(); } else if (NET.ready) netLost('напарник вышел из сети'); return; }
+    if (NET.ready) netMsg(m);
+  };
+  ws.onclose = () => { if (NET.ws !== ws) return; NET.ws = null; if (NET.ready) netLost('пропал интернет'); netRetry(k); };
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && NET.peer && NET.peer.disconnected) netRevive(NET.peer); });
-function netRejoin(code, k) {                   // напарник: стучимся в ту же комнату ~2 минуты
-  if (NET.ready || k > 30 || state === 'title' || !code) return;
-  if (!document.hidden) netJoin(code);
-  setTimeout(() => netRejoin(code, k + 1), 4000);
+function netRetry(k) {
+  const role = NET.role, code = NET.code; if (!role) return; clearTimeout(NET.wsT);
+  NET.wsT = setTimeout(() => { if (NET.role === role && NET.code === code && !NET.ws) netSock(k + 1); }, Math.min(800 + k * 700, 5000));
 }
+function netKick() { const w = NET.ws; NET.ws = null; try { w && w.close(); } catch (e) {} netRetry(0); }   // сокет «завис» — открываем новый
+document.addEventListener('visibilitychange', () => { if (!document.hidden && NET.role && !NET.ws) { clearTimeout(NET.wsT); netSock(0); } });
 function netShare() {                          // друг (msg 2059): ссылка-приглашение — у напарника комната откроется сама
   const code = NET.code; if (!code) return;
   const url = location.origin + location.pathname + '?room=' + code;
@@ -7204,28 +7233,41 @@ function netShare() {                          // друг (msg 2059): ссыл�
   const done = () => showToast(tr('ссылка скопирована — вставь в чат'), 2.5);
   try { navigator.clipboard.writeText(text + ' ' + url).then(done, () => prompt(code, url)); } catch (e) { prompt(code, url); }
 }
-function netBind(c) {
-  NET.conn = c;
-  c.on('open', () => { NET.ready = true; NET.rxT = performance.now(); beep(600, 1200, .15, 'square', .03); netSend({ t: 'hi' }); titleHome();
-    if (NET.role === 'host' && state !== 'title' && state !== 'intro') { netSend({ t: 'lvl', n: lvlN }); showToast('напарник вернулся!', 2); } });   // вернулся посреди игры — сразу на наш уровень
-  c.on('data', netMsg);
-  c.on('close', () => { if (NET.conn === c) netLost(); }); c.on('error', () => { if (NET.conn === c) netLost(); });
+function netUp() {                               // напарник в комнате
+  NET.ready = true; NET.rxT = performance.now(); NET.conn = { send: o => NET.ws && NET.ws.readyState === 1 && NET.ws.send(JSON.stringify(o)) };
+  beep(600, 1200, .15, 'square', .03); netSend({ t: 'hi', nick: myNick() }); titleHome();
+  if (NET.role === 'host' && state !== 'title' && state !== 'intro') { netSend({ t: 'lvl', n: lvlN }); showToast('напарник вернулся!', 2); }   // вернулся посреди игры — сразу на наш уровень
+  else if (NET.role === 'guest' && state !== 'title') showToast('связь вернулась!', 2);
 }
-function netLost() {
-  if (!NET.role) return;
-  const was = NET.ready, role = NET.role, code = NET.code; NET.mpause = false; NET.myP = false;
-  if (was && role === 'host' && state !== 'title' && NET.peer && !NET.peer.destroyed) {   // друг (msg 2079): комнату держим — напарник может вернуться
-    const c = NET.conn; Object.assign(NET, { conn: null, ready: false, remote: null, rs: null, rxT: 0 }); try { c && c.close(); } catch (e) {}
-    showToast('⚠ напарник отключился — ждём, вдруг вернётся', 4); return;
+function netLost(why = '') {                    // напарник пропал: комнату держим, сокет переподключается сам — ждём его
+  if (!NET.role || !NET.ready) return;
+  const role = NET.role, code = NET.code; NET.mpause = false; NET.myP = false;
+  Object.assign(NET, { conn: null, ready: false, remote: null, rs: null, rxT: 0, mateNick: null });
+  const W = why ? ' (' + why + ')' : '';
+  if (role === 'host') {
+    if (state === 'title') { titleStep(3, 'coop'); netNote(`напарник отключился${W} — код <span class="code">${code}</span> ещё работает, ждём…<button class="share" onclick="netShare()">📤 ПОДЕЛИТЬСЯ</button>`); }
+    else showToast('⚠ напарник отключился' + W + ' — ждём, вдруг вернётся', 4);
+  } else {
+    if (state === 'title') { titleStep(5, 'coop'); netNote('связь потеряна' + W + ' — переподключаюсь…'); } else showToast('⚠ связь потеряна' + W + ' — переподключаюсь…', 4);
   }
-  netClose(true);
-  if (was && role === 'guest' && state !== 'title') { showToast('⚠ связь потеряна — переподключаюсь…', 4); netRejoin(code, 0); return; }
-  if (state === 'title') { titleStep(3, 'coop'); netNote('напарник отключился'); } else if (was) showToast('⚠ связь с напарником потеряна', 3);
 }
-function netSend(o) { if (NET.conn && NET.ready) try { NET.conn.send(o); } catch (e) {} }
+function netSend(o) {
+  if (!NET.conn || !NET.ready) return;
+  if ((o.t === 'p' || o.t === 'w') && NET.ws && NET.ws.bufferedAmount > 24000) return;   // сеть не успевает — устаревший кадр не шлём, иначе очередь растёт и связь рвётся
+  try { NET.conn.send(o); } catch (e) {}
+}
 function netMsg(m) {
   NET.rxT = performance.now();
   if (!m || !m.t) return;
+  if (m.t === 'hi') {                           // друг (msg 2112): ник напарника — по нему ваше общее сохранение
+    NET.mateNick = (m.nick || '').trim().slice(0, 12) || null;
+    if (NET.mateNick && !saveGet('coop')) try {   // старый общий кооп-прогресс — первому напарнику, дальше у каждого свой
+      const old = localStorage.getItem('strel-save-coop');
+      if (old && !localStorage.getItem('strel-coop-mig')) { localStorage.setItem(saveKey('coop'), old); localStorage.setItem('strel-coop-mig', nickNorm(NET.mateNick)); }
+    } catch (e) {}
+    saveSync(); if (state === 'title' && tStep === 2) titleStep(2); return;
+  }
+  if (m.t === 'sv') { if (m.wipe) saveWipe('coop', true); else saveMerge(m.v); if (state === 'title' && tStep === 2) titleStep(2); return; }
   if (m.t === 'p') { NET.remote = m; if (!NET.rs || Math.abs(NET.rs.x - m.x) > 80 || Math.abs(NET.rs.y - m.y) > 80 || NET.rs.lvl !== m.lvl) NET.rs = { ...m }; }
   else if (m.t === 'lvl' && NET.role === 'guest') { introCoop = false; openMenu(false); mapShow(false); gameOn = false; score = 0; playT = 0; lives = 3; resetGear(m.n); startLevel(m.n); }
   else if (m.t === 'home' && NET.role === 'guest' && state !== 'title') { setState('title'); }
@@ -7262,7 +7304,7 @@ function netTick() {                          // 20 раз в секунду —
   if (!NET.ready) return;
   const now = performance.now();
   if (now - (NET.hbT || 0) > 1000) { NET.hbT = now; netSend({ t: 'hb' }); }   // пульс: закрыл вкладку — через 15 с поймём (свернул ненадолго — не рвём)
-  if (NET.rxT && now - NET.rxT > 15000) { netLost(); return; }
+  if (NET.rxT && now - NET.rxT > 25000) { netLost('нет ответа 25 с'); netKick(); return; }
   if (state !== 'play' || !P) return; if (now - NET.sendT < 50) return; NET.sendT = now;
   netSend({ t: 'p', lvl: lvlN, x: Math.round(P.x), y: Math.round(P.y), face: P.face, ax: P.ax, ay: P.ay, crouch: P.crouch, climb: P.climb, rot: P.rot, on: P.on,
     h: P.h, vx: Math.round(P.vx || 0), run: P.run, wet: P.wet, spin: P.spin, flyOn: P.flyOn, flip: P.flip, dead: P.dead, ko: !!P.ko, slash: P.slash || 0, bl: NET.role === 'guest' ? bullets.slice(0, 10).map(b => [Math.round(b.x), Math.round(b.y)]) : null, mv: P.mv && P.mv === lift ? 'lift' : P.mv && P.mv === cart ? 'cart' : '' });
@@ -7282,7 +7324,8 @@ function drawMate() {                         // напарник: свой цв
   drawHero(); HERO_OVR = null; P = s0;
   if (r.dead > 0) return;
   ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; const tx = Math.round(r.x - cam + 7), ty = Math.round(r.y - 5);
-  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(tx - 18, ty - 7, 36, 9); ctx.fillStyle = '#8ab8ff'; ctx.fillText('НАПАРНИК', tx, ty); ctx.textAlign = 'left';
+  const nm = NET.mateNick ? NET.mateNick.toUpperCase() : 'НАПАРНИК', nw = Math.max(36, Math.ceil(ctx.measureText(nm).width) + 6);
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(tx - nw / 2, ty - 7, nw, 9); ctx.fillStyle = '#8ab8ff'; ctx.fillText(nm, tx, ty); ctx.textAlign = 'left';
 }
 // ===== Титульное меню: Начать / Уровни / Управление =====
 const tMenu = document.getElementById('tmenu'), helpEl = document.getElementById('help'), skipEl = document.getElementById('iskip');
@@ -7293,11 +7336,12 @@ let tStep = 1, wipeAsk = false;
 function titleStep(n, mode) {                 // 1 — режим, 2 — новая игра / продолжить, 3 — кооп: создать/войти, 4 — ввод кода, 5 — напарник ждёт хозяина
   tStep = n; if (mode) MODE = mode; wipeAsk = false;
   [tm1, tm2, tm3, tm4, tm5].forEach((el, i) => el.style.display = n === i + 1 ? '' : 'none');
-  if (n >= 3) { if (n === 3) netNote('играть вдвоём со своих телефонов или ПК'); if (n === 4) { netNote('введи код комнаты напарника'); setTimeout(() => document.getElementById('t-code').focus(), 50); }
+  if (n === 3) document.getElementById('t-nick').value = myNick();
+  if (n >= 3) { if (n === 3) netNote(myNick() ? 'играть вдвоём со своих телефонов или ПК' : 'впиши свой ник — с каждым напарником у тебя будет своё сохранение'); if (n === 4) { netNote('введи код комнаты напарника'); setTimeout(() => document.getElementById('t-code').focus(), 50); }
     if (n === 5) netNote('подключено! создатель комнаты выбирает уровень…'); return; }
   tGo.textContent = '▶ НОВАЯ ИГРА';
   const v = n === 2 ? saveGet() : null; tCont.disabled = !v;
-  tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? 'КООП · напарник с тобой' : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.filter(i => i < MAIN_N).length} из ${MAIN_N} · ${v.at >= LEVELS.length || (LEVELS[v.at].coopEnd && MODE !== 'coop') ? 'всё пройдено' : `дошёл до «${LEVELS[v.at].name}»`}` : 'сохранения нет'}`;
+  tmNote.innerHTML = n === 1 ? '' : `<b>${MODE === 'coop' ? (NET.mateNick ? tr('КООП · с') + ' ' + NET.mateNick.toUpperCase() : 'КООП · напарник с тобой') : 'СОЛО'}</b> · ${v ? `пройдено ${v.done.filter(i => i < MAIN_N).length} из ${MAIN_N} · ${v.at >= LEVELS.length || (LEVELS[v.at].coopEnd && MODE !== 'coop') ? 'всё пройдено' : `дошёл до «${LEVELS[v.at].name}»`}` : 'сохранения нет'}`;
 }
 function titleHome() {                        // куда вернуться на титуле: в кооп-комнате — к своему шагу
   if (NET && NET.ready) titleStep(NET.role === 'host' ? 2 : 5, 'coop'); else titleStep(1);
@@ -7314,11 +7358,17 @@ document.getElementById('t-back').onclick = () => { if (MODE === 'coop') { netCl
 document.getElementById('t-back3').onclick = () => { netClose(true); titleStep(1, 'solo'); };
 document.getElementById('t-back4').onclick = () => { netClose(true); titleStep(3); };
 document.getElementById('t-back5').onclick = () => { netClose(); titleStep(3); };
-document.getElementById('t-host').onclick = () => { audioOn(); netHost(); };
-document.getElementById('t-join').onclick = () => { audioOn(); titleStep(4); };
+const nickOk = () => { if (myNick()) return true; netNote('сначала впиши свой ник ↑'); document.getElementById('t-nick').focus(); return false; };
+document.getElementById('t-host').onclick = () => { audioOn(); if (nickOk()) netHost(); };
+document.getElementById('t-join').onclick = () => { audioOn(); if (nickOk()) titleStep(4); };
 document.getElementById('t-join-go').onclick = () => { audioOn(); netJoin(document.getElementById('t-code').value); };
-{ const QR = location.search.match(/[?&]room=([A-Za-z]{4})/);   // пришёл по ссылке-приглашению — сразу в комнату
-  if (QR) setTimeout(() => { titleStep(4, 'coop'); document.getElementById('t-code').value = QR[1].toUpperCase(); netJoin(QR[1]); }, 400); }
+{ const nk = document.getElementById('t-nick');
+  nk.addEventListener('input', () => { try { localStorage.setItem('strel-nick', nk.value.trim().slice(0, 12)); } catch (e) {} });
+  nk.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') nk.blur(); }); nk.addEventListener('keyup', e => e.stopPropagation()); }
+{ const QR = location.search.match(/[?&]room=(\d{4})/);   // пришёл по ссылке-приглашению — сразу в комнату
+  if (QR) setTimeout(() => { document.getElementById('t-code').value = QR[1].toUpperCase();
+    if (!myNick()) { titleStep(3, 'coop'); netNote('впиши свой ник и нажми «ВОЙТИ ПО КОДУ» — код уже вставлен'); return; }
+    titleStep(4, 'coop'); netJoin(QR[1]); }, 400); }
 document.getElementById('t-code').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') document.getElementById('t-join-go').click(); });
 document.getElementById('t-code').addEventListener('keyup', e => e.stopPropagation());
 tGo.onclick = () => {
