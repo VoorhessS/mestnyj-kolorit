@@ -186,6 +186,7 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #tmenu .row { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 230px; }   /* друг (msg 2010): кнопки столбиком */
   #tmenu .row > [id^="t-back"] { order: 9; }
   #tmenu button:disabled { opacity: .35; }
+  #tmenu input.kb { position: fixed; left: 50%; transform: translateX(-50%); width: min(80vw, 420px); top: 10px; z-index: 60; box-shadow: 0 0 0 100vmax rgba(0,0,0,.6); }   /* над клавиатурой (друг, msg 2222) */
   @media (max-height: 520px) {                 /* телефон боком: по две кнопки в ряд, «Поделиться» рядом с кодом (друг, msg 2215) */
     #tm3, #tm4 { flex-direction: row !important; flex-wrap: wrap; justify-content: center; width: min(92vw, 520px) !important; }   /* только кооп-комната; главное меню — столбиком (друг, msg 2010) */
     #tm3 > button, #tm4 > button { flex: 1 1 40%; min-width: 0; }
@@ -7378,6 +7379,12 @@ const nickOk = () => { if (myNick()) return true; netNote('сначала впи
 document.getElementById('t-host').onclick = () => { audioOn(); if (nickOk()) netHost(); };
 document.getElementById('t-join').onclick = () => { audioOn(); if (nickOk()) titleStep(4); };
 document.getElementById('t-join-go').onclick = () => { audioOn(); netJoin(document.getElementById('t-code').value); };
+for (const inp of document.querySelectorAll('#tmenu input')) {   // клавиатура телефона закрывает поле — пока пишешь, оно наверху (друг, msg 2222)
+  const vv = window.visualViewport, place = () => { if (inp.classList.contains('kb')) inp.style.top = ((vv ? vv.offsetTop : 0) + 10) + 'px'; };
+  inp.addEventListener('focus', () => { if (innerHeight < 600 || matchMedia('(pointer: coarse)').matches) { inp.classList.add('kb'); place(); } });
+  inp.addEventListener('blur', () => { inp.classList.remove('kb'); inp.style.top = ''; });
+  if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
+}
 { const nk = document.getElementById('t-nick');
   nk.addEventListener('input', () => { try { localStorage.setItem('strel-nick', nk.value.trim().slice(0, 12)); } catch (e) {} });
   nk.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') nk.blur(); }); nk.addEventListener('keyup', e => e.stopPropagation()); }
