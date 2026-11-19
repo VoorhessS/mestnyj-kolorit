@@ -183,6 +183,14 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #tmenu .row { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 230px; }   /* друг (msg 2010): кнопки столбиком */
   #tmenu .row > [id^="t-back"] { order: 9; }
   #tmenu button:disabled { opacity: .35; }
+  @media (max-height: 520px) {                 /* телефон боком: по две кнопки в ряд, «Поделиться» рядом с кодом (друг, msg 2215) */
+    #tm3, #tm4 { flex-direction: row !important; flex-wrap: wrap; justify-content: center; width: min(92vw, 520px) !important; }   /* только кооп-комната; главное меню — столбиком (друг, msg 2010) */
+    #tm3 > button, #tm4 > button { flex: 1 1 40%; min-width: 0; }
+    #tm3 > input, #tm4 > input { flex: 1 1 100%; }
+    #tm3 > [id^="t-back"], #tm4 > [id^="t-back"] { flex: 0 0 64px; min-width: 64px; }
+    #tm-note .share { display: inline-block; margin: 0 0 0 8px; padding: 4px 12px; min-height: 32px; vertical-align: middle; }
+    #tmenu button { min-height: 40px; padding: 5px 10px; }
+  }
   #tmenu #t-back { min-width: 56px; }
   #tm-note { font: 700 12px monospace; color: #e8e0c0; text-shadow: 0 1px 2px #000; min-height: 14px; letter-spacing: 1px; }
   #tm-note b { color: #ffd23f; }
@@ -6390,7 +6398,7 @@ function draw() {
   if (state === 'title') {
     ctx.restore();
     const blink = Math.floor(time * 2) % 2;
-    centerText([['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 66], ['выживи. пробейся!', 9, '#ff6a4a', 78]]);   // centerText затемняет фон —
+    if (tStep < 3) centerText([['авария в лаборатории. мутанты вырвались в город', 9, '#fff', 66], ['выживи. пробейся!', 9, '#ff6a4a', 78]]);   // в кооп-комнате тут заметка с кодом   // centerText затемняет фон —
     drawLogo(W / 2, 12, Math.min(2.2, (W - 70) / 172));                                                                                   // логотип поверх
     return;
   }
