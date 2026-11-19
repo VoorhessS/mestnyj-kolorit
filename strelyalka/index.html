@@ -151,6 +151,9 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #menu { position: fixed; inset: 0; background: rgba(8,8,12,.94); color: #fff; display: none; overflow-y: auto; touch-action: pan-y;
     font: 600 14px system-ui, sans-serif; padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 16px) 20px calc(env(safe-area-inset-left) + 16px); box-sizing: border-box; }
   #menu .top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  body:not(.dev) #menu .top { flex-direction: column; flex-wrap: nowrap; justify-content: center; min-height: 100%; margin: 0; }   /* друг, msg 2218: столбиком по центру */
+  body:not(.dev) #menu .top h2 { flex: none; min-width: 0; text-align: center; margin-bottom: 4px; }
+  body:not(.dev) #menu .top button { width: min(80vw, 300px); font-size: 15px; }
   #menu h2 { margin: 0; font-size: 18px; color: #ffd23f; flex: 1; min-width: 160px; }
   #menu h3 { margin: 8px 0 5px; font-size: 13px; color: #9a9aaa; letter-spacing: 1px; }
   #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1637,17 +1640,18 @@ function quietKick() {
 }
 function audioReset() {                  // выбросить сломанный звук: следующее касание создаст новый
   try { if (ac) ac.close(); } catch (e) {}
-  ac = null; acBroken = false; MUS.g = MUS.out = MUS.noise = MUS.pulse = null; MUS.cur = -1; MUS.fast = undefined; AW.n = 0;
+  ac = null; acBroken = false; AW.tried = 0; MUS.g = MUS.out = MUS.noise = MUS.pulse = null; MUS.cur = -1; MUS.fast = undefined; AW.n = 0;
 }
-const AW = { t0: 0, a0: 0, n: 0, last: -99, resets: 0 };   // сторож: время звука должно идти вместе с обычным временем
+const AW = { t0: 0, a0: 0, n: 0, last: -99, resets: 0, tried: 0 };   // сторож: время звука должно идти вместе с обычным временем
 function audioWatch() {
+  if (ac && ac.state !== 'running' && ac.state !== 'closed' && !document.hidden && AW.tried && performance.now() / 1000 - AW.tried > 1) acBroken = true;   // будили касанием, а он спит — Андроид (друг, msg 2218)
   if (!ac || ac.state !== 'running' || document.hidden) { AW.t0 = 0; return; }
   const now = performance.now() / 1000, at = ac.currentTime;
   if (!AW.t0) { AW.t0 = now; AW.a0 = at; return; }
   if (now - AW.t0 < 1.5) return;
   const r = (at - AW.a0) / (now - AW.t0); AW.t0 = now; AW.a0 = at;
   AW.n = r < .3 ? AW.n + 1 : 0;              // время звука почти стоит — звук завис
-  if (AW.n >= 3 && now - AW.last > 30 && AW.resets < 3) acBroken = true;
+  if (AW.n >= 3 && now - AW.last > 10) acBroken = true;
 }
 function audioOn() {                     // будим звук на каждом касании: iPhone разрешает это только в ответ на палец
   try {
@@ -1655,14 +1659,17 @@ function audioOn() {                     // будим звук на каждо�
     if (ac && acStale && !document.hidden) { acStale = false; quietKick(); audioReset(); }   // вернулся из фона — звук с чистого листа
     if (ac && (acBroken || ac.state === 'closed')) { AW.last = performance.now() / 1000; AW.resets++; quietKick(); audioReset(); }
     if (!ac) quietKick();
-    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0; }
-    if (ac.state !== 'running' && !document.hidden) {
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); drone(); AW.t0 = 0; AW.tried = 0; ac.onstatechange = () => { if (ac && ac.state === 'interrupted') acStale = true; }; }
+    if (ac.state === 'running') AW.tried = 0;
+    else if (!document.hidden) {
+      if (!AW.tried) AW.tried = performance.now() / 1000;
       ac.resume();
       const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050); b.connect(ac.destination); b.start(0);   // тихий щелчок «отпирает» звук на iOS
     }
   } catch (e) {}
 }
-for (const t of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(t, audioOn, true);   // на перехвате — срабатывает и в меню
+for (const t of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(t, audioOn, true);
+try { navigator.mediaDevices.addEventListener('devicechange', () => { if (ac) acStale = true; }); } catch (e) {}   // наушники/колонка сменились — звук заново   // на перехвате — срабатывает и в меню
 function drone() {                       // тревожный низкий гул на фоне
   if (!HORROR) return;
   const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
@@ -1862,6 +1869,7 @@ function mkBug(k, x, y, dir = -1) {         // y — пол под жуком
 function showToast(t, d = 2) { toastTxt = t; toast = d; }
 
 function startLevel(n) {
+  if (ac) acStale = true;   // новый уровень — звук с чистого листа на первом касании (друг, msg 2218: на Андроиде пропадает)
   pvp = null; if (NET) NET.pv = null;   // аудит 15.11: махач не тянется на другой уровень
   lvlN = n; L = LEVELS[n]; D = diff(n); saveReach(n);
   if (NET && NET.ready && NET.role === 'host') netSend({ t: 'lvl', n });
