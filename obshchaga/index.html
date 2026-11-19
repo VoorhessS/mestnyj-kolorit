@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1b1622">
+<title>Общага — до сессии 14 дней</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #1b1622; color: #f3ead8; font: 15px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; overscroll-behavior: none; }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 6px) 10px calc(env(safe-area-inset-bottom) + 10px); gap: 8px; }
+  #hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  #top { display: flex; justify-content: space-between; align-items: center; font-weight: 800; letter-spacing: .5px; }
+  #top .day { color: #ffd166; }
+  #top button { background: none; border: 0; color: #a99fb8; font-size: 20px; padding: 2px 6px; }
+  .st { background: #2a2233; border-radius: 8px; padding: 4px 6px; font-size: 12px; font-weight: 700; }
+  .st .bar { height: 5px; background: #3c3247; border-radius: 3px; margin-top: 3px; overflow: hidden; }
+  .st .bar i { display: block; height: 100%; border-radius: 3px; transition: width .4s; }
+  .st.bump { animation: bump .5s; }
+  @keyframes bump { 30% { transform: scale(1.12); } }
+  #stage { position: relative; width: 100%; flex: 1 0 250px; max-height: 64vh; border-radius: 12px; overflow: hidden; background: #000; --lamp: 1; }
+  #scene { position: absolute; left: -6px; top: -6px; width: calc(100% + 12px); height: calc(100% + 12px); filter: blur(2px) saturate(1.15); }
+  #stage.curtain #scene { filter: none; }
+  #chars { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; }
+  #chars .ch { height: 98%; max-width: 100%; aspect-ratio: 2 / 3; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); animation: pop .35s ease-out; }
+  #chars.two .ch { height: 90%; max-width: 58%; margin: 0 -5%; }
+  #chars svg { width: 100%; height: 100%; display: block; }
+  @keyframes pop { from { transform: translateY(8%); opacity: 0; } }
+  #chars .sil { filter: brightness(0) blur(3px); opacity: calc(.75 * var(--lamp) + .1); transition: transform 3.6s ease-in-out; animation: none; }
+  #chars .sil.s0 { transform: translateX(-38%); } #chars .sil.s1 { transform: translateX(38%) scaleX(-1); }
+  #chars .sil.s0.close { transform: translateX(6%); } #chars .sil.s1.close { transform: translateX(-6%) scaleX(-1); }
+  #curt { position: absolute; inset: 0; display: none; pointer-events: none;
+    background: linear-gradient(#3a2018 0 6px, transparent 6px), repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 5px, rgba(255,230,200,.10) 5px 14px, rgba(0,0,0,.12) 14px 24px); }
+  #stage.curtain #curt { display: block; animation: sway 3s ease-in-out infinite alternate; }
+  @keyframes sway { to { transform: translateX(4px); } }
+  #fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  #fx span { position: absolute; bottom: 10%; font-size: 22px; animation: rise 2.2s ease-out forwards; }
+  @keyframes rise { to { transform: translateY(-160%) scale(1.3); opacity: 0; } }
+  #text { background: #2a2233; border: 2px solid #4a3d58; border-radius: 10px; padding: 10px 12px; min-height: 92px; white-space: pre-line; }
+  #text b { color: #ffd166; }
+  #text .who { display: block; font-weight: 800; margin-bottom: 2px; }
+  #choices { display: flex; flex-direction: column; gap: 7px; }
+  #choices button { font: 700 15px system-ui, sans-serif; color: #f3ead8; background: #3a2f48; border: 2px solid #5b4b6e; border-radius: 10px;
+    padding: 10px 12px; min-height: 46px; text-align: left; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  #choices button:active { transform: scale(.98); background: #4a3d5c; }
+  #choices button:disabled { opacity: .4; }
+  #choices button .c { font-size: 12px; color: #c9bcdc; font-weight: 600; white-space: nowrap; }
+  #choices button.hot { background: #6b2346; border-color: #ff5d8f; }
+  #choices button.go { background: #2f5a3a; border-color: #5fd27f; justify-content: center; }
+  #float { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); pointer-events: none; font-weight: 800; font-size: 18px; text-shadow: 0 2px 4px #000; }
+  #float span { display: block; animation: up 1.4s forwards; text-align: center; }
+  @keyframes up { to { transform: translateY(-50px); opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top"><span class="day" id="day"></span><span id="slot"></span><button id="menu" aria-label="Меню">☰</button></div>
+  <div id="hud"></div>
+  <div id="stage"><canvas id="scene" width="192" height="144"></canvas><div id="chars"></div><div id="curt"></div><div id="fx"></div></div>
+  <div id="text"></div>
+  <div id="choices"></div>
+</div>
+<div id="float"></div>
+<script>
+'use strict';
+// ===== Общага: комедийный симулятор студенческой жизни (идея друга, msg 2257/2259) =====
+// Все герои — студенты 2 курса, им 19–20 лет. Без откровенных сцен: свидание — только тени за занавеской.
+const $ = id => document.getElementById(id);
+const cv = $('scene'), g = cv.getContext('2d');
+const rnd = n => Math.floor(Math.random() * n), pick = a => a[rnd(a.length)], clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const DAYS = 14, SLOTS = ['☀️ Утро', '🌤 День', '🌙 Вечер'];
+
+// ----- Девушки: у каждой свой вкус -----
+const GIRLS = {
+  katya: { name: 'Катя', about: 'филфак, язвит, читает Бродского', like: { joke: 15, smart: 8, bold: -6 }, where: 'kitchen',
+    hair: '#c4572a', top: '#3f7d4e', bottom: '#2d2a3a', style: 'bob', glasses: false },
+  alina: { name: 'Алина', about: 'физмат, отличница, всегда с конспектом', like: { smart: 15, joke: 4, bold: -8 }, where: 'uni',
+    hair: '#2b1d16', top: '#e9e4f0', bottom: '#3b4a6b', style: 'bun', glasses: true },
+  vika: { name: 'Вика', about: 'волейбол, громко смеётся, бегает по утрам', like: { bold: 15, joke: 8, smart: -4 }, where: 'stadium',
+    hair: '#e8c35a', top: '#2f6fd6', bottom: '#1d2b55', style: 'tail', glasses: false },
+};
+const LINES = {
+  katya: {
+    hi: ['Катя мешает в кастрюле что-то подозрительное. — Это суп. Наверное.', 'Катя сидит на подоконнике кухни с книжкой. — Ты тоже пришёл смотреть, как Толик ворует чужую еду?', 'Катя: — О, человек. Редкий вид для нашей кухни в это время.'],
+    joke: [['— Говорят, если долго смотреть в общажный холодильник, холодильник посмотрит в тебя. И заберёт сосиску.', '— Ха! Ладно, это было неплохо.', '— Ты репетировал. Видно.'], ['— У нас в комнате таракан с регистрацией. Он тут дольше нас живёт.', '— *смеётся* Надо его на старосту выдвинуть.', '— Шутка бородатая, как он сам.']],
+    smart: [['— Читаешь Бродского? «Не выходи из комнаты» — это прямо про сессию.', '— О, кто-то в этой общаге умеет читать!', '— Ну, хотя бы название обложки ты прочитал.'], ['— Знаешь, почему кухня — сердце общаги? Тут единственная розетка, которая работает.', '— Метафора засчитана.', '— Звучит как сочинение на троечку.']],
+    bold: [['— Брось этот суп. Пойдём, я угощу тебя нормальной шавермой.', '— Хм… суп и правда подозрительный. Ладно, уговорил.', '— Я сама решаю, когда бросать суп, спасибо.'], ['— У тебя красивые глаза. Особенно когда закатываешь их на Толика.', '— *краснеет* …Ну ты и подхалим.', '— Это был худший подкат на этом этаже. А тут Толик живёт.']],
+  },
+  alina: {
+    hi: ['Алина в аудитории раскладывает пять цветных маркеров. — Садись, только не дыши на конспект.', 'Алина в библиотеке: — Ты тоже готовишься к матану? Или просто греешься?', 'Алина поправляет очки: — Ты в списке на пересдачу? Просто уточняю.'],
+    joke: [['— Матан — это когда ты всё понял, а потом наступила вторая строчка.', '— *хихикает* Ну, это правда.', '— Не смешно. Это моя жизнь.'], ['— Знаешь, чем студент похож на интеграл? Оба неопределённые.', '— Математический юмор! Засчитано.', '— Интеграл хотя бы берётся.']],
+    smart: [['— Можно я помогу с задачей? Тут замена переменной напрашивается.', '— О! Точно. Ты не так безнадёжен, как сидишь.', '— Неправильно. Но мило.'], ['— Я тут вывел, как успеть за ночь выучить билеты. Хочешь, покажу график?', '— График? Ты говоришь на моём языке!', '— Твой график нарушает законы физики. И сна.']],
+    bold: [['— Давай после пар сбежим в кино? Матан никуда не денется.', '— …Матан никуда не денется. Звучит разумно.', '— Матан не денется. А стипендия — денется.'], ['— Сними очки. Хочу посмотреть, кто там такой умный.', '— *снимает и тут же надевает* Ничего не видно, но приятно.', '— Без очков я тебя вообще не отличу от шкафа. Нет.']],
+  },
+  vika: {
+    hi: ['Вика наматывает круги по стадиону. — Догонишь — поговорим!', 'Вика отбивает мяч от стенки: — Эй, сосед! Подай мячик.', 'Вика делает растяжку на трибуне: — Ты бегать или поглазеть?'],
+    joke: [['— Я тоже спортсмен. Каждое утро бегу от будильника.', '— Ха-ха! Ладно, ты смешной.', '— Это не спорт, это позор.'], ['— Я бы побегал с тобой, но я берегу колени. Для лестницы в общаге.', '— *ржёт* Девятый этаж без лифта — это сила!', '— Слабак. Смешной, но слабак.']],
+    smart: [['— Знаешь, бег улучшает память. Я читал исследование.', '— Ну хоть кто-то читает за меня. Круто!', '— Ты сейчас как тренер по физре, только скучнее.'], ['— Если подавать под углом 45 градусов, мяч летит дальше всего.', '— Серьёзно? Покажи!', '— Я подаю как чувствую. Не занудствуй.']],
+    bold: [['— Давай наперегонки. Кто проиграл — тот угощает кофе.', '— Принято! Готовь кошелёк!', '— Ты задохнёшься через десять метров. Не позорься.'], ['— Ты самая быстрая на стадионе. И самая красивая на всём районе.', '— *улыбается* Ох, нахал. Мне нравится.', '— Ого, какой смелый. Сначала круг пробеги.']],
+  },
+};
+
+// ----- Состояние -----
+const NEW = () => ({ day: 1, slot: 0, money: 400, energy: 100, study: 15, charm: 10, aff: { katya: 0, alina: 0, vika: 0 }, talked: {}, dating: null, tolikAway: false, stip: false, over: false });
+let S = NEW();
+try { const sv = JSON.parse(localStorage.getItem('obshchaga-save') || 'null'); if (sv && !sv.over) S = Object.assign(NEW(), sv); } catch (e) {}
+const save = () => { try { localStorage.setItem('obshchaga-save', JSON.stringify(S)); } catch (e) {} };
+
+// ----- Шкалы -----
+const STATS = [['money', '💰', '#ffd166', 2000, v => v + '₽'], ['energy', '⚡', '#5fd27f', 100, v => v], ['study', '📚', '#6fb3ff', 100, v => v], ['charm', '😎', '#ff7eb3', 100, v => v]];
+function hud(bump) {
+  $('day').textContent = `День ${S.day}/${DAYS}`;
+  $('slot').textContent = SLOTS[S.slot] + (S.dating ? ` · ❤ ${GIRLS[S.dating].name}` : '');
+  $('hud').innerHTML = STATS.map(([k, ic, col, max, f]) => `<div class="st${bump && bump[k] ? ' bump' : ''}">${ic} ${f(S[k])}<div class="bar"><i style="width:${clamp(S[k] / max * 100, 0, 100)}%;background:${col}"></i></div></div>`).join('');
+}
+function change(d) {   // d = { money: +100, energy: -20, ... } — меняет и показывает всплывашки
+  const fl = [];
+  for (const k in d) {
+    if (k === 'aff') continue;
+    const max = k === 'money' ? 99999 : 100; S[k] = clamp(S[k] + d[k], 0, max);
+    const st = STATS.find(s => s[0] === k); if (st && d[k]) fl.push(`<span style="color:${st[2]}">${d[k] > 0 ? '+' : ''}${d[k]}${k === 'money' ? '₽' : ''} ${st[1]}</span>`);
+  }
+  if (d.aff) for (const [gk, v] of Object.entries(d.aff)) { S.aff[gk] = clamp(S.aff[gk] + v, 0, 100); fl.push(`<span style="color:#ff5d8f">${v > 0 ? '+' : ''}${v} ❤ ${GIRLS[gk].name}</span>`); }
+  if (fl.length) { const f = $('float'); f.innerHTML = fl.join(''); f.style.animation = 'none'; void f.offsetWidth; }
+  hud(d); save();
+}
+
+// ----- Экран: текст + кнопки -----
+let scene = { bg: 'room', who: [] }, anim = null;
+function show(txt, choices, sc) {
+  if (sc) scene = sc;
+  $('text').innerHTML = txt;
+  const box = $('choices'); box.innerHTML = '';
+  for (const c of choices) {
+    const b = document.createElement('button'); b.innerHTML = `<span>${c.t}</span>${c.c ? `<span class="c">${c.c}</span>` : ''}`;
+    if (c.cls) b.className = c.cls; if (c.off) b.disabled = true;
+    b.onclick = () => { click(); c.f(); }; box.appendChild(b);
+  }
+  hud(); draw(); renderChars();
+}
+const say = (gk, txt) => `<span class="who" style="color:${GIRLS[gk] ? GIRLS[gk].hair === '#2b1d16' ? '#b9a3ff' : GIRLS[gk].hair : '#ffd166'}">${GIRLS[gk] ? GIRLS[gk].name : gk}</span>${txt}`;
+
+// ===== Ход: выбор места =====
+const PLACES = [
+  { id: 'uni', t: '📚 На пары', c: '+📚 −⚡', slots: [0, 1] },
+  { id: 'work', t: '💼 Подработка', c: '+💰 −⚡', slots: [1, 2] },
+  { id: 'kitchen', t: '🍳 На кухню', c: 'еда, соседи', slots: [0, 1, 2] },
+  { id: 'stadium', t: '🏃 На стадион', c: '+😎 −⚡', slots: [0, 1] },
+  { id: 'party', t: '🎉 Вечеринка в 512-й', c: '−100₽ +😎', slots: [2] },
+  { id: 'sleep', t: '😴 Поспать', c: '+⚡', slots: [0, 1, 2] },
+];
+function turn() {
+  if (S.over) return ending();
+  hud(); save();
+  if (S.day === 7 && !S.stip) { S.stip = true; change({ money: 600 }); return show('📩 СМС из банка: <b>пришла стипендия!</b> 600₽.\nТолик уже стоит в дверях с лицом «одолжи до стипендии». Так стипендия же.', [{ t: 'Спрятать карту под матрас', f: turn }], { bg: 'room', who: ['tolik'] }); }
+  if (S.energy <= 0) { return show('Ты уснул прямо в коридоре, обняв огнетушитель. Пропускаешь время.', [{ t: 'Проснуться…', f: () => { change({ energy: 35 }); next(); } }], { bg: 'hall', who: [] }); }
+  if (Math.random() < .22) { const ev = pick(EVENTS.filter(e => !e.slot || e.slot.includes(S.slot))); if (ev) return ev.run(); }
+  const ch = PLACES.filter(p => p.slots.includes(S.slot)).map(p => ({ t: p.t, c: p.c, f: () => go(p.id), off: p.id === 'party' && S.money < 100 }));
+  const ready = Object.keys(GIRLS).find(k => S.aff[k] >= 100 && S.dating !== k);
+  if (S.slot === 2 && ready) ch.unshift({ t: `❤ Позвать ${GIRLS[ready].name === 'Вика' ? 'Вику' : GIRLS[ready].name === 'Катя' ? 'Катю' : 'Алину'} к себе`, c: 'вечер', cls: 'hot', f: () => invite(ready) });
+  const txt = S.slot === 0 ? pick(['Будильник орёт. Толик храпит. Куда пойдём?', 'Утро. На кухне уже пахнет чужой яичницей.', 'Солнце светит в немытое окно. Новый день!']) :
+    S.slot === 1 ? pick(['День в разгаре. Чем займёмся?', 'Обед. В столовой опять «рыба по-польски».', 'Пары кончились (или ты их прогулял). Дальше?']) :
+    pick(['Вечер. В коридоре кто-то играет на гитаре «Кино».', 'Стемнело. Из 512-й гремит музыка.', 'Вечер. Галина Петровна заступила на вахту. Берегись.']);
+  show(`${txt}\n<b>До сессии ${DAYS - S.day + 1} дн.</b>`, ch, { bg: 'room', who: S.tolikAway ? [] : ['tolik'] });
+}
+function next() {
+  S.slot++; S.talked = S.slot === 0 ? {} : S.talked;
+  if (S.slot > 2) { S.slot = 0; S.day++; S.talked = {}; S.tolikAway = false; change({ energy: 30, study: S.study > 20 ? -2 : 0 }); if (S.day > DAYS) return exam(); }
+  save(); turn();
+}
+function go(id) {
+  if (id === 'sleep') { change({ energy: S.slot === 2 ? 55 : 35 }); return show(pick(['Ты уснул. Снился матан в виде дракона.', 'Сон — лучший предмет. Сдал бы на отлично.', 'Толик храпел, но ты победил.']), [{ t: 'Дальше', cls: 'go', f: next }], { bg: 'room', who: S.tolikAway ? [] : ['tolik'], night: true }); }
+  if (id === 'uni') {
+    const gain = S.energy < 30 ? 3 : 8; change({ study: gain, energy: -20 });
+    const t = pick(['Лектор бубнит про пределы. Ты что-то даже записал.', 'Семинар! Тебя спросили, и ты ответил. Почти правильно.', 'Лабораторка. Ничего не взорвалось. Успех.']) + (S.energy < 30 ? '\n<i>Ты клевал носом — запомнил немного.</i>' : '');
+    return meetOr('alina', t, 'uni');
+  }
+  if (id === 'work') { change({ money: 220, energy: -25 }); return show(pick(['Раздавал листовки у метро. Одна бабушка взяла три, «на растопку».', 'Курьер на самокате. Пиццу довёз, правда, слегка вертикально.', 'Помогал грузить мебель. Диван победил, но заплатили.']), [{ t: 'Дальше', cls: 'go', f: next }], { bg: 'street', who: [] }); }
+  if (id === 'stadium') { change({ charm: 4, energy: -15 }); return meetOr('vika', pick(['Пробежал круг. Потом ещё полкруга. Потом посидел.', 'Подтягивался на турнике. Целых три раза!', 'Сделал зарядку. Голуби впечатлены.']), 'stadium'); }
+  if (id === 'party') { change({ money: -100, charm: 8, energy: -20 }); const gk = pick(Object.keys(GIRLS)); return meetOr(gk, pick(['В 512-й танцы, чипсы и колонка, которая хрипит на басах.', 'Кто-то принёс караоке. Ты спел «Группу крови». Зал аплодировал (или просил замолчать).']), 'party', true); }
+  if (id === 'kitchen') {
+    const eat = S.money >= 60;
+    if (eat) change({ money: -60, energy: 20 }); else change({ energy: 5 });
+    const t = eat ? pick(['Сварил пельмени. Половина слиплась в одного большого пельменя. Вкусно!', 'Пожарил яичницу. Сковородку Толик так и не помыл с прошлого семестра.', 'Заварил «Доширак» с сосиской. Ресторан!']) : 'Денег нет. Съел корочку хлеба и посмотрел на чужую колбасу. Стало чуть сытнее.';
+    return meetOr('katya', t, 'kitchen');
+  }
+}
+function meetOr(gk, txt, bg, force) {   // в месте может встретиться девушка
+  const can = !S.talked[gk] && (force || Math.random() < .7);
+  const ch = [{ t: 'Дальше', cls: 'go', f: next }];
+  if (can) ch.unshift({ t: `💬 Подойти к ${GIRLS[gk].name === 'Вика' ? 'Вике' : GIRLS[gk].name === 'Катя' ? 'Кате' : 'Алине'}`, c: `❤ ${S.aff[gk]}`, cls: 'hot', f: () => flirt(gk, bg) });
+  show(txt, ch, { bg, who: can ? [gk] : [] });
+}
+
+// ===== Флирт =====
+function flirt(gk, bg) {
+  S.talked[gk] = true; const G = GIRLS[gk], L = LINES[gk];
+  const opts = ['joke', 'smart', 'bold'].map(k => ({ k, l: pick(L[k]) })).sort(() => Math.random() - .5);
+  const ch = opts.map(o => ({ t: o.l[0], f: () => answer(gk, o, bg) }));
+  if (S.money >= 100) ch.push({ t: '🍫 Подарить шоколадку', c: '−100₽', f: () => { change({ money: -100, aff: { [gk]: 10 } }); show(say(gk, pick(['— Мне? Ой… С орешками, угадал!', '— Это подкуп? Принимается.', '— Шоколадка! Ты знаешь путь к сердцу.'])), [{ t: 'Дальше', cls: 'go', f: next }], { bg, who: [gk], hearts: 1, emo: { [gk]: 'shy' } }); } });
+  show(say(gk, `<i>${G.about}</i>\n${pick(L.hi)}`), ch, { bg, who: [gk], emo: { [gk]: S.aff[gk] >= 60 ? 'shy' : 'smile' } });
+}
+function answer(gk, o, bg) {
+  const G = GIRLS[gk], base = G.like[o.k], luck = rnd(7) - 3, bonus = Math.floor(S.charm / 12);
+  const v = base > 0 ? base + bonus + luck : base + luck;
+  const good = v > 0;
+  const d = { aff: { [gk]: v } }; if (good) d.charm = 2;
+  // уже встречаешься с другой — рискуешь
+  if (S.dating && S.dating !== gk && good && Math.random() < .35) {
+    const gf = S.dating; S.dating = null; S.aff[gf] = 40;
+    change(d);
+    return show(say(gf, `*стоит за углом с пакетом молока* — Ах вот ты как! Всё, мы расстались. Молоко, кстати, тебе несла.`), [{ t: '…Дальше', cls: 'go', f: next }], { bg, who: [gk, gf], emo: { [gk]: 'shy', [gf]: 'angry' } });
+  }
+  change(d);
+  show(say(gk, o.l[good ? 1 : 2]) + (good ? '' : '\n<i>Кажется, ей такое не заходит. Попробуй по-другому в следующий раз.</i>'), [{ t: 'Дальше', cls: 'go', f: next }], { bg, who: [gk], hearts: good ? 1 : 0, emo: { [gk]: good ? (o.k === 'bold' ? 'shy' : 'happy') : 'angry' } });
+}
+
+// ===== Свидание: Толик → вахта → тени за занавеской =====
+function invite(gk) {
+  const G = GIRLS[gk];
+  show(say(gk, pick(['— К тебе? А сосед?', '— Ну пошли. Только если там не пахнет носками.', '— Звучит как авантюра. Я в деле!'])) + '\n\nСначала надо избавиться от Толика.', [
+    { t: '💸 Дать Толику на шаурму', c: '−150₽', off: S.money < 150, f: () => { change({ money: -150 }); S.tolikAway = true; vahta(gk, 'Толик схватил деньги и исчез быстрее, чем ты договорил «шаурма».'); } },
+    { t: '🎉 Отправить Толика на вечеринку', c: `нужно 😎 30`, f: () => { if (S.charm >= 30) { S.tolikAway = true; vahta(gk, '— Там в 512-й бесплатные чипсы, — сказал ты. Толика как ветром сдуло.'); } else fail(gk, 'Толик: — Какая вечеринка? Я в пижаме. Я никуда не иду. *включает сериал на полную*'); } },
+    { t: '🙏 Попросить по-братски', c: 'риск', f: () => { if (Math.random() < .5) { S.tolikAway = true; vahta(gk, 'Толик вздохнул, взял подушку и ушёл спать к соседям. «Должен будешь».'); } else fail(gk, 'Толик: — По-братски? По-братски я тут прописан. *ложится поперёк кровати*'); } },
+  ], { bg: 'room', who: ['tolik'] });
+}
+function vahta(gk, txt) {
+  show(`${txt}\n\nНо внизу — <b>Галина Петровна</b>. После 22:00 гостей не пускает. Никого. Никогда.`, [
+    { t: '🍫 Подарить ей конфеты', c: '−120₽', off: S.money < 120, f: () => { change({ money: -120 }); scene2(gk, 'Галина Петровна: — «Птичье молоко»? …Проходите. И тихо мне там!'); } },
+    { t: '😇 Сделать комплимент', c: 'нужно 😎 40', f: () => S.charm >= 40 ? scene2(gk, 'Ты: — Галина Петровна, у вас новая причёска? Вам очень идёт!\nГалина Петровна *поправляет химию*: — Ой, иди уже, балабол.') : fail(gk, 'Галина Петровна: — Комплименты свои оставь для сессии. Девушка — на выход.') },
+    { t: '🪟 Провести через окно', c: 'риск', f: () => Math.random() < .45 ? scene2(gk, 'Второй этаж, простыни, водосточная труба… Вы внутри! Немного в пыли, но внутри.') : fail(gk, 'Простыня порвалась. Вы оба в клумбе. Сверху светит фонариком Галина Петровна.') },
+  ], { bg: 'vahta', who: ['vahta', gk] });
+}
+function fail(gk, txt) {
+  change({ aff: { [gk]: -10 } });
+  show(txt + '\n\n<i>Свидание сорвалось. Но попробовать можно в другой вечер.</i>', [{ t: 'Эх… Дальше', cls: 'go', f: next }], { bg: 'room', who: [gk], emo: { [gk]: 'sad' } });
+}
+const INTERRUPT = [
+  'Стук в дверь. — Это Толик! Я зарядку забыл! …Ой. Я ничего не видел. Я вообще слепой. *уходит в стену*',
+  'Стук в дверь. — Проверка комнат! — Галина Петровна. …Вы тут… занимаетесь? Ну-ну. Чайник из розетки выньте! *уходит*',
+  'Из-под кровати выбегает таракан Валера. Визг! Свет! Тапок! Валера ушёл живым. Романтика — частично.',
+  'Сверху сосед начинает сверлить. В 23:40. Вы смеётесь так, что не можете остановиться.',
+];
+function scene2(gk, txt) {
+  show(txt, [{ t: '❤ …', cls: 'hot', f: () => shadows(gk) }], { bg: 'vahta', who: ['vahta', gk] });
+}
+function shadows(gk) {
+  $('choices').innerHTML = ''; $('text').innerHTML = '<i>Свет приглушён. Занавеска задёрнута. Видны только тени…</i>';
+  scene = { bg: 'curtain', who: ['hero', gk], t0: performance.now() }; renderChars();
+  setTimeout(() => {
+    const it = pick(INTERRUPT);
+    S.dating = gk; S.aff[gk] = 100; change({ charm: 5, energy: -10 });
+    show(it + `\n\n☀️ <b>Утро.</b> ${GIRLS[gk].name} пишет: «Это было весело 😄 Ты теперь мой парень, ок?»\n<b>Вы встречаетесь! ❤</b>`, [{ t: 'Ура! Дальше', cls: 'go', f: () => { S.slot = 2; next(); } }], { bg: 'room', morning: true, who: [gk], hearts: 2, emo: { [gk]: 'happy' } });
+  }, 5200);
+}
+
+// ===== Случайные события =====
+const EVENTS = [
+  { run: () => show('🪳 На кухне тараканы устроили соревнования по бегу. Один тащит твою пельменину.', [
+    { t: 'Объявить войну (купить дихлофос)', c: '−80₽', off: S.money < 80, f: () => { change({ money: -80, charm: 2 }); show('Победа! Весь этаж жмёт тебе руку. Пахнет дихлофосом и славой.', [{ t: 'Дальше', cls: 'go', f: turn }]); } },
+    { t: 'Смириться. Это их общага', f: () => { change({ energy: -5 }); turn(); } }], { bg: 'kitchen', who: [] }) },
+  { run: () => show('🍲 Толик съел твои пельмени. Все. Даже слипшиеся.', [
+    { t: 'Потребовать компенсацию', f: () => { const ok = Math.random() < .5; change(ok ? { money: 80 } : { energy: -5 }); show(ok ? 'Толик, краснея, отдал 80₽. «Это всё, что у меня есть. И ещё пуговица».' : 'Толик: — Какие пельмени? Это были мои пельмени. В душе.', [{ t: 'Дальше', cls: 'go', f: turn }]); } },
+    { t: 'Простить. Он же Толик', f: () => { change({ charm: 2 }); turn(); } }], { bg: 'room', who: ['tolik'] }) },
+  { slot: [2], run: () => show('🚨 Пожарная тревога! Весь корпус в пижамах на улице. Оказалось, кто-то жарил сало на утюге.', [
+    { t: 'Пошутить для всех', f: () => { change({ charm: 5, energy: -10 }); show('— Сало на утюге — это новый уровень кулинарии! Хохочет весь двор.', [{ t: 'Дальше', cls: 'go', f: turn }]); } },
+    { t: 'Повторять билеты при свете фонаря', f: () => { change({ study: 6, energy: -10 }); turn(); } }], { bg: 'street', who: ['vahta'] }) },
+  { run: () => show('💧 Сверху затопили! По стене течёт водопад. На столе — твой конспект.', [
+    { t: 'Спасать конспект', f: () => { change({ study: 3, energy: -10 }); show('Конспект спасён! Слегка волнистый, но читаемый.', [{ t: 'Дальше', cls: 'go', f: turn }]); } },
+    { t: 'Спасать ноутбук', f: () => { change({ study: -5 }); show('Ноутбук жив. Конспект — нет. Будешь учить по памяти. Её тоже немного.', [{ t: 'Дальше', cls: 'go', f: turn }]); } }], { bg: 'room', who: [] }) },
+  { slot: [0, 1], run: () => show('📢 Староста: — Завтра коллоквиум! Кто не был на парах — тому конец.', [
+    { t: 'Срочно учить', c: '+📚 −⚡', f: () => { change({ study: 8, energy: -15 }); turn(); } },
+    { t: 'Попросить конспект у Алины', f: () => { change({ study: 5, aff: { alina: S.aff.alina >= 30 ? 5 : -3 } }); turn(); } }], { bg: 'hall', who: ['alina'] }) },
+];
+
+// ===== Финал =====
+function exam() {
+  S.over = true; save();
+  const score = S.study + rnd(21) + Math.floor(S.charm / 10);
+  const pass = score >= 70;
+  const gf = S.dating ? GIRLS[S.dating].name : null;
+  const title = pass && gf ? '🏆 Сессия сдана, и ты не один!' : pass ? '📗 Сессия сдана' : gf ? '💔📕 Отчислен, но счастлив' : '📕 Отчислен';
+  const txt = (pass ? `Экзамен! Профессор долго смотрел в зачётку… и поставил <b>«${score >= 100 ? 'отлично' : score >= 85 ? 'хорошо' : 'удовлетворительно'}»</b>.` : `Экзамен. Ты вытянул билет №13. Профессор: — Придёте осенью.`) +
+    (gf ? `\n${gf} ждала тебя у аудитории с шоколадкой.` : '\nПраздновать будешь с Толиком. Он принёс пельмени. Твои.') +
+    `\n\n<b>${title}</b>\nИтог: 📚 ${S.study} · 😎 ${S.charm} · 💰 ${S.money}₽`;
+  show(txt, [{ t: '🔄 Играть заново', cls: 'go', f: () => { S = NEW(); save(); intro(); } }], { bg: pass ? 'uni' : 'hall', who: S.dating ? [S.dating] : ['tolik'], hearts: pass && gf ? 2 : 0 });
+}
+function ending() { exam(); }
+function intro() {
+  show('🏢 <b>ОБЩАГА</b>\nТы — студент 2 курса. До сессии <b>14 дней</b>.\nУчись, зарабатывай, ешь, не попадайся вахтёрше и… найди свою любовь ❤\n\n<i>Подсказка: у каждой девушки свой вкус — кому-то нравятся шутки, кому-то умные разговоры, кому-то смелость.</i>',
+    [{ t: '▶ Заселиться', cls: 'go', f: turn }], { bg: 'room', who: ['tolik'] });
+}
+$('menu').onclick = () => { click(); show('⏸ Меню', [{ t: '▶ Продолжить', cls: 'go', f: turn }, { t: '🔄 Начать заново', f: () => { S = NEW(); save(); intro(); } }]); };
+
+// ===== Звук: короткий «клик» =====
+let ac = null;
+function click() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state !== 'running') ac.resume(); const o = ac.createOscillator(), v = ac.createGain(), t = ac.currentTime; o.type = 'square'; o.frequency.setValueAtTime(660, t); o.frequency.exponentialRampToValueAtTime(990, t + .05); v.gain.setValueAtTime(.04, t); v.gain.exponentialRampToValueAtTime(.001, t + .08); o.connect(v).connect(ac.destination); o.start(t); o.stop(t + .09); } catch (e) {} }
+
+// ===== Пиксельная графика (192×144) =====
+const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
+function bg(name, t, night) {
+  if (name === 'room' || name === 'curtain') {
+    R(0, 0, 192, 104, night ? '#2b2840' : '#7f8fa6'); for (let x = 0; x < 192; x += 12) R(x, 0, 1, 104, night ? '#26233a' : '#7484a0');   // обои
+    R(0, 104, 192, 40, '#6b4a32'); for (let x = 0; x < 192; x += 16) R(x, 104, 1, 40, '#5c3f2a');   // пол
+    R(124, 14, 44, 36, '#3a2f2a'); R(127, 17, 38, 30, night ? '#141a3a' : '#9fd3ff'); R(145, 17, 2, 30, '#3a2f2a');   // окно
+    if (night) { R(132, 22, 3, 3, '#ffe9a8'); R(156, 30, 2, 2, '#fff'); }
+    R(8, 84, 60, 22, '#8a3b3b'); R(8, 80, 60, 6, '#e8e0d0'); R(8, 76, 14, 8, '#f3efe6'); R(8, 104, 4, 6, '#3a2a20'); R(64, 104, 4, 6, '#3a2a20');   // кровать
+    R(130, 76, 50, 6, '#8b5e3c'); R(134, 82, 4, 24, '#6d472c'); R(172, 82, 4, 24, '#6d472c'); R(140, 66, 18, 10, '#2f3b4c'); R(142, 68, 14, 7, '#7fe0ff');   // стол и ноут
+    R(84, 30, 18, 24, '#e8d39a'); R(86, 32, 14, 20, '#c7364f'); R(90, 36, 6, 6, '#ffe2a8');   // плакат
+  } else if (name === 'kitchen') {
+    R(0, 0, 192, 144, '#c9c0a8'); for (let y = 0; y < 100; y += 8) for (let x = (y / 8 % 2) * 8; x < 192; x += 16) R(x, y, 8, 8, '#bdb39a');   // плитка
+    R(0, 100, 192, 44, '#7b6a58'); R(10, 60, 48, 44, '#e8e8e8'); R(14, 64, 40, 3, '#555'); R(18, 56, 8, 4, '#333'); R(36, 56, 8, 4, '#333');   // плита
+    R(20, 48, 14, 10, '#888'); R(22, 44, 10, 4, '#666'); if (t) for (let i = 0; i < 3; i++) R(24 + i * 3, 38 - ((t / 200 + i * 7) % 12), 2, 3, '#fff8');   // кастрюля и пар
+    R(150, 34, 34, 70, '#e6edf0'); R(152, 68, 30, 1, '#aab'); R(178, 46, 2, 14, '#888'); R(178, 74, 2, 14, '#888');   // холодильник
+    R(150, 28, 34, 6, '#fff'); R(158, 22, 6, 6, '#c33');
+    R(80, 20, 40, 30, '#3a2f2a'); R(83, 23, 34, 24, '#9fd3ff');
+  } else if (name === 'uni') {
+    R(0, 0, 192, 144, '#d8cdb5'); R(20, 10, 152, 54, '#2e4a3a'); R(22, 12, 148, 50, '#355a45');   // доска
+    g.fillStyle = '#e8f0e0'; g.font = '8px monospace'; g.fillText('∫ f(x)dx = ?', 40, 34); g.fillText('lim  1/n → 0', 54, 50);
+    R(0, 108, 192, 36, '#8b6a46'); for (let x = 6; x < 192; x += 46) { R(x, 96, 40, 6, '#a07a50'); R(x + 4, 102, 4, 12, '#6d4c30'); R(x + 32, 102, 4, 12, '#6d4c30'); }
+  } else if (name === 'stadium') {
+    R(0, 0, 192, 70, '#8fd0ff'); R(20, 12, 14, 14, '#fff3a0'); R(0, 50, 192, 22, '#9aa3b0'); for (let x = 0; x < 192; x += 8) R(x, 52, 6, 3, '#c33'); R(0, 72, 192, 72, '#c4583a');
+    for (let x = 0; x < 192; x += 2) R(x, 98, 1, 2, '#fff'); R(0, 120, 192, 2, '#fff');
+  } else if (name === 'party') {
+    R(0, 0, 192, 144, '#1d1030'); for (let i = 0; i < 18; i++) { const c = ['#ff5d8f', '#5fd27f', '#6fb3ff', '#ffd166'][i % 4]; R((i * 37 + (t || 0) / 30) % 192, (i * 23) % 90, 3, 3, c); }
+    R(0, 108, 192, 36, '#2c1b44'); R(150, 70, 26, 40, '#111'); R(155, 76, 16, 16, '#333'); R(158, 79, 10, 10, (t / 250 | 0) % 2 ? '#555' : '#222'); R(155, 94, 16, 12, '#333');   // колонка
+    R(70, 2, 50, 3, '#ffd166'); g.fillStyle = '#fff'; g.font = '7px monospace'; g.fillText('♪ 512 ♪', 80, 16);
+  } else if (name === 'street') {
+    R(0, 0, 192, 144, '#22305a'); R(0, 0, 192, 60, '#33467a'); for (let x = 0; x < 192; x += 30) { R(x, 20, 26, 80, '#3d3d55'); for (let y = 26; y < 96; y += 10) R(x + 4, y, 6, 5, Math.random() < .5 ? '#ffd166' : '#2a2a40'); }
+    R(0, 100, 192, 44, '#4a4a4a'); for (let x = 0; x < 192; x += 24) R(x, 120, 12, 2, '#ddd');
+  } else if (name === 'vahta' || name === 'hall') {
+    R(0, 0, 192, 144, '#9cb39a'); R(0, 0, 192, 60, '#a9c1a6'); R(0, 104, 192, 40, '#7a6250'); for (let x = 0; x < 192; x += 12) R(x, 104, 6, 40, '#6e5646');
+    R(150, 30, 30, 74, '#6d4c30'); R(152, 32, 26, 70, '#8b6a46'); R(172, 66, 3, 3, '#ffd166');   // дверь
+    if (name === 'vahta') { R(10, 76, 70, 30, '#6d4c30'); R(10, 72, 70, 6, '#8b6a46'); R(16, 60, 10, 12, '#ddd'); R(18, 62, 6, 2, '#333'); g.fillStyle = '#222'; g.font = '6px monospace'; g.fillText('ВАХТА', 30, 94); }
+    else { R(30, 40, 10, 22, '#c33'); R(32, 36, 6, 4, '#222'); }   // огнетушитель
+  }
+}
+// ===== Аниме-портреты (друг, msg 2261): рисуем кодом в SVG — большие глаза, блики, румянец, эмоции =====
+const SKIN = '#ffe2cf', SKIN2 = '#f3c2aa';
+const NPC = {
+  hero: { name: 'Ты', hair: '#2a2630', top: '#3b4a6b', style: 'messy', eye: '#444' },
+  tolik: { name: 'Толик', hair: '#5b4636', top: '#c9c9c9', style: 'messy', eye: '#6b4a2a', tank: true },
+  vahta: { name: 'Галина Петровна', hair: '#b9a7c9', top: '#7a4a9a', style: 'perm', eye: '#555', glasses: true, old: true },
+};
+Object.assign(GIRLS.katya, { eye: '#3f8f5a', look: 'sweater' });
+Object.assign(GIRLS.alina, { eye: '#6b4bb8', look: 'blouse' });
+Object.assign(GIRLS.vika, { eye: '#2f7fe0', look: 'sport' });
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16), f = c => clamp(Math.round(c * k), 0, 255); return '#' + [n >> 16, n >> 8 & 255, n & 255].map(f).map(v => v.toString(16).padStart(2, '0')).join(''); }
+function portrait(p, emo = 'smile', id = 'p') {
+  const h = p.hair, hd = shade(h, .72), hl = shade(h, 1.25), e = p.eye || '#555', top = p.top;
+  let back = '', front = '', extra = '';
+  if (p.style === 'bob') {
+    back = `<path d="M50 88 Q44 28 100 24 Q156 28 150 88 L154 146 Q140 156 126 148 L128 104 L72 104 L74 148 Q60 156 46 146 Z" fill="${h}"/>`;
+    front = `<path d="M56 86 Q54 34 100 32 Q146 34 144 86 L136 62 L128 84 L118 58 L108 80 L98 56 L88 80 L78 60 L68 84 Z" fill="${h}"/><path d="M66 46 Q90 34 120 40" stroke="${hl}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  } else if (p.style === 'bun') {
+    back = `<circle cx="100" cy="24" r="20" fill="${h}"/><path d="M54 92 Q50 30 100 30 Q150 30 146 92 L142 126 L58 126 Z" fill="${h}"/>`;
+    front = `<path d="M56 90 Q56 36 100 34 Q144 36 144 90 Q132 58 112 52 Q104 70 80 70 Q70 74 56 90 Z" fill="${h}"/><path d="M58 88 Q54 120 62 150" stroke="${h}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M142 88 Q146 120 138 150" stroke="${h}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="92" cy="16" r="6" fill="${hl}" opacity=".5"/>`;
+  } else if (p.style === 'tail') {
+    back = `<path d="M128 46 Q182 54 176 130 Q172 178 150 214 Q164 150 140 96 Z" fill="${h}"/><path d="M54 92 Q50 30 100 28 Q150 30 146 92 L146 112 L54 112 Z" fill="${h}"/>`;
+    front = `<path d="M56 88 Q54 34 100 32 Q146 34 144 88 L138 66 L126 80 L120 58 L104 76 L96 56 L82 78 L74 62 Z" fill="${h}"/><rect x="58" y="50" width="84" height="8" rx="4" fill="#ff4d6d"/><path d="M70 40 Q96 30 124 38" stroke="${hl}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  } else if (p.style === 'messy') {
+    back = `<path d="M50 90 L44 50 L60 56 L58 28 L76 40 L84 14 L98 34 L112 12 L120 36 L140 22 L140 50 L158 48 L150 90 Z" fill="${h}"/>`;
+    front = `<path d="M57 86 Q55 34 100 32 Q145 34 143 86 L136 64 L128 82 L118 60 L110 80 L100 58 L90 80 L82 60 L72 82 L64 64 Z" fill="${h}"/>`;
+  } else if (p.style === 'perm') {
+    let c = ''; for (let i = 0; i < 14; i++) { const a = Math.PI * (i / 13), x = 100 - Math.cos(a) * 52, y = 74 - Math.sin(a) * 48; c += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="15" fill="${i % 2 ? h : hd}"/>`; }
+    back = c; front = `<path d="M60 78 Q66 40 100 40 Q134 40 140 78 Q120 56 100 60 Q80 56 60 78 Z" fill="${h}"/>`;
+  }
+  // одежда
+  let body = `<path d="M30 300 Q32 196 66 182 Q100 172 134 182 Q168 196 170 300 Z" fill="${top}"/>`;
+  if (p.look === 'sweater') body += `<path d="M80 168 L120 168 L124 186 Q100 194 76 186 Z" fill="${shade(top, .8)}"/>` + [0, 1, 2, 3].map(i => `<path d="M${40 + i * 4} ${230 + i * 18} Q100 ${240 + i * 18} ${160 - i * 4} ${230 + i * 18}" stroke="${shade(top, .85)}" stroke-width="2" fill="none"/>`).join('');
+  if (p.look === 'blouse') body += `<path d="M84 178 L100 200 L116 178" stroke="#ccc" stroke-width="3" fill="none"/><path d="M86 200 L100 206 L114 200 L114 212 L100 206 L86 212 Z" fill="#e0567a"/><circle cx="100" cy="206" r="4" fill="#c43a5a"/>`;
+  if (p.look === 'sport') body += `<rect x="98" y="182" width="4" height="118" fill="#ddd"/><path d="M72 180 L98 200 M128 180 L102 200" stroke="#fff" stroke-width="5"/><path d="M34 250 L52 250 M148 250 L166 250" stroke="#fff" stroke-width="5"/>`;
+  if (p.tank) body = `<path d="M30 300 Q32 196 66 182 Q100 172 134 182 Q168 196 170 300 Z" fill="${SKIN}"/><path d="M58 300 L64 204 Q76 190 82 182 Q100 196 118 182 Q124 190 136 204 L142 300 Z" fill="${top}"/><path d="M90 250 Q96 246 102 252" stroke="#a88" stroke-width="2" fill="none"/>`;
+  if (p.old) body += `<g fill="#f0c94a" opacity=".55">${[0, 1, 2, 3, 4, 5].map(i => `<circle cx="${50 + (i * 23) % 100}" cy="${220 + (i * 31) % 70}" r="5"/>`).join('')}</g>`;
+  // лицо
+  const face = `<rect x="88" y="138" width="24" height="40" fill="${SKIN2}"/><path d="M58 84 Q58 40 100 38 Q142 40 142 84 Q142 120 120 142 Q108 154 100 155 Q92 154 80 142 Q58 120 58 84 Z" fill="${SKIN}"/>`;
+  const eye = (cx, flip) => {
+    const s = flip ? -1 : 1;
+    if (emo === 'happy') return `<path d="M${cx - 12} 104 Q${cx} 88 ${cx + 12} 104" stroke="#3a2a2a" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+    const dx = emo === 'shy' ? 3 : 0, dy = emo === 'shy' ? 3 : 0;
+    const lid = emo === 'angry' ? `<path d="M${cx - 14} 86 L${cx + 14} 86 L${cx + 14} ${flip ? 92 : 98} L${cx - 14} ${flip ? 98 : 92} Z" fill="${SKIN}"/>` : '';
+    return `<ellipse cx="${cx}" cy="100" rx="12" ry="14" fill="#fff"/>
+      <ellipse cx="${cx + dx}" cy="${101 + dy}" rx="9" ry="12" fill="url(#ir${id})"/>
+      <ellipse cx="${cx + dx}" cy="${103 + dy}" rx="4.5" ry="6.5" fill="#1c1422"/>
+      <circle cx="${cx + dx - 3.5}" cy="${96 + dy}" r="3.6" fill="#fff"/><circle cx="${cx + dx + 3.5}" cy="${106 + dy}" r="1.8" fill="#fff"/>
+      ${lid}<path d="M${cx - 14} 92 Q${cx} 82 ${cx + 14} 91" stroke="#2a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M${cx + 13 * s} 91 l${4 * s} -3" stroke="#2a1a1a" stroke-width="3" stroke-linecap="round"/>`;
+  };
+  const brow = emo === 'angry' ? `<path d="M70 76 L92 84 M130 76 L108 84" stroke="${hd}" stroke-width="4" stroke-linecap="round"/>` :
+    emo === 'shy' || emo === 'sad' ? `<path d="M70 80 Q80 74 92 78 M108 78 Q120 74 130 80" stroke="${hd}" stroke-width="3" fill="none" stroke-linecap="round"/>` :
+    `<path d="M70 78 Q80 72 92 76 M108 76 Q120 72 130 78" stroke="${hd}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  const mouth = emo === 'happy' ? `<path d="M90 126 Q100 142 110 126 Z" fill="#b8404e"/><path d="M94 132 Q100 138 106 132" fill="#ff8a9a"/>` :
+    emo === 'angry' || emo === 'sad' ? `<path d="M93 133 Q100 127 107 133" stroke="#8a3a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>` :
+    emo === 'shy' ? `<path d="M95 131 Q100 128 105 131" stroke="#8a3a3a" stroke-width="2" fill="none" stroke-linecap="round"/>` :
+    `<path d="M92 128 Q100 135 108 128" stroke="#8a3a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  const blush = (emo === 'shy' || emo === 'happy') ? `<g opacity="${emo === 'shy' ? .75 : .45}"><ellipse cx="74" cy="118" rx="11" ry="5" fill="#ff7a9a"/><ellipse cx="126" cy="118" rx="11" ry="5" fill="#ff7a9a"/><path d="M68 116 l3 -4 M74 116 l3 -4 M80 116 l3 -4 M120 116 l3 -4 M126 116 l3 -4 M132 116 l3 -4" stroke="#e0506e" stroke-width="1.5"/></g>` : '';
+  if (emo === 'angry') extra += `<g transform="translate(148 44)" stroke="#e23" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-8 -2 Q-2 -2 -2 -8 M8 -2 Q2 -2 2 -8 M-8 2 Q-2 2 -2 8 M8 2 Q2 2 2 8"/></g>`;
+  if (emo === 'shy' || emo === 'sad') extra += `<path d="M146 70 Q152 82 146 88 Q140 82 146 70 Z" fill="#8fd0ff" stroke="#5aa8e0" stroke-width="1.5"/>`;
+  const glasses = p.glasses ? `<g fill="none" stroke="#3a3048" stroke-width="2.5"><rect x="64" y="88" width="30" height="24" rx="8"/><rect x="106" y="88" width="30" height="24" rx="8"/><path d="M94 98 L106 98"/></g><path d="M70 92 L78 100" stroke="#fff" stroke-width="2" opacity=".6"/>` : '';
+  const old = p.old ? `<path d="M70 120 Q76 124 80 120 M120 120 Q124 124 130 120" stroke="${SKIN2}" stroke-width="2" fill="none"/>` : '';
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ir${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${shade(e, .45)}"/><stop offset=".55" stop-color="${e}"/><stop offset="1" stop-color="${shade(e, 1.5)}"/></linearGradient></defs>
+    ${back}${body}${face}${blush}${eye(82, false)}${eye(118, true)}${brow}<path d="M100 112 l-2 6 l3 0" stroke="${SKIN2}" stroke-width="2" fill="none"/>${mouth}${old}${glasses}${front}${extra}</svg>`;
+}
+function renderChars() {
+  const sc = scene, box = $('chars'), who = (sc.who || []).filter(k => GIRLS[k] || NPC[k]);
+  $('stage').classList.toggle('curtain', sc.bg === 'curtain');
+  box.className = who.length > 1 ? 'two' : '';
+  box.innerHTML = who.map((k, i) => `<div class="ch${sc.bg === 'curtain' ? ' sil s' + i : ''}">${portrait(GIRLS[k] || NPC[k], sc.bg === 'curtain' ? 'smile' : (sc.emo && sc.emo[k]) || (k === 'vahta' ? 'angry' : 'smile'), k + i)}</div>`).join('');
+  if (sc.bg === 'curtain') requestAnimationFrame(() => requestAnimationFrame(() => box.querySelectorAll('.sil').forEach(el => el.classList.add('close'))));
+  if (sc.hearts) for (let i = 0; i < 4 + sc.hearts * 3; i++) setTimeout(() => { const s = document.createElement('span'); s.textContent = pick(['❤', '💕', '💗']); s.style.left = (25 + Math.random() * 50) + '%'; $('fx').appendChild(s); setTimeout(() => s.remove(), 2200); }, i * 180);
+}
+function fitCanvas() {
+  const st = $('stage'), w = st.clientWidth || 1, h = st.clientHeight || 1, H = Math.max(100, Math.round(192 * h / w));
+  if (cv.height !== H) cv.height = H;
+  const k = Math.max(1, H / 144); g.setTransform(k, 0, 0, k, (192 - 192 * k) / 2, H - 144 * k);
+}
+addEventListener('resize', fitCanvas);
+function draw(t = performance.now()) {
+  const sc = scene;
+  fitCanvas(); g.clearRect(-400, -400, 1200, 1200);
+  if (sc.bg === 'curtain') return curtain(t, sc);
+  bg(sc.bg || 'room', t, sc.night || (S.slot === 2 && !sc.morning));
+  if (S.slot === 2 && !sc.morning && sc.bg !== 'party') { g.fillStyle = 'rgba(20,10,60,.3)'; g.fillRect(0, 0, 192, 144); }
+}
+function curtain(t, sc) {   // ТЕНИ ЗА ЗАНАВЕСКОЙ — видно только силуэты (друг, msg 2259); занавеска — слой #curt поверх силуэтов
+  const k = Math.min(1, (t - sc.t0) / 4200), lamp = k < .85 ? 1 : Math.max(0, 1 - (k - .85) / .15);
+  const grad = g.createRadialGradient(96, 70, 10, 96, 70, 120); grad.addColorStop(0, `rgba(255,190,110,${.95 * lamp})`); grad.addColorStop(1, `rgba(120,50,30,${.9 * lamp})`);
+  g.fillStyle = '#120a10'; g.fillRect(0, 0, 192, 144); g.fillStyle = grad; g.fillRect(0, 0, 192, 144);
+  $('stage').style.setProperty('--lamp', lamp.toFixed(2));
+}
+(function loop(t) { draw(t); requestAnimationFrame(loop); })(performance.now());
+
+hud();
+if (S.day === 1 && S.slot === 0) intro(); else turn();
+</script>
+</body>
+</html>
