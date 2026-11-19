@@ -968,7 +968,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 53;
+const BUILD = 54;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1036,8 +1036,10 @@ const ADS = {
       if (document.querySelector('.half.p0 [data-where=local]')) showStart();
       // Пришёл по приглашению: t.me/…/play?startapp=room1234
       const room = /^room(\d{4})$/.exec(tg.initDataUnsafe?.start_param || '')?.[1];
+      const from = /^(yt|ytl|tt|vk|pk|tg)$/.exec(tg.initDataUnsafe?.start_param || '')?.[1];   // те же метки, что SRC ниже   // пришёл из ролика: t.me/…/play?startapp=yt
+      if (from) STATS.hit('from:' + from);
       if (room) joinOnce(room);
-      else firstRun(tg.initDataUnsafe?.start_param || '');
+      else firstRun(from ? '' : tg.initDataUnsafe?.start_param || '');
       const blocks = Object.entries(this.ADSGRAM).filter(([, id]) => id);
       if (blocks.length) this.script('https://sad.adsgram.ai/js/sad.min.js', () => {
         this.sdk = Object.fromEntries(blocks.map(([k, id]) => [k, window.Adsgram.init({ blockId: id })]));
@@ -1164,6 +1166,8 @@ const PORTAL = Boolean(HOST) || ADS.kind === 'yandex' || ADS.kind === 'vk' || AD
 // Сколько раз открыли игру, сколько разных телефонов за день, какие мини-игры запускают.
 // Ни имён, ни id не шлём — только названия событий; цифры на /stats сервера online/.
 // Не считаем на Яндексе, CrazyGames и itch (там правила порталов) и при запуске из файла.
+// Метки источника для ссылок из роликов и постов: yt — YouTube, tt — TikTok, vk — ВК, ytl — длинное видео YouTube
+const SRC = /^(yt|ytl|tt|vk|pk|tg)$/;
 const STATS = {
   API: 'https://babushka-online.17homosapiens.workers.dev',
   on: location.protocol.startsWith('http') && ADS.kind !== 'yandex' && HOST !== 'gd' && HOST !== 'poki'
@@ -4450,6 +4454,7 @@ function showFinal() {
 
 showStart();
 STATS.open();
+{ const f = /[?&]from=([a-z]{2,6})\b/.exec(location.search); if (f && SRC.test(f[1])) STATS.hit('from:' + f[1]); }   // сайт: …/?from=yt
 
 // Приглашение по ссылке ?room=1234 (в Телеграме код приходит в start_param, см. ADS.init).
 // Один раз за сессию: после выхода из комнаты страница перезагружается и не должна зайти снова

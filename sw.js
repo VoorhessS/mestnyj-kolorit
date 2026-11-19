@@ -1,6 +1,6 @@
 // Сервис-воркер: запоминает игру в телефоне, чтобы она открывалась без интернета.
 // При каждом выкладывании меняй VERSION — тогда телефон скачает свежую версию.
-const VERSION = 'kolorit-v51';
+const VERSION = 'kolorit-v52';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './fonts/pixel-cyr.woff2', './fonts/pixel-lat.woff2', './fonts/ruslan-cyr.woff2', './fonts/ruslan-lat.woff2',
   './fonts/rubik-cyr.woff2', './fonts/rubik-lat.woff2'];
@@ -17,7 +17,7 @@ self.addEventListener('activate', e => {
 
 // Сначала сеть (чтобы видеть обновления), без сети — из памяти
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || /\.mp4$/.test(new URL(e.request.url).pathname)) return;   // видео не копим в телефоне
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     fetch(e.request)
       .then(res => {
