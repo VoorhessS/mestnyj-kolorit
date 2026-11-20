@@ -219,7 +219,8 @@ function genRoster(seed) {
   const names = shuffle(NAMES, R).slice(0, 20), archs = shuffle([...Object.keys(ARCH), ...Object.keys(ARCH)], R), keys = Object.keys(ITEMS);
   return names.map((name, i) => {
     const a = archs[i], wish = [pk(keys)];
-    if (R() < .3) { let w; do w = pk(keys); while (w === wish[0]); wish.push(w); }
+    const n = R() < .3 ? 1 : R() < .7 ? 2 : 3;   // сколько предметов хочет
+    while (wish.length < n) { const w = pk(keys); if (!wish.includes(w)) wish.push(w); }
     const q = { id: 'g' + i, name, arch: a, room: GROOMS[i >> 1], bed: i & 1, wish, hair: pk(HAIRS), style: pk(STYLES), eye: pk(EYES), top: pk(TOPS),
       look: pk(OUTFITS), acc: pk(ACCS), extra: R() < .45 ? pk(['glasses', 'bow', 'catears', 'headband', 'clip']) : null, skirt: R() < .75, girl: 1, seed: R() };
     if (a === 'goth') { q.hair = pk(['#2b2233', '#24305e', '#3a1f3d']); q.top = pk(['#2a2233', '#3a1f3d']); q.eye = '#c0304a'; q.look = 'dress'; }
