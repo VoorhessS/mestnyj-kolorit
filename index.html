@@ -640,6 +640,108 @@
   body.skin-arcade .pot { box-shadow: 0 0 0 4px #444, 0 0 24px rgba(90,184,255,.5); }
   body.skin-arcade .name-input { font: 14px 'Press Start 2P', monospace; }
 
+  /* --- Новый год: ёлка у Бабки, снег, гирлянда, мандарины --- */
+  body.skin-newyear {
+    --p0: #17603f; --p1: #a3192b; --ink: #fffaf2; --win: #2f9e5c; --lose: #3d4656; --pot: #2c3440;
+    background: #0b1626;
+    font-family: 'Rubik', system-ui, sans-serif;
+  }
+  body.skin-newyear .half {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,.10) 0 2px, transparent 3px),
+      radial-gradient(circle at 70% 80%, rgba(255,255,255,.08) 0 3px, transparent 4px),
+      radial-gradient(ellipse at 50% 120%, rgba(255,255,255,.14), transparent 60%);
+    background-size: 46px 46px, 70px 70px, 100% 100%;
+  }
+  /* снег: два слоя хлопьев медленно падают по всему экрану */
+  body.skin-newyear #app::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -100%; height: 200%; z-index: 4; pointer-events: none;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.75) 0 1.5px, transparent 2.5px),
+      radial-gradient(circle, rgba(255,255,255,.5) 0 2.5px, transparent 3.5px);
+    background-size: 63px 71px, 117px 129px;
+    background-position: 0 0, 31px 47px;
+    animation: ny-snow 14s linear infinite;
+    will-change: transform;
+  }
+  @keyframes ny-snow { to { transform: translateY(50%); } }
+  @media (prefers-reduced-motion: reduce) { body.skin-newyear #app::before { animation: none; } }
+  /* посередине — гирлянда */
+  body.skin-newyear #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 16px; margin-top: -8px; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(circle at 9px 8px, #ffd23f 0 4px, transparent 5px) 0 0 / 72px 16px,
+      radial-gradient(circle at 27px 8px, #ff4d5e 0 4px, transparent 5px) 0 0 / 72px 16px,
+      radial-gradient(circle at 45px 8px, #4dd2ff 0 4px, transparent 5px) 0 0 / 72px 16px,
+      radial-gradient(circle at 63px 8px, #7dff8a 0 4px, transparent 5px) 0 0 / 72px 16px,
+      linear-gradient(#0b1626, #0b1626) 0 7px / 100% 2px no-repeat;
+    filter: drop-shadow(0 0 4px rgba(255,230,140,.8));
+    animation: ny-lights 1.6s steps(2) infinite;
+  }
+  @keyframes ny-lights { 50% { filter: drop-shadow(0 0 7px rgba(255,120,140,.9)) hue-rotate(90deg); } }
+  @media (prefers-reduced-motion: reduce) { body.skin-newyear #app::after { animation: none; } }
+  body.skin-newyear .msg :is(h1, h2) { font-weight: 900; color: #ffe07a; text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 14px rgba(255,224,122,.55); }
+  body.skin-newyear .msg .big { font-weight: 900; color: #fff; text-shadow: 0 0 16px rgba(255,255,255,.7); }
+  body.skin-newyear :is(.btn, .mode, .grab) {
+    background: #fffaf2; color: #8e1424; border-radius: 16px;
+    border-top: 5px solid #fff; box-shadow: 0 -2px 0 #e8f1ff, 0 4px 0 #b9c7d8, 0 6px 12px rgba(0,0,0,.25);
+    transition: transform .08s, box-shadow .08s;
+  }
+  body.skin-newyear .half.p0 :is(.btn, .mode, .grab) { color: #135236; }
+  body.skin-newyear :is(.btn, .mode, .grab):active { transform: translateY(3px); box-shadow: 0 1px 0 #b9c7d8; }
+  body.skin-newyear :is(.mode b, .grab) { font-weight: 900; }
+  body.skin-newyear .mode small { color: #5b6b7d; opacity: 1; }
+  body.skin-newyear .grab.hot { background: #ffb42b; color: #5a2a00; border-top-color: #fff3c9; }
+  body.skin-newyear .grab.held { background: #c9d6e3; color: #24364a; transform: translateY(3px); }
+  body.skin-newyear .btn.on { background: #2f9e5c; color: #fff; }
+  body.skin-newyear .hud .quit { background: #fffaf2; color: #8e1424; border: 0; }
+  body.skin-newyear .pot { box-shadow: 0 0 0 6px #fffaf2, 0 0 0 9px #c9d6e3, 0 6px 24px rgba(0,0,0,.5); }
+  body.skin-newyear .res div { background: rgba(255,255,255,.12); }
+  body.skin-newyear .res div.me { background: rgba(255,224,122,.25); }
+
+  /* --- Бабкин золотой: бархат, золото и хрусталь --- */
+  body.skin-gold {
+    --p0: #1f2a63; --p1: #5e1530; --ink: #fff3d6; --win: #8a6a12; --lose: #2a2622; --pot: #2a2117;
+    background: #0d0905;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  body.skin-gold .half {
+    background-image:
+      radial-gradient(circle at 50% 50%, rgba(244,210,122,.10) 0 2px, transparent 3px),
+      radial-gradient(circle at 0 0, rgba(244,210,122,.06) 0 6px, transparent 7px),
+      radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(0,0,0,.45) 100%);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+  }
+  body.skin-gold #app::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px; z-index: 1; pointer-events: none;
+    background: linear-gradient(90deg, #7a5410, #f7df8f 20%, #b8862b 45%, #fff2bd 60%, #a8771f 80%, #7a5410);
+    background-size: 200% 100%;
+    box-shadow: 0 0 0 1px #3a2306, 0 0 16px rgba(247,223,143,.6);
+    animation: gold-shine 5s linear infinite;
+  }
+  @keyframes gold-shine { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { body.skin-gold #app::after { animation: none; } }
+  body.skin-gold .msg :is(h1, h2) { font-weight: 700; font-style: italic; letter-spacing: .5px; color: #f4d27a; text-shadow: 0 2px 0 #5a3c08, 0 0 14px rgba(244,210,122,.5); }
+  body.skin-gold .msg .big { font-weight: 700; color: #ffe9a6; text-shadow: 0 3px 0 #5a3c08, 0 0 20px rgba(255,214,110,.7); }
+  body.skin-gold :is(.btn, .mode, .grab) {
+    background: linear-gradient(#fdf0bf, #e2b955 45%, #b8862b 55%, #e9c76a); color: #3a2306;
+    border-radius: 12px; border: 1px solid #fff3c4;
+    box-shadow: 0 0 0 2px #6e4b12, 0 4px 0 2px #4a3009, 0 8px 14px rgba(0,0,0,.4);
+    text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    transition: transform .08s, box-shadow .08s;
+  }
+  body.skin-gold :is(.btn, .mode, .grab):active { transform: translateY(3px); box-shadow: 0 0 0 2px #6e4b12, 0 1px 0 2px #4a3009; }
+  body.skin-gold :is(.mode b, .grab) { font-weight: 700; }
+  body.skin-gold .mode small { color: #5a3c08; opacity: 1; font-style: italic; }
+  body.skin-gold .grab.hot { background: linear-gradient(#ffffff, #fff1b8 50%, #ffd65e); color: #4a2a00; box-shadow: 0 0 0 2px #6e4b12, 0 0 26px #ffe07a, 0 4px 0 2px #4a3009; }
+  body.skin-gold .grab.held { background: #4a3009; color: #f4d27a; text-shadow: none; transform: translateY(3px); }
+  body.skin-gold .btn.on { background: linear-gradient(#3d2a6b, #241848); color: #f4d27a; text-shadow: none; }
+  body.skin-gold .hud { color: #f4d27a; }
+  body.skin-gold .hud .quit { background: #2a2117; color: #f4d27a; border: 1px solid #b8862b; box-shadow: none; text-shadow: none; }
+  body.skin-gold .pot { box-shadow: 0 0 0 5px #b8862b, 0 0 0 8px #4a3009, 0 0 26px rgba(244,210,122,.5); }
+  body.skin-gold .res div { background: rgba(244,210,122,.12); border: 1px solid rgba(244,210,122,.35); }
+  body.skin-gold .res div.me { background: rgba(244,210,122,.3); }
+
   /* Невысокие телефоны: в широких шрифтах скинов кнопки переносятся в два ряда — прячем подписи */
   @media (max-height: 720px) {
     body:is(.skin-nokia, .skin-arcade, .skin-poster) .mode small { display: none; }
@@ -968,7 +1070,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 55;
+const BUILD = 56;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1222,6 +1324,8 @@ const STARS = {
     }).catch(() => {});
   },
   SKIN: 15,
+  // Какие стили продаются за звёзды (как SKIN_STARS на сервере stars); новые пока только за рекламу
+  SOLD: ['win98', 'nokia', 'poster', 'arcade'],
   // Отдельный стиль за звёзды; ответ как у buy()
   async buySkin(id) {
     try {
@@ -1315,6 +1419,8 @@ const SKINS = [
   { id: 'nokia', emoji: '🐍', title: t('Нокиа', 'Nokia'), sub: t('Кнопочный телефон 00-х', '2000s brick phone') },
   { id: 'poster', emoji: '🪆', title: t('Плакат', 'Poster'), sub: t('Советская игрушка', 'Soviet toy box') },
   { id: 'arcade', emoji: '🕹️', title: t('Автомат', 'Arcade'), sub: t('Игровой зал 80-х', '80s game hall') },
+  { id: 'newyear', emoji: '🎄', title: t('Новый год', 'New Year'), sub: t('Ёлка, снег и мандарины', 'Tree, snow and tangerines') },
+  { id: 'gold', emoji: '👑', title: t('Бабкин золотой', 'Granny Gold'), sub: t('Бархат, золото, хрусталь', 'Velvet, gold and crystal') },
 ];
 
 function applySkin(id) {
@@ -1492,6 +1598,8 @@ const VOICES = {
   win98: { square: 'sine', sawtooth: 'triangle', vol: 1.5 },
   nokia: { triangle: 'square', sawtooth: 'square', pitch: 2 },
   poster: { square: 'sawtooth', vol: .7 },
+  newyear: { square: 'triangle', sawtooth: 'triangle', pitch: 2, vol: 1.6 },
+  gold: { square: 'triangle', sawtooth: 'sine', vol: 1.5 },
 };
 
 // Одна нота: частота, длительность, форма волны, громкость, через сколько секунд начать.
@@ -1589,6 +1697,25 @@ const TUNES = {
            41, 48, 53, 48, 41, 48, 53, 48, 43, 50, 55, 50, 43, 50, 55, 50],
     bassEvery: 2, bassWave: 'square', bassVol: .035, bassLen: 1.7,
   },
+};
+// Новый год: вальс-колокольчик на три четверти (шаг — восьмая, такт — шесть шагов)
+TUNES.newyear = {
+  bpm: 168, leadWave: 'triangle', leadVol: .07,
+  lead: [76, 0, 79, 0, 84, 0,  83, 0, 79, 0, 76, 0,  77, 0, 81, 0, 84, 0,  83, 0, 0, 0, 0, 0,
+         74, 0, 77, 0, 83, 0,  81, 0, 77, 0, 74, 0,  76, 0, 79, 0, 84, 0,  79, 0, 0, 0, 0, 0,
+         76, 0, 79, 0, 84, 0,  86, 0, 84, 0, 81, 0,  79, 0, 77, 0, 76, 0,  74, 0, 77, 0, 81, 0,
+         79, 0, 76, 0, 72, 0,  74, 0, 71, 0, 67, 0,  72, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0],
+  bass: [48, 55, 55, 53, 57, 57, 48, 55, 55, 43, 50, 50, 41, 48, 48, 43, 47, 47, 48, 55, 55, 43, 50, 50,
+         48, 55, 55, 53, 57, 57, 48, 55, 55, 45, 52, 52, 41, 48, 48, 43, 50, 50, 48, 55, 55, 48, 0, 0], bassEvery: 2, bassWave: 'sine', bassVol: .05,
+};
+// Бабкин золотой: торжественный менуэт, медный бас
+TUNES.gold = {
+  bpm: 96, leadWave: 'sine', leadVol: .07,
+  lead: [72, 0, 76, 79, 84, 0, 83, 81,  79, 0, 0, 0, 76, 0, 0, 0,
+         77, 0, 81, 84, 86, 0, 84, 83,  84, 0, 0, 0, 79, 0, 0, 0,
+         81, 0, 79, 77, 76, 0, 74, 72,  74, 0, 76, 0, 77, 0, 79, 0,
+         84, 0, 79, 0, 76, 0, 74, 0,  72, 0, 0, 0, 0, 0, 0, 0],
+  bass: [48, 43, 48, 43, 41, 48, 43, 48, 45, 41, 43, 43, 48, 43, 48, 0], bassEvery: 4, bassWave: 'triangle', bassVol: .06, bassLen: 1.8,
 };
 const tune = () => TUNES[currentSkin] || TUNES.classic;
 const music = {
@@ -4162,7 +4289,7 @@ function showSkins(note = '') {
     if (!btn) return;
     buzz(20);
     const id = btn.dataset.skin;
-    if (isLocked(id) && STARS.can) { save('kolorit-prev-skin', currentSkin); return skinChoice(id); }
+    if (isLocked(id) && STARS.can && STARS.SOLD.includes(id)) { save('kolorit-prev-skin', currentSkin); return skinChoice(id); }
     if (isLocked(id)) {
       state.onTap = null;
       ADS.reward().then(ok => {
