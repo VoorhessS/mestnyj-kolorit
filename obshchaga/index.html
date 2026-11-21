@@ -723,6 +723,7 @@ function ent(kind, L, tx, ty, extra = {}) {
   return Object.assign({ kind, look: L, x: tx * T + 8, y: ty * T + 9, dir: 0, ft: 0, moving: false, path: [], wait: Math.random() * 3, state: 'idle' }, extra);
 }
 function newNight() {
+  RED.open = false; RED.alarm = false;
   S = { min: 0, strikes: 0, tonight: 0, over: false, warnT: -99, inv: [], taken: {}, tolik: 0, key: true, gift: {}, tainted: {}, flop: null };
   hero = ent('hero', LOOK.hero, 3, 18, { trail: [], follower: null, cling: null });
   tolik = ent('tolik', LOOK.tolik, 2, 19, { dir: 2, state: 'still', name: 'Толик' });
@@ -1203,8 +1204,8 @@ function screen(html, btns) {
   for (const b of btns) { const e = document.createElement('button'); e.className = 'big' + (b.alt ? ' alt' : ''); e.textContent = b.t; e.onclick = b.f; s.appendChild(e); }
 }
 function hideScreen() { $('screen').className = 'off'; }
-function journal() {
-  const was = paused; paused = true;
+function journal(prev) {
+  const was = prev === undefined ? paused : prev; paused = true;
   $('jlist').innerHTML = ROSTER.map((q, i) => {
     const m = SAVE.met[q.id], a = ARCH[q.arch], r = ROOM[q.room], got = SAVE.got[q.id];
     if (!m) return `<div class="card"><div class="ph"></div><div><b>???</b><br><span class="q">комната ${r.no}<br>ещё не знакомы</span></div></div>`;
@@ -1222,7 +1223,7 @@ function intro() {
     <p>В общаге 20 девушек, у каждой свой характер и свои желания. Добейся каждой, принеси, что она хочет, и проведи к себе мимо вахтёрши с фонариком. Поклонницы хотят тебя просто так — от них придётся отбиваться.</p>
     <p class="fine">Тяни пальцем по экрану — идёшь. Большая кнопка — действие. На ПК: стрелки/WASD и пробел. Коллекция сохраняется между ночами.</p>
     <p class="fine">Все персонажи — совершеннолетние студенты. Никаких откровенных сцен: только тени в окне 😏</p>
-    <p class="fine">Версия 21.11 · 19:55 · можно на экран «Домой»</p>`,
+    <p class="fine">Версия 21.11 · 20:00 · можно на экран «Домой»</p>`,
     [{ t: SAVE.night > 1 || total ? `Ночь ${SAVE.night} (❤ ${total}/20)` : 'Играть', f: start },
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
@@ -1249,7 +1250,7 @@ function resetAll() { SAVE = freshSave(); persist(); ROSTER = genRoster(SAVE.see
 $('menuBtn').onclick = () => {
   if (!S || S.over || !$('screen').classList.contains('off')) return;
   const was = paused; paused = true;
-  screen('<h1>ПАУЗА</h1>', [{ t: 'Продолжить', f: () => { hideScreen(); paused = was; } }, { t: '📖 Журнал', alt: 1, f: () => { hideScreen(); journal(); } },
+  screen('<h1>ПАУЗА</h1>', [{ t: 'Продолжить', f: () => { hideScreen(); paused = was; } }, { t: '📖 Журнал', alt: 1, f: () => { hideScreen(); journal(was); } },
     { t: 'Новая общага (сброс)', alt: 1, f: () => { if (confirm('Начать с новыми девушками? Коллекция обнулится.')) resetAll(); } }]);
 };
 
@@ -1290,7 +1291,17 @@ for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = at(x, y);
   if (c === 't' || c === 'k') LAMPS.push({ x: x * T + 11, y: y * T + 6, r: 34, c: '255,200,120', a: .22 });
   if (c === 'v') LAMPS.push({ x: x * T + 8, y: y * T + 10, r: 30, c: '120,200,255', a: .14 }); }
 let last = performance.now();
+let stuckT = 0; const shownErr = {};
+function showErr(e) { const m = (e && e.message) || String(e); if (shownErr[m]) return; shownErr[m] = 1; toast('⚠ Ошибка: ' + m + '. Пришли скрин 🙏', 6000); }
+addEventListener('error', e => showErr(e.error || e.message));
 function frame(t) {
+  try { frameInner(t); } catch (e) { showErr(e); requestAnimationFrame(frame); }
+}
+function frameInner(t) {
+  // страховка: пауза, а на экране ни окна, ни сцены, ни меню, ни журнала → снимаем паузу
+  if (paused && S && !S.over && !$('dlg').classList.contains('on') && !$('night').classList.contains('on') && $('screen').classList.contains('off') && !$('journal').classList.contains('on')) {
+    stuckT += 1 / 60; if (stuckT > 1.5) { paused = false; stuckT = 0; }
+  } else stuckT = 0;
   const dt = Math.min(.05, (t - last) / 1000); last = t;
   if (!paused && S && !S.over) {
     const [vx, vy] = input(); if (hero.busy > 0) { hero.busy -= dt; moveHero(0, 0, dt); } else moveHero(vx, vy, dt);
