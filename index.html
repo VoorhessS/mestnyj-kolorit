@@ -1070,7 +1070,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 56;
+const BUILD = 57;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1325,7 +1325,7 @@ const STARS = {
   },
   SKIN: 15,
   // Какие стили продаются за звёзды (как SKIN_STARS на сервере stars); новые пока только за рекламу
-  SOLD: ['win98', 'nokia', 'poster', 'arcade'],
+  SOLD: ['win98', 'nokia', 'poster', 'arcade', 'newyear', 'gold'],
   // Отдельный стиль за звёзды; ответ как у buy()
   async buySkin(id) {
     try {
