@@ -875,11 +875,14 @@ function updFan(e, dt) {
   if (e.state === 'talk') { e.moving = false; return; }
   if (e.state === 'cling') return followTrail(e, hero.follower ? 18 : 9, dt);
   const d = dist(e, hero), safe = inRoom(hero, 'hero');
-  if (e.state !== 'chase' && e.sulk <= 0 && !(S.fanGrace > 0) && !hero.cling && !safe && d < 72 && los(e.x, e.y - 6, hero.x, hero.y - 6)) {
+  if (hero.follower && e.state !== 'chase' && d < 72 && !(e.jealT > S.min - 20) && los(e.x, e.y - 6, hero.x, hero.y - 6)) {
+    e.jealT = S.min; toast(`😒 ${e.name}: «${pick(['Ах вот ты с кем… Ну-ну.', 'Мог бы и со мной пойти 😤', 'Иди-иди. Я всё запомнила!', 'Ой, какие мы занятые 🙄'])}»`);
+  }
+  if (e.state !== 'chase' && e.sulk <= 0 && !(S.fanGrace > 0) && !hero.cling && !hero.follower && !safe && d < 72 && los(e.x, e.y - 6, hero.x, hero.y - 6)) {
     e.state = 'chase'; e.repath = 0; toast(`💘 ${e.name}: «${pick(e.f.spot)}»`);
   }
   if (e.state === 'chase') {
-    if (safe || d > 140 || hero.cling) { e.state = 'idle'; e.path = []; return; }
+    if (safe || d > 140 || hero.cling || hero.follower) { e.state = 'idle'; e.path = []; return; }
     e.repath -= dt; if (e.repath <= 0) { e.repath = .4; e.path = bfs(tileOf(e), tileOf(hero)); }
     walkPath(e, 42, dt);
     if (d < 11) cling(e);
@@ -1236,7 +1239,7 @@ function intro() {
     <p>В общаге 20 девушек, у каждой свой характер и свои желания. Добейся каждой, принеси, что она хочет, и проведи к себе мимо вахтёрши с фонариком. Поклонницы хотят тебя просто так — от них придётся отбиваться.</p>
     <p class="fine">Тяни пальцем по экрану — идёшь. Большая кнопка — действие. На ПК: стрелки/WASD и пробел. Коллекция сохраняется между ночами.</p>
     <p class="fine">Все персонажи — совершеннолетние студенты. Никаких откровенных сцен: только тени в окне 😏</p>
-    <p class="fine">Версия 21.11 · 20:15 · можно на экран «Домой»</p>`,
+    <p class="fine">Версия 21.11 · 20:25 · можно на экран «Домой»</p>`,
     [{ t: SAVE.night > 1 || total ? `Ночь ${SAVE.night} (❤ ${total}/20)` : 'Играть', f: start },
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
