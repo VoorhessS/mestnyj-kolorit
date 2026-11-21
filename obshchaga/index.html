@@ -90,6 +90,7 @@
   #night.close .p0 { transform: translateX(-84%); } #night.close .p1 { transform: translateX(-16%) scaleX(-1); }
   #night.kiss .p0 { transform: translateX(-74%) rotate(7deg); } #night.kiss .p1 { transform: translateX(-26%) scaleX(-1) rotate(7deg); }
   #night.hug .p0 { transform: translateX(-66%) rotate(10deg); } #night.hug .p1 { transform: translateX(-34%) scaleX(-1) rotate(10deg); }
+  #night.back .p0 { transform: translateX(-58%) translateY(-6%) scale(1.04); z-index: 0; } #night.back .p1 { transform: translateX(-44%) translateY(2%); z-index: 1; }
   #night.lift .p0 { transform: translateX(-64%) rotate(5deg); } #night.lift .p1 { transform: translateX(-36%) translateY(-15%) scaleX(-1) rotate(-8deg); }
   #night.flopped .p0 { transform: translateX(-104%) translateY(6%) rotate(-4deg); } #night.flopped .p1 { transform: translateX(8%) scaleX(-1); }
   #night .veil { position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0; background: #05030ad0; transition: opacity 1.8s ease, backdrop-filter 1.8s ease; }
@@ -983,7 +984,8 @@ function curtain(o) {
   } else {
     at(2900, () => hearts(4));
     at(4000, () => { n.classList.remove('kiss'); cls('hug'); });
-    if (pl !== 'bushes') at(5000, () => { n.classList.remove('hug'); cls('lift'); tx.textContent = 'Он подхватил её на руки…'; });
+    const pose = Math.random() < .5 ? ['lift', 'Он подхватил её на руки…'] : ['back', 'Он обнял её сзади и уткнулся ей в шею…'];
+    if (pl !== 'bushes') at(5000, () => { n.classList.remove('hug'); cls(pose[0]); tx.textContent = pose[1]; });
     at(pl === 'bushes' ? 4900 : 6000, () => { cls('fade'); tx.textContent = L3[2]; });
   }
   at(o.flop ? 6200 : pl === 'bushes' ? 7000 : 8000, () => {
