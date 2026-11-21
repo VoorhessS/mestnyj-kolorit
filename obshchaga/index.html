@@ -724,7 +724,7 @@ function ent(kind, L, tx, ty, extra = {}) {
 }
 function newNight() {
   RED.open = false; RED.alarm = false;
-  S = { min: 0, strikes: 0, tonight: 0, over: false, warnT: -99, inv: [], taken: {}, tolik: 0, key: true, gift: {}, tainted: {}, flop: null };
+  S = { min: 0, strikes: 0, tonight: 0, over: false, warnT: -99, inv: [], taken: {}, tolik: 0, key: true, gift: {}, tainted: {}, flop: null, prep: {} };
   hero = ent('hero', LOOK.hero, 3, 18, { trail: [], follower: null, cling: null });
   tolik = ent('tolik', LOOK.tolik, 2, 19, { dir: 2, state: 'still', name: 'Толик' });
   warden = ent('warden', LOOK.warden, 4, 45, { ang: -Math.PI / 2, base: -Math.PI / 2, sus: 0, pause: 3, name: 'Галина Петровна' });
@@ -912,10 +912,11 @@ function actLabel() {
   if (hero.cling) return '🙅\nОтшить';
   if (canPickpocket()) return '🫳\nСтащить 🔑';
   if (nearRedDoor()) return '🚪\nСлужебное';
+  if (nearShower()) return '🚿\nПомыться';
   const n = nearest(); if (!n) return null;
   if (n.kind === 'spot') return 'Взять\n' + ITEMS[n.item].e;
   if (n.kind === 'hide') return '🔍\nОбыскать';
-  if (n.kind === 'girl') return SAVE.got[n.q.id] ? '😉\nПривет' : n.cool > 0 ? '😤' : hero.follower ? '🤫' : (SAVE.won[n.q.id] && hasAll(n.q)) ? '🎁\nОтдать' : '💋\nФлирт';
+  if (n.kind === 'girl') return SAVE.got[n.q.id] ? '😉\nПривет' : n.cool > 0 ? '😤' : hero.follower ? '🤫' : n.date ? '😏\nСвидание' : (SAVE.won[n.q.id] && hasAll(n.q)) ? '🎁\nОтдать' : '💋\nФлирт';
   if (n.kind === 'warden') return '🔦\nВахта';
   if (n.kind === 'tolik') return '💬\nТолик';
   if (n.kind === 'fan') return '😬\n' + n.name;
@@ -927,6 +928,7 @@ function act() {
   if (hero.cling) return openFan(hero.cling);
   if (canPickpocket()) { S.key = false; addItem('key'); return toast('🫳 Ты вытащил 🔑 ключ от крыши из кармана Галины Петровны. Она ничего не заметила!'); }
   if (nearRedDoor()) return redDoor();
+  if (nearShower()) { S.prep.shower = 1; hero.busy = 1.5; hud(); return toast('🚿 Ты принял душ. Свежий, бодрый, пахнешь «Морским бризом» 😎 Теперь — за ней'); }
   const n = nearest(); if (!n) return;
   if (n.kind === 'hide') {
     RED.searched[n.i] = 1; hero.busy = .9; const it = RED.at[n.i];
@@ -947,6 +949,7 @@ function act() {
   }
   if (n.kind === 'warden') return toast('🔦 Галина Петровна: «' + pick(WARDEN_TALK) + '»');
   if (n.kind === 'tolik') {
+    if (dateOn() && !S.prep.wine) { S.prep.wine = 1; hud(); return toast('🍷 Толик: «На свидание? Держи вино из моих запасов. Потом расскажешь!»', 4000); }
     const it = ['noodle', 'soda'].find(x => !S.taken['tolik-' + x] && needed(x));
     if (it) { S.taken['tolik-' + it] = 1; addItem(it); return toast(`😴 Толик: «${it === 'noodle' ? 'Доширак будешь? Бери, мне не жалко' : 'На, лимонад. Последний, между прочим'}» ${ITEMS[it].e}`); }
     return toast('😴 Толик: «' + pick(TOLIK_TALK) + '»');
@@ -973,6 +976,7 @@ function subOf(gl) { const m = SAVE.met[gl.q.id] || {}; return `${gl.a.t} · ${g
 
 function openGirl(gl) {
   paused = true; gl.state = 'talk'; gl.path = []; faceEach(hero, gl); meet(gl.q, {});
+  if (gl.date && !SAVE.got[gl.q.id]) return dateView(gl);
   if (SAVE.won[gl.q.id]) meet(gl.q, { wish: 1 });
   if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '.'}`);
   flirtView(gl, `<b>${gl.name}:</b> ${pick(gl.a.hi)}`, 'smile');
@@ -1026,8 +1030,8 @@ function choosePlace(gl, k) {
   if (gl.noPlace[k]) return;
   if (k === placeOf(gl.q)) {
     meet(gl.q, { place: 1 }); gl.noPlace = {};
-    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Пойдём ${PLACES[k].to}.\n<b>${gl.name}:</b> Да… именно туда 💕`,
-      btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }] });
+    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Пойдём ${PLACES[k].to}.\n<b>${gl.name}:</b> Да… именно туда 💕 Только не прямо сейчас. Подготовься: прими душ или раздобудь вина. И приходи за мной, когда будешь готов 😘`,
+      btns: [{ t: 'Договорились 😏', cls: 'wide hot', f: () => { gl.date = 1; gl.state = 'idle'; gl.wait = 2; closePanel(); toast('💕 Свидание назначено! Подготовься: душ 🚿 в прачечной или вино 🍷 у Толика. Потом возвращайся за ней — когда Петровна будет подальше', 5500); } }] });
   }
   gl.noPlace[k] = 1;
   const miss = Object.keys(gl.noPlace).length;
@@ -1036,6 +1040,15 @@ function choosePlace(gl, k) {
     btns: placeBtns(gl) });
   lockBtns(400);
 }
+function dateView(gl) {
+  const pr = S.prep, P = PLACES[placeOf(gl.q)], base = { L: gl.q, name: gl.name, sub: subOf(gl), bar: 100 };
+  if (!pr.shower && !pr.wine) return panel({ ...base, emo: 'smile', text: `<b>${gl.name}:</b> Ну что, готов? Не-е, так не пойдёт 😏 Сначала прими душ или раздобудь вина. Я подожду 😘\n\n<i>Душ 🚿 — в прачечной, вино 🍷 — у Толика.</i>`, btns: [leaveBtn(gl)] });
+  const how = pr.wine && pr.shower ? 'Свежий, да ещё и с вином? Ты идеален 😍' : pr.wine ? 'О, вино! 🍷 Вот это я понимаю — подготовился' : 'М-м, пахнешь гелем для душа 😏';
+  panel({ ...base, emo: 'love', text: `<b>${gl.name}:</b> ${how}\nПошли ${P.to} 💕\n\n<i>Сначала глянь, где Петровна с фонариком.</i>`,
+    btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }, { t: 'Чуть позже', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } }] });
+}
+const dateOn = () => girls.some(g => g.date && !SAVE.got[g.q.id]);
+const nearShower = () => !hero.follower && !S.prep.shower && dateOn() && Math.hypot(hero.x - (5 * T + 8), hero.y - (37 * T + 8)) < 24;
 function startFollow(gl) {
   gl.state = 'follow'; hero.follower = gl; hero.trail = [{ x: hero.x, y: hero.y }]; closePanel();
   toast(`❤ ${gl.name} идёт за тобой. Веди её ${PLACES[placeOf(gl.q)].go}. Обходи фонарик вахтёрши!`, 4600);
@@ -1174,7 +1187,7 @@ function curtain(o) {
   });
 }
 function nightScene(gl) {
-  hero.follower = null; gl.state = 'hidden';
+  hero.follower = null; gl.state = 'hidden'; gl.date = 0; S.prep = {}; hud();
   const back = () => { const t = pick(gl.room.tiles); gl.x = t.x * T + 8; gl.y = t.y * T + 9; gl.state = 'idle'; gl.path = []; };
   if (gl.flop) {
     const fan = gl.flop;
@@ -1195,7 +1208,7 @@ function hud() {
   $('clock').textContent = '🕙 ' + clockStr(Math.min(S.min, 540));
   $('score').textContent = `❤ ${Object.keys(SAVE.got).length}/20`;
   $('strikes').textContent = S.strikes ? '📝'.repeat(S.strikes) : '';
-  $('inv').textContent = S.inv.map(i => ITEMS[i].e).join('');
+  $('inv').textContent = S.inv.map(i => ITEMS[i].e).join('') + (S.prep.wine ? '🍷' : '') + (S.prep.shower ? '🧼' : '');
 }
 let toastTimer = 0;
 function toast(t, ms = 3000) { const s = $('say'); s.textContent = t; s.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => s.classList.remove('on'), ms); }
@@ -1223,7 +1236,7 @@ function intro() {
     <p>В общаге 20 девушек, у каждой свой характер и свои желания. Добейся каждой, принеси, что она хочет, и проведи к себе мимо вахтёрши с фонариком. Поклонницы хотят тебя просто так — от них придётся отбиваться.</p>
     <p class="fine">Тяни пальцем по экрану — идёшь. Большая кнопка — действие. На ПК: стрелки/WASD и пробел. Коллекция сохраняется между ночами.</p>
     <p class="fine">Все персонажи — совершеннолетние студенты. Никаких откровенных сцен: только тени в окне 😏</p>
-    <p class="fine">Версия 21.11 · 20:00 · можно на экран «Домой»</p>`,
+    <p class="fine">Версия 21.11 · 20:15 · можно на экран «Домой»</p>`,
     [{ t: SAVE.night > 1 || total ? `Ночь ${SAVE.night} (❤ ${total}/20)` : 'Играть', f: start },
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
