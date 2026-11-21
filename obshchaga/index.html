@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#120e1c">
 <title>Общага: ночной обход</title>
 <meta http-equiv="Cache-Control" content="no-cache">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Общага">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   html, body { margin: 0; height: 100%; background: #120e1c; color: #f3ead8; font: 15px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -1216,7 +1222,7 @@ function intro() {
     <p>В общаге 20 девушек, у каждой свой характер и свои желания. Добейся каждой, принеси, что она хочет, и проведи к себе мимо вахтёрши с фонариком. Поклонницы хотят тебя просто так — от них придётся отбиваться.</p>
     <p class="fine">Тяни пальцем по экрану — идёшь. Большая кнопка — действие. На ПК: стрелки/WASD и пробел. Коллекция сохраняется между ночами.</p>
     <p class="fine">Все персонажи — совершеннолетние студенты. Никаких откровенных сцен: только тени в окне 😏</p>
-    <p class="fine">Версия 21.11 · 19:45 (красная комната, 11 мест)</p>`,
+    <p class="fine">Версия 21.11 · 19:55 · можно на экран «Домой»</p>`,
     [{ t: SAVE.night > 1 || total ? `Ночь ${SAVE.night} (❤ ${total}/20)` : 'Играть', f: start },
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
