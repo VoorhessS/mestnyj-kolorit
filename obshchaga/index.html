@@ -52,6 +52,7 @@
   #dbtns button:disabled { opacity: .45; }
   #dbtns .wide { grid-column: 1 / -1; background: #2a2233; min-height: 42px; }
   #dbtns .hot { background: #6b2346; border-color: #ff5d8f; }
+  #dbtns .no { opacity: .35; text-decoration: line-through; }
   #screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px;
     text-align: center; background: radial-gradient(#2b2040, #120e1c 75%); overflow-y: auto; }
   #screen.off { display: none; }
@@ -89,6 +90,7 @@
   #night.close .p0 { transform: translateX(-84%); } #night.close .p1 { transform: translateX(-16%) scaleX(-1); }
   #night.kiss .p0 { transform: translateX(-74%) rotate(7deg); } #night.kiss .p1 { transform: translateX(-26%) scaleX(-1) rotate(7deg); }
   #night.hug .p0 { transform: translateX(-66%) rotate(10deg); } #night.hug .p1 { transform: translateX(-34%) scaleX(-1) rotate(10deg); }
+  #night.lift .p0 { transform: translateX(-64%) rotate(5deg); } #night.lift .p1 { transform: translateX(-36%) translateY(-15%) scaleX(-1) rotate(-8deg); }
   #night.flopped .p0 { transform: translateX(-104%) translateY(6%) rotate(-4deg); } #night.flopped .p1 { transform: translateX(8%) scaleX(-1); }
   #night .veil { position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0; background: #05030ad0; transition: opacity 1.8s ease, backdrop-filter 1.8s ease; }
   #night.fade .veil { opacity: 1; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
@@ -300,11 +302,11 @@ const PLACES = {
 const PLACE_KEYS = Object.keys(PLACES), placeOf = q => PLACE_KEYS[Math.floor(q.seed * 6007) % 6];
 const PLACE_TXT = {
   room:   ['В окне горит мягкий свет…', 'Она первой потянулась к тебе…', 'Свет погас. Остальное — только между вами.'],
-  shower: ['Шумит вода, стекло запотело…', 'Сквозь пар видно, как две тени стали одной…', 'Пар скрыл всё остальное.'],
+  shower: ['Шумит вода, стекло запотело…', 'Сквозь пар видно, как она обвила его шею руками…', 'Пар скрыл всё остальное.'],
   store:  ['За матовым стеклом кладовки зажёгся свет…', 'Тени прижались друг к другу среди коробок…', 'Кто-то выключил свет. Дверь заперта изнутри.'],
   roof:   ['Крыша. Луна. Город спит…', 'В лунном свете ваши силуэты слились…', 'Луна зашла за облако.'],
   bench:  ['Лавочка за общагой, одинокий фонарь…', 'Две тени на асфальте всё ближе…', 'Фонарь мигнул и погас.'],
-  bushes: ['Кусты за общагой. Видны только головы…', 'Она тихо засмеялась и притянула тебя ближе…', 'Головы скрылись в листве. Кусты тихо шелестят…'],
+  bushes: ['Кусты за общагой. Видны только головы…', 'Она тихо засмеялась и притянула тебя ближе…', 'Она утянула тебя вниз, в листву… Кусты тихо шелестят.'],
 };
 const AFTER = ['Это было… вау. Повторим? 😏', 'Никому не говори. Особенно Петровне 🤫', 'Я ещё долго буду об этом думать…', 'Ты умеешь удивить 😏', 'Сердце до сих пор колотится…'];
 const NAMES = ['Катя', 'Алина', 'Вика', 'Даша', 'Соня', 'Настя', 'Лера', 'Маша', 'Полина', 'Аня', 'Юля', 'Кристина', 'Ксюша', 'Марина', 'Оля',
@@ -845,7 +847,7 @@ function subOf(gl) { const m = SAVE.met[gl.q.id] || {}; return `${gl.a.t} · ${g
 
 function openGirl(gl) {
   paused = true; gl.state = 'talk'; gl.path = []; faceEach(hero, gl); meet(gl.q, {});
-  if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '. И пойдём ' + PLACES[placeOf(gl.q)].to + ' ' + PLACES[placeOf(gl.q)].i}`);
+  if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '.'}`);
   flirtView(gl, `<b>${gl.name}:</b> ${pick(gl.a.hi)}`, 'smile');
 }
 const leaveBtn = gl => ({ t: 'Уйти', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } });
@@ -870,7 +872,7 @@ function flirt(gl, type) {
   if (dm === 'slap') setTimeout(() => $('pimg').animate([{ transform: 'translateX(-10px) rotate(-4deg)' }, { transform: 'translateX(10px) rotate(4deg)' }, { transform: 'none' }], { duration: 320 }), 30);
   if (gl.int >= 100) {
     SAVE.won[gl.q.id] = 1; meet(gl.q, { wish: 1 });
-    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${gl.a.ask}\nПринеси мне ${wishStr(gl.q)}. И пойдём ${PLACES[placeOf(gl.q)].to} ${PLACES[placeOf(gl.q)].i}`);
+    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${gl.a.ask}\nПринеси мне ${wishStr(gl.q)}.`);
   } else if (gl.int <= 0) {
     gl.cool = 25; gl.int = 10;
     panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: 0, text: text + `\n\n<b>${gl.name}:</b> Всё, отстань! 😤 Подойди попозже.`,
@@ -882,8 +884,28 @@ function give(gl) {
   const t = gl.q.wish.find(w => S.tainted[w]); gl.flop = t ? S.tainted[t] : null;   // подарок от поклонницы после ночи с ней → «не встал»
   for (const w of gl.q.wish) { S.inv.splice(S.inv.indexOf(w), 1); delete S.tainted[w]; }
   hud();
-  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${gl.a.yes}\n\nКуда: ${PLACES[placeOf(gl.q)].i} ${PLACES[placeOf(gl.q)].n.toLowerCase()}`,
-    btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }] });
+  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${gl.a.yes}\n\n<b>${gl.name}:</b> Ну… и куда ты меня поведёшь? 😏`,
+    btns: placeBtns(gl) });
+}
+// куда пойдём: у каждой своё место, игрок угадывает; после двух промахов — намёк
+const PLACE_HINT = { room: 'чтобы уютно, с подушкой и пледом', shower: 'чтобы было тепло… и мокро 😏', store: 'чтобы тесно, темно и никто не знал',
+  roof: 'чтобы под звёздами и луной', bench: 'на свежем воздухе, под фонарём', bushes: 'на улице, рискованно, чтобы сердце колотилось' };
+const PLACE_NO = ['Не-е, туда не хочу 🙄', 'Фу, ну нет. Думай ещё 😤', 'Серьёзно? Туда? Мимо 😒', 'Не угадал. Я не такая… туда 🙈'];
+const placeBtns = gl => PLACE_KEYS.map(k => ({ t: PLACES[k].i + ' ' + PLACES[k].n, cls: (gl.noPlace || {})[k] ? 'no' : '', f: () => choosePlace(gl, k) }));
+function choosePlace(gl, k) {
+  gl.noPlace = gl.noPlace || {};
+  if (gl.noPlace[k]) return;
+  if (k === placeOf(gl.q)) {
+    meet(gl.q, { place: 1 }); gl.noPlace = {};
+    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Пойдём ${PLACES[k].to}.\n<b>${gl.name}:</b> Да… именно туда 💕`,
+      btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }] });
+  }
+  gl.noPlace[k] = 1;
+  const miss = Object.keys(gl.noPlace).length;
+  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: 100,
+    text: `<b>Ты:</b> Пойдём ${PLACES[k].to}?\n<b>${gl.name}:</b> ${pick(PLACE_NO)}` + (miss >= 2 ? `\n<i>Намёк: она хочет ${PLACE_HINT[placeOf(gl.q)]}.</i>` : ''),
+    btns: placeBtns(gl) });
+  lockBtns(400);
 }
 function startFollow(gl) {
   gl.state = 'follow'; hero.follower = gl; hero.trail = [{ x: hero.x, y: hero.y }]; closePanel();
@@ -960,10 +982,11 @@ function curtain(o) {
     at(5100, () => { tx.textContent = 'Что-то пошло не так 😳'; });
   } else {
     at(2900, () => hearts(4));
-    at(4100, () => { n.classList.remove('kiss'); cls('hug'); });
-    at(4800, () => { cls('fade'); tx.textContent = L3[2]; });
+    at(4000, () => { n.classList.remove('kiss'); cls('hug'); });
+    if (pl !== 'bushes') at(5000, () => { n.classList.remove('hug'); cls('lift'); tx.textContent = 'Он подхватил её на руки…'; });
+    at(pl === 'bushes' ? 4900 : 6000, () => { cls('fade'); tx.textContent = L3[2]; });
   }
-  at(o.flop ? 6200 : 6900, () => {
+  at(o.flop ? 6200 : pl === 'bushes' ? 7000 : 8000, () => {
     tx.textContent = o.done();
     const b = $('nbtn'); b.textContent = o.flop ? 'Позор… 😳' : 'Дальше ❤'; b.style.display = 'block';
     b.onclick = () => { b.style.display = 'none'; n.className = ''; paused = false; o.next(); };
@@ -1006,7 +1029,7 @@ function journal() {
     const m = SAVE.met[q.id], a = ARCH[q.arch], r = ROOM[q.room], got = SAVE.got[q.id];
     if (!m) return `<div class="card"><div class="ph"></div><div><b>???</b><br><span class="q">комната ${r.no}<br>ещё не знакомы</span></div></div>`;
     return `<div class="card${got ? ' got' : ''}"><div class="ph">${portrait(q, got ? 'happy' : 'smile', 'j' + i, BUST)}</div><div><b>${q.name}</b> ${got ? '❤' : ''}<br>${a.t}, к. ${r.no}<br>` +
-      `<span class="q">любит:</span> ${m.likes ? TYPE_NAME[a.likes] : '?'}<br>${m.dirty ? '<span class="q">пошлости:</span> 😏 да<br>' : m.slap ? '<span class="q">пошлости:</span> 💥 бьёт<br>' : ''}${m.wish ? `<span class="q">где:</span> ${PLACES[placeOf(q)].i}<br>` : ''}<span class="q">хочет:</span> ${m.wish ? q.wish.map(w => ITEMS[w].e).join('') : '?'}</div></div>`;
+      `<span class="q">любит:</span> ${m.likes ? TYPE_NAME[a.likes] : '?'}<br>${m.dirty ? '<span class="q">пошлости:</span> 😏 да<br>' : m.slap ? '<span class="q">пошлости:</span> 💥 бьёт<br>' : ''}${m.place ? `<span class="q">где:</span> ${PLACES[placeOf(q)].i}<br>` : ''}<span class="q">хочет:</span> ${m.wish ? q.wish.map(w => ITEMS[w].e).join('') : '?'}</div></div>`;
   }).join('');
   $('journal').classList.add('on');
   $('jClose').onclick = () => { $('journal').classList.remove('on'); paused = was; };
