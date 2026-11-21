@@ -75,51 +75,89 @@
   .card .ph svg { width: 100%; height: 100%; }
   .card b { font-size: 13px; }
   .card .q { color: #8f84a3; }
-  #night { position: absolute; inset: 0; display: none; overflow: hidden;
-    background: radial-gradient(circle at 82% 9%, #fff8d8 0 18px, #fff8d855 19px, transparent 46px),
-      radial-gradient(1.5px 1.5px at 12% 7%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 36% 13%, #fff 99%, transparent), radial-gradient(1.2px 1.2px at 58% 5%, #fff 99%, transparent),
-      radial-gradient(1.2px 1.2px at 70% 15%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 24% 3%, #fff 99%, transparent), linear-gradient(#070b24, #1b1640 18%); }
+  #night { position: absolute; inset: 0; display: none; overflow: hidden; background: #070b24; }
   #night.on { display: block; }
+  #night .stg { position: absolute; inset: 0; overflow: hidden; }
+  #night .sky { position: absolute; inset: 0; background: radial-gradient(1.5px 1.5px at 12% 7%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 36% 13%, #fff 99%, transparent),
+    radial-gradient(1.2px 1.2px at 58% 5%, #fff 99%, transparent), radial-gradient(1.2px 1.2px at 70% 15%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 24% 3%, #fff 99%, transparent),
+    radial-gradient(1.3px 1.3px at 88% 22%, #fff 99%, transparent), radial-gradient(1.3px 1.3px at 6% 28%, #fff 99%, transparent), linear-gradient(#070b24, #1b1640 45%, #2a1d48); }
+  #night .moon { position: absolute; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #fffbe8, #f0e2b0); box-shadow: 0 0 60px 18px #fff4c850; }
+  /* общие тени: сближаются, целуются, обнимаются */
+  #night .sil { position: absolute; bottom: -4%; left: 50%; width: 62%; aspect-ratio: 2 / 3; z-index: 1; filter: brightness(0) blur(3px); opacity: .9; transition: transform 1.9s ease-in-out, opacity .6s; }
+  #night .sil svg, #night .hd svg { width: 100%; height: 100%; display: block; }
+  #night .p0 { transform: translateX(-118%); } #night .p1 { transform: translateX(18%) scaleX(-1); }
+  #night.close .p0 { transform: translateX(-84%); } #night.close .p1 { transform: translateX(-16%) scaleX(-1); }
+  #night.kiss .p0 { transform: translateX(-74%) rotate(7deg); } #night.kiss .p1 { transform: translateX(-26%) scaleX(-1) rotate(7deg); }
+  #night.hug .p0 { transform: translateX(-66%) rotate(10deg); } #night.hug .p1 { transform: translateX(-34%) scaleX(-1) rotate(10deg); }
+  #night.flopped .p0 { transform: translateX(-104%) translateY(6%) rotate(-4deg); } #night.flopped .p1 { transform: translateX(8%) scaleX(-1); }
+  #night .veil { position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0; background: #05030ad0; transition: opacity 1.8s ease, backdrop-filter 1.8s ease; }
+  #night.fade .veil { opacity: 1; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  /* комната: окно снаружи */
   #night .wall { position: absolute; left: 0; right: 0; top: 17%; bottom: 0; background-color: #6b3a2e;
     background-image: linear-gradient(#00000030 2px, transparent 2px), linear-gradient(90deg, #00000030 2px, transparent 2px), linear-gradient(90deg, #00000030 2px, transparent 2px);
     background-size: 100% 18px, 44px 36px, 44px 36px; background-position: 0 0, 0 0, 22px 18px; box-shadow: inset 0 0 120px #000a; }
   #night .ow { position: absolute; width: 16%; aspect-ratio: 3 / 4; border: 5px solid #d8cfbf; background: #141a33; }
-  #night .ow.nb { transition: background .3s; } #night.knock .ow.nb { background: #ffe9a8; }
-  #night .bub { position: absolute; background: #fff; color: #222; font-weight: 800; font-size: 13px; border-radius: 10px; padding: 4px 8px; opacity: 0; transition: opacity .2s; white-space: nowrap; }
-  #night.knock .bub { opacity: 1; }
   #win { position: absolute; left: 50%; top: 27%; width: 60%; max-width: 290px; aspect-ratio: 3 / 4; transform: translateX(-50%);
     border: 9px solid #e8e0d0; box-shadow: 0 0 0 3px #8a7f70, 0 10px 30px #000a; background: #120d18; overflow: hidden; }
   #win::after { content: ''; position: absolute; left: 0; right: 0; top: 24%; height: 7px; background: #e8e0d0; z-index: 3; }
-  #night.shake #win { animation: shake .11s linear infinite alternate; }
-  @keyframes shake { from { transform: translateX(-50%) translate(-3px, 1px) rotate(-.6deg); } to { transform: translateX(-50%) translate(3px, -1px) rotate(.6deg); } }
-  #win .room { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 70%, #ffc27a, #d8763a 55%, #5a2412); transition: opacity .25s; }
-  #night.dark #win .room { opacity: .06; }
-  #night.dim #win .room { opacity: .6; filter: hue-rotate(-25deg) saturate(1.4); }
+  #win .room { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 70%, #ffc27a, #d8763a 55%, #5a2412); transition: opacity 1.6s; }
+  #night.fade #win .room { opacity: .08; }
   #win .cur { position: absolute; top: 0; bottom: 0; width: 22%; background: repeating-linear-gradient(90deg, #a8324a 0 6px, #c84a62 6px 12px); opacity: .92; z-index: 2; }
   #win .cur.l { left: 0; border-radius: 0 0 40% 0; } #win .cur.r { right: 0; border-radius: 0 0 0 40%; }
-  #night .sil { position: absolute; bottom: -4%; left: 50%; width: 62%; aspect-ratio: 2 / 3; z-index: 1;
-    filter: brightness(0) blur(3px); opacity: .9; transition: transform 1.8s ease-in-out, opacity .3s; }
-  #night .sil svg { width: 100%; height: 100%; }
-  #s0 { transform: translateX(-118%); } #s1 { transform: translateX(18%) scaleX(-1); }
-  #night.close #s0 { transform: translateX(-84%); } #night.close #s1 { transform: translateX(-16%) scaleX(-1); }
-  #night.kiss #s0 { transform: translateX(-74%) rotate(7deg); } #night.kiss #s1 { transform: translateX(-26%) scaleX(-1) rotate(7deg); }
-  #night.dark .sil { opacity: 0; }
-  #night.flopped #s0 { transform: translateX(-104%) translateY(6%) rotate(-4deg); } #night.flopped #s1 { transform: translateX(8%) scaleX(-1); }
-  #night .fly { position: absolute; font-size: 30px; z-index: 5; animation: fly 1.6s ease-out forwards; }
-  @keyframes fly { to { transform: translate(var(--dx), var(--dy)) rotate(540deg); opacity: 0; } }
-  #night .pop { position: absolute; font: 900 18px system-ui, sans-serif; color: #fff; text-shadow: 0 2px 0 #c0392b, 0 0 8px #000; z-index: 5; animation: popw .9s ease-out forwards; }
-  @keyframes popw { from { transform: scale(.3) rotate(-10deg); } 30% { transform: scale(1.2) rotate(6deg); } to { transform: scale(1) rotate(0); opacity: 0; } }
-  #nfx span { position: absolute; font-size: 26px; animation: rise 2.4s ease-out forwards; z-index: 5; }
-  #night .ban { position: absolute; font-size: 90px; z-index: 4; filter: brightness(0) blur(1.5px); opacity: .75; transform-origin: 50% 100%; animation: ban 1.3s ease-out forwards; }
-  @keyframes ban { from { transform: scale(.2) rotate(-30deg); } 60% { transform: scale(1.25) rotate(10deg); } to { transform: scale(1.1) rotate(0); opacity: 0; } }
-  #night .cnt { position: absolute; left: 50%; top: 21%; transform: translateX(-50%); font: 900 22px system-ui, sans-serif; color: #ffd166; text-shadow: 0 2px 0 #8a2a00, 0 0 10px #000; z-index: 6; }
-  #night .say2 { position: absolute; background: #fff; color: #222; font: 800 12px system-ui, sans-serif; border-radius: 9px; padding: 3px 7px; z-index: 6; white-space: nowrap; animation: say2 1.7s ease-out forwards; }
-  @keyframes say2 { from { transform: scale(.4); } 15% { transform: scale(1.1); } 80% { opacity: 1; } to { transform: translateY(-14px); opacity: 0; } }
-  #night.cheer .ow { background: #ffe9a8; transition: background .2s; }
-  @keyframes rise { to { transform: translateY(-180px) scale(1.4); opacity: 0; } }
-  #ntext { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 96px); text-align: center; font-weight: 700; font-size: 16px;
+  /* душевая кабинка: запотевшее стекло и пар */
+  #night .bath { position: absolute; inset: 0; background-color: #7fa3b4; background-image: linear-gradient(#ffffff38 2px, transparent 2px), linear-gradient(90deg, #ffffff38 2px, transparent 2px);
+    background-size: 34px 34px; box-shadow: inset 0 0 160px #0b1a2ae0; }
+  #night .cab { position: absolute; left: 50%; top: 11%; width: 74%; max-width: 340px; aspect-ratio: 9 / 14; transform: translateX(-50%); border: 7px solid #d5dde3; border-radius: 12px;
+    overflow: hidden; background: radial-gradient(ellipse at 50% 25%, #fff1dc, #c9a68a 60%, #6b5a5a); box-shadow: 0 10px 40px #0008; }
+  #night .cab .sil { filter: brightness(.12) sepia(.4) blur(6px); opacity: .9; bottom: -10%; }
+  #night .glass { position: absolute; inset: 0; z-index: 2; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); background: linear-gradient(160deg, #ffffff40, #dbe9f340 40%, #ffffff30); }
+  #night .glass::before { content: ''; position: absolute; inset: 0; opacity: .6;
+    background: radial-gradient(circle, #ffffffaa 0 2px, transparent 3px) 0 0 / 22px 30px, radial-gradient(circle, #ffffff88 0 1.5px, transparent 2.5px) 11px 15px / 26px 34px; }
+  #night .steam { position: absolute; inset: -30%; z-index: 3; filter: blur(14px); opacity: .45; transition: opacity 1.8s; animation: steam 5s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 30% 60%, #ffffffbb, transparent 30%), radial-gradient(circle at 70% 40%, #ffffffaa, transparent 28%), radial-gradient(circle at 50% 80%, #ffffffbb, transparent 32%); }
+  #night.fade .steam { opacity: 1; }
+  @keyframes steam { to { transform: translate(6%, -8%) scale(1.15); } }
+  /* кладовка: дверь с матовым стеклом */
+  #night .hallw { position: absolute; inset: 0; background: linear-gradient(#241f2c 0 74%, #3a3028 74%); }
+  #night .door { position: absolute; left: 50%; top: 8%; width: 62%; max-width: 290px; aspect-ratio: 1 / 1.9; transform: translateX(-50%); background: #6b4a35; border: 8px solid #4a3224;
+    border-radius: 4px; box-shadow: 0 10px 40px #000a, inset 0 0 0 3px #7b5640; }
+  #night .pane { position: absolute; left: 13%; right: 13%; top: 7%; height: 54%; overflow: hidden; border: 5px solid #4a3224; background: radial-gradient(ellipse at 50% 60%, #ffd59a, #c78445 70%, #6b3a1a); transition: filter 1.8s; }
+  #night .pane .sil { width: 78%; filter: brightness(0) blur(4px); opacity: .85; }
+  #night .frost { position: absolute; inset: 0; z-index: 2; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background: repeating-linear-gradient(45deg, #ffffff16 0 3px, #ffffff06 3px 6px); }
+  #night .knob { position: absolute; right: 9%; top: 66%; width: 9%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff2a8, #b8861c); }
+  #night .gap { position: absolute; left: 4%; right: 4%; bottom: -10px; height: 6px; background: #ffcf8a; filter: blur(3px); transition: opacity 1.8s; }
+  #night.fade .pane { filter: brightness(.15); } #night.fade .gap { opacity: .15; }
+  /* крыша: силуэты на фоне луны */
+  #night .stg.pl-roof .moon { left: 50%; top: 13%; width: 80%; max-width: 380px; aspect-ratio: 1; transform: translateX(-50%); }
+  #night .city { position: absolute; left: 0; right: 0; bottom: 29%; height: 7%; opacity: .7; background: repeating-linear-gradient(90deg, #ffd16630 0 3px, transparent 3px 13px), linear-gradient(transparent, #0d0b14); }
+  #night .roofline { position: absolute; left: -10%; right: -10%; bottom: 0; height: 31%; background: linear-gradient(#1a1626, #0b0912); clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
+  #night .chim { position: absolute; right: 10%; bottom: 25%; width: 11%; height: 20%; background: #100d18; }
+  #night .duo { position: absolute; left: 0; right: 0; }
+  #night .stg.pl-roof .duo { bottom: 27%; height: 56%; } #night .stg.pl-roof .sil { width: 46%; bottom: 0; filter: brightness(0) blur(.6px); opacity: .97; }
+  /* лавочка: фонарь и длинные тени на асфальте */
+  #night .street { position: absolute; inset: 0; background: linear-gradient(#05070f 0 57%, #191820 57%); }
+  #night .lampglow { position: absolute; left: -30%; top: -8%; width: 100%; height: 115%; background: radial-gradient(ellipse at 50% 14%, #ffe2a0d0, #ffd27a40 28%, transparent 58%); }
+  #night .lamp { position: absolute; left: 19%; bottom: 42%; width: 2.6%; height: 46%; background: #26242c; }
+  #night .lamp::before { content: ''; position: absolute; left: -120%; top: -2%; width: 340%; height: 3%; background: #3a3842; border-radius: 4px; box-shadow: 0 6px 14px 4px #ffe2a0; }
+  #night .bench { position: absolute; left: 50%; bottom: 40%; width: 72%; height: 3.4%; transform: translateX(-50%); background: #3a2a1e; border-radius: 3px; z-index: 2; }
+  #night .bench::after { content: ''; position: absolute; left: 8%; right: 8%; top: 100%; height: 160%; border-left: 6px solid #2a1e16; border-right: 6px solid #2a1e16; }
+  #night .stg.pl-bench .duo { bottom: 41%; height: 36%; } #night .stg.pl-bench .sil { width: 40%; bottom: 0; filter: brightness(0) blur(.8px); }
+  #night .shadows { position: absolute; left: 0; right: 0; bottom: 41%; height: 36%; transform-origin: 50% 100%; transform: scaleY(-.5) skewX(42deg); opacity: .5; }
+  #night .shadows .sil { width: 40%; bottom: 0; filter: brightness(0) blur(5px); }
+  /* кусты: видны только головы */
+  #night .heads { position: absolute; left: 0; right: 0; bottom: 36%; height: 34%; transition: transform 2s ease-in; }
+  #night .hd { position: absolute; bottom: 0; left: 50%; width: 46%; aspect-ratio: 144 / 176; filter: brightness(.72) saturate(.85); transition: transform 1.9s ease-in-out; border-radius: 40% 40% 0 0; overflow: hidden; }
+  #night.fade .heads { transform: translateY(95%); }
+  #night .bushes { position: absolute; left: -12%; right: -12%; bottom: 0; height: 42%; z-index: 3;
+    background: radial-gradient(circle at 8% 30%, #2c6436 0 17%, transparent 18%), radial-gradient(circle at 27% 18%, #367a41 0 19%, transparent 20%), radial-gradient(circle at 48% 24%, #2c6436 0 21%, transparent 22%),
+      radial-gradient(circle at 70% 16%, #367a41 0 19%, transparent 20%), radial-gradient(circle at 91% 28%, #2c6436 0 17%, transparent 18%), linear-gradient(transparent 32%, #214a29 32%); }
+  #night.fade .bushes { animation: rustle .35s ease-in-out 8 alternate; }
+  @keyframes rustle { to { transform: translateX(5px) rotate(.5deg); } }
+  #nfx span { position: absolute; font-size: 24px; animation: rise 3.4s ease-out forwards; z-index: 6; opacity: .9; }
+  @keyframes rise { to { transform: translateY(-160px) scale(1.3); opacity: 0; } }
+  #ntext { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 96px); text-align: center; font-weight: 700; font-size: 16px; z-index: 8;
     text-shadow: 0 2px 6px #000, 0 0 12px #000; white-space: pre-line; }
-  #nbtn { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 26px); transform: translateX(-50%); display: none; }
+  #nbtn { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 26px); transform: translateX(-50%); display: none; z-index: 9; }
 </style>
 </head>
 <body>
@@ -139,11 +177,7 @@
     <div id="dbtns"></div>
   </div>
   <div id="journal"><h2><span>📖 Журнал общаги</span><button id="jClose">Закрыть</button></h2><div id="jlist"></div></div>
-  <div id="night"><div class="wall">
-      <div class="ow" style="left:2%;top:8%"></div><div class="ow nb" style="right:2%;top:8%"></div><div class="ow" style="left:2%;top:58%"></div><div class="ow" style="right:2%;top:58%"></div>
-      <div class="bub" style="right:4%;top:3%">Тук-тук! Потише там! 😠</div></div>
-    <div id="win"><div class="room"></div><div id="s0" class="sil"></div><div id="s1" class="sil"></div><div class="cur l"></div><div class="cur r"></div></div>
-    <div id="nfx"></div><div id="ntext"></div><button class="big" id="nbtn">Дальше 😏</button></div>
+  <div id="night"></div>
   <div id="screen"></div>
 </div>
 <script>
@@ -254,6 +288,25 @@ const ITEMS = {
   balloons:{ e: '🎈', n: '«шарики» из аптечки', where: 'в кладовке, в аптечке. Не для праздника' },
   cucumber:{ e: '🥒', n: 'огурец', where: 'в комнате поклонниц. Лучше не спрашивать, зачем он им' },
 };
+// места свиданий: у каждой девушки своё любимое (из её seed, чтобы не сбить уже созданных девушек)
+const PLACES = {
+  room:   { i: '🛏', n: 'Твоя комната',  to: 'к тебе в комнату', go: 'к себе в комнату (дверь «ТЫ ♥»)', x: 2 * 16 + 6, y: 17 * 16, r: 30 },
+  shower: { i: '🚿', n: 'Душевая кабинка', to: 'в душевую кабинку в прачечной', go: 'в душевую кабинку в прачечной (внизу слева)', x: 5 * 16 + 8, y: 37 * 16 + 12, r: 22 },
+  store:  { i: '🚪', n: 'Кладовка',      to: 'в кладовку, там дверь с матовым стеклом', go: 'в кладовку (внизу справа)', x: 12 * 16 + 8, y: 38 * 16 + 9, r: 24 },
+  roof:   { i: '🌙', n: 'Крыша',         to: 'на крышу, под луну. Только ключ достань', go: 'на крышу: люк в самом верху коридора, нужен 🔑', x: 8 * 16 + 8, y: 1 * 16 + 12, r: 20, key: 1 },
+  bench:  { i: '🪑', n: 'Лавочка за общагой', to: 'на лавочку за общагой, под фонарь', go: 'на улицу через выход у вахты', x: 8 * 16, y: 47 * 16, r: 24 },
+  bushes: { i: '🌳', n: 'Кусты за общагой', to: 'в кусты за общагой 😏', go: 'на улицу через выход у вахты', x: 8 * 16, y: 47 * 16, r: 24 },
+};
+const PLACE_KEYS = Object.keys(PLACES), placeOf = q => PLACE_KEYS[Math.floor(q.seed * 6007) % 6];
+const PLACE_TXT = {
+  room:   ['В окне горит мягкий свет…', 'Она первой потянулась к тебе…', 'Свет погас. Остальное — только между вами.'],
+  shower: ['Шумит вода, стекло запотело…', 'Сквозь пар видно, как две тени стали одной…', 'Пар скрыл всё остальное.'],
+  store:  ['За матовым стеклом кладовки зажёгся свет…', 'Тени прижались друг к другу среди коробок…', 'Кто-то выключил свет. Дверь заперта изнутри.'],
+  roof:   ['Крыша. Луна. Город спит…', 'В лунном свете ваши силуэты слились…', 'Луна зашла за облако.'],
+  bench:  ['Лавочка за общагой, одинокий фонарь…', 'Две тени на асфальте всё ближе…', 'Фонарь мигнул и погас.'],
+  bushes: ['Кусты за общагой. Видны только головы…', 'Она тихо засмеялась и притянула тебя ближе…', 'Головы скрылись в листве. Кусты тихо шелестят…'],
+};
+const AFTER = ['Это было… вау. Повторим? 😏', 'Никому не говори. Особенно Петровне 🤫', 'Я ещё долго буду об этом думать…', 'Ты умеешь удивить 😏', 'Сердце до сих пор колотится…'];
 const NAMES = ['Катя', 'Алина', 'Вика', 'Даша', 'Соня', 'Настя', 'Лера', 'Маша', 'Полина', 'Аня', 'Юля', 'Кристина', 'Ксюша', 'Марина', 'Оля',
   'Таня', 'Света', 'Лиза', 'Вера', 'Ира', 'Карина', 'Милана', 'Ева', 'Диана', 'Алиса', 'Яна', 'Женя', 'Рита', 'Нина', 'Варя'];
 const HAIRS = ['#2b2233', '#5a3a2a', '#8a5a3a', '#c4572a', '#f2d16b', '#e48fb0', '#7fb2ff', '#b48cff', '#d9d9e8', '#3fa58a', '#ff6b6b', '#24305e'];
@@ -401,7 +454,7 @@ const T = 16, W = 16, H = 48;
 const M = new Array(W * H).fill('#'), RM = new Array(W * H).fill(null), BEDC = {};
 const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? '#' : M[y * W + x];
 const set = (x, y, c) => { M[y * W + x] = c; };
-const SOLID = new Set('#=bBhHctsrvowxkpe');
+const SOLID = new Set('#=bBhHctsrvowxkpeul');
 const walk = (x, y) => !SOLID.has(at(x, y));
 const opaque = (x, y) => { const c = at(x, y); return c === '#' || c === '='; };
 const ROOMS = [
@@ -438,6 +491,7 @@ for (const r of ROOMS) {
   if (r.type === 'hall') { F(2, 43, 'k'); F(3, 43, 'k'); F(1, 46, 'p'); F(5, 46, 'p'); }
 }
 set(7, 47, 'e'); set(8, 47, 'e');
+set(5, 37, 'u'); set(8, 1, 'l');   // душевая кабинка в прачечной; лестница-люк на крышу
 for (const r of ROOMS) { r.tiles = []; for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) if (walk(x, y)) r.tiles.push({ x, y }); }
 const CORR = { id: 'corr', tiles: [] }; for (let y = 2; y <= 45; y++) for (let x = 7; x <= 8; x++) CORR.tiles.push({ x, y });
 const HANG = [ROOM.kitchen, ROOM.tv, ROOM.laundry, ROOM.read, CORR];
@@ -496,6 +550,8 @@ function drawMap() {
       case 'x': Q(2, 3, 12, 11, 1, '#b08a5a'); R(7, 3, 2, 11, '#d9c08c'); break;
       case 'k': Q(0, 3, 16, 10, 1, '#5a4030'); R(0, 3, 16, 2, '#6b4c38'); if (x === 2) { ell(c, px + 11, py + 3, 2, 2, '#ffd166'); R(10.6, 4, .8, 3, '#333'); } else { Q(3, 5, 7, 5, .5, '#f0e6d8'); } break;
       case 'p': Q(5, 9, 6, 6, 1, '#a0522d'); ell(c, px + 6, py + 6, 3, 3.5, '#3f8f4a'); ell(c, px + 10, py + 5, 3, 4, '#4fa95a'); ell(c, px + 8, py + 8, 3, 2.5, '#2f7a3a'); break;
+      case 'u': Q(1, 0, 14, 15, 2, '#d5dde3'); Q(2.2, 1.2, 11.6, 12.6, 1.5, '#a9cbe0'); R(4, 3, 1, 9, '#ffffff70'); ell(c, px + 8, py + 3, 1.6, 1, '#8a96a0'); break;
+      case 'l': R(4, 0, 1.4, 16, '#8a7f70'); R(10.6, 0, 1.4, 16, '#8a7f70'); for (let k = 2; k < 16; k += 3.5) R(4, k, 8, 1, '#a89c8a'); Q(3, 0, 10, 2.5, .6, '#4a4a56'); break;
       case 'e': R(0, 0, 16, 16, '#3a3a46'); Q(2, 2, 12, 12, 1, '#2c4057'); R(7.7, 2, .6, 12, '#3a3a46'); break;
     }
   }
@@ -789,7 +845,7 @@ function subOf(gl) { const m = SAVE.met[gl.q.id] || {}; return `${gl.a.t} · ${g
 
 function openGirl(gl) {
   paused = true; gl.state = 'talk'; gl.path = []; faceEach(hero, gl); meet(gl.q, {});
-  if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '.'}`);
+  if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '. И пойдём ' + PLACES[placeOf(gl.q)].to + ' ' + PLACES[placeOf(gl.q)].i}`);
   flirtView(gl, `<b>${gl.name}:</b> ${pick(gl.a.hi)}`, 'smile');
 }
 const leaveBtn = gl => ({ t: 'Уйти', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } });
@@ -814,7 +870,7 @@ function flirt(gl, type) {
   if (dm === 'slap') setTimeout(() => $('pimg').animate([{ transform: 'translateX(-10px) rotate(-4deg)' }, { transform: 'translateX(10px) rotate(4deg)' }, { transform: 'none' }], { duration: 320 }), 30);
   if (gl.int >= 100) {
     SAVE.won[gl.q.id] = 1; meet(gl.q, { wish: 1 });
-    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${gl.a.ask}\nПринеси мне ${wishStr(gl.q)}.`);
+    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${gl.a.ask}\nПринеси мне ${wishStr(gl.q)}. И пойдём ${PLACES[placeOf(gl.q)].to} ${PLACES[placeOf(gl.q)].i}`);
   } else if (gl.int <= 0) {
     gl.cool = 25; gl.int = 10;
     panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: 0, text: text + `\n\n<b>${gl.name}:</b> Всё, отстань! 😤 Подойди попозже.`,
@@ -826,12 +882,12 @@ function give(gl) {
   const t = gl.q.wish.find(w => S.tainted[w]); gl.flop = t ? S.tainted[t] : null;   // подарок от поклонницы после ночи с ней → «не встал»
   for (const w of gl.q.wish) { S.inv.splice(S.inv.indexOf(w), 1); delete S.tainted[w]; }
   hud();
-  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${gl.a.yes}`,
+  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${gl.a.yes}\n\nКуда: ${PLACES[placeOf(gl.q)].i} ${PLACES[placeOf(gl.q)].n.toLowerCase()}`,
     btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }] });
 }
 function startFollow(gl) {
   gl.state = 'follow'; hero.follower = gl; hero.trail = [{ x: hero.x, y: hero.y }]; closePanel();
-  toast(`❤ ${gl.name} идёт за тобой. Веди к себе (дверь «ТЫ ♥»), обходи фонарик вахтёрши!`, 4200);
+  toast(`❤ ${gl.name} идёт за тобой. Веди её ${PLACES[placeOf(gl.q)].go}. Обходи фонарик вахтёрши!`, 4600);
 }
 // поклонницы хотят тебя просто так: угадать, как отшить (она обидится и швырнёт подарок), или согласиться (подарок за ночь — но сил потом не останется)
 const fanGift = f => S.gift[f.f.id] ? null : (f.f.gifts.find(x => !S.inv.includes(x)) || f.f.gifts[0]);
@@ -859,7 +915,7 @@ function shake(f, q) {
 function fanNight(f) {
   closePanel(); paused = true;
   const it = fanGift(f);
-  curtain({ L: f.f, room: 'Комната поклонниц', interrupt: pick(FAN_INTERRUPT), done: () => {
+  curtain({ L: f.f, place: 'room', label: 'Комната поклонниц', done: () => {
     S.min += 60; if (it) { S.gift[f.f.id] = 1; addItem(it); S.tainted[it] = f.name; }
     return `${f.f.after}` + (it ? `\nНа прощание подарила ${ITEMS[it].e} ${ITEMS[it].n}.` : '');
   }, next: () => release(f, 90) });
@@ -875,43 +931,41 @@ function caught(why) {
     btns: [{ t: S.strikes >= 3 ? 'Ой…' : 'Больше не буду (буду)', cls: 'wide', f: () => { closePanel(); if (S.strikes >= 3) endNight('expel'); } }] });
 }
 
-// ---------------- окно общаги: тени ----------------
-// сцена «окно общаги снаружи»: тени сближаются, свет гаснет, окно ходит ходуном, вылетает носок, стучат соседи.
-// Ничего откровенного не показываем — только намёк и юмор. o.done() возвращает итоговый текст, o.flop — провал.
+// ---------------- сцены свиданий ----------------
+// Показываем до поцелуя и объятий, дальше — пар, затемнение или размытие. o.place — место, o.done() — итоговый текст, o.flop — «не встал».
 let sceneTimers = [];
+const STAGE = {
+  room:   (a, b) => `<div class="sky"></div><div class="moon" style="left:76%;top:3%;width:58px;aspect-ratio:1"></div><div class="wall"><div class="ow" style="left:2%;top:8%"></div><div class="ow" style="right:2%;top:8%"></div><div class="ow" style="left:2%;top:58%"></div><div class="ow" style="right:2%;top:58%"></div></div><div id="win"><div class="room"></div>${a}${b}<div class="cur l"></div><div class="cur r"></div></div>`,
+  shower: (a, b) => `<div class="bath"></div><div class="cab">${a}${b}<div class="glass"></div><div class="steam"></div></div>`,
+  store:  (a, b) => `<div class="hallw"></div><div class="door"><div class="pane">${a}${b}<div class="frost"></div></div><div class="knob"></div><div class="gap"></div></div>`,
+  roof:   (a, b) => `<div class="sky"></div><div class="moon"></div><div class="city"></div><div class="roofline"></div><div class="chim"></div><div class="duo">${a}${b}</div>`,
+  bench:  (a, b, a2, b2) => `<div class="street"></div><div class="lampglow"></div><div class="lamp"></div><div class="shadows">${a2}${b2}</div><div class="bench"></div><div class="duo">${a}${b}</div>`,
+  bushes: (a, b) => `<div class="sky"></div><div class="moon" style="left:78%;top:6%;width:56px;aspect-ratio:1"></div><div class="heads">${a}${b}</div><div class="bushes"></div>`,
+};
 function curtain(o) {
   paused = true; sceneTimers.forEach(clearTimeout); sceneTimers = [];
-  const n = $('night'), tx = $('ntext'), fx = $('nfx'), at = (ms, f) => sceneTimers.push(setTimeout(f, ms)), cls = c => n.classList.add(c);
-  $('s0').innerHTML = portrait(hero.look, 'smile', 's0'); $('s1').innerHTML = portrait(o.L, 'smile', 's1');
-  n.className = 'on'; fx.innerHTML = ''; $('nbtn').style.display = 'none';
-  tx.textContent = (o.room || 'Окно') + '. В окне горит свет…';
-  const spawn = (cl, txt, x, y, extra = {}) => { const e = document.createElement('div'); e.className = cl; e.textContent = txt; e.style.left = x + '%'; e.style.top = y + '%'; for (const k in extra) e.style.setProperty(k, extra[k]); fx.appendChild(e); };
-  const hearts = (k = 7) => { for (let i = 0; i < k; i++) at(i * 200, () => { const e = document.createElement('span'); e.textContent = pick(['❤️', '💕', '💗']); e.style.left = 35 + Math.random() * 30 + '%'; e.style.top = 45 + Math.random() * 15 + '%'; fx.appendChild(e); }); };
-  at(300, () => cls('close'));
-  at(2000, () => { cls('kiss'); tx.textContent = 'Тени всё ближе… 😏'; });
-  at(2600, () => hearts(5));
-  at(o.flop ? 3500 : 4100, () => { cls('dark'); tx.textContent = 'Свет погас.'; });
+  const pl = o.place || 'room', n = $('night');
+  const sil = (k, L, id) => `<div class="sil p${k}">${portrait(L, 'smile', id)}</div>`;
+  const hd = (k, L, id, emo) => `<div class="hd p${k}">${portrait(L, emo, id, BUST)}</div>`;
+  const parts = pl === 'bushes' ? [hd(0, hero.look, 'h0', 'smile'), hd(1, o.L, 'h1', 'shy')] : [sil(0, hero.look, 's0'), sil(1, o.L, 's1'), sil(0, hero.look, 'sh0'), sil(1, o.L, 'sh1')];
+  n.innerHTML = `<div class="stg pl-${pl}">${STAGE[pl](...parts)}</div><div class="veil"></div><div id="nfx"></div><div id="ntext"></div><button class="big" id="nbtn"></button>`;
+  n.className = 'on';
+  const tx = $('ntext'), fx = $('nfx'), at = (ms, f) => sceneTimers.push(setTimeout(f, ms)), cls = c => n.classList.add(c), L3 = PLACE_TXT[pl];
+  tx.textContent = (o.label || PLACES[pl].n) + '. ' + L3[0];
+  const hearts = k => { for (let q = 0; q < k; q++) at(q * 420, () => { const e = document.createElement('span'); e.textContent = pick(['❤️', '💗', '💕']); e.style.left = 38 + Math.random() * 24 + '%'; e.style.top = 42 + Math.random() * 12 + '%'; fx.appendChild(e); }); };
+  at(400, () => cls('close'));
+  at(2300, () => { cls('kiss'); tx.textContent = L3[1]; });
   if (o.flop) {
-    at(4600, () => { tx.textContent = '…'; spawn('pop', 'тишина…', 36, 40); });
-    at(5600, () => { n.classList.remove('dark', 'kiss'); cls('dim'); cls('flopped'); spawn('pop', '😳', 46, 34); });
+    at(4000, () => { n.classList.remove('kiss'); cls('flopped'); tx.textContent = '…'; });
+    at(5100, () => { tx.textContent = 'Что-то пошло не так 😳'; });
   } else {
-    at(3000, () => { spawn('ban', '🍌', 40, 40); tx.textContent = '…это что, тень банана?! 🍌'; });
-    at(4150, () => { cls('shake'); });
-    at(4300, () => { tx.textContent = 'Окно ходит ходуном 😳'; });
-    let squeak = 0; const cnt = document.createElement('div'); cnt.className = 'cnt'; fx.appendChild(cnt);
-    for (let t = 4200; t < 6400; t += 100) at(t, () => { squeak += 1 + rnd(3); cnt.textContent = 'СКРИП ×' + squeak; });
-    at(4600, () => { cls('cheer'); const pos = [[2, 26, 0], [2, 27, 1], [2, 74, 0], [2, 75, 1]]; pos.forEach(([x, y, r], i) => at(i * 260, () => spawn('say2', pick(CHEER), x, y, r ? { left: 'auto', right: '2%' } : {}))); });
-    at(3800, () => spawn('pop', 'СКРИП!', 14, 26));
-    at(4250, () => spawn('fly', '🧦', 50, 40, { '--dx': '130px', '--dy': '-260px' }));
-    at(4500, () => spawn('pop', 'БАМ!', 66, 50));
-    at(4700, () => spawn('fly', pick(['🧸', '📚', '🩴', '🧦']), 45, 45, { '--dx': '-150px', '--dy': '-220px' }));
-    at(5000, () => spawn('pop', 'СКРИП!', 60, 28));
-    at(5300, () => { cls('knock'); tx.textContent = o.interrupt + '…'; });
-    at(6400, () => { n.classList.remove('shake', 'dark', 'knock', 'kiss', 'cheer'); cls('dim'); hearts(8); });
+    at(2900, () => hearts(4));
+    at(4100, () => { n.classList.remove('kiss'); cls('hug'); });
+    at(4800, () => { cls('fade'); tx.textContent = L3[2]; });
   }
-  at(6800, () => {
+  at(o.flop ? 6200 : 6900, () => {
     tx.textContent = o.done();
-    const b = $('nbtn'); b.textContent = o.flop ? 'Позор… 😳' : 'Дальше 😏'; b.style.display = 'block';
+    const b = $('nbtn'); b.textContent = o.flop ? 'Позор… 😳' : 'Дальше ❤'; b.style.display = 'block';
     b.onclick = () => { b.style.display = 'none'; n.className = ''; paused = false; o.next(); };
   });
 }
@@ -920,14 +974,15 @@ function nightScene(gl) {
   const back = () => { const t = pick(gl.room.tiles); gl.x = t.x * T + 8; gl.y = t.y * T + 9; gl.state = 'idle'; gl.path = []; };
   if (gl.flop) {
     const fan = gl.flop;
-    return curtain({ L: gl.q, room: 'Твоя комната', flop: 1, interrupt: 'Что-то пошло не так', done: () => { S.flop = { girl: gl.name, fan }; S.min += 30;
+    return curtain({ L: gl.q, place: placeOf(gl.q), flop: 1, done: () => { S.flop = { girl: gl.name, fan }; S.min += 30;
       return `…после ночи с ${fan === 'Зинка' ? 'Зинкой' : 'Люськой'} сил не осталось.\nВСЁ. НЕ ВСТАЛ 😳\n${gl.name} хлопнула дверью.`; },
       next: () => { back(); gl.flop = null; endNight('flop'); } });
   }
-  curtain({ L: gl.q, room: 'Твоя комната', interrupt: pick(INTERRUPT), done: () => {
+  const pl = placeOf(gl.q);
+  curtain({ L: gl.q, place: pl, done: () => {
     SAVE.got[gl.q.id] = SAVE.night; S.tonight++; S.min += 60; persist(); hud();
-    return `…но вам было уже не до этого 😏\n❤ ${gl.name} — ${Object.keys(SAVE.got).length} из 20\nТолик утром: «${pick(TOLIK_RATE)}»`;
-  }, next: () => { back(); const total = Object.keys(SAVE.got).length; if (total >= 20) endNight('win'); else if (S.min >= 540) endNight('morning'); } });
+    return `❤ ${gl.name} — ${Object.keys(SAVE.got).length} из 20\n${gl.name}: «${pick(AFTER)}»`;
+  }, next: () => { back(); if (pl === 'room') setTimeout(() => toast('😴 Толик утром: «' + pick(TOLIK_RATE) + '»', 3500), 600); const total = Object.keys(SAVE.got).length; if (total >= 20) endNight('win'); else if (S.min >= 540) endNight('morning'); } });
 }
 
 // ---------------- HUD, тосты, экраны, журнал ----------------
@@ -951,7 +1006,7 @@ function journal() {
     const m = SAVE.met[q.id], a = ARCH[q.arch], r = ROOM[q.room], got = SAVE.got[q.id];
     if (!m) return `<div class="card"><div class="ph"></div><div><b>???</b><br><span class="q">комната ${r.no}<br>ещё не знакомы</span></div></div>`;
     return `<div class="card${got ? ' got' : ''}"><div class="ph">${portrait(q, got ? 'happy' : 'smile', 'j' + i, BUST)}</div><div><b>${q.name}</b> ${got ? '❤' : ''}<br>${a.t}, к. ${r.no}<br>` +
-      `<span class="q">любит:</span> ${m.likes ? TYPE_NAME[a.likes] : '?'}<br>${m.dirty ? '<span class="q">пошлости:</span> 😏 да<br>' : m.slap ? '<span class="q">пошлости:</span> 💥 бьёт<br>' : ''}<span class="q">хочет:</span> ${m.wish ? q.wish.map(w => ITEMS[w].e).join('') : '?'}</div></div>`;
+      `<span class="q">любит:</span> ${m.likes ? TYPE_NAME[a.likes] : '?'}<br>${m.dirty ? '<span class="q">пошлости:</span> 😏 да<br>' : m.slap ? '<span class="q">пошлости:</span> 💥 бьёт<br>' : ''}${m.wish ? `<span class="q">где:</span> ${PLACES[placeOf(q)].i}<br>` : ''}<span class="q">хочет:</span> ${m.wish ? q.wish.map(w => ITEMS[w].e).join('') : '?'}</div></div>`;
   }).join('');
   $('journal').classList.add('on');
   $('jClose').onclick = () => { $('journal').classList.remove('on'); paused = was; };
@@ -1039,7 +1094,13 @@ function frame(t) {
     for (const e of girls) updGirl(e, dt);
     if (S.fanGrace > 0) S.fanGrace -= dt;
     for (const e of fans) updFan(e, dt);
-    if (!paused && hero.follower && inRoom(hero, 'hero') && dist(hero, BED) < 30) nightScene(hero.follower);
+    if (!paused && hero.follower) {
+      const P = PLACES[placeOf(hero.follower.q)];
+      if (Math.hypot(hero.x - P.x, hero.y - P.y) < P.r && (P !== PLACES.room || inRoom(hero, 'hero'))) {
+        if (P.key && !S.inv.includes('key')) { if (!(S.keyWarn > S.min - 4)) { S.keyWarn = S.min; toast('🔒 Люк заперт. Нужен 🔑 ключ от крыши — он в кармане у Галины Петровны'); } }
+        else nightScene(hero.follower);
+      }
+    }
     S.min += dt; if (S.min >= 540 && !paused) endNight('morning');
     for (const e of ents) if (e.moving) e.ft += dt * 8;
     if (Math.floor(S.min) !== Math.floor(S.min - dt)) hud();
@@ -1058,7 +1119,7 @@ function render(t) {
   g.imageSmoothingEnabled = true; g.drawImage(mapCv, 0, 0, W * T, H * T);
   // предметы: искорки
   for (const s of SPOTS) if (!S.taken[s.item]) { const p = .6 + .4 * Math.sin(t / 260 + s.x * 3); g.globalAlpha = p; g.font = '6px system-ui'; g.textAlign = 'center'; g.fillText('✨', s.px, s.py - 3); g.globalAlpha = 1; }
-  if (hero.follower) { g.globalAlpha = .45 + .35 * Math.sin(t / 180); g.strokeStyle = '#ff5d8f'; g.lineWidth = 1; g.strokeRect(T + .5, 16 * T + .5, T - 1, 2 * T - 1); g.globalAlpha = 1; }
+  if (hero.follower) { const P = PLACES[placeOf(hero.follower.q)]; g.globalAlpha = .45 + .35 * Math.sin(t / 180); g.strokeStyle = '#ff5d8f'; g.lineWidth = 1.2; g.beginPath(); g.arc(P.x, P.y, 9 + 2 * Math.sin(t / 180), 0, 7); g.stroke(); g.globalAlpha = 1; }
   for (const e of [...ents].sort((a, b) => a.y - b.y)) {
     if (e.state === 'hidden') continue;
     if (e.x < camX - 20 || e.x > camX + cw + 20 || e.y < camY - 10 || e.y > camY + ch + 40) continue;
@@ -1094,7 +1155,7 @@ function render(t) {
     if (label) { g.font = 'bold 4.6px system-ui, sans-serif'; const tw = g.measureText(label).width + 4; rr(g, nx - tw / 2, ny - 5.5, tw, 7, 2, 'rgba(20,14,32,.85)'); g.fillStyle = '#fff'; g.fillText(label, nx, ny); }
   }
   if (hero.follower) {   // стрелка к твоей комнате, если её не видно
-    const sx = BED.x - camX, sy = BED.y - camY, m = 10, top = 60;
+    const P = PLACES[placeOf(hero.follower.q)], sx = P.x - camX, sy = P.y - camY, m = 10, top = 60;
     if (sx < m || sy < top || sx > cw - m || sy > ch - m) {
       const cx = cw / 2, cy = ch / 2, a = Math.atan2(sy - cy, sx - cx), kk = Math.min(Math.abs((cw / 2 - m) / Math.cos(a)), Math.abs((ch / 2 - top) / Math.sin(a)));
       g.save(); g.translate(camX + cx + Math.cos(a) * kk, camY + cy + Math.sin(a) * kk); g.rotate(a);
