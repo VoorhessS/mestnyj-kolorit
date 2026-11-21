@@ -218,6 +218,13 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="age16" style="position:fixed;inset:0;z-index:99;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;background:#0b0b0e;color:#ddd;font-family:monospace;text-align:center">
+  <div style="font-size:72px;font-weight:bold;color:#e33;letter-spacing:4px">16+</div>
+  <div style="max-width:420px;line-height:1.5">В игре есть сцены насилия: стрельба по мутантам и вооружённым людям.<br>Мир, персонажи и события вымышлены.</div>
+  <button id="age16-ok" style="font:bold 18px monospace;color:#fff;background:#2a2a34;border:2px solid #e33;border-radius:8px;padding:12px 28px">МНЕ ЕСТЬ 16 ▶</button>
+</div>
+<script>(function () { var g = document.getElementById('age16'); try { if (localStorage.getItem('strel-16')) return; } catch (e) {}
+  g.style.display = 'flex'; var ok = function (e) { e.stopPropagation(); e.preventDefault(); try { localStorage.setItem('strel-16', '1'); } catch (x) {} if (g.parentNode) g.remove(); }; var bt = document.getElementById('age16-ok'); ['click', 'touchend', 'pointerup'].forEach(function (t) { bt.addEventListener(t, ok, true); }); ['touchstart', 'pointerdown', 'mousedown'].forEach(function (t) { g.addEventListener(t, function (e) { e.stopPropagation(); }, true); }); })();</script>
 <div id="pad" class="ctl" data-z="pad">
   <svg viewBox="0 0 150 150" data-z="pad">
     <path data-z="pad" d="M52 4h46v48h48v46H98v48H52V98H4V52h48z" fill="#1b1b1b" stroke="#888" stroke-width="3"/>
