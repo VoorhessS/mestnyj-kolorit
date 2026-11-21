@@ -93,6 +93,8 @@
   #night.back .p0 { transform: translateX(-58%) translateY(-6%) scale(1.04); z-index: 0; } #night.back .p1 { transform: translateX(-44%) translateY(2%); z-index: 1; }
   #night.lift .p0 { transform: translateX(-64%) rotate(5deg); } #night.lift .p1 { transform: translateX(-36%) translateY(-15%) scaleX(-1) rotate(-8deg); }
   #night.flopped .p0 { transform: translateX(-104%) translateY(6%) rotate(-4deg); } #night.flopped .p1 { transform: translateX(8%) scaleX(-1); }
+  #night .stg.pl-red svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #night .stg.pl-red .duo { bottom: 6%; height: 52%; } #night .stg.pl-red .sil { width: 46%; bottom: 0; filter: brightness(0) blur(1.5px); opacity: .92; }
   #night .veil { position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0; background: #05030ad0; transition: opacity 1.8s ease, backdrop-filter 1.8s ease; }
   #night.fade .veil { opacity: 1; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   /* комната: окно снаружи */
@@ -356,7 +358,7 @@ const INTERRUPT = ['Толик сквозь сон: «Ребят, потише, 
 const CAUGHT = ['Это что за ночные гости?! Барышня — к себе, а ты — объяснительную!', 'Ага! Попались, голубчики! Марш по комнатам!',
   'Я тридцать лет на вахте, меня не проведёшь! Объяснительную на стол!'];
 const WARDEN_TALK = ['Чего шастаешь? Отбой был в одиннадцать!', 'Я всё вижу. У меня фонарик и тридцать лет стажа.', 'Девочек не водить! Узнаю — выселю.',
-  'Розу мне студенты подарили. Не трогать!'];
+  'Розу мне студенты подарили. Не трогать!', 'Будешь шуметь — пройдём ко мне в кабинет. Объяснительную писать 😏', 'Я строгая. Очень строгая.'];
 const TOLIK_TALK = ['Братан, если кого приведёшь — я сплю. Крепко. Наверное 😴', 'Галина Петровна сегодня злая, у неё сериал кончился.',
   'Зинка опять про тебя спрашивала 😂 Беги, пока можешь.', 'Говорят, цундэрэ любят напор. А милашки — наоборот.', 'Ключ от крыши Петровна носит в кармане. Со спины подкрадись.',
   'Загляни в 📖 журнал: там всё про девчонок, что ты узнал.',
@@ -457,7 +459,7 @@ const T = 16, W = 16, H = 48;
 const M = new Array(W * H).fill('#'), RM = new Array(W * H).fill(null), BEDC = {};
 const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? '#' : M[y * W + x];
 const set = (x, y, c) => { M[y * W + x] = c; };
-const SOLID = new Set('#=bBhHctsrvowxkpeul');
+const SOLID = new Set('#=bBhHctsrvowxkpeulq');
 const walk = (x, y) => !SOLID.has(at(x, y));
 const opaque = (x, y) => { const c = at(x, y); return c === '#' || c === '='; };
 const ROOMS = [
@@ -491,7 +493,7 @@ for (const r of ROOMS) {
   if (r.type === 'fans') { F(14, 21, 'b'); F(14, 22, 'B'); F(14, 23, 'b'); F(14, 24, 'B'); F(10, 21, 't'); }
   if (r.type === 'store') { F(13, 36, 'x'); F(14, 36, 'x'); F(14, 37, 'x'); F(11, 40, 'x'); F(14, 40, 'x'); }
   if (r.type === 'read') { F(12, 43, 't'); F(12, 45, 't'); for (let y = 42; y <= 46; y++) F(14, y, 'c'); }
-  if (r.type === 'hall') { F(2, 43, 'k'); F(3, 43, 'k'); F(1, 46, 'p'); F(5, 46, 'p'); }
+  if (r.type === 'hall') { F(2, 43, 'k'); F(3, 43, 'k'); F(1, 46, 'p'); F(5, 46, 'p'); F(1, 42, 'q'); }   // q — дверь «Служебное»
 }
 set(7, 47, 'e'); set(8, 47, 'e');
 set(5, 37, 'u'); set(8, 1, 'l');   // душевая кабинка в прачечной; лестница-люк на крышу
@@ -553,6 +555,7 @@ function drawMap() {
       case 'x': Q(2, 3, 12, 11, 1, '#b08a5a'); R(7, 3, 2, 11, '#d9c08c'); break;
       case 'k': Q(0, 3, 16, 10, 1, '#5a4030'); R(0, 3, 16, 2, '#6b4c38'); if (x === 2) { ell(c, px + 11, py + 3, 2, 2, '#ffd166'); R(10.6, 4, .8, 3, '#333'); } else { Q(3, 5, 7, 5, .5, '#f0e6d8'); } break;
       case 'p': Q(5, 9, 6, 6, 1, '#a0522d'); ell(c, px + 6, py + 6, 3, 3.5, '#3f8f4a'); ell(c, px + 10, py + 5, 3, 4, '#4fa95a'); ell(c, px + 8, py + 8, 3, 2.5, '#2f7a3a'); break;
+      case 'q': Q(2, 0, 12, 15.5, 1, '#4a1820'); Q(3.2, 1.2, 9.6, 6, .6, '#5e2029'); Q(3.2, 8.2, 9.6, 6, .6, '#5e2029'); Q(5, 3, 6, 2, .4, '#c9a64a'); ell(c, px + 11, py + 9, .9, .9, '#d8b25a'); break;
       case 'u': Q(1, 0, 14, 15, 2, '#d5dde3'); Q(2.2, 1.2, 11.6, 12.6, 1.5, '#a9cbe0'); R(4, 3, 1, 9, '#ffffff70'); ell(c, px + 8, py + 3, 1.6, 1, '#8a96a0'); break;
       case 'l': R(4, 0, 1.4, 16, '#8a7f70'); R(10.6, 0, 1.4, 16, '#8a7f70'); for (let k = 2; k < 16; k += 3.5) R(4, k, 8, 1, '#a89c8a'); Q(3, 0, 10, 2.5, .6, '#4a4a56'); break;
       case 'e': R(0, 0, 16, 16, '#3a3a46'); Q(2, 2, 12, 12, 1, '#2c4057'); R(7.7, 2, .6, 12, '#3a3a46'); break;
@@ -951,7 +954,52 @@ function caught(why) {
   const line = why === 'steal' ? 'Ах ты воришка! Положи на место! Это мне студенты подарили!' : pick(CAUGHT);
   panel({ L: warden.look, name: 'Галина Петровна', sub: 'вахтёрша, 30 лет стажа', emo: 'angry', bar: null,
     text: `<b>Галина Петровна:</b> ${line}\n\n📝 Объяснительная ${S.strikes} из 3.`,
-    btns: [{ t: S.strikes >= 3 ? 'Ой…' : 'Больше не буду (буду)', cls: 'wide', f: () => { closePanel(); if (S.strikes >= 3) endNight('expel'); } }] });
+    btns: [{ t: S.strikes >= 3 ? 'Ой…' : 'Больше не буду (буду)', cls: 'wide', f: () => { closePanel(); redRoom(() => { if (S.strikes >= 3) endNight('expel'); }); } }] });
+}
+
+// ---------------- «кабинет» Галины Петровны ----------------
+const RED_SVG = `<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="rw" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="#b3172e"/><stop offset=".55" stop-color="#5e0a18"/><stop offset="1" stop-color="#1c0306"/></radialGradient>
+    <radialGradient id="cg" r="50%"><stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0a0e"/><stop offset="1" stop-color="#0c0204"/></linearGradient></defs>
+  <rect width="360" height="640" fill="url(#rw)"/>
+  <g opacity=".18" stroke="#000" stroke-width="2">${[40, 80, 120, 160, 200, 240, 280, 320].map(x => `<line x1="${x}" y1="0" x2="${x}" y2="420"/>`).join('')}</g>
+  <rect y="400" width="360" height="240" fill="url(#fl)"/><rect y="396" width="360" height="8" fill="#3a0c12"/>
+  <path d="M0 0 H70 Q60 200 76 420 H0 Z" fill="#7a0f22"/><path d="M360 0 H290 Q300 200 284 420 H360 Z" fill="#7a0f22"/>
+  <path d="M20 0 Q14 200 30 420 M46 0 Q40 200 54 420 M314 0 Q320 200 306 420 M338 0 Q344 200 330 420" stroke="#4a0814" stroke-width="5" fill="none"/>
+  <rect x="140" y="120" width="80" height="8" rx="3" fill="#2a0a0e"/>
+  ${[154, 180, 206].map((x, i) => `<rect x="${x - 4}" y="${100 - i * 4}" width="8" height="${20 + i * 4}" fill="#f3e6c8"/><ellipse cx="${x}" cy="${94 - i * 4}" rx="4" ry="7" fill="#ffcf5a"/><circle cx="${x}" cy="${94 - i * 4}" r="26" fill="url(#cg)"/>`).join('')}
+  <g transform="translate(96 168)" fill="none" stroke="#c9c9d2" stroke-width="5"><circle cx="0" cy="0" r="13"/><circle cx="40" cy="0" r="13"/><path d="M13 0 H27" stroke-dasharray="4 3"/></g>
+  <circle cx="116" cy="150" r="3" fill="#888"/>
+  <g transform="translate(250 140) rotate(18)"><rect x="-2" y="0" width="5" height="96" rx="2" fill="#1a1a1a"/><rect x="-5" y="-6" width="11" height="14" rx="3" fill="#3a1a12"/><path d="M0 96 q8 8 0 16 q-8 -8 0 -16" fill="#1a1a1a"/></g>
+  <circle cx="250" cy="134" r="3" fill="#888"/>
+  <path d="M286 200 q20 -40 8 -78 q-14 30 -8 78" fill="#f5f0ff" opacity=".9"/><path d="M286 200 l6 -76" stroke="#c9c0de" stroke-width="2"/>
+  <rect x="60" y="330" width="240" height="26" rx="6" fill="#2a0a0e"/><rect x="72" y="250" width="216" height="90" rx="10" fill="#3a0c12"/>
+  <rect x="66" y="340" width="228" height="60" rx="8" fill="#9e1028"/><rect x="66" y="340" width="228" height="10" rx="5" fill="#c21a36"/>
+  <ellipse cx="120" cy="340" rx="30" ry="12" fill="#d42a46"/><ellipse cx="240" cy="340" rx="30" ry="12" fill="#d42a46"/>
+  <path d="M70 360 Q180 420 290 360 L294 400 L66 400 Z" fill="#7a0c1e"/>
+  <g transform="translate(24 430)"><rect x="0" y="0" width="70" height="70" rx="12" fill="#1a0507"/><rect x="6" y="-40" width="58" height="56" rx="14" fill="#260709"/><rect x="-6" y="16" width="16" height="44" rx="6" fill="#120304"/><rect x="60" y="16" width="16" height="44" rx="6" fill="#120304"/></g>
+  <ellipse cx="180" cy="560" rx="120" ry="26" fill="#000" opacity=".35"/>
+</svg>`;
+function redRoom(after) {
+  paused = true; sceneTimers.forEach(clearTimeout); sceneTimers = [];
+  const n = $('night'), master = Math.random() < 1 / 8;
+  n.innerHTML = `<div class="stg pl-red">${RED_SVG}<div class="duo"><div class="sil p0">${portrait(hero.look, 'smile', 'r0')}</div><div class="sil p1">${portrait(warden.look, 'smile', 'r1')}</div></div></div><div class="veil"></div><div id="nfx"></div><div id="ntext"></div><button class="big" id="nbtn"></button>`;
+  n.className = 'on';
+  const tx = $('ntext'), at = (ms, f) => sceneTimers.push(setTimeout(f, ms)), cls = c => n.classList.add(c);
+  tx.textContent = 'Галина Петровна: «Пройдёмте, молодой человек… ко мне в кабинет»';
+  at(400, () => cls('close'));
+  at(2200, () => { tx.textContent = 'Щёлкнул замок. Она медленно сняла очки…'; });
+  at(3800, () => { tx.textContent = master ? '«Ладно… сегодня командуешь ты» 😏' : '«Здесь командую я. Сядь.»'; });
+  at(5000, () => { cls('fade'); tx.textContent = 'Красный свет погас.'; });
+  at(6800, () => {
+    S.min += 60; hero.x = 3 * T + 8; hero.y = 18 * T + 9; hero.trail = []; warden.x = 3 * T + 8; warden.y = 45 * T + 9; warden.path = []; warden.pause = 4;
+    if (master) { S.strikes = Math.max(0, S.strikes - 1); tx.textContent = 'Через час ты вышел оттуда хозяином положения.\nГалина Петровна порвала одну объяснительную и подмигнула. Память цела 😏'; }
+    else { SAVE.met = {}; for (const g of girls) g.noPlace = {}; persist(); tx.textContent = 'Через час ты очнулся у себя в комнате. В голове пусто…\nВсё, что ты знал о девушках, забыто. Журнал чист.'; }
+    hud();
+    const b = $('nbtn'); b.textContent = master ? 'Дальше 😏' : 'Кто я?.. 😵'; b.style.display = 'block';
+    b.onclick = () => { b.style.display = 'none'; n.className = ''; paused = false; after && after(); };
+  });
 }
 
 // ---------------- сцены свиданий ----------------
