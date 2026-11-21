@@ -968,7 +968,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 54;
+const BUILD = 55;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1216,7 +1216,22 @@ const STARS = {
   // При запуске спрашиваем сервер: вдруг купил раньше или на другом телефоне
   check() {
     if (!this.API || !this.tg?.initData || this.paid) return;
-    this.ask('/status').then(r => { if (r.paid) this.grant(); }).catch(() => {});
+    this.ask('/status').then(r => {
+      if (r.paid) this.grant();
+      if (r.skins?.length) { for (const id of r.skins) unlocked.add(id); save('kolorit-unlocked', [...unlocked]); }
+    }).catch(() => {});
+  },
+  SKIN: 15,
+  // Отдельный стиль за звёзды; ответ как у buy()
+  async buySkin(id) {
+    try {
+      const { link } = await fetch(this.API + '/skin', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ initData: this.tg.initData, skin: id }), signal: giveUp(10000) }).then(r => r.json());
+      if (!link) return 'error';
+      const result = await new Promise(done => this.tg.openInvoice(link, done));
+      if (result === 'paid') { unlocked.add(id); save('kolorit-unlocked', [...unlocked]); }
+      return result;
+    } catch { return 'error'; }
   },
   // Ответ: 'paid', 'cancelled', 'failed' или 'error'
   async buy() {
@@ -4069,7 +4084,7 @@ function showWallet(note = '') {
     <div class="big">${fmtN(WALLET.bal || 0)}</div>
     ${d.pension ? `<div><span class="btn" data-act="pension">👵 ${t('Бабушкина пенсия +200', 'Granny’s pension +200')}</span></div>` : ''}
     ${packs.length ? `<div class="modes grid">${packs.map(([id, [stars, n]]) => `<div class="mode" data-pack="${id}"><span class="e">🥟</span><span><b>${fmtN(n)}</b><small>${stars} ⭐</small></span></div>`).join('')}</div>`
-      : `<p>${t('Скоро: ставки пельмешками на матчи по сети', 'Coming soon: dumpling stakes on online matches')}</p>`}
+      : `<p>${t('Пельмешки бесплатные и не продаются: подарок новичку, бонус каждый день и выигрыши', 'Dumplings are free and not for sale: a welcome gift, a daily bonus and your winnings')}</p>`}
     <p>${t('Каждый день при входе +300. Всё проиграл — раз в день пенсия +200.', 'Every day you play: +300. Lost it all? Daily pension +200.')}</p>
     ${log ? `<div class="res wallet-log">${log}</div>` : ''}
     <p class="kb-hint">${t('Игровая валюта: на звёзды и деньги не меняется', 'Game currency: cannot be exchanged for Stars or money')}</p>
@@ -4099,11 +4114,33 @@ function showWallet(note = '') {
 
 // Выбор оформления: тап по скину сразу его включает, чтобы было видно, как выглядит
 // Закрытый стиль открывается рекламой за награду; note — строка под заголовком
+// Закрытый стиль в Телеграме: реклама или звёзды
+function skinChoice(id) {
+  const sk = SKINS.find(x => x.id === id);
+  currentSkin = applySkin(id);   // сразу видно, как выглядит
+  say(`<h2>${sk.emoji} ${sk.title}</h2><p>${sk.sub}</p>
+    <div class="modes grid"><div class="mode" data-act="ad"><span class="e">📺</span><span><b>${t('Реклама', 'Watch an ad')}</b><small>${t('бесплатно', 'free')}</small></span></div>
+    <div class="mode" data-act="star"><span class="e">⭐</span><span><b>${STARS.SKIN} ⭐</b><small>${t('сразу, без рекламы', 'instantly, no ad')}</small></span></div></div>
+    <div><span class="btn" data-act="back">${BACK}</span></div>`);
+  const done = (ok, note) => { if (ok) { unlocked.add(id); save('kolorit-unlocked', [...unlocked]); currentSkin = applySkin(id); sfx('fanfare'); } else currentSkin = applySkin(load('kolorit-prev-skin', 'classic')); showSkins(note); };
+  state.onTap = (p, el) => {
+    if (el.closest('[data-act=back]')) { buzz(20); done(false, ''); return; }
+    if (el.closest('[data-act=ad]')) {
+      buzz(20); state.onTap = null;
+      ADS.reward().then(ok => done(ok, ok ? t('🎉 Стиль открыт навсегда!', '🎉 Style unlocked forever!') : t('Реклама не досмотрена — стиль пока закрыт', 'Ad not finished — style is still locked')));
+      return;
+    }
+    if (el.closest('[data-act=star]')) {
+      buzz(20); state.onTap = null;
+      STARS.buySkin(id).then(r => done(r === 'paid', r === 'paid' ? t('🎉 Стиль твой навсегда! Спасибо ⭐', '🎉 The style is yours forever! Thank you ⭐') : r === 'cancelled' ? '' : t('Оплата не прошла — попробуй ещё раз', 'Payment failed — please try again')));
+    }
+  };
+}
 function showSkins(note = '') {
   enterMenu();
   document.body.classList.add('rules-open');
   stage.innerHTML = '';
-  const hint = SKINS.some(s => isLocked(s.id)) ? `<p>${t('🔒 Стиль открывается за просмотр рекламы — навсегда', '🔒 Watch an ad to unlock a style forever')}</p>` : '';
+  const hint = SKINS.some(s => isLocked(s.id)) ? `<p>${(STARS.can ? t(`🔒 Стиль открывается за рекламу или за ${STARS.SKIN} ⭐ — навсегда`, `🔒 Unlock a style with an ad or ${STARS.SKIN} ⭐ — forever`) : t('🔒 Стиль открывается за просмотр рекламы — навсегда', '🔒 Watch an ad to unlock a style forever'))}</p>` : '';
   say(`<h2>${t('🎨 Стиль', '🎨 Style')}</h2>${note ? `<p>${note}</p>` : hint}
     <div class="modes grid skins">${SKINS.map(s =>
       `<div class="mode ${isLocked(s.id) ? 'locked' : ''}" data-skin="${s.id}"><span class="e">${s.emoji}</span><span><b>${s.id === currentSkin ? '✓ ' : isLocked(s.id) ? '🔒 ' : ''}${s.title}</b><small>${isLocked(s.id) ? t('📺 Реклама — и стиль твой', '📺 Watch an ad to unlock') : s.sub}</small></span></div>`
@@ -4125,6 +4162,7 @@ function showSkins(note = '') {
     if (!btn) return;
     buzz(20);
     const id = btn.dataset.skin;
+    if (isLocked(id) && STARS.can) { save('kolorit-prev-skin', currentSkin); return skinChoice(id); }
     if (isLocked(id)) {
       state.onTap = null;
       ADS.reward().then(ok => {
