@@ -300,12 +300,58 @@ const ARCH = {
     bad: ['Скучно, умник.', 'Ой, только не нуди.', 'Ты бы лучше футболку погладил.'], neut: ['Ну ок.', 'Допустим.'],
     ask: 'Ты почти в моём вкусе. Но меня надо заслужить 💅', yes: 'Пошли. И не смей помять мне причёску!' },
 };
+const MORE = {
+  tsun:  { hi: ['Т-ты опять тут?! Случайно, да?', 'Не думай, что я тебя ждала!', 'Чего надо? Только быстро. …Можно и не быстро.', 'А, это ты. Ну привет. Наверное.'],
+    good: ['Д-дурак! …Скажи ещё раз.', 'Не смей так улыбаться, когда я злюсь!', 'Хмф. Ладно, это было… смело.', 'Я не краснею! Это свет такой!'],
+    bad: ['Ты меня с кем-то путаешь, романтик!', 'Меня этим не возьмёшь, понял?!', 'Иди тренируйся на кошках!'], neut: ['И это всё?', 'Ну-ну. Дальше.', 'Пф. Бывало и хуже.'],
+    ask: ['Ты не так уж плох… Но я не из лёгких, ясно?!', 'Хмф. Заслужи меня сначала!'], yes: ['Только никому ни слова, понял?! …Пошли 😳', 'Ладно! Но это ничего не значит! …Ну, может, чуть-чуть.'] },
+  dere:  { hi: ['Ой, ты! А я как раз о тебе думала 🥰', 'Привет! Хочешь печеньку? 🍪', 'Обнимашки? Ну пожалуйста 🥺', 'Ура, ты пришёл! ✨'],
+    good: ['Ты такой хороший, аж плакать хочется 🥹', 'Это самое милое, что я слышала за неделю 💕', 'Можно я тебя потискаю? 🥰', 'Ты как плед и какао сразу ☺️'],
+    bad: ['Ой… это было грубо 😟', 'Можно помягче? 🥺', 'Мне стало неуютно…'], neut: ['Ну… тоже мило 🙂', 'Хи-хи, странный ты.', 'Ой, ладно 😊'],
+    ask: ['Ты такой хороший! А можно попросить кое-что? 🥺', 'Я согласна… но сначала маленькая просьба 💕'], yes: ['Ура-ура! Только обними меня по дороге 💕', 'Я так долго этого ждала 🥰 Пошли!'] },
+  kuu:   { hi: ['…Ты.', 'Опять пришёл. Интересно.', 'Говори. Я слушаю. Иногда.', 'М-м. Привет.'],
+    good: ['…Это было неожиданно. Продолжай.', 'Хм. Ты удивил меня. Это редкость.', 'Я запомню это.', 'Уголок моих губ дрогнул. Ты видел? Нет.'],
+    bad: ['Предсказуемо.', 'Нет.', 'Ты стараешься слишком громко.'], neut: ['Хм.', 'Принято к сведению.', '…'],
+    ask: ['Ты мне не безразличен. Это всё, что я скажу.', 'Возможно. Но сначала докажи.'], yes: ['…Пойдём. Молча.', 'Хорошо. Только без лишних слов.'] },
+  genki: { hi: ['ЙОУ! Ты как раз вовремя! 🤸', 'Привееет! Пошли что-нибудь натворим?!', 'О, ты! Давай пять! ✋', 'Ура, движуха пришла!'],
+    good: ['АХАХА, ты лучший! 🤩', 'Вот это энергия, я в деле!', 'Повтори, я хочу записать! 🎉', 'Ты прям как газировка — бодришь!'],
+    bad: ['Скучно-о-о 🥱', 'Э, давай повеселее!', 'Не, это вообще не огонь.'], neut: ['Ну норм!', 'Ага-ага, дальше!', 'Ха, ладно!'],
+    ask: ['Ты огонь! Но сначала мини-квест! 🎮', 'Я в деле! Только добудь мне кое-что 🤩'], yes: ['ПОГНАЛИ! 🏃‍♀️', 'Ура-ура, приключение! Пошли! 🎉'] },
+  nerd:  { hi: ['О, привет. Я как раз дописала реферат.', 'Ты по учёбе или… по другому вопросу? 🤓', 'Привет. У меня ровно пятнадцать минут.', 'А, это ты. Поправь мне очки… шучу.'],
+    good: ['Это… логично и приятно одновременно 🤓', 'Твой интеллект меня отвлекает. В хорошем смысле.', 'Признаю: аргумент засчитан 😊', 'У меня пульс сто десять. Это твоя вина.'],
+    bad: ['Это антинаучно.', 'Сформулируй иначе. И лучше.', 'Нет, это не работает.'], neut: ['Любопытно.', 'Гипотеза принята. Пока.', 'Ну… допустим.'],
+    ask: ['Ты мне нравишься. Это доказано. Но нужна помощь 🤓', 'Эксперимент можно продолжить. Если принесёшь кое-что.'], yes: ['Пошли. Только я посчитаю, сколько это займёт времени 🤓', 'Хорошо. Конспекты подождут.'] },
+  sport: { hi: ['Здоров! Только с пробежки.', 'О, ты! Отожмёшься десять раз?', 'Привет, боец 💪', 'Что, на тренировку пришёл?'],
+    good: ['Вот это по-нашему! 💪', 'Уважаю. Чётко сказал.', 'Ха, ты в форме!', 'Засчитано. Плюс очко.'],
+    bad: ['Слабовато.', 'Не мямли.', 'Это что, разминка была?'], neut: ['Норм.', 'Ладно, принято.', 'Ну-ну.'],
+    ask: ['Ты не размазня. Но докажи делом!', 'Годится. Но сначала задание.'], yes: ['Пошли. Кто последний — тот… ну ты понял 😏', 'Вперёд! Без разговоров.'] },
+  goth:  { hi: ['Ночь. Ты. Совпадение? Не думаю.', 'Тьма приветствует тебя.', 'Пришёл в моё царство?', 'Тсс. Луна слушает.'],
+    good: ['Мрачно и красиво. Как я люблю 🖤', 'Ты не так светел, как кажешься. Мне нравится.', 'Моё чёрное сердце дрогнуло.', 'Ммм. Опасный ты.'],
+    bad: ['Слишком мило. Фу.', 'Розовые сопли — не мой стиль.', 'Солнышко, иди на свет.'], neut: ['Хм. Сойдёт.', 'Тьма запомнит.', 'Ладно.'],
+    ask: ['Тьма согласна. Но ей нужна жертва… то есть подарок.', 'Ты достоин. Почти. Принеси мне кое-что.'], yes: ['Пошли. Под покровом ночи 🖤', 'Веди. Тьма последует за тобой.'] },
+  roman: { hi: ['Ах, это ты… Я как раз мечтала.', 'Посмотри, какая луна сегодня 🌙', 'Привет. Ты похож на героя романа.', 'Ой, а я стихи читала…'],
+    good: ['Как в кино… 💕', 'Ты говоришь, как в моих снах.', 'Скажи это ещё раз, медленно 💗', 'Я, кажется, влюбляюсь…'],
+    bad: ['Как грубо… Где романтика?', 'Фу, так не говорят с девушкой.', 'Ты разбил момент.'], neut: ['Мило… но мало.', 'Хм, бывает.', 'Ну… ладно.'],
+    ask: ['Я хочу, чтобы всё было как в сказке. Поможешь?', 'Сердце говорит «да». Но сначала знак внимания 💐'], yes: ['Пошли… это будет волшебно 💕', 'Держи меня за руку. Как в кино.'] },
+  otaku: { hi: ['О! Персонаж второго плана появился! 🎮', 'Сенпай заметил меня?! 😳', 'Привет! Я на 47 серии.', 'Загрузка диалога… готово!'],
+    good: ['Это реплика уровня главного героя! ✨', 'Кавай! Ты прокачался!', 'Ачивка «Флирт» разблокирована! 🏆', 'Я сейчас как в своём любимом аниме 😍'],
+    bad: ['Это сцена из плохого фанфика 😬', 'Ты провалил QTE.', 'Нет-нет-нет, не тот рут.'], neut: ['Ок, диалог засчитан.', 'Так, сюжет движется.', 'Хм, филлер.'],
+    ask: ['Ты прошёл в рут! Но нужен ключевой предмет! 🗝', 'Новый квест: принеси мне кое-что! ⚔'], yes: ['Ивент начался! Пошли! 🎮', 'Это лучшая концовка! Идём!'] },
+  diva:  { hi: ['Ну, привет. Неплохо выглядишь… для общаги.', 'Ты принёс кофе? Нет? Жаль.', 'Я занята. Но для тебя — минута.', 'Ой, а ты сегодня ничего 💅'],
+    good: ['Ммм, умеешь польстить 💅', 'Это достойно сторис ✨', 'Наконец-то кто-то со вкусом.', 'Мило. Очень мило 💋'],
+    bad: ['Фи, банально.', 'Я ожидала большего.', 'Не мой уровень, дорогой.'], neut: ['Ну ок.', 'Неплохо… для начала.', 'Хм, бывает.'],
+    ask: ['Ты почти мой уровень. Но меня надо заслужить 💅', 'Хочешь меня? Тогда порадуй подарком 💋'], yes: ['Пошли. И держи осанку 💅', 'Так и быть. Сегодня ты счастливчик 💋'] },
+};
+for (const k in MORE) for (const f in MORE[k]) ARCH[k][f] = [].concat(ARCH[k][f], MORE[k][f]);
+const fresh = (arr, gl) => { let x = pick(arr); for (let i = 0; i < 5 && x === gl.lastLine; i++) x = pick(arr); gl.lastLine = x; return x; };
+const BUSY = ['Слышала, ты уже с двумя крутишь. Сначала разберись с ними 😒', 'Вся общага знает про твоих двух. В очереди стоять не буду 💅',
+  'Освободишься — заходи. А пока нет 🙄', 'Ты сначала тех двоих доведи до конца, Казанова 😏', 'Двух мало? Нет уж, я не третья 😤'];
 const PL = {
-  joke:  ['Ты случайно не вайфай? Меня к тебе прям тянет.', 'Говорят, пельмени вкуснее варить вдвоём.', 'Я не храплю. Почти.', 'Ты из какого измерения? В нашем таких не бывает.',
+  joke:  ['Меня зовут Не-Бойся. А тебя?', 'Я бы рассказал анекдот про общагу, но ты в нём главная героиня.', 'Ты случайно не вайфай? Меня к тебе прям тянет.', 'Говорят, пельмени вкуснее варить вдвоём.', 'Я не храплю. Почти.', 'Ты из какого измерения? В нашем таких не бывает.',
           'Помоги, я потерял свой номер телефона. Можно твой?', 'Я бы пригласил тебя в ресторан, но у меня только доширак.'],
-  compl: ['У тебя улыбка ярче, чем лампа на вахте.', 'Ради тебя я даже футболку погладил.', 'С тобой даже наша кухня — как ресторан.',
+  compl: ['Ты так пахнешь, что я забыл, зачем шёл на кухню.', 'Тебе идёт эта кофта. И вообще всё.', 'У тебя улыбка ярче, чем лампа на вахте.', 'Ради тебя я даже футболку погладил.', 'С тобой даже наша кухня — как ресторан.',
           'У тебя красивые глаза. Серьёзно.', 'Ты красиво смеёшься. Хочу слышать это чаще.', 'Ты лучшее, что есть в этой общаге.'],
-  bold:  ['Пошли ко мне, у меня чайник новый.', 'Я решил: сегодня ты со мной.', 'Давай без долгих прелюдий: ты мне нравишься.',
+  bold:  ['Отложи телефон. Смотри на меня.', 'Я не уйду, пока ты не улыбнёшься.', 'Пошли ко мне, у меня чайник новый.', 'Я решил: сегодня ты со мной.', 'Давай без долгих прелюдий: ты мне нравишься.',
           'Спорим, через час ты будешь у меня?', 'Хватит строить глазки — пошли.', 'Я как сессия: от меня не убежишь.'],
   dirty: ['У меня кровать скрипит. Поможешь проверить, насколько громко?', 'Хочешь, покажу свой… конспект? Он большой и подробный 😏',
           'Ты как сессия: всю ночь не дашь мне уснуть.', 'Можно я сегодня буду твоим одеялом?', 'Я не банан, но тоже могу поднять настроение 🍌',
@@ -359,7 +405,7 @@ const PLACES = {
   laundry:{ i: '🧺', n: 'Прачечная', to: 'в прачечную, к стиралкам', go: 'в прачечную (внизу слева)', x: 3 * 16 + 8, y: 38 * 16 + 9, r: 24 },
   library:{ i: '📚', n: 'Читалка', to: 'в читалку, между стеллажами', go: 'в читалку (внизу справа)', x: 11 * 16 + 8, y: 44 * 16 + 9, r: 24 },
 };
-const PLACE_KEYS = Object.keys(PLACES), placeOf = q => PLACE_KEYS[Math.floor(q.seed * 6007) % PLACE_KEYS.length];
+const PLACE_KEYS = Object.keys(PLACES), placeOf = q => q.place || PLACE_KEYS[Math.floor(q.seed * 6007) % PLACE_KEYS.length];
 const PLACE_TXT = {
   room:   ['В окне горит мягкий свет…', 'Она первой потянулась к тебе…', 'Свет погас. Остальное — только между вами.'],
   shower: ['Шумит вода, стекло запотело…', 'Сквозь пар видно, как она обвила его шею руками…', 'Пар скрыл всё остальное.'],
@@ -708,10 +754,11 @@ function chibi(c, x, y, L, dir, fr, t) {
 
 // ---------------- сохранение ----------------
 let SAVE = JSON.parse(localStorage.getItem('obsh2') || 'null');
-function freshSave() { return { seed: (Math.random() * 1e9) | 0, night: 1, got: {}, met: {}, won: {}, best: 0 }; }
+function freshSave() { return { seed: (Math.random() * 1e9) | 0, night: 1, got: {}, met: {}, won: {}, redo: {}, best: 0 }; }
+const applyRedo = () => { SAVE.redo = SAVE.redo || {}; for (const q of ROSTER) { const r = SAVE.redo[q.id]; if (r) { q.wish = r.wish; q.place = r.place; } } };
 if (!SAVE || !SAVE.seed) SAVE = freshSave();
 const persist = () => localStorage.setItem('obsh2', JSON.stringify(SAVE));
-let ROSTER = genRoster(SAVE.seed);
+let ROSTER = genRoster(SAVE.seed); applyRedo();
 function paintBeds() { for (const k in BEDC) delete BEDC[k]; for (const q of ROSTER) { const r = ROOM[q.room]; BEDC[(r.y0 + q.bed * 2) * W + r.outer] = q.top; BEDC[(r.y0 + q.bed * 2 + 1) * W + r.outer] = q.top; }
   for (const f of FANS) { const i = FANS.indexOf(f), r = ROOM.fans; BEDC[(r.y0 + i * 2) * W + r.outer] = f.top; BEDC[(r.y0 + i * 2 + 1) * W + r.outer] = f.top; } drawMap(); }
 
@@ -724,7 +771,7 @@ function ent(kind, L, tx, ty, extra = {}) {
 }
 function newNight() {
   RED.open = false; RED.alarm = false;
-  S = { min: 0, strikes: 0, tonight: 0, over: false, warnT: -99, inv: [], taken: {}, tolik: 0, key: true, gift: {}, tainted: {}, flop: null, prep: {} };
+  S = { min: 0, strikes: 0, tonight: 0, over: false, warnT: -99, inv: [], taken: {}, tolik: 0, key: true, gift: {}, tainted: {}, flop: null, prep: {}, power: 2 };
   hero = ent('hero', LOOK.hero, 3, 18, { trail: [], follower: null, cling: null });
   tolik = ent('tolik', LOOK.tolik, 2, 19, { dir: 2, state: 'still', name: 'Толик' });
   warden = ent('warden', LOOK.warden, 4, 45, { ang: -Math.PI / 2, base: -Math.PI / 2, sus: 0, pause: 3, name: 'Галина Петровна' });
@@ -899,6 +946,7 @@ function cling(f) {
 
 // ---------------- взаимодействие ----------------
 const hasAll = q => q.wish.every(w => S.inv.includes(w));
+const inWork = () => ROSTER.filter(q => SAVE.won[q.id] && !SAVE.got[q.id]).length;   // добился, но свидания ещё не было
 const needed = it => !S.inv.includes(it) && girls.some(g => SAVE.won[g.q.id] && !SAVE.got[g.q.id] && (SAVE.met[g.q.id] || {}).wish && g.q.wish.includes(it));
 function nearest() {
   let best = null, bd = 21;
@@ -982,7 +1030,8 @@ function openGirl(gl) {
   if (gl.date && !SAVE.got[gl.q.id]) return dateView(gl);
   if (SAVE.won[gl.q.id]) meet(gl.q, { wish: 1 });
   if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '.'}`);
-  flirtView(gl, `<b>${gl.name}:</b> ${pick(gl.a.hi)}`, 'smile');
+  if (!SAVE.won[gl.q.id] && inWork() >= 2) return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: null, text: `<b>${gl.name}:</b> ${pick(BUSY)}\n\n<i>В работе уже две девушки. Доведи их до свидания (или до провала), потом заходи.</i>`, btns: [leaveBtn(gl)] });
+  flirtView(gl, `<b>${gl.name}:</b> ${fresh(gl.a.hi, gl)}`, 'smile');
 }
 const leaveBtn = gl => ({ t: 'Уйти', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } });
 function flirtView(gl, text, emo) {
@@ -1002,11 +1051,11 @@ function flirt(gl, type) {
   gl.int = clamp(gl.int + delta, 0, 100);
   if (good) meet(gl.q, dm ? { dirty: 1 } : { likes: 1 });
   if (dm === 'slap') meet(gl.q, { slap: 1 });
-  const text = `<b>Ты:</b> ${pick(PL[type])}\n<b>${gl.name}:</b> ${dm ? pick(DIRTY[dm]) : good ? pick(gl.a.good) : bad ? pick(gl.a.bad) : pick(gl.a.neut)}`;
+  const text = `<b>Ты:</b> ${pick(PL[type])}\n<b>${gl.name}:</b> ${dm ? fresh(DIRTY[dm], gl) : good ? fresh(gl.a.good, gl) : bad ? fresh(gl.a.bad, gl) : fresh(gl.a.neut, gl)}`;
   if (dm === 'slap') setTimeout(() => $('pimg').animate([{ transform: 'translateX(-10px) rotate(-4deg)' }, { transform: 'translateX(10px) rotate(4deg)' }, { transform: 'none' }], { duration: 320 }), 30);
   if (gl.int >= 100) {
     SAVE.won[gl.q.id] = 1; meet(gl.q, { wish: 1 });
-    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${gl.a.ask}\nПринеси мне ${wishStr(gl.q)}.`);
+    wishView(gl, text + `\n\n<b>${gl.name}:</b> ${pick([].concat(gl.a.ask))}\nПринеси мне ${wishStr(gl.q)}.`);
   } else if (gl.int <= 0) {
     gl.cool = 25; gl.int = 10;
     panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: 0, text: text + `\n\n<b>${gl.name}:</b> Всё, отстань! 😤 Подойди попозже.`,
@@ -1018,7 +1067,7 @@ function give(gl) {
   const t = gl.q.wish.find(w => S.tainted[w]); gl.flop = t ? S.tainted[t] : null;   // подарок от поклонницы после ночи с ней → «не встал»
   for (const w of gl.q.wish) { S.inv.splice(S.inv.indexOf(w), 1); delete S.tainted[w]; }
   hud();
-  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${gl.a.yes}\n\n<b>${gl.name}:</b> Ну… и куда ты меня поведёшь? 😏`,
+  panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${pick([].concat(gl.a.yes))}\n\n<b>${gl.name}:</b> Ну… и куда ты меня поведёшь? 😏`,
     btns: placeBtns(gl) });
 }
 // куда пойдём: у каждой своё место, игрок угадывает; после двух промахов — намёк
@@ -1043,9 +1092,19 @@ function choosePlace(gl, k) {
     btns: placeBtns(gl) });
   lockBtns(400);
 }
+// провал: девушка обиделась — характер тот же, но заново добиваться, новые подарки и новое место
+function redoGirl(gl) {
+  const q = gl.q, keys = Object.keys(ITEMS).filter(k => k !== 'key' && !q.wish.includes(k)), n = 1 + Math.floor(Math.random() * 3);
+  const wish = shuffle(keys, Math.random).slice(0, n), place = pick(PLACE_KEYS.filter(k => k !== placeOf(q)));
+  SAVE.redo[q.id] = { wish, place }; q.wish = wish; q.place = place;
+  delete SAVE.won[q.id]; if (SAVE.met[q.id]) { delete SAVE.met[q.id].wish; delete SAVE.met[q.id].place; }
+  gl.int = 0; gl.noPlace = {}; gl.date = 0; persist();
+}
 function dateView(gl) {
   const pr = S.prep, P = PLACES[placeOf(gl.q)], base = { L: gl.q, name: gl.name, sub: subOf(gl), bar: 100 };
   if (!pr.shower && !pr.wine) return panel({ ...base, emo: 'smile', text: `<b>${gl.name}:</b> Ну что, готов? Не-е, так не пойдёт 😏 Сначала прими душ или раздобудь вина. Я подожду 😘\n\n<i>Душ 🚿 — в прачечной, вино 🍷 — у Толика.</i>`, btns: [leaveBtn(gl)] });
+  if (S.power <= 0) return panel({ ...base, emo: 'shy', text: `<b>${gl.name}:</b> Ты какой-то выжатый… Точно сегодня? 🤨\n\n<i>Сил на эту ночь не осталось 💪. Пойдёшь — скорее всего, «не встанет», и с ней придётся начинать заново.</i>`,
+    btns: [{ t: 'Рискну 😬', cls: 'wide', f: () => startFollow(gl) }, { t: 'Давай завтра', cls: 'wide hot', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } }] });
   const how = pr.wine && pr.shower ? 'Свежий, да ещё и с вином? Ты идеален 😍' : pr.wine ? 'О, вино! 🍷 Вот это я понимаю — подготовился' : 'М-м, пахнешь гелем для душа 😏';
   panel({ ...base, emo: 'love', text: `<b>${gl.name}:</b> ${how}\nПошли ${P.to} 💕\n\n<i>Сначала глянь, где Петровна с фонариком.</i>`,
     btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }, { t: 'Чуть позже', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } }] });
@@ -1083,7 +1142,7 @@ function fanNight(f) {
   closePanel(); paused = true;
   const it = fanGift(f);
   curtain({ L: f.f, place: 'room', label: 'Комната поклонниц', done: () => {
-    S.min += 60; if (it) { S.gift[f.f.id] = 1; addItem(it); S.tainted[it] = f.name; }
+    S.min += 60; S.power = Math.max(0, S.power - 1); hud(); if (it) { S.gift[f.f.id] = 1; addItem(it); S.tainted[it] = f.name; }
     return `${f.f.after}` + (it ? `\nНа прощание подарила ${ITEMS[it].e} ${ITEMS[it].n}.` : '');
   }, next: () => release(f, 90) });
 }
@@ -1192,12 +1251,13 @@ function curtain(o) {
 function nightScene(gl) {
   hero.follower = null; gl.state = 'hidden'; gl.date = 0; S.prep = {}; hud();
   const back = () => { const t = pick(gl.room.tiles); gl.x = t.x * T + 8; gl.y = t.y * T + 9; gl.state = 'idle'; gl.path = []; };
-  if (gl.flop) {
-    const fan = gl.flop;
-    return curtain({ L: gl.q, place: placeOf(gl.q), flop: 1, done: () => { S.flop = { girl: gl.name, fan }; S.min += 30;
-      return `…после ночи с ${fan === 'Зинка' ? 'Зинкой' : 'Люськой'} сил не осталось.\nВСЁ. НЕ ВСТАЛ 😳\n${gl.name} хлопнула дверью.`; },
+  if (gl.flop || S.power <= 0) {
+    const fan = gl.flop, pl0 = placeOf(gl.q);
+    return curtain({ L: gl.q, place: pl0, flop: 1, done: () => { S.flop = { girl: gl.name, fan }; S.min += 30; redoGirl(gl);
+      return (fan ? `…после ночи с ${fan === 'Зинка' ? 'Зинкой' : 'Люськой'} сил не осталось.` : '…это уже третья за ночь. Сил не осталось.') + `\nВСЁ. НЕ ВСТАЛ 😳\n${gl.name} хлопнула дверью. Теперь всё с ней заново: другие подарки, другое место.`; },
       next: () => { back(); gl.flop = null; endNight('flop'); } });
   }
+  S.power--;
   const pl = placeOf(gl.q);
   curtain({ L: gl.q, place: pl, done: () => {
     SAVE.got[gl.q.id] = SAVE.night; S.tonight++; S.min += 60; persist(); hud();
@@ -1210,7 +1270,7 @@ function clockStr(m) { const h = (22 + Math.floor(m / 60)) % 24, mm = Math.floor
 function hud() {
   $('clock').textContent = '🕙 ' + clockStr(Math.min(S.min, 540));
   $('score').textContent = `❤ ${Object.keys(SAVE.got).length}/20`;
-  $('strikes').textContent = S.strikes ? '📝'.repeat(S.strikes) : '';
+  $('strikes').textContent = '💪'.repeat(Math.max(0, S.power)) + (S.strikes ? ' ' + '📝'.repeat(S.strikes) : '');
   $('inv').textContent = S.inv.map(i => ITEMS[i].e).join('') + (S.prep.wine ? '🍷' : '') + (S.prep.shower ? '🧼' : '');
 }
 let toastTimer = 0;
@@ -1239,7 +1299,7 @@ function intro() {
     <p>В общаге 20 девушек, у каждой свой характер и свои желания. Добейся каждой, принеси, что она хочет, и проведи к себе мимо вахтёрши с фонариком. Поклонницы хотят тебя просто так — от них придётся отбиваться.</p>
     <p class="fine">Тяни пальцем по экрану — идёшь. Большая кнопка — действие. На ПК: стрелки/WASD и пробел. Коллекция сохраняется между ночами.</p>
     <p class="fine">Все персонажи — совершеннолетние студенты. Никаких откровенных сцен: только тени в окне 😏</p>
-    <p class="fine">Версия 21.11 · 20:25 · можно на экран «Домой»</p>`,
+    <p class="fine">Версия 21.11 · 21:40 · можно на экран «Домой»</p>`,
     [{ t: SAVE.night > 1 || total ? `Ночь ${SAVE.night} (❤ ${total}/20)` : 'Играть', f: start },
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
@@ -1256,13 +1316,13 @@ function endNight(kind) {
   const txt = {
     win: `Все 20 сердец за ${SAVE.night} ноч${SAVE.night === 1 ? 'ь' : SAVE.night < 5 ? 'и' : 'ей'}! Галина Петровна до сих пор не понимает, как.`,
     morning: `Будильник, пары… За ночь ❤ ${S.tonight}, всего ${total} из 20. ${S.tonight >= 2 ? 'Неплохо 😏' : 'Толик говорит, что следующей ночью повезёт.'}`,
-    flop: S.flop ? `${S.flop.girl} рассказала всей общаге. ${S.flop.fan} ходит довольная. Мораль: не спи с поклонницей ради подарка красотке. За ночь ❤ ${S.tonight}, всего ${total} из 20.` : '',
+    flop: S.flop ? (S.flop.fan ? `${S.flop.girl} рассказала всей общаге. ${S.flop.fan} ходит довольная. Мораль: не спи с поклонницей ради подарка.` : `Третья за ночь — перебор. ${S.flop.girl} рассказала всей общаге. Мораль: две за ночь — твой предел.`) + ` С ${S.flop.girl} теперь всё сначала. За ночь ❤ ${S.tonight}, всего ${total} из 20.` : '',
     expel: `Третья объяснительная — ночуешь у Толика на балконе. За ночь ❤ ${S.tonight}, всего ${total} из 20.`,
   }[kind];
   screen(`<h1>${T1}</h1><p>${txt}</p>`, [{ t: kind === 'win' ? 'Новая общага' : `Ночь ${SAVE.night}`, f: kind === 'win' ? resetAll : start },
     { t: '📖 Журнал', alt: 1, f: () => { journal(); } }]);
 }
-function resetAll() { SAVE = freshSave(); persist(); ROSTER = genRoster(SAVE.seed); paintBeds(); start(); }
+function resetAll() { SAVE = freshSave(); persist(); ROSTER = genRoster(SAVE.seed); applyRedo(); paintBeds(); start(); }
 $('menuBtn').onclick = () => {
   if (!S || S.over || !$('screen').classList.contains('off')) return;
   const was = paused; paused = true;
