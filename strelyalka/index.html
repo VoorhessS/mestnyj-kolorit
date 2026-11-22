@@ -16,6 +16,7 @@ Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '�
 Object.assign(EN, {"вход — дупло у корней. в узкую щель запрыгни и зажми ВВЕРХ — полезешь распором":"the way in is the hollow at the roots. jump into the narrow crack and hold UP to brace and climb","гнилые ветки осыпаются под ногами — перепрыгивай трещины":"rotten branches crumble underfoot — jump over the cracks","ветер дует от ствола — держись ближе к стволу и иди против ветра":"the wind blows away from the trunk — stay close to it and walk against the wind","паутина липкая — в ней вязнешь, перепрыгивай":"the web is sticky — you get stuck in it, jump over","по веткам кроны ползёт огонь — проскакивай, когда пламя спадёт":"fire crawls along the crown branches — dash through when the flames die down","ракета приманит рой — держись наверху, пока не увидят сигнал":"the flare lures the swarm — hold out at the top until the signal is seen","с большой высоты не прыгай — разобьёшься. спускайся по веткам, огонь идёт следом":"don't jump from high up — you'll get hurt. climb down the branches, the fire follows you","🎆 РАКЕТА В НЕБЕ! свет манит рой — ДЕРЖИСЬ!":"🎆 FLARE IN THE SKY! the light lures the swarm — HOLD OUT!","💥 высоко! больно падать":"💥 too high! that fall hurt","💨 ветер! держись ближе к стволу":"💨 wind! stay close to the trunk","🔥 горячо!":"🔥 hot!","🎆 рой летит на свет — держись: ":"🎆 the swarm flies to the light — hold out: ","🎆 сигнал увидели!":"🎆 the signal was seen!","🔥 КРОНА ЗАГОРЕЛАСЬ! ВНИЗ — к каменоломне!":"🔥 THE CROWN IS ON FIRE! DOWN — to the quarry!","🔥 огонь догоняет! вниз!":"🔥 the fire is catching up! go down!"});
 Object.assign(EN, { 'дерево трещит — сейчас упадёт поперёк дороги: перепрыгни ствол или подкатом под него (бег + вниз)': 'a tree is cracking — it will fall across the path: jump over the trunk or slide under it (run + down)', 'с неба падают горящие ветки — смотри на красную метку на земле': 'burning branches fall from the sky — watch the red mark on the ground', '🌲 дерево падает! прыгай через ствол или подкатом под него': '🌲 tree falling! jump over the trunk or slide under it', '💥 придавило стволом!': '💥 crushed by the trunk!', '🔥 ствол горит!': '🔥 the trunk is burning!', '🔥 горящая ветка!': '🔥 burning branch!' });
 Object.assign(EN, { 'тропа в чащу — на дальнем краю, за оврагом': 'the path into the thicket is at the far end, past the ravine', 'разобьёшь свиту — тропа в логово откроется на дальнем краю, за карьером': 'smash the escort — the path to the lair opens at the far end, past the quarry' });
+Object.assign(EN, { 'таракан взбежал на стену — прыгнет туда, где красная метка: отходи': 'the roach ran up the wall — it will leap at the red mark: step away', 'таракан чует пули и подпрыгивает — стреляй, когда он бежит на тебя или выдохся': 'the roach senses bullets and hops — shoot when it charges at you or is out of breath', 'таракан в ярости — расправил крылья!': 'the roach is enraged — wings out!' });
 Object.assign(EN, { 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё': 'the queen rears up — a ram is coming: jump onto a ledge or over her', 'матка в ярости!': 'the queen is enraged!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
@@ -1115,7 +1116,7 @@ const LEVELS = [
     } },
   { city: 4, name: 'ШТАБ', hi: [7], task: 'Победи человека-таракана', obj: 'boss', bossTxt: 'в штаб', need: 'сначала победи человека-таракана', ground: 99, dark: .8, power: true,
     cols: 96, rows: 24, base: SOLID, pal: PAL.base, spawn: ['r', 'D'],
-    tips: ['это был командир базы. жуки его не съели — он стал одним из них', 'присел — сейчас взлетит и рухнет на тебя. приземлился — по полу волна, прыгай, а он оглушён: урон двойной', 'плюётся кислотой и зовёт тараканов'],
+    tips: ['это был командир базы. жуки его не съели — он стал одним из них', 'таракан взбежал на стену — прыгнет туда, где красная метка: отходи', 'таракан чует пули и подпрыгивает — стреляй, когда он бежит на тебя или выдохся', 'присел — сейчас взлетит и рухнет на тебя. приземлился — по полу волна, прыгай, а он оглушён: урон двойной', 'плюётся кислотой и зовёт тараканов'],
     build(B) {
       const body = (x, f, k = 'body') => B.deco(k, x, f - 1, x + 1, f - 1), gore = (x, y) => B.deco('gore', x, y, x + 2, y + 2);
       B.room(1, 3, 30, 7);                                                          // коридор штаба, пол — 8
@@ -3534,7 +3535,7 @@ function update(dt) {
   }
   if (GU) { if (boss.parts[0]) netLerp(boss.parts[0], dt); }
   else if (boss.on && !boss.dead) {
-    const bp = boss.parts[0], fn = ({ mantis, rhino, larva, chimera, roach: chimera, alpha })[bp.k], mt = mateFor(bp);
+    const bp = boss.parts[0], fn = ({ mantis, rhino, larva, chimera, roach, alpha })[bp.k], mt = mateFor(bp);
     if (mt) { const s0 = P; P = mt; NET.px = true; try { fn(edt, bp, { x: mt.x + 2, y: mt.y + 3, w: mt.w - 4, h: mt.h - 5 }); } finally { P = s0; NET.px = false; } }
     else fn(edt, bp, pc);
   }
@@ -3958,6 +3959,88 @@ function breakJar(e) {                      // стекло колбы лопа�
   explode(e.x + e.w / 2, e.y + e.h / 2, 16, ['#bfe8f0', '#7fd0a0', '#fff', '#4fd08a']); beep(2400, 600, .25, 'square', .04); shake = Math.max(shake, .15);
 }
 // Химера: присела — прыжок на героя, при посадке волна по полу и она оглушена; плюётся газом, рожает делителей
+function roach(dt, b, pc) {   // друг (msg 2499): человек-таракан — рывки, потолок, увороты, в ярости летает
+  b.fl -= dt; b.t -= dt; b.dc = (b.dc || 0) - dt;
+  const A = lv.arena, left = A.l * T, right = (COLS - 1) * T, floor = A.top * T, hi = floor - b.h - 64, cx = b.x + b.w / 2, dx = P.x + 5 - cx, adx = Math.abs(dx), dir = Math.sign(dx) || -1;
+  const rage = b.hp < b.max / 2, sp = rage ? 1.3 : 1, kids = enemies.filter(e => e.boss).length;
+  if (rage && !b.raged) { b.raged = true; showToast('таракан в ярости — расправил крылья!', 1.8); beep(1200, 300, .6, 'sawtooth', .04); }
+  const land = (wave, st, t) => { b.st = st; b.t = t; b.vx = 0; shake = .7; boom(.12); explode(cx, floor, 14, ['#5a6266', '#8a9296', '#fff']);
+    if (wave) for (const sd of [-1, 1]) ebullets.push({ x: cx + sd * 20 - 5, y: floor - 8, w: 10, h: 8, vx: sd * 190, vy: 0, g: 0, life: 1, k: 'wave' }); };
+  let free = true;                                                  // false — двигаем сами, без тяжести (стена, потолок, полёт)
+  if (b.st === 'sleep') { b.vx = 0; b.st = 'wake'; b.t = 1.1; b.woke = true; shake = .8; boom(.14); beep(90, 40, 1.2, 'sawtooth', .06); explode(cx, b.y + 10, 30, ['#9fe8c8', '#4fd08a', '#fff']); }
+  else if (b.st === 'wake') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = .6; } }
+  else if (b.st === 'walk') {
+    b.dir = dir; b.vx = adx > 30 ? dir * 72 * sp : 0;
+    // увернуться от пули: таракан чует летящее и подпрыгивает
+    if (b.on && b.dc <= 0 && bullets.some(u => Math.abs(u.y - (b.y + b.h / 2)) < 30 && Math.sign(cx - u.x) === Math.sign(u.vx || 0) && Math.abs(cx - u.x) < 90)) {
+      b.dc = rage ? 1.4 : 2.2;
+      if (Math.random() < .6) { b.st = 'hop'; b.vy = -330; b.vx = dir * 120; beep(1800, 900, .08, 'square', .025); }
+    }
+    else if (b.t <= 0 && b.on && !P.dead) {
+      const r = Math.random();
+      if (rage && r < .22) { b.st = 'lift'; b.t = .55; beep(600, 2200, .5, 'sawtooth', .03); }
+      else if (adx < 150) {
+        if (r < .4) { b.st = 'prep'; b.t = .35 / sp; beep(400, 120, .3, 'sawtooth', .04); }
+        else if (r < .58) { b.st = 'crouch'; b.t = .5; beep(300, 80, .5, 'sawtooth', .04); }
+        else if (r < .72) { b.st = 'spit'; b.t = .5; }
+        else if (r < .82 && kids < 3) { b.st = 'birth'; b.t = .7; }
+        else if (Math.min(P.x - left, right - P.x) < 200) { b.st = 'wall'; b.wx = P.x < (left + right) / 2 ? left : right - b.w; } else { b.st = 'prep'; b.t = .35 / sp; beep(400, 120, .3, 'sawtooth', .04); }
+      } else {
+        if (r < .3) { b.st = 'spit'; b.t = .5; } else if (r < .5) { b.st = 'crouch'; b.t = .5; beep(300, 80, .5, 'sawtooth', .04); }
+        else if (r < .72 && Math.min(P.x - left, right - P.x) < 200) { b.st = 'wall'; b.wx = P.x < (left + right) / 2 ? left : right - b.w; }
+        else if (r < .82 && kids < 3) { b.st = 'birth'; b.t = .7; } else { b.st = 'prep'; b.t = .35 / sp; beep(400, 120, .3, 'sawtooth', .04); }
+      }
+    }
+  } else if (b.st === 'prep') { b.vx = 0; b.dir = dir; if (b.t <= 0) { b.st = 'dash'; b.t = .5; b.ram = dir; beep(150, 60, .3, 'square', .05); } }
+  else if (b.st === 'dash') {
+    b.vx = b.ram * 330 * sp; b.dir = b.ram;
+    if (Math.random() < dt * 25) parts.push({ x: cx - b.ram * 12, y: b.y + b.h - 2, vx: -b.ram * rnd(30, 80), vy: rnd(-60, -20), life: .35, col: '#6a6258' });
+    if (b.t <= 0 || b.wall) { b.st = 'open'; b.t = .6; b.vx = 0; if (b.wall) { shake = .35; boom(.06); } }
+  } else if (b.st === 'open') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.5, .9) / sp; } }
+  else if (b.st === 'crouch') { b.vx = 0; if (b.t <= 0) { b.st = 'leap'; b.vy = -440; b.vx = clamp(dx / .95, -260, 260); b.dir = dir; boom(.06); } }
+  else if (b.st === 'spit') {
+    b.vx = 0; b.dir = dir;
+    if (b.t <= 0) {
+      const n = rage ? 5 : 3, tf = .8, lead = (P.vx || 0) * tf * .6;
+      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * 14, y: b.y + 14, w: 7, h: 7, vx: clamp((dx + lead + (i - (n - 1) / 2) * 30) / tf, -280, 280), vy: (P.y + P.h / 2 - b.y - 14) / tf - 310 * tf, g: 620, life: 2.4, k: 'spit' });
+      beep(200, 90, .45, 'square', .04); b.st = 'walk'; b.t = rnd(.6, 1.1) / sp;
+    }
+  } else if (b.st === 'birth') {
+    b.vx = 0;
+    if (b.t <= 0) {
+      for (const s2 of [-1, 1]) { const e = mkBug('r', clamp(cx + s2 * 30, left + 4, right - 16), b.y + b.h, s2); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -220; e.vx = s2 * 90; enemies.push(e); }
+      beep(500, 150, .35, 'sawtooth', .04); explode(cx, b.y + 8, 12, GOO); b.st = 'walk'; b.t = rnd(.6, 1.1) / sp;
+    }
+  } else if (b.st === 'wall') {                                     // бежит к стене
+    b.dir = Math.sign(b.wx - b.x) || b.dir; b.vx = b.dir * 150 * sp;
+    if (Math.abs(b.x - b.wx) < 4) { b.x = b.wx; b.st = 'climb'; b.vx = 0; beep(2000, 1200, .15, 'square', .02); }
+  } else if (b.st === 'climb') {                                    // вверх по стене
+    free = false; b.vx = 0; b.vy = 0; b.y -= 170 * sp * dt;
+    if (Math.random() < dt * 20) beep(rnd(1800, 2600), 1400, .02, 'square', .01);
+    if (b.y <= hi) { b.y = hi; b.st = 'cling'; b.t = .6 / sp; b.dir = dir; beep(900, 300, .45, 'sawtooth', .03); }
+  } else if (b.st === 'cling') {                                    // замер на стене — метка на полу, куда прыгнет
+    free = false; b.y = hi; b.dir = dir; b.tx = clamp(P.x + 5 + (P.vx || 0) * .4, left + b.w / 2, right - b.w / 2);
+    if (b.t <= 0) { b.st = 'drop'; const tf = .75; b.vx = clamp((b.tx - cx) / tf, -340, 340); b.vy = (floor - b.h - b.y) / tf - GRAV * tf / 2; beep(1400, 300, .3, 'square', .04); }
+  } else if (b.st === 'lift') {                                     // ярость: взлетает
+    free = false; b.vx = 0; b.y = Math.max(hi, b.y - 200 * dt); b.dir = dir;
+    if (Math.random() < dt * 30) beep(rnd(90, 140), 80, .05, 'sawtooth', .015);
+    if (b.t <= 0) { b.st = 'swoop'; b.t = 1.2; const tx = P.x + 5 + (P.vx || 0) * .3, ty = P.y + P.h - b.h, d = Math.hypot(tx - cx, ty - b.y) || 1; b.svx = (tx - cx) / d * 330; b.svy = (ty - b.y) / d * 330; beep(1400, 200, .4, 'sawtooth', .045); }
+  } else if (b.st === 'swoop') {                                    // пикирует прямо на героя
+    free = false; b.x += b.svx * dt; b.y += b.svy * dt; b.dir = Math.sign(b.svx) || b.dir;
+    if (b.y + b.h >= floor || b.t <= 0) { b.y = Math.min(b.y, floor - b.h); b.vy = 0; land(true, 'open', .7); }
+  } else if (b.st === 'dizzy') { b.vx = 0; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.5, 1) / sp; } }
+  if (free) {
+    b.vy = Math.min(b.vy + GRAV * dt, b.st === 'drop' ? 900 : 600);
+    const air = !b.on;
+    moveBody(b, dt);
+    if (b.on && air && b.st === 'leap') land(true, 'dizzy', rage ? .6 : .9);
+    else if (b.on && air && b.st === 'drop') land(true, 'dizzy', .8);
+    else if (b.on && air && b.st === 'hop') { b.st = 'walk'; b.t = rnd(.2, .5); }
+  }
+  if (b.x < left) b.x = left;
+  if (b.x + b.w > right) b.x = right - b.w;
+  if (!P.dead && hit(pc, b)) hurt(b.st === 'dash' ? BOSS_DMG * .8 : BOSS_DMG);
+}
 function chimera(dt, b, pc) {
   b.fl -= dt; b.t -= dt;
   const A = lv.arena, left = A.l * T, right = (COLS - 1) * T, cx = b.x + b.w / 2, dx = P.x + 5 - cx, dir = Math.sign(dx) || -1;
@@ -6004,14 +6087,21 @@ function roachMan(p, ox, oy, o) {         // человек-таракан по 
   for (const [x, y] of [[hx - 4, hy + 1], [hx, hy + 5]]) p.set(x, y, '#c06070');
 }
 function drawRoach(b) {                   // босс базы: человек-таракан (друг, 12.11)
-  const wh = b.fl > 0, sh = b.st === 'wake' ? (Math.random() - .5) * 4 : 0, fly = b.st === 'leap';
+  const wh = b.fl > 0, sh = b.st === 'wake' || b.st === 'cling' || b.st === 'prep' ? (Math.random() - .5) * 4 : 0, fly = ['leap', 'hop', 'lift', 'swoop', 'drop'].includes(b.st);
+  if (b.st === 'cling' && b.tx && Math.floor(time * 8) % 2) { const fx = b.tx - cam, fy = lv.arena.top * T; ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fx - 6, fy - 12); ctx.lineTo(fx + 6, fy); ctx.moveTo(fx + 6, fy - 12); ctx.lineTo(fx - 6, fy); ctx.stroke(); }
+  const up = false, wallc = b.st === 'climb' || b.st === 'cling';
+  ctx.save();
+  if (up) { ctx.translate(0, 2 * (b.y + b.h / 2)); ctx.scale(1, -1); }   // вверх ногами на потолке
+  else if (wallc) { const ccx = b.x - cam + b.w / 2, ccy = b.y + b.h / 2; ctx.translate(ccx, ccy); ctx.rotate(b.x < (lv.arena.l * T + (COLS - 1) * T) / 2 ? Math.PI / 2 : -Math.PI / 2); ctx.translate(-ccx, -ccy); }   // бежит по стене
   const fr = MON[fly ? 'RMo' : 'RM'][Math.floor(time * (fly ? 12 : 2)) % 2], im = wh ? fr.wh : fr.img;
   const dx = Math.round(b.x - cam + b.w / 2 - im.width / 2 + sh), dy = Math.round(b.y + b.h - im.height + 3 + (b.st === 'crouch' ? 4 : 0));
   spr(im, dx, dy, b.dir < 0);
   const f = b.dir > 0 ? 1 : -1, mx = f > 0 ? dx + 24 : dx + im.width - 24;
+  if (b.st === 'dash') for (let i = 0; i < 3; i++) rect(dx + (f > 0 ? -6 - i * 7 : im.width + 2 + i * 7), dy + 18 + i * 10, 5, 1, 'rgba(255,255,255,.5)');   // рывок — полосы скорости
+  ctx.restore();
   if (b.st === 'spit' && b.t < .35) ell(mx + f * 3, dy + 20, 3, 2, '#9be22d');
-  if (b.st === 'crouch') for (let i = 0; i < 3; i++) rect(dx + 8 + i * 9, dy + 50, 2, 2, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
-  if (b.st === 'dizzy') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(b.x - cam + b.w / 2 + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
+  if (b.st === 'crouch' || b.st === 'prep') for (let i = 0; i < 3; i++) rect(dx + 8 + i * 9, dy + 50, 2, 2, Math.floor(time * 12) % 2 ? '#fff2a0' : '#ff7a1a');
+  if (b.st === 'dizzy' || b.st === 'open') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(b.x - cam + b.w / 2 + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
 }
 function drawCutCamp() {                  // заставка: дорога из города, баррикада, костры, живые люди
   const t = stateT, fy = H - 44, gx = W * .5;
