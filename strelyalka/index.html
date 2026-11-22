@@ -15,6 +15,8 @@ Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи к�
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
 Object.assign(EN, {"вход — дупло у корней. в узкую щель запрыгни и зажми ВВЕРХ — полезешь распором":"the way in is the hollow at the roots. jump into the narrow crack and hold UP to brace and climb","гнилые ветки осыпаются под ногами — перепрыгивай трещины":"rotten branches crumble underfoot — jump over the cracks","ветер дует от ствола — держись ближе к стволу и иди против ветра":"the wind blows away from the trunk — stay close to it and walk against the wind","паутина липкая — в ней вязнешь, перепрыгивай":"the web is sticky — you get stuck in it, jump over","по веткам кроны ползёт огонь — проскакивай, когда пламя спадёт":"fire crawls along the crown branches — dash through when the flames die down","ракета приманит рой — держись наверху, пока не увидят сигнал":"the flare lures the swarm — hold out at the top until the signal is seen","с большой высоты не прыгай — разобьёшься. спускайся по веткам, огонь идёт следом":"don't jump from high up — you'll get hurt. climb down the branches, the fire follows you","🎆 РАКЕТА В НЕБЕ! свет манит рой — ДЕРЖИСЬ!":"🎆 FLARE IN THE SKY! the light lures the swarm — HOLD OUT!","💥 высоко! больно падать":"💥 too high! that fall hurt","💨 ветер! держись ближе к стволу":"💨 wind! stay close to the trunk","🔥 горячо!":"🔥 hot!","🎆 рой летит на свет — держись: ":"🎆 the swarm flies to the light — hold out: ","🎆 сигнал увидели!":"🎆 the signal was seen!","🔥 КРОНА ЗАГОРЕЛАСЬ! ВНИЗ — к каменоломне!":"🔥 THE CROWN IS ON FIRE! DOWN — to the quarry!","🔥 огонь догоняет! вниз!":"🔥 the fire is catching up! go down!"});
 Object.assign(EN, { 'дерево трещит — сейчас упадёт поперёк дороги: перепрыгни ствол или подкатом под него (бег + вниз)': 'a tree is cracking — it will fall across the path: jump over the trunk or slide under it (run + down)', 'с неба падают горящие ветки — смотри на красную метку на земле': 'burning branches fall from the sky — watch the red mark on the ground', '🌲 дерево падает! прыгай через ствол или подкатом под него': '🌲 tree falling! jump over the trunk or slide under it', '💥 придавило стволом!': '💥 crushed by the trunk!', '🔥 ствол горит!': '🔥 the trunk is burning!', '🔥 горящая ветка!': '🔥 burning branch!' });
+Object.assign(EN, { 'тропа в чащу — на дальнем краю, за оврагом': 'the path into the thicket is at the far end, past the ravine', 'разобьёшь свиту — тропа в логово откроется на дальнем краю, за карьером': 'smash the escort — the path to the lair opens at the far end, past the quarry' });
+Object.assign(EN, { 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё': 'the queen rears up — a ram is coming: jump onto a ledge or over her', 'матка в ярости!': 'the queen is enraged!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
 Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
@@ -498,7 +500,7 @@ const LEVELS = [
   { city: 1, name: 'МЕСТО КРУШЕНИЯ', hi: [28], task: 'Найди рацию — её отбросило в овраг', obj: 'radio', sky: true, day: true, ground: 18, dark: .9, art: 16, burn: true,
     after: [['r', 'Приём! Кто живой? Это Сокол-2, второй пилот!'], ['r', 'Меня выбросило с парашютом, сижу на сосне за рекой.'], ['r', 'Лес горит от вертолёта! Огонь идёт к тебе — уходи в чащу!']],
     cols: 140, rows: 36, base: AIR, pal: PAL.forest, spawn: ['M', 'M', 'A'],
-    tips: ['рацию отбросило в овраг — спускайся по лиане', 'из оврага наверх быстрее по расщелине: прыжками от стены к стене', 'тропа в чащу — у обломков вертолёта, где начал'],
+    tips: ['рацию отбросило в овраг — спускайся по лиане', 'из оврага наверх быстрее по расщелине: прыжками от стены к стене', 'тропа в чащу — на дальнем краю, за оврагом'],
     build(B) {
       B.ground(0, 139, 16);
       B.deco('wreck', 7, 12, 15, 15); B.fire(9, 16); B.fire(14, 16);                 // вертолёт горит
@@ -514,9 +516,9 @@ const LEVELS = [
       B.fill(106, 24, 110, 24); B.fill(118, 21, 122, 21);                           // каменные полки
       B.room(128, 26, 134, 30); B.item('radio', 132, 31);                           // пещерка с рацией
       for (const [x, y] of [[100, 31], [112, 24], [123, 21], [130, 31]]) B.shroom(x, y);
-      B.nest(84, 16); B.nest(120, 21); B.nest(136, 16);
+      B.nest(84, 16); B.nest(120, 21); B.nest(133, 16);
       B.bug(45, 16, 'M'); B.bug(70, 16, 'M'); B.bug(108, 24, 'G'); B.bug(101, 31, 'M'); B.bug(122, 31, 'M'); B.bug(110, 21, 'F'); B.bug(130, 16, 'M');
-      B.exit(2, 16, 'ЧАЩА');
+      B.exit(138, 16, 'ЧАЩА');                                                       // друг (msg 2489): выход на дальнем краю, за оврагом
       B.start(10, 16);
     } },
   { city: 1, name: 'ПОЖАР', task: 'Беги от пожара к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 2.6, flow: 22, chase: 72, fire: true, burn: true,
@@ -622,7 +624,7 @@ const LEVELS = [
   { city: 1, name: 'КАМЕНОЛОМНЯ', task: 'Разбей свиту богомола', obj: 'guards', guard: 'H', sky: true, day: true, ground: 26, dark: .9, art: 5, burn: true,
     after: [['r', 'Чисто! Иду к тебе... Стой. Земля дрожит...'], ['r', 'Он здесь! А-а-а!..'], 'Связь оборвалась. Его утащили — в логово.'],
     cols: 130, rows: 28, base: AIR, pal: PAL.forest, spawn: ['M', 'G', 'A'],
-    tips: ['свита разбрелась: внизу в карьере, на уступах и за карьером', 'щитоносец закрыт косами спереди — бей, когда он ударил и застыл', 'разобьёшь свиту — тропа в логово откроется там, где ты начал'],
+    tips: ['свита разбрелась: внизу в карьере, на уступах и за карьером', 'щитоносец закрыт косами спереди — бей, когда он ударил и застыл', 'разобьёшь свиту — тропа в логово откроется на дальнем краю, за карьером'],
     build(B) {
       B.ground(0, 129, 16);
       B.fill(36, 16, 96, 22, AIR);                                                 // карьер, дно — 23
@@ -635,7 +637,7 @@ const LEVELS = [
       B.bush(25, 16, 3); B.bug(26, 16, 'A'); B.bush(110, 16, 3); B.bug(111, 16, 'A');
       B.bug(55, 23, 'H'); B.bug(80, 23, 'H'); B.bug(112, 16, 'H'); B.bug(124, 16, 'H');
       B.bug(63, 19, 'G'); B.bug(49, 18, 'G'); B.bug(103, 12, 'G'); B.bug(30, 16, 'M'); B.bug(90, 23, 'M'); B.bug(119, 16, 'M');
-      B.exit(2, 16, 'ЛОГОВО');
+      B.exit(127, 16, 'ЛОГОВО');                                                     // друг (msg 2489): выход на дальнем краю, за карьером
       B.start(8, 16);
     } },
   { city: 1, name: 'ЛОГОВО', task: 'Победи богомола', obj: 'boss', sky: true, day: true, ground: 18, dark: .9, burn: true,
@@ -798,7 +800,7 @@ const LEVELS = [
     } },
   { city: 2, name: 'ЛОГОВО МАТКИ', hi: [6, 6], task: 'Победи личинку-матку', obj: 'boss', bossTxt: 'в логово матки', ground: 99, dark: .72,
     cols: 74, rows: 22, base: SOLID, pal: PAL.nora, spawn: ['l', 'm'],
-    tips: ['матка ныряет под землю, и к тебе ползёт горка. задрожала — прыгай на уступ или беги', 'вынырнула — оглушена, урон двойной', 'плюётся кислотой и откладывает личинок'],
+    tips: ['матка ныряет под землю, и к тебе ползёт горка. задрожала — прыгай на уступ или беги', 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё', 'вынырнула — оглушена, урон двойной', 'плюётся кислотой и откладывает личинок'],
     build(B) {
       B.room(1, 5, 72, 15);
       B.plat(22, 27, 12); B.plat(38, 43, 12); B.plat(54, 59, 12);
@@ -1678,6 +1680,7 @@ function audioReset() {                  // выбросить сломанны�
 }
 const AW = { t0: 0, a0: 0, n: 0, last: -99, resets: 0, tried: 0 };   // сторож: время звука должно идти вместе с обычным временем
 function audioWatch() {
+  if (ac && ac.state === 'suspended' && !document.hidden && !acStale) { const n = performance.now(); if (n - (AW.rs || 0) > 1000) { AW.rs = n; ac.resume().catch(() => {}); } }   // друг (msg 2492)
   if (ac && ac.state !== 'running' && ac.state !== 'closed' && !document.hidden && AW.tried && performance.now() / 1000 - AW.tried > 1) acBroken = true;   // будили касанием, а он спит — Андроид (друг, msg 2218)
   if (!ac || ac.state !== 'running' || document.hidden) { AW.t0 = 0; return; }
   const now = performance.now() / 1000, at = ac.currentTime;
@@ -1711,19 +1714,39 @@ function drone() {                       // тревожный низкий гу
   l.frequency.value = .13; lg.gain.value = 70;
   l.connect(lg).connect(f.frequency); o.connect(f).connect(g).connect(ac.destination); o.start(); l.start();
 }
+const SFX = { n: 0, ac: null, out: null, noise: null, win: 0, wn: 0, boomT: -1 };   // друг (msg 2492): лимит звуков, чтобы телефон не захлёбывался
+function sfxOut() {                      // общий выход эффектов: ограничитель громкости (без перегруза и треска)
+  if (SFX.ac !== ac) { SFX.ac = ac; SFX.n = 0; SFX.noise = null; const c = ac.createDynamicsCompressor(); c.threshold.value = -8; c.knee.value = 4; c.ratio.value = 12; c.attack.value = .002; c.release.value = .12; c.connect(ac.destination); SFX.out = c; }
+  return SFX.out;
+}
+function sfxOk() {                       // не больше 16 звуков сразу и 8 новых за 0.1 с
+  if (!ac || ac.state !== 'running') return false;
+  sfxOut();
+  const t = ac.currentTime; if (t - SFX.win > .1) { SFX.win = t; SFX.wn = 0; }
+  if (SFX.n >= 16 || SFX.wn >= 8) return false;
+  SFX.wn++; SFX.n++; return true;
+}
 function beep(f0, f1, dur, type = 'square', vol = .05) {
-  if (!ac) return;
-  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  if (!sfxOk()) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime, my = ac;
   o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur);
+  o.connect(g).connect(SFX.out); o.start(t); o.stop(t + dur);
+  o.onended = () => { if (SFX.ac === my) SFX.n = Math.max(0, SFX.n - 1); try { g.disconnect(); } catch (e) {} };
 }
 function boom(vol = .12) {
-  if (!ac) return;
-  const n = ac.sampleRate * .3, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 2;
-  const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = buf; g.gain.value = vol;
-  s.connect(g).connect(ac.destination); s.start();
+  if (!ac || ac.state !== 'running') return;
+  if (ac.currentTime - SFX.boomT < .07) return;          // взрывы в одном кадре — один звук
+  if (!sfxOk()) return;
+  SFX.boomT = ac.currentTime;
+  if (!SFX.noise) {                                       // шум считаем один раз, а не на каждый взрыв
+    const n = Math.floor(ac.sampleRate * .3), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 2;
+    SFX.noise = buf;
+  }
+  const s = ac.createBufferSource(), g = ac.createGain(), my = ac; s.buffer = SFX.noise; g.gain.value = vol;
+  s.connect(g).connect(SFX.out); s.start();
+  s.onended = () => { if (SFX.ac === my) SFX.n = Math.max(0, SFX.n - 1); try { g.disconnect(); } catch (e) {} };
 }
 
 // ===== Музыка (друг, msg 1645): 8-бит металкор и ню-метал — свой трек на каждый город =====
@@ -3822,50 +3845,74 @@ function wormAI(e, dt, dx, dyF, dir) {     // червь: под землёй п
   else { e.vx = 0; if (e.t <= 0) { e.st = 'under'; e.burrow = true; e.t = rnd(1.2, 2); } }
 }
 // Личинка-матка: ныряет под землю и выныривает под героем, ползёт, плюётся кислотой, откладывает личинок
-function larva(dt, b, pc) {
+function larva(dt, b, pc) {   // друг (msg 2489): нападает сама — таран, комья при выныривании, плевки веером
   b.fl -= dt; b.t -= dt;
-  const A = lv.arena, left = A.l * T, right = (COLS - 1) * T, floor = A.top * T, cx = b.x + b.w / 2, dx = P.x + 5 - cx, dir = Math.sign(dx) || -1;
-  const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1;
+  const A = lv.arena, left = A.l * T, right = (COLS - 1) * T, floor = A.top * T, cx = b.x + b.w / 2, dx = P.x + 5 - cx, adx = Math.abs(dx), dir = Math.sign(dx) || -1;
+  const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1, up = P.y + P.h < floor - 30;   // герой на уступе
+  if (rage && !b.raged) { b.raged = true; showToast('матка в ярости!', 1.6); beep(200, 900, .6, 'sawtooth', .045); }
   b.hide = b.st === 'under' || b.st === 'rise';
   if (b.st === 'under') {
-    b.y = floor - b.h; b.vx = P.dead ? 0 : dir * 85 * sp;
+    b.y = floor - b.h; b.vx = P.dead ? 0 : dir * 120 * sp;
     if (Math.random() < dt * 14) parts.push({ x: cx + rnd(-14, 14), y: floor - 2, vx: rnd(-30, 30), vy: rnd(-90, -40), life: .4, col: '#4a3624' });
-    if (b.t <= 0 && (Math.abs(dx) < 10 || b.t < -2.5)) { b.st = 'rise'; b.t = 1.1; b.vx = 0; beep(80, 40, 1.1, 'sawtooth', .05); }
+    if (b.t <= 0 && (adx < 12 || b.t < -1.6)) { b.st = 'rise'; b.t = .75 / sp; b.vx = 0; beep(80, 40, .8, 'sawtooth', .05); }
   } else if (b.st === 'rise') {
     b.vx = 0;
     if (Math.random() < dt * 30) parts.push({ x: cx + rnd(-30, 30), y: floor - 2, vx: rnd(-40, 40), vy: rnd(-160, -60), life: .5, col: '#5a4434' });
-    if (b.t <= 0) { b.st = 'erupt'; b.t = .7; b.hide = false; shake = .8; boom(.12); explode(cx, floor - 4, 26, ['#5a4434', '#3a2a22', '#e0d4a8']); }
+    if (b.t <= 0) {
+      b.st = 'erupt'; b.t = .7; b.hide = false; shake = .8; boom(.12); explode(cx, floor - 4, 26, ['#5a4434', '#3a2a22', '#e0d4a8']);
+      const n = rage ? 6 : 4;                                       // комья земли разлетаются в обе стороны
+      for (let i = 0; i < n; i++) { const sd = i % 2 ? 1 : -1, k = Math.floor(i / 2); ebullets.push({ x: cx + sd * 20, y: floor - 20, w: 6, h: 6, vx: sd * (70 + k * 60), vy: -330 - k * 30, g: 600, life: 2.2, k: 'stone' }); }
+      if (rage) for (const sd of [-1, 1]) ebullets.push({ x: cx + sd * 40 - 5, y: floor - 8, w: 10, h: 8, vx: sd * 160, vy: 0, g: 0, life: .9, k: 'wave' });
+    }
   } else if (b.st === 'erupt') {
     b.vx = 0; b.y = floor - b.h - Math.sin(clamp(1 - b.t / .7, 0, 1) * Math.PI) * 30;
-    if (b.t <= 0) { b.y = floor - b.h; b.st = 'dizzy'; b.t = 1.6; }
-  } else if (b.st === 'dizzy') { b.vx = 0; if (b.t <= 0) { b.st = 'crawl'; b.t = rnd(1.6, 2.6); } }
+    if (b.t <= 0) { b.y = floor - b.h; b.st = 'dizzy'; b.t = rage ? .6 : .9; }
+  } else if (b.st === 'dizzy') { b.vx = 0; if (b.t <= 0) { b.st = 'crawl'; b.t = rnd(.5, 1) / sp; } }
   else if (b.st === 'crawl') {
-    b.dir = dir; b.vx = dir * 34 * sp;
-    if (b.t <= 0) {
+    b.dir = dir; b.vx = adx > 40 ? dir * 55 * sp : 0;
+    if (b.t <= 0 && !P.dead) {
       const kids = enemies.filter(e => e.boss).length, r = Math.random();
-      if (kids < 3 && r < .3) { b.st = 'eggs'; b.t = .8; }
-      else if (Math.abs(dx) > 110 && r < .75) { b.st = 'spit'; b.t = .6; }
-      else { b.st = 'dive'; b.t = .6; }
+      if (up) { if (r < .6) { b.st = 'spit'; b.t = .5; } else if (r < .8 && kids < 3) { b.st = 'eggs'; b.t = .7; } else { b.st = 'dive'; b.t = .45; } }
+      else if (adx < 170) {
+        if (r < .5) { b.st = 'rear'; b.t = .5 / sp; beep(160, 500, .45, 'sawtooth', .04); }   // встаёт на дыбы — сейчас таран
+        else if (r < .7) { b.st = 'spit'; b.t = .5; }
+        else if (r < .82 && kids < 3) { b.st = 'eggs'; b.t = .7; }
+        else { b.st = 'dive'; b.t = .45; }
+      } else {
+        if (r < .4) { b.st = 'spit'; b.t = .5; } else if (r < .65) { b.st = 'rear'; b.t = .5 / sp; beep(160, 500, .45, 'sawtooth', .04); }
+        else if (r < .75 && kids < 3) { b.st = 'eggs'; b.t = .7; } else { b.st = 'dive'; b.t = .45; }
+      }
     }
-  } else if (b.st === 'spit') {
-    b.vx = 0;
+  } else if (b.st === 'rear') {                                     // на дыбах: дрожит — сейчас бросится
+    b.vx = 0; b.dir = dir;
+    if (b.t <= 0) { b.st = 'slam'; b.t = .55; b.ram = dir; beep(120, 60, .35, 'square', .05); }
+  } else if (b.st === 'slam') {                                     // таран вдоль пола
+    b.vx = b.ram * 290 * sp; b.dir = b.ram;
+    if (Math.random() < dt * 30) parts.push({ x: cx - b.ram * 30, y: floor - 2, vx: -b.ram * rnd(30, 80), vy: rnd(-80, -20), life: .4, col: '#5a4434' });
+    if (b.t <= 0 || b.x <= left + 1 || b.x >= right - b.w - 1) {
+      if (b.x <= left + 1 || b.x >= right - b.w - 1) { shake = .4; boom(.08); }
+      b.st = 'open'; b.t = .7; b.vx = 0;
+    }
+  } else if (b.st === 'open') { b.vx = 0; if (b.t <= 0) { b.st = 'crawl'; b.t = rnd(.5, 1) / sp; } }   // выдохлась — бей
+  else if (b.st === 'spit') {
+    b.vx = 0; b.dir = dir;
     if (b.t <= 0) {
-      const n = rage ? 5 : 3, v = clamp(dx / .8, -240, 240);
-      for (let i = 0; i < n; i++) ebullets.push({ x: cx + b.dir * b.w * .45, y: b.y + 4, w: 6, h: 6, vx: v * (.7 + i * .6 / (n - 1)), vy: -260, g: 600, life: 2.2, k: 'spit' });
-      beep(240, 100, .4, 'square', .035); b.st = 'crawl'; b.t = rnd(1.4, 2.2);
+      const n = rage ? 5 : 3, tf = up ? .9 : .75, vy0 = (P.y + P.h / 2 - (b.y + 4)) / tf - 300 * tf;   // веером вокруг героя
+      for (let i = 0; i < n; i++) { const sx = dx + (i - (n - 1) / 2) * 34 + (P.vx || 0) * tf * .6; ebullets.push({ x: cx + b.dir * b.w * .45, y: b.y + 4, w: 6, h: 6, vx: clamp(sx / tf, -300, 300), vy: vy0, g: 600, life: 2.2, k: 'spit' }); }
+      beep(240, 100, .4, 'square', .035); b.st = 'crawl'; b.t = rnd(.7, 1.2) / sp;
     }
   } else if (b.st === 'eggs') {
     b.vx = 0;
     if (b.t <= 0) {
       for (const s2 of [-1, 1]) { const e = mkBug('l', clamp(cx + s2 * 34, left + 4, right - 20), floor, s2); e.sleep = false; e.spawned = true; e.boss = true; e.vy = -160; enemies.push(e); }
-      beep(400, 200, .3, 'sine', .04); b.st = 'crawl'; b.t = rnd(1.2, 2);
+      beep(400, 200, .3, 'sine', .04); b.st = 'crawl'; b.t = rnd(.6, 1.1) / sp;
     }
   } else if (b.st === 'dive') {
     b.vx = 0; b.y += 50 * dt;
-    if (b.t <= 0) { b.st = 'under'; b.t = rnd(2.2, 3.2) / sp; b.y = floor - b.h; }
+    if (b.t <= 0) { b.st = 'under'; b.t = rnd(1.2, 2) / sp; b.y = floor - b.h; }
   }
   b.x = clamp(b.x + b.vx * dt, left, right - b.w);
-  if (!b.hide && !P.dead && hit(pc, b)) hurt(BOSS_DMG);
+  if (!b.hide && !P.dead && hit(pc, b)) hurt(b.st === 'slam' ? BOSS_DMG * .8 : BOSS_DMG);
 }
 // ===== Мутанты лаборатории =====
 function hopper(e, dt, dx, dyF, dir) {     // крысожук (и колбовик, и половинка делителя): бегает и прыгает на героя
@@ -5705,13 +5752,15 @@ function drawLarvaBoss(b) {               // личинка-матка
     return;
   }
   ctx.save(); ctx.translate(Math.round(cx), Math.round(b.y)); ctx.scale(b.dir > 0 ? 1 : -1, 1);
-  const hw = b.w / 2, hx = hw - 8, open = b.st === 'spit' || b.st === 'eggs' ? 1 : 0;   // матка-гора (друг, 12.11)
+  if (b.st === 'rear') { ctx.translate((Math.random() - .5) * 3, b.h); ctx.rotate(-.22); ctx.translate(0, -b.h); }   // встала на дыбы
+  else if (b.st === 'slam') { ctx.translate(0, b.h); ctx.scale(1.15, .88); ctx.translate(0, -b.h); }   // таран: вытянулась
+  const hw = b.w / 2, hx = hw - 8, open = b.st === 'spit' || b.st === 'eggs' || b.st === 'rear' || b.st === 'slam' ? 1 : 0;   // матка-гора (друг, 12.11)
   const fr = MON[open ? 'LBo' : 'LB'][Math.floor(time * (b.st === 'eggs' ? 10 : 3)) % 2], im = wh ? fr.wh : fr.img, bob = b.vx ? Math.abs(Math.sin(time * 7)) * 2 : 0;
   ctx.drawImage(im, -Math.round(im.width / 2) - 2, Math.round(b.h - im.height + 2 - bob));
   if (b.st === 'spit' && b.t < .3) ell(hx + 14, b.h - 9, 4, 3, '#b8ff40');
   ctx.restore();
   if (b.st === 'erupt') for (let i = 0; i < 3; i++) ell(cx - 30 + i * 30, floor - 2, 10, 4, '#4a3624');
-  if (b.st === 'dizzy') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(cx + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
+  if (b.st === 'dizzy' || b.st === 'open') for (let i = 0; i < 3; i++) { const q = time * 6 + i * 2.1; rect(cx + Math.cos(q) * 18, b.y - 8 + Math.sin(q) * 4, 3, 3, '#ffd23f'); }
 }
 function drawMantisKind(e, wh, run) {     // богомолы (мордой вправо, в своём прямоугольнике w×h)
   const w = e.w, h = e.h, k = e.k;
