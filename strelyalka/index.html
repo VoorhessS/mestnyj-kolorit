@@ -20,6 +20,7 @@ Object.assign(EN, { 'таракан взбежал на стену — прыг�
 Object.assign(EN, {"нажми — дальше":"tap — continue","КОНЕЦ":"THE END","БАГОКАЛИПСИС":"BUGPOCALYPSE","БОССЫ":"BOSSES","Город пал за одну ночь.":"The city fell in a single night.","Рой разлился по стране. Люди прячутся в подвалах и бункерах.":"The swarm spread across the country. People hide in cellars and bunkers.","А во главе орды идёт тот, кто когда-то шёл спасать людей.":"And leading the horde walks the one who once set out to save people.","Говорят, иногда он останавливается и смотрит в небо. Как будто что-то вспоминает…":"They say he sometimes stops and looks at the sky. As if remembering something…","Без Альфы рой потерял голову.":"Without the Alpha the swarm lost its head.","Жуки расползлись по норам и затихли.":"The bugs crawled back into their burrows and went quiet.","Выжившие вернулись в город и начали отстраивать его заново.":"The survivors returned to the city and began to rebuild it.","А вы двое стали легендой лагеря.":"And you two became the legend of the camp.","ЖУК-НОСОРОГ":"RHINO BEETLE","БОГОМОЛ":"MANTIS","ЛИЧИНКА-МАТКА":"LARVA QUEEN","ХИМЕРА":"CHIMERA","ЧЕЛОВЕК-ТАРАКАН":"ROACH-MAN","АЛЬФА":"ALPHA","вожак роя. теперь ты идёшь рядом с ним":"leader of the swarm. now you walk beside it","побеждена в логове":"defeated in its lair","побеждён: крыша дома":"defeated: the rooftop","побеждён: логово в лесу":"defeated: the forest lair","побеждён: логово под землёй":"defeated: the underground lair","побеждён: главная лаборатория":"defeated: the main lab","побеждён: штаб военной базы":"defeated: the base HQ","ТВОЁ ПРОХОЖДЕНИЕ":"YOUR RUN","время в игре:":"time played:","погибал:":"deaths:","боссов побеждено:":"bosses defeated:","СПАСИБО ЗА ИГРУ!":"THANKS FOR PLAYING!","понравилось? оставь свой отзыв":"enjoyed it? leave a review","а теперь пройди в коопе с другом —":"now play it in co-op with a friend —","там другая концовка!":"there is a different ending!","и позови друга — вдвоём в коопе веселее":"and invite a friend — co-op is more fun","продолжение следует?":"to be continued?"});
 Object.assign(EN, {"🏆 РЕКОРДЫ":"🏆 RECORDS","топ-50 · полное соло-прохождение":"top 50 · full solo run","твоё место по очкам:":"your rank by score:","в топ-50 пока не попал — попробуй ещё!":"not in the top 50 yet — try again!","ПО ОЧКАМ":"BY SCORE","ПО ВРЕМЕНИ":"BY TIME","ЗАКРЫТЬ":"CLOSE","НИК":"NICK","ОЧКИ":"SCORE","ВРЕМЯ":"TIME","пока пусто — пройди игру первым!":"empty so far — be the first to beat the game!","нет связи с сервером — попробуй позже":"no connection — try again later","твоё прохождение:":"your run:","очков":"points","ТВОЙ НИК":"YOUR NICK","ЗАПИСАТЬ В ТАБЛИЦУ":"SUBMIT","впиши ник":"enter a nick","записано! место по очкам:":"saved! rank by score:","по времени:":"by time:","не получилось — проверь интернет и нажми ещё раз":"failed — check your connection and tap again","забег на рекорд:":"record run:","без рекорда: забег начат не с первого уровня":"no record: run not started from level 1","сердечки кончились — глава начнётся заново":"out of hearts — the chapter starts over","нажми — начать главу":"tap — restart chapter"});
 Object.assign(EN, { 'слишком часто — подожди 20 секунд и нажми ещё раз': 'too often — wait 20 seconds and tap again', 'очки главы сгорят:': 'chapter points lost:', 'очки:': 'score:' });
+Object.assign(EN, { '✍️ ОТЗЫВ': '✍️ REVIEW', 'его прочитает автор игры': 'the game author will read it', 'ОТПРАВИТЬ': 'SEND', 'что понравилось, что нет, что добавить?': 'what did you like, what not, what to add?', 'ник (можно не писать)': 'nickname (optional)', 'поставь звёзды — от 1 до 5': 'pick 1 to 5 stars', 'отзыв уже ушёл недавно — подожди минуту': 'you just sent one — wait a minute', 'спасибо! отзыв отправлен автору': 'thanks! your review was sent to the author' });
 Object.assign(EN, { 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё': 'the queen rears up — a ram is coming: jump onto a ledge or over her', 'матка в ярости!': 'the queen is enraged!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
@@ -176,6 +177,15 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #lb-list .r { display: grid; grid-template-columns: 2.2em 1fr 5.5em 5em; gap: 6px; padding: 5px 6px; background: #14141c; border-radius: 4px; }
   #lb-list .r.me { background: #3a3410; } #lb-list .r .n { color: #ffd23f; } #lb-list .r .s, #lb-list .r .t { text-align: right; } #lb-list .h { color: #8a8a9a; background: none; }
   #lb-me { background: #1a2a14; border: 1px solid #3a6a2a; border-radius: 6px; padding: 8px; display: none; flex-direction: column; gap: 6px; text-align: center; font-size: 13px; }
+  #rv { position: fixed; inset: 0; z-index: 31; background: rgba(6,6,10,.95); display: none; align-items: flex-start; justify-content: center; overflow-y: auto; font-family: monospace; color: #fff; }
+  #rv .box { width: min(94vw, 460px); padding: 12px 10px calc(env(safe-area-inset-bottom) + 14px); display: flex; flex-direction: column; gap: 8px; }
+  #rv h2 { margin: 0; text-align: center; color: #ffd23f; font-size: 18px; } #rv .sub { text-align: center; color: #8a8a9a; font-size: 11px; margin-top: -4px; }
+  #rv button { font: bold 13px monospace; padding: 8px; background: #2a2a34; color: #fff; border: 1px solid #555; border-radius: 6px; min-height: 40px; }
+  #rv-st { display: flex; justify-content: center; gap: 4px; } #rv-st button { font-size: 26px; padding: 2px 6px; background: none; border: none; color: #555; min-width: 44px; } #rv-st button.on { color: #ffd23f; }
+  #rv textarea, #rv input { font: 14px monospace; padding: 8px; background: #000; color: #fff; border: 1px solid #666; border-radius: 6px; box-sizing: border-box; width: 100%; }
+  #rv textarea { height: 96px; resize: none; } #rv input { text-align: center; }
+  #rv-go { background: #ffd23f !important; color: #111 !important; } #rv-go:disabled { opacity: .4; }
+  #rv-note { text-align: center; font-size: 13px; min-height: 1em; color: #ff8a8a; } #rv-note.ok { color: #9aff5a; }
   #lb-me input { font: bold 15px monospace; padding: 7px; text-align: center; background: #000; color: #fff; border: 1px solid #666; border-radius: 6px; }
   #menu button { font: 600 13px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 12px; min-height: 44px; min-width: 44px; }   /* под палец (аудит №25) */
   #menu button.cur { border-color: #ffd23f; }
@@ -205,6 +215,7 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #tmenu { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8%); display: none; flex-direction: column; align-items: center; gap: 8px; z-index: 5; }
   #tmenu .row { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 230px; }   /* друг (msg 2010): кнопки столбиком */
   #tmenu .row > [id^="t-back"] { order: 9; }
+  #tmenu .pair { display: flex; gap: 7px; } #tmenu .pair button { flex: 1 1 0; min-width: 0; font-size: 13px; letter-spacing: 1px; padding-left: 4px; padding-right: 4px; }   /* рекорды и отзыв в одну строку — столбик не наезжает на подзаголовок */
   #tmenu button:disabled { opacity: .35; }
   #tmenu input.kb { position: fixed; left: 50%; transform: translateX(-50%); width: min(80vw, 420px); top: 10px; z-index: 60; box-shadow: 0 0 0 100vmax rgba(0,0,0,.6); }   /* над клавиатурой (друг, msg 2222) */
   @media (max-height: 520px) {                 /* телефон боком: по две кнопки в ряд, «Поделиться» рядом с кодом (друг, msg 2215) */
@@ -266,16 +277,20 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   <div><i>Esc</i>пауза · <i class="s">M</i>музыка</div></div>
 <button id="keysbtn">⌨ КЛАВИШИ · H</button>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-lb">🏆 РЕКОРДЫ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><div id="m-run"></div><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
+<div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-lb">🏆 РЕКОРДЫ</button><button id="m-rv">✍️ ОТЗЫВ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><div id="m-run"></div><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
 <div id="tmenu"><div id="tm-note"></div>
-  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button><button id="t-lang">🌐 ENGLISH</button><button id="t-lb">🏆 РЕКОРДЫ</button></div>
+  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button><button id="t-lang">🌐 ENGLISH</button><div class="pair"><button id="t-lb">🏆 РЕКОРДЫ</button><button id="t-rv">✍️ ОТЗЫВ</button></div></div>
   <div class="row" id="tm2" style="display:none"><button id="t-back">←</button><button id="t-go">▶ НОВАЯ ИГРА</button><button id="t-cont">ПРОДОЛЖИТЬ</button></div>
   <div class="row" id="tm3" style="display:none"><button id="t-back3">←</button><input id="t-nick" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ТВОЙ НИК"><button id="t-host">СОЗДАТЬ КОМНАТУ</button><button id="t-join">ВОЙТИ ПО КОДУ</button></div>
   <div class="row" id="tm4" style="display:none"><button id="t-back4">←</button><input id="t-code" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" placeholder="КОД"><button id="t-join-go">ВОЙТИ ▶</button></div>
   <div class="row" id="tm5" style="display:none"><button id="t-back5">← ВЫЙТИ ИЗ КОМНАТЫ</button></div></div>
 <div id="lb"><div class="box"><h2>🏆 РЕКОРДЫ</h2><div class="sub">топ-50 · полное соло-прохождение</div><div id="lb-me"></div>
   <div class="tabs"><button id="lb-s" class="on">ПО ОЧКАМ</button><button id="lb-t">ПО ВРЕМЕНИ</button></div><div id="lb-list"></div><button id="lb-x">ЗАКРЫТЬ</button></div></div>
+<div id="rv"><div class="box"><h2>✍️ ОТЗЫВ</h2><div class="sub">его прочитает автор игры</div>
+  <div id="rv-st"><button>★</button><button>★</button><button>★</button><button>★</button><button>★</button></div>
+  <textarea id="rv-tx" maxlength="600"></textarea><input id="rv-nk" maxlength="16" autocomplete="off" spellcheck="false">
+  <button id="rv-go">ОТПРАВИТЬ</button><div id="rv-note"></div><button id="rv-x">ЗАКРЫТЬ</button></div></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
   <div>вверх/вниз у лестницы — лезть, вниз + вбок — ползти</div>
@@ -1596,7 +1611,7 @@ addEventListener('keydown', e => {
   if (!KB && e.isTrusted) setKB(true);
   if (e.repeat) return;
   if (e.code === 'KeyH') keysShow(document.body.classList.contains('keysoff'));
-  if (lbOpenNow) { if (e.code === 'Escape') document.getElementById('lb-x').click(); return; }   // открыта таблица рекордов — игра не слушает клавиши
+  if (lbOpenNow) { if (e.code === 'Escape') document.getElementById(rvOpenNow ? 'rv-x' : 'lb-x').click(); return; }   // открыта таблица рекордов — игра не слушает клавиши
   if (e.code === 'Escape' || e.code === 'KeyP') { if (menuOpen) openMenu(false); else if (state === 'play') openMenu(true); }
 });
 addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && KB) setKB(false); }, true);
@@ -3358,8 +3373,8 @@ function update(dt) {
     }
     if (state === 'cred') {                         // титры: нажатие — к следующему кадру
       const nx = CRED_SEG.find(x => x > stateT + .05);
-      if ((anyTap || k.aPressed) && stateT > .8) { if (nx === undefined || nx >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); } else stateT = nx; }
-      else if (stateT >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); }
+      if ((anyTap || k.aPressed) && stateT > .8) { if (nx === undefined || nx >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); rvAfter = credEnd; if (RUN.fin) lbOpen(); else rvOpen(); } else stateT = nx; }
+      else if (stateT >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); rvAfter = credEnd; if (RUN.fin) lbOpen(); else rvOpen(); }
       const ti = stateT - CRED_TEASE;                // намёк: сердце бьётся в коконе
       if (ti > 0 && Math.floor(ti / .9) !== Math.floor((ti - dt) / .9)) beep(70, 40, .14, 'sine', ti > 3.5 ? .1 : .06);
       if (ti > 3.4 && ti - dt <= 3.4) { beep(1400, 200, .5, 'sawtooth', .05); shake = .6; }
@@ -3377,7 +3392,7 @@ function update(dt) {
       if (state === 'over' && !(NET && NET.ready)) { lives = 3; const cs = cityStart(L.city || 0); RUN.cr = true; resetGear(cs); startLevel(cs); }   // друг (msg 2546): соло — кончились сердечки, глава заново
       else if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); netSend({ t: 'cont' }); }   // кооп: продолжаем с сохранения
       else if (state === 'win' && (humansWon || L.mut)) { credEnd = humansWon ? 'coop' : 'solo'; statsSave(); credS = { score, t: RUN.on ? RUN.t : (STATS.t || playT) }; if (RUN.on && !humansWon && gameOn && soloNow()) { RUN.fin = { score, t: Math.round(RUN.t) }; RUN.on = false; runSave(); } setState('cred'); }   // друг (msg 2508): настоящий финал — титры
-      else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); }
+      else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); rvAfter = credEnd; if (RUN.fin) lbOpen(); else rvOpen(); }
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
       else { score = 0; playT = 0; lives = 3; statsReset(); runStart(START); resetGear(START); startLevel(START); }
@@ -7978,8 +7993,44 @@ lbEl.addEventListener('keyup', e => e.stopPropagation());
 function lbOpen() { releaseAll(); lbOpenNow = true; lbEl.style.display = 'flex'; lbMeShow(); lbLoad(); }
 document.getElementById('lb-s').onclick = () => { lbSort = 'score'; lbLoad(); };
 document.getElementById('lb-t').onclick = () => { lbSort = 'time'; lbLoad(); };
-document.getElementById('lb-x').onclick = () => { lbOpenNow = false; lbEl.style.display = 'none'; };
+document.getElementById('lb-x').onclick = () => { lbOpenNow = false; lbEl.style.display = 'none'; if (rvAfter && !rvOpenNow) rvOpen(); };
 document.getElementById('t-lb').onclick = () => { audioOn(); lbOpen(); };
+const rvEl = document.getElementById('rv'), rvTx = document.getElementById('rv-tx'), rvNk = document.getElementById('rv-nk'), rvGo = document.getElementById('rv-go'), rvNote = document.getElementById('rv-note');
+let rvOpenNow = false, rvStars = 0, rvAfter = null;   // rvAfter: окно открыто после титров ('solo' / 'coop')
+const rvStarBtns = [...document.querySelectorAll('#rv-st button')];
+const rvPaint = () => rvStarBtns.forEach((b, i) => { b.className = i < rvStars ? 'on' : ''; });
+rvStarBtns.forEach((b, i) => { b.onclick = () => { rvStars = i + 1; rvPaint(); rvNote.textContent = ''; }; });
+function rvOpen() {
+  releaseAll(); rvOpenNow = true; lbOpenNow = true; rvEl.style.display = 'flex';
+  rvTx.placeholder = tr('что понравилось, что нет, что добавить?'); rvNk.placeholder = tr('ник (можно не писать)');
+  if (!rvNk.value) rvNk.value = myNick();
+  rvNote.className = ''; rvNote.textContent = ''; rvGo.disabled = false; rvGo.style.display = ''; rvPaint();
+}
+function rvClose() { rvOpenNow = false; lbOpenNow = lbEl.style.display === 'flex'; rvEl.style.display = 'none'; rvAfter = null; }
+function rvMeta() {                         // откуда отзыв — по-русски, для автора
+  const lv = LEVELS[lvlN], dev = matchMedia('(pointer: coarse)').matches ? 'телефон' : 'компьютер';
+  const where = rvAfter ? 'после титров, концовка ' + (rvAfter === 'coop' ? 'кооп' : 'соло') : 'уровень ' + (lvlN + 1) + (lv && lv.name ? ' ' + lv.name : '') + (MODE === 'coop' ? ', кооп' : '');
+  return where + ' · ' + (LANG === 'en' ? 'EN' : 'RU') + ' · ' + dev;
+}
+rvGo.onclick = async () => {
+  if (!rvStars) { rvNote.className = ''; rvNote.textContent = tr('поставь звёзды — от 1 до 5'); return; }
+  const nick = rvNk.value.trim().slice(0, 16);
+  if (nick) try { localStorage.setItem('strel-nick', nick.slice(0, 12)); } catch (e) {}
+  rvGo.disabled = true; rvNote.className = ''; rvNote.textContent = '…';
+  try {
+    const r = await (await fetch(netApi() + '/strel/review', { method: 'POST', body: JSON.stringify({ stars: rvStars, text: rvTx.value.slice(0, 600), nick, meta: rvMeta() }) })).json();
+    if (r.error === 'slow') { rvGo.disabled = false; rvNote.textContent = tr('отзыв уже ушёл недавно — подожди минуту'); return; }
+    if (!r.ok) throw new Error(r.error || 'x');
+    rvTx.value = ''; rvStars = 0; rvPaint(); rvGo.style.display = 'none';
+    rvNote.className = 'ok'; rvNote.textContent = tr('спасибо! отзыв отправлен автору');
+  } catch (e) { rvGo.disabled = false; rvNote.textContent = tr('не получилось — проверь интернет и нажми ещё раз'); }
+};
+for (const t of ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend']) rvEl.addEventListener(t, e => e.stopPropagation());
+rvEl.addEventListener('keydown', e => { e.stopPropagation(); if (e.code === 'Escape') rvClose(); });
+rvEl.addEventListener('keyup', e => e.stopPropagation());
+document.getElementById('rv-x').onclick = rvClose;
+document.getElementById('t-rv').onclick = () => { audioOn(); rvAfter = null; rvOpen(); };
+document.getElementById('m-rv').onclick = () => { rvAfter = null; rvOpen(); };
 document.getElementById('m-lb').onclick = () => lbOpen();
 tCont.onclick = () => { audioOn(); if (MODE === 'solo' && RUN.on && LEVELS[RUN.lvl]) { gameOn = true; score = RUN.lvlScore; playT = 0; lives = Math.max(1, RUN.lives ?? 3); resetGear(RUN.lvl); startLevel(RUN.lvl); lives = Math.max(1, RUN.lives ?? 3); return; } if (saveGet()) mapShow(true, false); };   // забег на рекорд продолжается с его уровня
 function titleKey() {                         // клавиатура на титуле: A — дальше по меню
