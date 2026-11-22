@@ -14,6 +14,7 @@ Object.assign(EN, { 'напарник в меню — ждём': 'partner is in 
 Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи ко мне в Багокалипсис! Код комнаты': 'Join me in Bugpocalypse! Room code', 'ссылка скопирована — вставь в чат': 'link copied — paste it in a chat' });
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
 Object.assign(EN, {"вход — дупло у корней. в узкую щель запрыгни и зажми ВВЕРХ — полезешь распором":"the way in is the hollow at the roots. jump into the narrow crack and hold UP to brace and climb","гнилые ветки осыпаются под ногами — перепрыгивай трещины":"rotten branches crumble underfoot — jump over the cracks","ветер дует от ствола — держись ближе к стволу и иди против ветра":"the wind blows away from the trunk — stay close to it and walk against the wind","паутина липкая — в ней вязнешь, перепрыгивай":"the web is sticky — you get stuck in it, jump over","по веткам кроны ползёт огонь — проскакивай, когда пламя спадёт":"fire crawls along the crown branches — dash through when the flames die down","ракета приманит рой — держись наверху, пока не увидят сигнал":"the flare lures the swarm — hold out at the top until the signal is seen","с большой высоты не прыгай — разобьёшься. спускайся по веткам, огонь идёт следом":"don't jump from high up — you'll get hurt. climb down the branches, the fire follows you","🎆 РАКЕТА В НЕБЕ! свет манит рой — ДЕРЖИСЬ!":"🎆 FLARE IN THE SKY! the light lures the swarm — HOLD OUT!","💥 высоко! больно падать":"💥 too high! that fall hurt","💨 ветер! держись ближе к стволу":"💨 wind! stay close to the trunk","🔥 горячо!":"🔥 hot!","🎆 рой летит на свет — держись: ":"🎆 the swarm flies to the light — hold out: ","🎆 сигнал увидели!":"🎆 the signal was seen!","🔥 КРОНА ЗАГОРЕЛАСЬ! ВНИЗ — к каменоломне!":"🔥 THE CROWN IS ON FIRE! DOWN — to the quarry!","🔥 огонь догоняет! вниз!":"🔥 the fire is catching up! go down!"});
+Object.assign(EN, { 'дерево трещит — сейчас упадёт поперёк дороги: перепрыгни ствол или подкатом под него (бег + вниз)': 'a tree is cracking — it will fall across the path: jump over the trunk or slide under it (run + down)', 'с неба падают горящие ветки — смотри на красную метку на земле': 'burning branches fall from the sky — watch the red mark on the ground', '🌲 дерево падает! прыгай через ствол или подкатом под него': '🌲 tree falling! jump over the trunk or slide under it', '💥 придавило стволом!': '💥 crushed by the trunk!', '🔥 ствол горит!': '🔥 the trunk is burning!', '🔥 горящая ветка!': '🔥 burning branch!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
 Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
@@ -518,12 +519,13 @@ const LEVELS = [
       B.exit(2, 16, 'ЧАЩА');
       B.start(10, 16);
     } },
-  { city: 1, name: 'ПОЖАР', task: 'Беги от пожара к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 12, flow: 22, chase: 72, fire: true, burn: true,
+  { city: 1, name: 'ПОЖАР', task: 'Беги от пожара к норам', obj: 'reach', sky: true, day: true, ground: 22, dark: .9, art: 2.6, flow: 22, chase: 72, fire: true, burn: true,
+    falls: [[40, 1], [93, 1], [132, 1], [158, -1]],   // друг (msg 2483): деревья валятся поперёк дороги
     cols: 170, rows: 28, base: AIR, pal: PAL.forest, spawn: ['M', 'A', 'S'],
-    tips: ['лес горит — огонь идёт стеной, не останавливайся!', 'под упавшим стволом — подкат: бег + вниз', 'жуки бегут от огня вместе с тобой — и на тебя'],
+    tips: ['лес горит — огонь идёт стеной, не останавливайся!', 'дерево трещит — сейчас упадёт поперёк дороги: перепрыгни ствол или подкатом под него (бег + вниз)', 'с неба падают горящие ветки — смотри на красную метку на земле', 'жуки бегут от огня вместе с тобой — и на тебя'],
     build(B) {
       B.ground(0, 169, 16);
-      B.tree(12, 4, 15); B.tree(40, 5, 15); B.tree(73, 4, 15); B.tree(132, 5, 15); B.tree(158, 4, 15);
+      B.tree(12, 4, 15); B.tree(40, 5, 15); B.tree(73, 4, 15); B.tree(93, 5, 15); B.tree(132, 5, 15); B.tree(158, 4, 15);
       B.water(28, 16, 34, 17);                                                     // ручей
       B.bush(44, 16, 3); B.bug(45, 16, 'A');
       B.fill(58, 16, 62, 21, AIR); B.water(58, 20, 62, 21); B.plat(58, 62, 16); B.lad(63, 16, 21);   // овраг с мостиком
@@ -1832,6 +1834,7 @@ function resetGear(n) {
   for (const [l, g] of Object.entries(GUN_AT)) if (n > +l) { owned[g] = true; ammo[g] = WPN[g].give; }   // начали с середины — оружие уже есть
 }
 let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, lamps, signs, deco, toast = 0, toastTxt = '', flick = 0, flickT = 12;
+let falls = null;   // пожар: деревья, которые падают поперёк дороги
 let treeS = null;   // огромное дерево: фаза (up → hold → down), ветер, огонь сверху
 let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, cart = null, swarm = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false, fume = null, waveT = 0;
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
@@ -1935,6 +1938,7 @@ function startLevel(n) {
   if (cart) movers.push(cart);
   swarm = L.chase ? { x: 0, on: false, t: 1.2 } : null;
   fume = L.fume ? { y: 0, on: false, t: 2 } : null;
+  falls = L.falls ? L.falls.map(([x, dir]) => ({ x, dir, st: 'stand', t: 0, a: 0, burn: 0, hurtT: 0, d: lv.deco.find(d => d.k === 'tree' && d.x0 === x) })) : null;   // после deco = lv.deco
   treeS = L.tree ? { ph: 'up', wT: rnd(5, 8), g: 0, warn: false, fy: null, hurtT: 0, dd: false } : null;
   for (const g of lv.logs) for (let i = 0; i < g.n; i++) {          // брёвна плывут по течению
     const span = (g.x1 - g.x0) * T;
@@ -2460,7 +2464,67 @@ function treeFx(dt) {
     if (Math.random() < dt * 6) beep(rnd(80, 160), 50, .08, 'sawtooth', .012);
   }
 }
-const flameOn = x => Math.sin(time * 2.4 - x * .55) > .3;   // волна огня бежит вдоль ветки
+const flameOn = x => Math.sin(time * 2.4 - x * .55) > .3;
+const FALL_SOLID = 5;                                                     // столько клеток ствола от пня — твёрдые (дальше крона)
+function fallSpan(f) { return f.dir > 0 ? [f.x + 1, f.x + FALL_SOLID] : [f.x - FALL_SOLID, f.x - 1]; }
+function fallsFx(dt) {
+  if (P.dead > 0) { falls.dd = true; return; }
+  if (falls.dd) {                                                         // ожил на дискете: мир откатился — что не легло в сетку, стоит снова
+    falls.dd = false;
+    for (const f of falls) if (f.st !== 'stand' && !(f.st === 'down' && f.solid && tile(fallSpan(f)[0], f.gy - 2) === SOLID)) { f.st = 'stand'; f.a = 0; f.burn = 0; f.solid = false; if (f.d) f.d.hide = false; }
+  }
+  for (const f of falls) {
+    if (f.gy === undefined) f.gy = f.d ? f.d.y1 + 1 : 16;
+    const [a0, a1] = fallSpan(f), px = P.x + 5;
+    if (f.st === 'stand') {
+      const trig = f.dir > 0 ? (f.x - 9) * T : (f.x - 16) * T;           // падает так, чтобы лечь прямо перед героем
+      if (swarm?.on && px > trig && px < (a1 + 1) * T) {
+        f.st = 'warn'; f.t = .9; beep(90, 60, .9, 'sawtooth', .05); shake = Math.max(shake, .2);
+        if (!fallsWarned) { fallsWarned = true; showToast('🌲 дерево падает! прыгай через ствол или подкатом под него', 2.2); }
+      }
+    } else if (f.st === 'warn') {
+      f.t -= dt; f.a = Math.sin(time * 40) * .03;
+      if (Math.random() < dt * 30) parts.push({ x: f.x * T + 8 + rnd(-8, 8), y: rnd(f.d ? f.d.y0 * T : 80, f.gy * T), vx: rnd(-20, 20), vy: rnd(-60, -10), life: .6, col: pick(['#ffd23f', '#ff7a2a', '#3a2a1a']) });
+      if (f.t <= 0) { f.st = 'fall'; f.t = 0; if (f.d) f.d.hide = true; beep(200, 40, .6, 'sawtooth', .05); }
+    } else if (f.st === 'fall') {
+      f.t += dt; const q = Math.min(1, f.t / .6); f.a = q * q * Math.PI / 2;
+      if (q >= 1) {
+        f.st = 'down'; f.burn = 2.6; shake = .6; boom(.12); beep(70, 30, .5, 'square', .06);
+        for (let x = Math.min(a0, a1) - 1; x <= Math.max(a0, a1) + 1; x++) explode(x * T + 8, (f.gy - 2) * T + 8, 3, ['#ffd23f', '#ff7a2a', '#3a2a1a']);
+        const lx = a0 * T, rx = (a1 + 1) * T, ly = (f.gy - 2) * T;
+        for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.x + e.w > lx && e.x < rx && e.y < ly + T && e.y + e.h > ly) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 8, ['#ffb020', '#ff5a1a', '#3a2a1a']); }
+        if (!P.dead && P.x + P.w > lx && P.x < rx && P.y < ly + T && P.y + P.h > ly) { P.inv = 0; hurt(25); showToast('💥 придавило стволом!', 1.2); }
+      }
+    } else if (f.st === 'down') {
+      const lx = a0 * T, rx = (a1 + 1) * T, ly = (f.gy - 2) * T;
+      if (!f.solid && !(P.x + P.w > lx && P.x < rx && P.y < ly + T && P.y + P.h > ly)) {   // ствол становится твёрдым, когда из-под него вылезли
+        f.solid = true;
+        for (let x = a0; x <= a1; x++) { if (tile(x, f.gy - 2) === AIR || tile(x, f.gy - 2) === BG) grid[f.gy - 2][x] = SOLID; if (tile(x, f.gy - 1) === AIR || tile(x, f.gy - 1) === BG) grid[f.gy - 1][x] = VENT; }
+      }
+      if (f.burn > 0) {
+        f.burn -= dt; f.hurtT -= dt;
+        if (f.hurtT <= 0 && !P.dead && P.on && Math.abs(P.y + P.h - ly) < 3 && P.x + P.w > lx && P.x < rx) { P.inv = 0; hurt(12); f.hurtT = .5; showToast('🔥 ствол горит!', .8); }
+      }
+    }
+  }
+}
+let fallsWarned = false;
+function drawFalls() {
+  for (const f of falls) {
+    if (f.st === 'stand') continue;
+    const d = f.d, gy = (f.gy ?? 16) * T, top = d ? d.y0 * T : gy - 170, bx = f.x * T + 8 - cam, py = gy - 24, len = py - top;
+    if (bx < -len - 40 || bx > W + len + 40) continue;
+    rect(bx - 8, py, 16, gy - py + 2, '#3a2a1c'); rect(bx - 8, py - 2, 16, 3, '#6a4a2a');   // пень
+    ctx.save(); ctx.translate(bx, py); ctx.rotate(f.dir * f.a);
+    const burnt = f.st === 'down' && f.burn <= 0;
+    rect(-8, -len, 16, len, burnt ? '#2e241c' : '#4a3220'); rect(-8, -len, 4, len, burnt ? '#3e3226' : '#5e4430'); rect(5, -len, 3, len, burnt ? '#1e1812' : '#38261a'); for (let j = 1; j < 6; j++) rect(-8, -len + j * len / 6, 16, 1, burnt ? '#1a1410' : '#2e1e12');
+    for (let i = 0; i < 4; i++) ell(i % 2 ? 9 : -9, -len + 8 + i * 9, 16 - i * 2, 10, burnt ? '#2a2420' : (i % 2 ? '#3a3a1a' : '#4a3a18'));
+    if (!burnt) for (let i = 0; i < 6; i++) { const yy = -len + 4 + i * (len / 6), h = 8 + Math.sin(time * 13 + i * 2.1 + f.x) * 3; ell(Math.sin(i * 1.7) * 6, yy - h / 2, 5, h / 2, 'rgba(255,90,20,.8)'); ell(Math.sin(i * 1.7) * 6, yy - h / 3, 3, h / 3, 'rgba(255,210,80,.85)'); }
+    ctx.restore();
+    if (f.st === 'down' && f.burn > 0 && Math.random() < .3) parts.push({ x: f.x * T + 8 + f.dir * rnd(10, len), y: py - 6, vx: rnd(-10, 10), vy: rnd(-50, -20), life: .5, col: pick(['#ffd23f', '#ff7a2a']) });
+    if (burnt) for (let i = 0; i < 3; i++) { const t2 = (time * .4 + i / 3 + f.x * .1) % 1; ell(bx + f.dir * (20 + i * 40), py - 6 - t2 * 40, 4 + t2 * 8, 3 + t2 * 6, `rgba(80,76,72,${.4 * (1 - t2)})`); }
+  }
+}   // волна огня бежит вдоль ветки
 function drawTree() {
   const S = treeS;
   for (const [x0, x1, r] of L.flames || []) for (let x = x0; x <= x1; x++) {
@@ -3345,6 +3409,7 @@ function update(dt) {
       }
     }
     if (treeS) treeFx(dt);
+    if (falls) fallsFx(dt);
     if (fume && P.dead <= 0) {                     // выброс газа: поднимается снизу, отстанешь — подтягивается
       if (!fume.on) { if ((fume.t -= dt) <= 0) { fume.on = true; showToast('☣ ВЫБРОС ГАЗА! ЛЕЗЬ НАВЕРХ!', 2.2); boom(.12); shake = .5; } }
       else {
@@ -3450,13 +3515,14 @@ function update(dt) {
     if (mt) { const s0 = P; P = mt; NET.px = true; try { fn(edt, bp, { x: mt.x + 2, y: mt.y + 3, w: mt.w - 4, h: mt.h - 5 }); } finally { P = s0; NET.px = false; } }
     else fn(edt, bp, pc);
   }
-  if (L.art && !P.dead && !boss.on && !boss.dead) {     // богомол издалека кидает камни; чем ближе к нему, тем чаще
+  if (L.art && !P.dead && !boss.on && !boss.dead && (!L.fire || swarm?.on)) {     // богомол издалека кидает камни; чем ближе к нему, тем чаще
     artT -= edt;
-    if (artT <= 0) { artT = L.art * rnd(.7, 1.3); throwRock(clamp(P.x + 5 + rnd(-40, 150) * (P.face || 1), T * 2, MAPW - T * 2), !!L.under); }
+    if (artT <= 0) { artT = L.art * rnd(.7, 1.3); throwRock(clamp(P.x + 5 + (L.fire ? rnd(30, 150) : rnd(-40, 150)) * (P.face || 1), T * 2, MAPW - T * 2), !!L.under); if (L.fire) { const r = rocks[rocks.length - 1]; r.fire = true; r.r = 9; r.warn = r.t = 1.3; r.spin = rnd(-6, 6); } }
   }
   for (const r of rocks) {
     if (r.t > 0) { r.t -= edt; if (r.t <= 0) { r.y = r.sy; r.vy = r.small ? 60 : 420; if (!r.small) beep(1500, 250, .6, 'sine', .035); } continue; }
     r.vy += 900 * edt; r.y += r.vy * edt;
+    if (r.fire && Math.random() < edt * 40) parts.push({ x: r.x + rnd(-4, 4), y: r.y - 6, vx: rnd(-20, 20), vy: rnd(-60, -20), life: .4, col: pick(['#ffd23f', '#ff7a2a', '#ff3a1a']) });
     if (r.y + r.r >= r.gy) { impact(r, pc); r.gone = true; }
   }
   rocks = rocks.filter(r => !r.gone);
@@ -3558,6 +3624,12 @@ function throwRock(x, small, warn) {       // тень и метка, потом
   rocks.push({ x, gy, t: w, warn: w, r: small ? 5 : 13, sy, y: 0, vy: 0, small });
 }
 function impact(r, pc) {
+  if (r.fire) {                                     // горящая ветка: вспышка, жжёт рядом, давит жуков
+    explode(r.x, r.gy - 4, 16, ['#ffd23f', '#ff7a2a', '#ff3a1a', '#3a2a1a']); shake = Math.max(shake, .25); boom(.06);
+    if (!P.dead && Math.abs(P.x + 5 - r.x) < 20 && Math.abs(P.y + P.h - r.gy) < 26) { hurt(18); showToast('🔥 горящая ветка!', .9); }
+    for (const e of enemies) if (e.k !== 'n' && e.hp > 0 && !e.burrow && Math.abs(e.x + e.w / 2 - r.x) < 20 + e.w / 2 && Math.abs(e.y + e.h - r.gy) < 26) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 8, ['#ffb020', '#ff5a1a', '#3a2a1a']); }
+    return;
+  }
   const R = r.small ? 13 : 30;
   explode(r.x, r.gy - 4, r.small ? 6 : 22, ['#7a7068', '#5a524a', '#a89a88', '#3a3430']);
   shake = Math.max(shake, r.small ? .15 : .55); boom(r.small ? .04 : .12);
@@ -4406,6 +4478,7 @@ function drawDeco() {
       rect(x, y, w, h, '#3a3e46'); rect(x + w / 2 - 1, y, 2, h, '#1a1c20'); rect(x, y, w, 2, '#5a5e66');
       rect(x + 3, y + 6, 3, 3, Math.floor(time * 2 + d.y0) % 3 ? '#401010' : '#ff3b3b');
     } else if (d.k === 'tree') {                       // дерево на заднем плане
+      if (d.hide) continue;
       if (d.gy === undefined) { let g = d.y1 + 1; while (g < d.y1 + 12 && tile(d.x0, g) === AIR) g++; d.gy = tile(d.x0, g) === AIR ? d.y1 + 1 : g; }   // ствол до земли (друг, msg 1878: «деревья в воздухе»)
       const ty = d.gy * T + 2, tt = d.y0 * T, tx = x + 8;
       rect(tx - 5, tt, 10, ty - tt, '#4a3220'); rect(tx - 5, tt, 3, ty - tt, '#5a4028');
@@ -5559,6 +5632,13 @@ function drawEnemies() {
     const p = 1 - Math.max(0, r.t) / r.warn, x = r.x - cam;
     ell(x, r.gy - 1, r.r * (.4 + p * .8), 2 + p * 2, `rgba(0,0,0,${.25 + p * .35})`);
     if (r.t > 0 && Math.floor(time * 8) % 2) { ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 5, r.gy - 9); ctx.lineTo(x + 5, r.gy - 1); ctx.moveTo(x + 5, r.gy - 9); ctx.lineTo(x - 5, r.gy - 1); ctx.stroke(); }
+    if (r.t <= 0 && r.fire) {                       // горящая ветка: крутится, языки пламени
+      ctx.save(); ctx.translate(x, r.y); ctx.rotate(time * r.spin);
+      rect(-11, -2, 22, 4, '#3a2416'); rect(-4, -6, 2, 5, '#3a2416'); rect(5, 1, 2, 5, '#3a2416');
+      ctx.restore();
+      ell(x, r.y - 3, 8, 7, 'rgba(255,90,20,.75)'); ell(x, r.y - 2, 4, 4, 'rgba(255,210,80,.9)');
+      continue;
+    }
     if (r.t <= 0) { ell(x, r.y, r.r, r.r * .9, '#6a645a'); ell(x - r.r * .3, r.y - r.r * .3, r.r * .5, r.r * .4, '#8a8478'); if (!r.small) rect(x - 2, r.y - r.r - 16, 4, 14, 'rgba(255,255,255,.25)'); }
   }
 }
@@ -6597,6 +6677,7 @@ function draw() {
   drawPlayer();
   if (fume) drawFume();
   if (L.tree) drawTree();
+  if (falls) drawFalls();
   drawWater(); drawFore();
   if (swarm) drawSwarm();
   drawVents();
