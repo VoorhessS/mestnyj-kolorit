@@ -13,6 +13,7 @@ Object.assign(EN, { 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ': 'SURE? PROG
 Object.assign(EN, { 'напарник в меню — ждём': 'partner is in the menu — waiting' });
 Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи ко мне в Багокалипсис! Код комнаты': 'Join me in Bugpocalypse! Room code', 'ссылка скопирована — вставь в чат': 'link copied — paste it in a chat' });
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
+Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
 Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
 Object.assign(EN, { 'ТВОЙ НИК': 'YOUR NICKNAME', 'КООП · с': 'CO-OP · with', 'впиши свой ник — с каждым напарником у тебя будет своё сохранение': 'enter your nickname — you get a separate save with each partner',
@@ -617,7 +618,7 @@ const LEVELS = [
   { city: 1, name: 'ЛОГОВО', task: 'Победи богомола', obj: 'boss', sky: true, day: true, ground: 18, dark: .9, burn: true,
     after: [['r', 'Кха... живой. Спасибо, браток.'], ['r', 'Я к своим, за реку. А ты... под тобой земля! Беги!']],
     cols: 70, rows: 22, base: AIR, pal: PAL.forest, spawn: ['M', 'M'],
-    tips: ['богомол кидает валуны прямо в тебя — следи за меткой', 'ударил косами в землю — они застряли: бей, урон двойной', 'от волны по земле — прыгай'],
+    tips: ['богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай', 'богомол кидает валуны прямо в тебя — следи за меткой', 'ударил косами в землю — они застряли: бей, урон двойной', 'от волны по земле — прыгай'],
     build(B) {
       B.ground(0, 69, 16);
       B.tree(4, 3, 15); B.tree(30, 2, 15); B.tree(60, 3, 15);
@@ -2462,33 +2463,54 @@ function rhino(dt, b, pc) {
 }
 
 // Богомол: держит дистанцию и кидает валуны (с меткой), вблизи бьёт косами в землю — косы застревают, тут его и бей
-function mantis(dt, b, pc) {
+function mantis(dt, b, pc) {   // друг (msg 2470): нападает сам — выпад, прыжок на героя, удар в землю; камни только издалека
   b.fl -= dt; b.t -= dt;
-  const left = lv.arena.l * T, right = (COLS - 1) * T, dx = P.x + 5 - (b.x + b.w / 2), dir = Math.sign(dx) || -1;
+  const left = lv.arena.l * T, right = (COLS - 1) * T, dx = P.x + 5 - (b.x + b.w / 2), adx = Math.abs(dx), dir = Math.sign(dx) || -1;
+  const rage = b.hp < b.max / 2, sp = rage ? 1.35 : 1;          // ярость на половине здоровья
+  if (rage && !b.raged) { b.raged = true; showToast('богомол в ярости!', 1.6); beep(300, 1400, .5, 'sawtooth', .04); }
   if (b.st === 'walk') {
-    b.dir = dir; const want = Math.abs(dx) > 180 ? 1 : Math.abs(dx) < 100 ? -1 : 0; b.vx = dir * want * 50; b.arm = 0;
-    if (b.t <= 0) {
-      if (Math.abs(dx) < 95) { b.st = 'raise'; b.t = .6; beep(600, 1200, .4, 'sawtooth', .03); }
-      else if (Math.random() < .22) { b.st = 'leap'; b.vy = -400; b.vx = dir * 170; }
-      else { b.st = 'throw'; b.t = .7; }
+    b.dir = dir; b.arm = 0;
+    b.vx = adx > 70 ? dir * 78 * sp : 0;                             // идёт на героя, а не пятится
+    if (b.t <= 0 && !P.dead) {
+      const r = Math.random();
+      if (adx < 90) { if (r < .65) { b.st = 'raise'; b.t = .55 / sp; beep(600, 1200, .4, 'sawtooth', .03); } else { b.st = 'prep'; b.t = .4 / sp; } }
+      else if (adx < 230) {
+        if (r < .5) { b.st = 'prep'; b.t = .45 / sp; beep(900, 400, .35, 'sawtooth', .035); }          // замах перед выпадом
+        else if (r < .82) { b.st = 'leap'; const tf = .75; b.vy = -420; b.vx = clamp(dx / tf, -260, 260); beep(300, 900, .3, 'square', .03); }
+        else { b.st = 'throw'; b.t = .6; }
+      } else {
+        if (r < .45) { b.st = 'leap'; const tf = .75; b.vy = -440; b.vx = clamp(dx / tf, -300, 300); beep(300, 900, .3, 'square', .03); }
+        else { b.st = 'throw'; b.t = .6; }
+      }
     }
+  } else if (b.st === 'prep') {                                    // замах: косы вверх, дрожит — сейчас рванёт
+    b.vx = 0; b.dir = dir; b.arm = 1;
+    if (b.t <= 0) { b.st = 'dash'; b.t = .38; b.dashDir = dir; beep(200, 80, .3, 'sawtooth', .045); }
+  } else if (b.st === 'dash') {                                    // выпад: косы вперёд, рывок к герою
+    b.vx = b.dashDir * 300 * sp; b.dir = b.dashDir; b.arm = .5;
+    if (b.t <= 0 || b.wall) { b.st = 'open'; b.t = .8; b.vx = 0; if (b.wall) { shake = .35; boom(.06); } }
+  } else if (b.st === 'open') {                                    // после выпада раскрылся — можно бить
+    b.vx = 0; b.arm = -.5; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.5, 1) / sp; }
   } else if (b.st === 'throw') {
-    b.vx = 0; b.arm = 1 - Math.max(0, b.t) / .7;
-    if (b.t <= 0) { throwRock(clamp(P.x + 5 + rnd(-20, 20), left + 8, right - 8), false, .85); b.arm = 0; b.st = 'walk'; b.t = rnd(.9, 1.8); beep(200, 900, .3, 'sawtooth', .04); }
+    b.vx = 0; b.arm = 1 - Math.max(0, b.t) / .6;
+    if (b.t <= 0) { throwRock(clamp(P.x + 5 + rnd(-20, 20), left + 8, right - 8), false, .85); b.arm = 0; b.st = 'walk'; b.t = rnd(.6, 1.1) / sp; beep(200, 900, .3, 'sawtooth', .04); }
   } else if (b.st === 'raise') {
     b.vx = 0; b.arm = 1;
     if (b.t <= 0) {
-      b.st = 'stuck'; b.t = 1.6; shake = .5; boom(.1);
+      b.st = 'stuck'; b.t = 1.4; shake = .5; boom(.1);
       for (const sd of [-1, 1]) ebullets.push({ x: b.x + b.w / 2 + sd * 22 - 5, y: b.y + b.h - 8, w: 10, h: 8, vx: sd * 170, vy: 0, g: 0, life: .9, k: 'wave' });
     }
-  } else if (b.st === 'stuck') { b.vx = 0; b.arm = -1; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(1, 1.6); } }
+  } else if (b.st === 'stuck') { b.vx = 0; b.arm = -1; if (b.t <= 0) { b.st = 'walk'; b.t = rnd(.6, 1.1) / sp; } }
   b.vy = Math.min(b.vy + GRAV * dt, 600);
   const air = !b.on;
   moveBody(b, dt);
   if (b.x < left) b.x = left;
   if (b.x + b.w > right) b.x = right - b.w;
-  if (b.on && air && (b.st === 'drop' || b.st === 'leap')) { b.st = 'walk'; b.t = 1; shake = .5; boom(.1); }
-  if (!P.dead && hit(pc, b)) hurt(BOSS_DMG);
+  if (b.on && air && (b.st === 'drop' || b.st === 'leap')) {      // приземлился — волна по полу в обе стороны, перепрыгни
+    const was = b.st; b.st = 'walk'; b.t = was === 'leap' ? .7 / sp : 1; shake = .5; boom(.1);
+    if (was === 'leap') for (const sd of [-1, 1]) ebullets.push({ x: b.x + b.w / 2 + sd * 16 - 5, y: b.y + b.h - 8, w: 10, h: 8, vx: sd * 150, vy: 0, g: 0, life: .7, k: 'wave' });
+  }
+  if (!P.dead && hit(pc, b)) hurt(b.st === 'dash' ? BOSS_DMG * .8 : BOSS_DMG);
 }
 
 // ===== Игрок: бег, прыжок, лестницы, ползком =====
