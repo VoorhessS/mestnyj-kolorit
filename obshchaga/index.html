@@ -60,6 +60,7 @@
   #dbtns .wide { grid-column: 1 / -1; background: #2a2233; min-height: 42px; }
   #dbtns .hot { background: #6b2346; border-color: #ff5d8f; }
   #dbtns .no { opacity: .35; text-decoration: line-through; }
+  #dbtns .ans { text-align: left; font-weight: 600; font-size: 13.5px; line-height: 1.25; padding: 8px 10px; min-height: 40px; background: #3a2f48; }
   #screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px;
     text-align: center; background: radial-gradient(#2b2040, #120e1c 75%); overflow-y: auto; }
   #screen.off { display: none; }
@@ -72,6 +73,49 @@
   #screen .faces svg { width: 100%; height: 100%; }
   .big { min-width: 230px; background: #6b2346; border-color: #ff5d8f; font-size: 17px; }
   .big.alt { background: #2a2233; border-color: #4a3d58; font-size: 15px; }
+  /* стартовый экран: фасад общаги ночью */
+  #screen.title { justify-content: flex-start; padding: calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px); gap: 8px; overflow: hidden;
+    background: linear-gradient(#070b24, #1b1640 55%, #2a1d48); }
+  #screen.title > * { position: relative; z-index: 2; }
+  #screen.title .tsky { position: absolute; inset: 0; z-index: 0; background: radial-gradient(1.4px 1.4px at 10% 8%, #fff 99%, transparent), radial-gradient(1.2px 1.2px at 30% 16%, #fff 99%, transparent),
+    radial-gradient(1.4px 1.4px at 52% 6%, #fff 99%, transparent), radial-gradient(1.1px 1.1px at 66% 20%, #fff 99%, transparent), radial-gradient(1.3px 1.3px at 85% 11%, #fff 99%, transparent),
+    radial-gradient(1.2px 1.2px at 18% 26%, #fff 99%, transparent), radial-gradient(1.2px 1.2px at 93% 30%, #fff 99%, transparent), radial-gradient(1px 1px at 42% 28%, #fff 99%, transparent); animation: twk 3s ease-in-out infinite alternate; }
+  @keyframes twk { to { opacity: .55; } }
+  #screen.title .tmoon { position: absolute; z-index: 0; right: 7%; top: 19%; width: 56px; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #fffbe8, #f0e2b0); box-shadow: 0 0 60px 16px #fff4c850; }
+  #screen.title .bld { position: absolute; z-index: 1; left: 50%; bottom: 0; transform: translateX(-50%); width: min(92%, 440px); height: 62%;
+    background-color: #4a2a22; background-image: linear-gradient(#00000038 2px, transparent 2px), linear-gradient(90deg, #00000030 2px, transparent 2px); background-size: 100% 14px, 34px 28px;
+    border-top: 10px solid #2a1712; box-shadow: 0 0 0 4px #1c0f0b, inset 0 0 80px #000c; display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 54px; gap: 12px 10px; padding: 26px 16px 0; }
+  #screen.title .bld::before { content: 'ОБЩЕЖИТИЕ № 4'; position: absolute; top: -34px; left: 50%; transform: translateX(-50%); font: 800 11px system-ui; letter-spacing: 3px; color: #ffd166;
+    background: #1c1222; border: 2px solid #ffd16680; padding: 3px 10px; border-radius: 4px; white-space: nowrap; animation: blinkS 4s steps(1) infinite; }
+  @keyframes blinkS { 0%, 92% { opacity: 1; } 94% { opacity: .2; } 96% { opacity: 1; } 98% { opacity: .3; } }
+  #screen.title .w { background: #141a33; border: 3px solid #cfc3ae; position: relative; overflow: hidden; transition: background .6s, box-shadow .6s; }
+  #screen.title .w::after { content: ''; position: absolute; left: 0; right: 0; top: 34%; height: 3px; background: #cfc3ae; }
+  #screen.title .w.on { background: radial-gradient(ellipse at 50% 70%, #ffd38a, #e0883f 70%, #7a3a18); box-shadow: 0 0 18px #ffb35a70; }
+  #screen.title .w.pink { background: radial-gradient(ellipse at 50% 70%, #ff9ec7, #c8467e 70%, #5a1a3a); box-shadow: 0 0 18px #ff5d8f80; }
+  #screen.title .w i { position: absolute; bottom: -2px; width: 46%; height: 70%; background: #1a0d14; border-radius: 45% 45% 10% 10%; opacity: 0; transition: opacity .5s, transform 1.4s ease-in-out; }
+  #screen.title .w i::before { content: ''; position: absolute; left: 22%; top: -38%; width: 56%; aspect-ratio: 1; border-radius: 50%; background: inherit; }
+  #screen.title .w.duo i { opacity: .92; } #screen.title .w.duo i.a { left: 4%; } #screen.title .w.duo i.b { right: 4%; }
+  #screen.title .w.duo.k i.a { transform: translateX(28%); } #screen.title .w.duo.k i.b { transform: translateX(-28%); }
+  #screen.title .door { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: 22%; height: 60px; background: #2a1712; border: 4px solid #cfc3ae; border-bottom: 0; }
+  #screen.title .door::after { content: ''; position: absolute; inset: 4px; background: linear-gradient(#ffe9a0, #c98a3a); opacity: .85; }
+  #screen.title .beam { position: absolute; left: 50%; bottom: 30px; width: 300px; height: 300px; margin-left: -150px; transform-origin: 50% 100%; z-index: 1; pointer-events: none;
+    background: conic-gradient(from -14deg at 50% 100%, #fff3b040 0deg, #fff3b018 28deg, transparent 29deg); animation: sweep 5s ease-in-out infinite alternate; mix-blend-mode: screen; }
+  @keyframes sweep { from { transform: rotate(-62deg); } to { transform: rotate(46deg); } }
+  #screen.title .neon { margin: 0; font: 900 56px/1 system-ui, sans-serif; letter-spacing: 4px; color: #ffe3f0;
+    text-shadow: 0 0 6px #ff5d8f, 0 0 16px #ff5d8f, 0 0 34px #ff2a74, 0 0 60px #ff2a74; animation: flick 6s infinite; }
+  @keyframes flick { 0%, 18%, 22%, 62%, 64%, 100% { opacity: 1; } 20%, 63% { opacity: .45; } }
+  #screen.title .sub2 { font: 800 14px system-ui; letter-spacing: 6px; color: #ffd166; text-transform: uppercase; margin-top: -2px; }
+  #screen.title .faces div { width: 58px; height: 76px; animation: peek 2.4s ease-in-out infinite; }
+  #screen.title .faces div:nth-child(2) { animation-delay: .3s; } #screen.title .faces div:nth-child(3) { animation-delay: .6s; } #screen.title .faces div:nth-child(4) { animation-delay: .9s; } #screen.title .faces div:nth-child(5) { animation-delay: 1.2s; }
+  @keyframes peek { 50% { transform: translateY(-5px); } }
+  #screen.title .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; max-width: 360px; }
+  #screen.title .chips span { font: 700 11.5px system-ui; padding: 3px 8px; border-radius: 20px; background: #1d1727d0; border: 1px solid #5b4b6e; color: #e8def5; }
+  #screen.title .menu { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding: 12px 0 0; background: linear-gradient(transparent, #0c0814e0 22%); border-radius: 14px; }
+  #screen.title .menu .row2 { display: flex; gap: 8px; width: min(100%, 300px); } #screen.title .menu .row2 .big { min-width: 0; flex: 1; font-size: 14px; padding: 8px 4px; }
+  #screen.title .menu > .big:first-child { min-width: 260px; font-size: 19px; padding: 13px; box-shadow: 0 0 22px #ff5d8f70; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 34px #ff5d8fb0; } }
+  #screen.title .rules { display: none; max-width: 360px; background: #1d1727f0; border: 1px solid #5b4b6e; border-radius: 12px; padding: 10px 12px; text-align: left; font-size: 13.5px; }
+  #screen.title .rules.on { display: block; } #screen.title .rules p { margin: 0 0 6px; } #screen.title .ver { font-size: 11px; color: #8f84a3; }
   #journal { position: absolute; inset: 0; background: #120e1cf7; display: none; flex-direction: column; padding: calc(env(safe-area-inset-top) + 10px) 10px 10px; }
   #journal.on { display: flex; }
   #journal h2 { margin: 0 0 8px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
@@ -346,6 +390,35 @@ for (const k in MORE) for (const f in MORE[k]) ARCH[k][f] = [].concat(ARCH[k][f]
 const fresh = (arr, gl) => { let x = pick(arr); for (let i = 0; i < 5 && x === gl.lastLine; i++) x = pick(arr); gl.lastLine = x; return x; };
 const BUSY = ['Слышала, ты уже с двумя крутишь. Сначала разберись с ними 😒', 'Вся общага знает про твоих двух. В очереди стоять не буду 💅',
   'Освободишься — заходи. А пока нет 🙄', 'Ты сначала тех двоих доведи до конца, Казанова 😏', 'Двух мало? Нет уж, я не третья 😤'];
+// темы разговора: вопрос девушки и по ответу каждого типа (+ пошлый)
+const TOPICS = [
+  { q: 'Ты чего не спишь? Полночь же.', joke: 'Я ночной зверь. Редкий вид, занесён в Красную книгу общаги.', compl: 'Как тут уснёшь, когда по коридору ходит такая красота.', bold: 'Тебя искал. Нашёл. Теперь можно и не спать.', smart: 'Учёные говорят, после полуночи люди честнее. Проверяю.', dirty: 'Не сплю, потому что берегу силы. Для важного 😏' },
+  { q: 'Какую музыку слушаешь?', joke: 'Скрип кровати Толика. Он в ритм храпит.', compl: 'Раньше рок. Теперь — твой голос.', bold: 'Ту, под которую мы с тобой будем танцевать.', smart: 'Бах. Математически идеальная музыка, как формула.', dirty: 'Ту, под которую соседи стучат по батарее 😏' },
+  { q: 'Ты на каком факультете?', joke: 'На факультете «приходить на пары к концу».', compl: 'Неважно. Главное, что ты на нашем этаже.', bold: 'На том, где выпускаются с девушкой. Ты подходишь.', smart: 'Прикладная математика. Могу вычислить, сколько раз ты мне улыбнулась.', dirty: 'На факультете практических занятий 😏' },
+  { q: 'Как тебе наша общага?', joke: 'Как в отеле. Пять звёзд — все на потолке, от протечки.', compl: 'Была серой, пока я тебя тут не встретил.', bold: 'Нормально. Но в моей комнате лучше. Пойдём покажу.', smart: 'Здание 1974 года, типовой проект. Зато какие люди живут!', dirty: 'Стены тонкие. Будем потише 😏' },
+  { q: 'Ты голодный? У меня только печеньки.', joke: 'Печеньки — моя валюта. Ты теперь богатая.', compl: 'С тобой я бы и сухарь съел, как торт.', bold: 'Голодный. Но не по печенькам.', smart: 'Кстати, глюкоза ускоряет мышление. Давай печеньку — поумнею.', dirty: 'Голодный… до тебя 😏' },
+  { q: 'Ты веришь в любовь с первого взгляда?', joke: 'Верю. Пройти мимо ещё раз, чтобы точно?', compl: 'Теперь верю. Минуту назад — нет.', bold: 'Я не верю. Я знаю. Смотри мне в глаза.', smart: 'Психологи говорят, решение «нравится» мозг принимает за 90 секунд. Мой справился быстрее.', dirty: 'В любовь — не знаю. В страсть с первого взгляда — да 😏' },
+  { q: 'Что делаешь на выходных?', joke: 'Сплю. Профессионально, с разрядом.', compl: 'Если повезёт — гуляю с тобой.', bold: 'Иду с тобой в кино. Это не вопрос.', smart: 'Хочу в планетарий. Покажу тебе, где Венера.', dirty: 'Зависит от тебя. Можно и не выходить из комнаты 😏' },
+  { q: 'Какой у тебя знак зодиака?', joke: 'Знак «Осторожно, студент». Жёлтый такой.', compl: 'Не знаю. Но звёзды точно сошлись, раз ты тут.', bold: 'Тот, который с твоим совместим. Проверять не будем.', smart: 'Астрология — не наука, но тебе, наверное, идёт Лев.', dirty: 'Скорпион. Говорят, мы горячие 😏' },
+  { q: 'Ты сессию сдал?', joke: 'Сдал. Правда, не я и не ту, но сдал.', compl: 'Сдал. Думал о тебе — и вспоминал все ответы.', bold: 'Сессия меня боится. Как и твои сомнения.', smart: 'Закрыл всё на пятёрки. Могу помочь тебе с матаном.', dirty: 'Сдал. Теперь у меня много свободных ночей 😏' },
+  { q: 'Чем пахнет в коридоре? Опять Толик жарит?', joke: 'Это Толик жарит носки. Новый рецепт.', compl: 'Не знаю. Рядом с тобой пахнет только тобой. Вкусно.', bold: 'Неважно. Пойдём туда, где пахнет кофе. У меня.', smart: 'Пережаренный лук. Реакция Майяра, классика.', dirty: 'Это я. Пахну опасностью 😏' },
+  { q: 'Ты кошек любишь или собак?', joke: 'Люблю тараканов. Их тут больше, они ближе.', compl: 'Кошек. Ты на кошку похожа: такая же грациозная.', bold: 'Люблю тех, кто не убегает. Ты же не убежишь?', smart: 'Кошки приручили себя сами, девять тысяч лет назад. Умные.', dirty: 'Люблю, когда мурлычут. Попробуешь? 😏' },
+  { q: 'Ты где был вчера? Тебя не было на кухне.', joke: 'Прятался от Петровны в шкафу. Нашёл там Нарнию.', compl: 'Ты меня ждала? Это лучшая новость за неделю.', bold: 'Не важно, где был. Важно, где буду. Рядом с тобой.', smart: 'В библиотеке. Читал, как правильно знакомиться. Применяю.', dirty: 'Отсыпался. Чтобы сегодня не спать 😏' },
+  { q: 'Нравится кто-нибудь в общаге?', joke: 'Ага, Галина Петровна. Шучу. Наверное.', compl: 'Да. Она сейчас стоит передо мной.', bold: 'Нравится. И я пришёл ей об этом сказать.', smart: 'Статистически вероятно. Особенно если это ты.', dirty: 'Нравится. Особенно в этой кофте 😏' },
+  { q: 'Что тебе снится?', joke: 'Что я сдаю экзамен голым. А, это не сон, это был понедельник.', compl: 'Последнюю неделю — ты. Каждую ночь.', bold: 'Сегодня мне приснится, как ты меня поцелуешь.', smart: 'Мозг во сне перебирает события дня. Так что сегодня точно ты.', dirty: 'Тебе лучше не знать. Хотя… хочешь, расскажу? 😏' },
+  { q: 'Чай или кофе?', joke: 'Растворимый доширак. Бодрит.', compl: 'Что угодно, если наливаешь ты.', bold: 'Кофе. У меня. Сейчас.', smart: 'Чай. В нём тоже есть кофеин, только мягче. Как ты.', dirty: 'Кофе в постель. Тебе 😏' },
+  { q: 'Ты умеешь готовить?', joke: 'Умею. Пельмени, пельмени жареные и пельмени по-праздничному.', compl: 'Научусь ради тебя. Даже борщ.', bold: 'Умею. Завтра ужинаешь у меня.', smart: 'Готовка — та же химия. А по химии у меня пять.', dirty: 'Умею разогреть что угодно 😏' },
+  { q: 'Чего ты боишься?', joke: 'Петровны с фонариком. И зеркала по утрам.', compl: 'Что ты сейчас уйдёшь, и я не успею сказать, какая ты красивая.', bold: 'Ничего. Особенно отказов.', smart: 'Энтропии. Всё в мире стремится к хаосу. Как моя комната.', dirty: 'Скрипучих кроватей. Палятся 😏' },
+  { q: 'Как тебе моя новая причёска?', joke: 'Шикарно. Петровна обзавидуется, у неё такая же с 1985-го.', compl: 'Тебе очень идёт. Хотя тебе всё идёт.', bold: 'Хочу растрепать её. Можно?', smart: 'Асимметрия сейчас в моде. И подчёркивает скулы.', dirty: 'Красивая. Но утром будет лучше — растрёпанная 😏' },
+  { q: 'Ты романтик?', joke: 'Ещё какой. Однажды подарил девушке целый доширак.', compl: 'С тобой — да. С тобой хочется стихов.', bold: 'Я практик. Сначала поцелуй, романтика потом.', smart: 'Романтизм — XIX век, Байрон, Пушкин. Я скорее модерн.', dirty: 'Романтик. Свечи, вино, закрытая дверь 😏' },
+  { q: 'Слышал, говорят, на крыше красиво?', joke: 'Красиво. Особенно когда Петровна не видит.', compl: 'Красиво. Но ты красивее любого заката.', bold: 'Пойдём проверим. Прямо сегодня.', smart: 'С крыши видно Юпитер. Покажу, если пойдёшь.', dirty: 'На крыше нас никто не услышит 😏' },
+  { q: 'У тебя есть девушка?', joke: 'Есть. Её зовут Учёба, но мы на грани развода.', compl: 'Нет. Ждал кого-то вроде тебя.', bold: 'Пока нет. Ты на кастинге, и ты прошла.', smart: 'Нет. Но вероятность резко выросла, пока мы говорим.', dirty: 'Вакансия открыта. Собеседование — у меня 😏' },
+  { q: 'Можешь помочь донести сумку?', joke: 'Конечно. Я грузчик-любитель, работаю за улыбку.', compl: 'Для тебя донесу хоть общагу целиком.', bold: 'Давай. А потом ты мне — компанию.', smart: 'Рычаг и правильная осанка — и любая сумка лёгкая.', dirty: 'Донесу. И тебя могу, на руках 😏' },
+  { q: 'Петровна сегодня злая, видел?', joke: 'Видел. У неё сериал кончился, теперь она играет в шерифа.', compl: 'Зато ты добрая. Это компенсирует.', bold: 'Пусть злится. Мне не страшно, когда ты рядом.', smart: 'Ночные смены сбивают серотонин. Её можно понять.', dirty: 'Зато у неё есть ключ от крыши. Нам пригодится 😏' },
+  { q: 'Ты вообще серьёзный человек?', joke: 'Серьёзный. Видишь, какое лицо? Это я так шучу.', compl: 'Серьёзно отношусь к тебе. Остальное — шутки.', bold: 'Достаточно серьёзный, чтобы позвать тебя на свидание.', smart: 'Серьёзность переоценена. Важна честность.', dirty: 'Серьёзный. В некоторых вещах — очень 😏' },
+];
+const LIKES_HINT = { joke: 'Люблю, когда парень умеет рассмешить. Скучных не выношу 😄', compl: 'Мне приятно, когда замечают мелочи. Новую заколку, например 💐', bold: 'Терпеть не могу мямлей. Хочешь — действуй 😎', smart: 'С умным и помолчать интересно. Люблю поговорить о чём-то настоящем 🤓' };
+const HATES_HINT = { joke: 'А вот клоунов не люблю', compl: 'А от слащавых комплиментов меня тошнит', bold: 'А вот наглость бесит', smart: 'А зануд — обхожу стороной' };
 const PL = {
   joke:  ['Меня зовут Не-Бойся. А тебя?', 'Я бы рассказал анекдот про общагу, но ты в нём главная героиня.', 'Ты случайно не вайфай? Меня к тебе прям тянет.', 'Говорят, пельмени вкуснее варить вдвоём.', 'Я не храплю. Почти.', 'Ты из какого измерения? В нашем таких не бывает.',
           'Помоги, я потерял свой номер телефона. Можно твой?', 'Я бы пригласил тебя в ресторан, но у меня только доширак.'],
@@ -455,6 +528,41 @@ const FANS = [
     gifts: ['poem', 'bracelet'], spot: ['Подожди! Я тебе стихи написала! 📝', 'Котик, ты куда? 😍'], easy: ['Котик, мне ничего не надо, просто пошли ко мне 😍', 'Я написала про тебя стих. Восемнадцать плюс 📝😏', 'Сними с меня очки… и не только 😳', 'Хочешь, покажу, что я умею кроме стихов? 😏'],
     after: 'Люська протёрла очки: «Я про это поэму напишу!» 📝' },
 ];
+const RIVALS = [
+  { id: 'stas', name: 'Стас', tag: 'качок', home: 'tv', prop: 'dumbbell', ico: '💪', hair: '#3a2a1a', style: 'messy', top: '#c0392b', legs: '#2b2b3a', eye: '#555', tank: 1, seed: .21,
+    voice: { f: 112, sp: .1, g: .14 },
+    court: ['Пощупай бицепс. Не стесняйся 💪', 'Я сегодня жал сотку. Тебя тоже выжму… в смысле, на руках подниму', 'Пошли со мной на пробежку? В шесть утра. Романтика!'],
+    idle: ['Чё смотришь? Качаться надо, а не по коридорам бегать', 'Протеин будешь? Шучу, не дам', 'Она будет моей. Все будут моими 💪'],
+    win: 'Она ушла с ним щупать бицепс. Прогресс сброшен', lose: 'Да ну вас… Пойду покачаюсь' },
+  { id: 'artur', name: 'Артур', tag: 'мажор', home: 'kitchen', prop: 'phone', ico: '📱', hair: '#d9b56a', style: 'messy', top: '#1f1f2a', legs: '#1f1f2a', eye: '#3b7dd8', look: 'cardigan', seed: .63,
+    voice: { f: 140, sp: .085, g: .13 },
+    court: ['Видела мою тачку под окном? Ну, папину. Неважно 😎', 'Хочешь, закажу суши? Прямо сюда, в общагу 📱', 'В Дубае сейчас +30. А тут ты. Тоже горячо 😏'],
+    idle: ['Я тут временно. Папа скоро квартиру купит', 'У тебя айфон какой? А, понятно…', 'Девчонки любят тех, кто платит. Учись, бедолага'],
+    win: 'Она ушла с ним заказывать суши. Прогресс сброшен', lose: 'Пф. Мне всё равно в Дубай пора' },
+  { id: 'gosha', name: 'Гоша', tag: 'гитарист', home: 'read', prop: 'guitar', ico: '🎸', hair: '#6b3a2a', style: 'messy', top: '#4a7a3a', legs: '#3a5a8a', eye: '#2f9e6a', seed: .44,
+    voice: { f: 132, sp: .09, g: .13 },
+    court: ['Эту песню я написал для тебя. Ну, и для прошлой тоже, но тебе больше подходит 🎸', 'Хочешь, сыграю «Кино»? Знаю все три аккорда!', 'Солнышко, ты моя муза. Ля-минор…'],
+    idle: ['Перемен требуют наши сердца… 🎸', 'Не мешай, я сочиняю', 'Говорят, гитаристы нравятся всем. Проверяю'],
+    win: 'Она заслушалась его песнями. Прогресс сброшен', lose: 'Ухожу в закат с гитарой… 🎸' },
+];
+const RIVAL_SHAKE = {
+  warden: { t: '👵 «Петровна идёт!»', ok: 'Чё, правда?! Всё, меня тут не было…', no: 'Не гони, она внизу сериал смотрит' },
+  truth:  { t: '🗣 Рассказать о нём правду', ok: 'Ты чё несёшь?! Это не я был! …(уходит красный)', no: 'Она тебе не поверит, брат' },
+  dare:   { t: '🥊 «Слабо 50 раз отжаться?»', ok: 'Мне — слабо?! Смотри! …ой, спина. Пойду полежу', no: 'Я на «слабо» не ведусь, малой' },
+  bait:   { t: '📣 «Там тебя Зинка ищет!»', ok: 'ЗИНКА?! Где?! Всё, я побежал!', no: 'Зинку я не боюсь, она мне пирожки носит' },
+};
+const RIVAL_THANKS = ['Фух, спасибо, что спас 😅', 'Наконец-то он ушёл! Ты милый 😊', 'Он мне уже весь мозг вынес. Спасибо!', 'Ох, ты вовремя ☺️'];
+const COURT_T = 11;
+// девушка уже идёт на свидание с тобой — сама отшивает (её фраза, его ответ)
+const RIVAL_REJECT = {
+  stas:  [['Бицепс большой, а шансов ноль. Я занята 😏', 'Понял… пойду пожму штангу от обиды 💪😢'], ['Иди качай мозг, Стас. Его у тебя не видно 😂', 'Мозг не качается, я проверял…']],
+  artur: [['Тачка папина, суши из доставки… А у меня свидание с настоящим. Свободен 😘', 'Пф. В Дубае таких полно…'], ['Артур, позвони папе, пусть купит тебе девушку 😂', 'Я… вообще-то… ладно 📱']],
+  gosha: [['Три аккорда — это мило. Но дуэт у меня уже есть 😏', 'Напишу об этом грустную песню… 🎸'], ['Гош, спой это Петровне. Она одинокая 😂', 'Ля-минор… ля-минор моей души… 🎸😢']],
+};
+const dateSet = gl => !!(gl.date || (SAVE.won[gl.q.id] && (SAVE.met[gl.q.id] || {}).place));
+const datv = n => n.replace(/[ая]$/, 'е');                                  // к Рите, к Кате
+const gent = n => /[кгхжшщч]а$/.test(n) ? n.slice(0, -1) + 'и' : n.replace(/а$/, 'ы').replace(/я$/, 'и');   // у Вики, у Риты, у Кати
+const RIV_ACC = { stas: 'Стаса', artur: 'Артура', gosha: 'Гошу' };
 const LOOK = {
   hero:   { hair: '#2a2630', style: 'messy', top: '#3b4a6b', legs: '#2b2b3a', eye: '#444', look: 'hoodie', seed: .5 },
   tolik:  { hair: '#5b4636', style: 'messy', top: '#c9c9c9', legs: '#3a5a8a', eye: '#6b4a2a', tank: 1, seed: .9 },
@@ -470,6 +578,8 @@ const WARDEN_TALK = ['Чего шастаешь? Отбой был в одинн
 const TOLIK_TALK = ['Братан, если кого приведёшь — я сплю. Крепко. Наверное 😴', 'Галина Петровна сегодня злая, у неё сериал кончился.',
   'Зинка опять про тебя спрашивала 😂 Беги, пока можешь.', 'Говорят, цундэрэ любят напор. А милашки — наоборот.', 'Ключ от крыши Петровна носит в кармане. Со спины подкрадись.',
   'Загляни в 📖 журнал: там всё про девчонок, что ты узнал.',
+  'Видишь 😠 над парнем — он идёт к твоей. Беги мешать, пока не подкатил!', 'Стас, Артур и Гоша боятся Петровны. Заведи её туда, где они подкатывают 😏',
+  'Каждую ночь у соседей своё слабое место. Пробуй разное — но быстро.',
   'С поклонницей не спи, если её подарок нужен для красотки. Сил не останется — проверено 😂'];
 const SHAKE = {
   joke: { t: '😂 Отшутиться', say: 'Я не в твоём вкусе — я невкусный.', ok: 'Пф! Ну и ладно! 😤', no: 'Ахаха, смешной! Ещё сильнее влюбилась 😍' },
@@ -720,6 +830,10 @@ function chibi(c, x, y, L, dir, fr, t) {
   const sw = fr ? (fr === 1 ? 1 : -1) : 0;
   if (!side) { rr(c, -6.3, -12 + sw * .6, 2, 5.5, 1, top); rr(c, 4.3, -12 - sw * .6, 2, 5.5, 1, top); ell(c, -5.3, -6.3 + sw * .6, 1, 1, SKIN); ell(c, 5.3, -6.3 - sw * .6, 1, 1, SKIN); }
   else { rr(c, -1 + sw * 1.2, -12, 2, 5.5, 1, shade(top, .85)); ell(c, sw * 1.2, -6.3, 1, 1, SKIN); }
+  if (L.prop === 'dumbbell') { const ax = side ? 4 * fx : 5.3; c.fillStyle = '#555'; c.fillRect(ax - 3, -6.8, 6, 1.2); rr(c, ax - 3.6, -8.2, 1.6, 4, .5, '#333'); rr(c, ax + 2, -8.2, 1.6, 4, .5, '#333'); }
+  if (L.prop === 'phone') { const ax = side ? 4 * fx : 5.3; rr(c, ax - 1, -9, 2, 3.4, .5, '#111'); c.fillStyle = '#7fd4ff'; c.fillRect(ax - .6, -8.6, 1.2, 2.4); }
+  if (L.prop === 'guitar' && !back) { c.save(); c.translate(side ? -2 * fx : -1, -7); c.rotate(side ? .5 * fx : -.6); ell(c, 0, 2, 3.4, 2.6, '#a0522d'); ell(c, 0, -.4, 2.6, 2, '#a0522d'); ell(c, 0, .9, .8, .8, '#2a1a10'); c.fillStyle = '#5a3a20'; c.fillRect(-.45, -9, .9, 8); c.restore(); }
+  if (L.prop === 'guitar' && back) { c.save(); c.translate(0, -9); c.rotate(.5); ell(c, 0, 2, 3.4, 2.6, '#8a4523'); c.fillStyle = '#5a3a20'; c.fillRect(-.45, -8, .9, 8); c.restore(); }
   if (L.flash) { const ax = side ? 4 * fx : 5.3; rr(c, ax - 1, -8, 2, 3.2, .6, '#444'); ell(c, ax, -8, 1, .7, '#ffe680'); }
   if (st === 'bun') ell(c, 0, hy - 7.5, 3.2, 3, hair);
   if (st === 'buns') { ell(c, -5.5, hy - 6.5, 2.8, 2.8, hair); ell(c, 5.5, hy - 6.5, 2.8, 2.8, hair); }
@@ -765,7 +879,7 @@ function paintBeds() { for (const k in BEDC) delete BEDC[k]; for (const q of ROS
 // ---------------- сущности ----------------
 const cv = $('cv'), g = cv.getContext('2d');
 const VIEW = 176;
-let k = 2, VH = 380, S, ents, hero, warden, tolik, girls, fans, paused = true, camX = 0, camY = 0;
+let k = 2, VH = 380, S, ents, hero, warden, tolik, girls, fans, rivals = [], paused = true, camX = 0, camY = 0;
 function ent(kind, L, tx, ty, extra = {}) {
   return Object.assign({ kind, look: L, x: tx * T + 8, y: ty * T + 9, dir: 0, ft: 0, moving: false, path: [], wait: Math.random() * 3, state: 'idle' }, extra);
 }
@@ -779,7 +893,9 @@ function newNight() {
     return ent('girl', q, t.x, t.y, { name: q.name, q, a: ARCH[q.arch], room: r, int: 10, mood: rnd(11) - 4, cool: 0 }); });
   fans = FANS.map((q, i) => { const r = ROOM.fans, t = r.tiles[i * 3];
     return ent('fan', q, t.x, t.y, { name: q.name, f: q, room: r, sulk: 0, weak: pick(Object.keys(SHAKE)), tried: {} }); });
-  ents = [hero, tolik, warden, ...girls, ...fans];
+  rivals = RIVALS.map(r => { const t = pick(ROOM[r.home].tiles); return ent('rival', r, t.x, t.y, { name: r.name, r, room: ROOM[r.home], sulk: 0, target: null, t: 0, repath: 0, weak: pick(Object.keys(RIVAL_SHAKE)), tried: {} }); });
+  S.rivalT = 45;
+  ents = [hero, tolik, warden, ...girls, ...fans, ...rivals];
   hud();
 }
 
@@ -907,13 +1023,13 @@ function updWarden(dt, t) {
   const gl = hero.follower;
   if (gl && (sees(hero) || sees(gl))) { w.sus += dt * 1.6; if (w.sus >= 1) caught('guest'); }
   else w.sus = Math.max(0, w.sus - dt * .8);
-  if (!gl && sees(hero) && S.min - S.warnT > 25) { S.warnT = S.min; toast('🔦 Галина Петровна: «' + pick(WARDEN_TALK) + '»'); }
+  if (!gl && sees(hero) && S.min - S.warnT > 25) { S.warnT = S.min; toast('🔦 Галина Петровна: «' + pick(WARDEN_TALK) + '»'); sShout(); }
 }
 
 // ---------------- девушки и поклонницы ----------------
 function updGirl(e, dt) {
   if (e.cool > 0) e.cool -= dt;
-  if (e.state === 'talk' || e.state === 'hidden') { e.moving = false; return; }
+  if (e.state === 'talk' || e.state === 'hidden' || e.state === 'court') { e.moving = false; return; }
   if (e.state === 'follow') return followTrail(e, 9, dt);
   wander(e, dt, 26);
 }
@@ -926,7 +1042,7 @@ function updFan(e, dt) {
     e.jealT = S.min; toast(`😒 ${e.name}: «${pick(['Ах вот ты с кем… Ну-ну.', 'Мог бы и со мной пойти 😤', 'Иди-иди. Я всё запомнила!', 'Ой, какие мы занятые 🙄'])}»`);
   }
   if (e.state !== 'chase' && e.sulk <= 0 && !(S.fanGrace > 0) && !hero.cling && !hero.follower && !safe && d < 72 && los(e.x, e.y - 6, hero.x, hero.y - 6)) {
-    e.state = 'chase'; e.repath = 0; toast(`💘 ${e.name}: «${pick(e.f.spot)}»`);
+    e.state = 'chase'; e.repath = 0; sGiggle(e.f); toast(`💘 ${e.name}: «${pick(e.f.spot)}»`);
   }
   if (e.state === 'chase') {
     if (safe || d > 140 || hero.cling || hero.follower) { e.state = 'idle'; e.path = []; return; }
@@ -936,6 +1052,86 @@ function updFan(e, dt) {
     return;
   }
   wander(e, dt, 22, .4);
+}
+// ---------------- соседи-конкуренты ----------------
+function rivalsTick(dt) {
+  for (const e of rivals) updRival(e, dt);
+  S.rivalT -= dt; if (S.rivalT > 0 || rivals.some(r => r.state === 'go' || r.state === 'court')) return;
+  const free = rivals.filter(r => r.sulk <= 0 && r.state === 'idle');
+  const cand = girls.filter(g => !SAVE.got[g.q.id] && (SAVE.won[g.q.id] || g.int >= 35) && g.state === 'idle' && !(g.cool > 0) && hero.follower !== g);
+  if (!free.length || !cand.length) { S.rivalT = 6; return; }
+  const gl = pick(cand), e = free.sort((a, b) => dist(a, gl) - dist(b, gl))[0];
+  e.state = 'go'; e.target = gl; e.repath = 0; e.tried = {}; S.rivalT = 55 + Math.random() * 35;
+  toast(dateSet(gl) ? `😠 ${e.name} (${e.r.tag}) пошёл к ${datv(gl.name)}… Но вы же уже договорились о свидании 😏` : `😠 ${e.name} (${e.r.tag}) пошёл к ${datv(gl.name)} (к. ${gl.room.no})! Успей помешать`, 4200);
+  tone({ f: 330, f2: 220, d: .3, type: 'sawtooth', g: .06, lp: 900 });
+}
+function updRival(e, dt) {
+  if (e.sulk > 0) e.sulk -= dt;
+  if (e.state === 'talk') { e.moving = false; return; }
+  if (e.state === 'go' || e.state === 'court') {
+    const gl = e.target;
+    if (!gl || SAVE.got[gl.q.id] || gl.state === 'follow' || gl.state === 'hidden' || hero.follower === gl) return rivalQuit(e, 20);
+  }
+  if (e.state === 'go') {
+    e.repath -= dt; if (e.repath <= 0) { e.repath = .6; e.path = bfs(tileOf(e), tileOf(e.target)); }
+    walkPath(e, 36, dt);
+    if (dist(e, e.target) < 14) startCourt(e);
+    return;
+  }
+  if (e.state === 'court') {
+    e.moving = false; const gl = e.target; if (gl.state !== 'talk') gl.state = 'court';
+    if (!RED.alarm && sees(e)) { toast(`🔦 Петровна застукала ${RIV_ACC[e.r.id]} у ${gent(gl.name)}: «А ну марш к себе!» Он сбежал 😂`, 3500); return rivalQuit(e, 70); }
+    e.t -= dt; if (e.t <= 0) rivalWins(e);
+    return;
+  }
+  wander(e, dt, 24, .5);
+}
+function startCourt(e) {
+  const gl = e.target;
+  if (dateSet(gl)) {   // друг (msg 2592): место угадано — она уже твоя на эту ночь
+    const [her, his] = pick(RIVAL_REJECT[e.r.id]); faceEach(e, gl);
+    toast(`${e.r.ico} ${e.name} подкатил к ${datv(gl.name)}… ${gl.name}: «${her}» ${e.name}: «${his}»`, 5200);
+    if (dist(e, hero) < 220) { babble(her, voiceOf(gl.q), null, .1); sGiggle(gl.q); }
+    return rivalQuit(e, 90);
+  } e.state = 'court'; e.t = COURT_T; e.path = []; gl.state = 'court'; gl.path = []; faceEach(e, gl);
+  toast(`${e.r.ico} ${e.name} подкатил к ${datv(gl.name)}: «${pick(e.r.court)}» Беги мешать!`, 3500);
+  if (dist(e, hero) < 200) babble(pick(e.r.court), e.r.voice);
+}
+function rivalQuit(e, sulk) {
+  const gl = e.target; if (gl && gl.state === 'court') { gl.state = 'idle'; gl.wait = 1; }
+  e.target = null; e.sulk = sulk; goHome(e);
+}
+function rivalWins(e) {
+  const gl = e.target, id = gl.q.id, had = !!SAVE.won[id];
+  if (had) { delete SAVE.won[id]; persist(); }
+  gl.int = had ? 40 : 10; gl.date = 0; if (had) S.prep = {};
+  toast(`💔 ${e.r.ico} ${e.r.win.replace('Она', gl.name)}${had ? ' — снова придётся добиваться' : ''}`, 4200);
+  tone({ f: 300, f2: 150, d: .5, type: 'sawtooth', g: .07, lp: 900 });
+  rivalQuit(e, 90);
+}
+function openRival(e) {
+  paused = true; const gl = e.target;
+  if (e.state !== 'court' || !gl) { faceEach(hero, e); return panel({ L: e.r, name: e.name, sub: e.r.tag, emo: 'smile', bar: null, text: `<b>${e.name}:</b> ${pick(e.r.idle)}`, btns: [{ t: 'Ну-ну', cls: 'wide', f: closePanel }] }); }
+  faceEach(hero, e); rivalView(e, `<b>${e.name}:</b> ${pick(e.r.court)}\n<b>${gl.name}:</b> ${pick(['Ой, правда? 😳', 'Хи-хи, ну ты даёшь 😊', 'Ммм, интересно…'])}\n\n<i>${gl.name} уже ведётся. Помешай ему!</i>`);
+}
+function rivalView(e, text) {
+  const gl = e.target;
+  panel({ L: e.r, name: e.name, sub: `${e.r.tag} · подкатывает к ${datv(gl.name)}`, emo: 'smile', bar: Math.round(clamp(e.t / COURT_T, 0, 1) * 100), text,
+    btns: [...Object.keys(RIVAL_SHAKE).map(k => ({ t: RIVAL_SHAKE[k].t, cls: e.tried[k] ? 'no' : '', f: () => rivalTry(e, k) })), { t: 'Не связываться', cls: 'wide', f: closePanel }] });
+}
+function rivalTry(e, k) {
+  if (e.tried[k]) return; const gl = e.target, R = RIVAL_SHAKE[k];
+  if (k === e.weak) {
+    gl.int = clamp(gl.int + 12, 0, SAVE.won[gl.q.id] ? 100 : 99);
+    rivalQuit(e, 80); sWin();
+    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'happy', bar: SAVE.won[gl.q.id] ? 100 : gl.int,
+      text: `<b>Ты:</b> ${R.t.replace(/^\S+\s/, '')}\n<b>${e.name}:</b> ${R.ok}\n<b>${gl.name}:</b> ${pick(RIVAL_THANKS)}`, btns: [{ t: 'Обращайся 😎', cls: 'wide', f: () => { gl.state = 'idle'; closePanel(); } }] });
+  }
+  e.tried[k] = 1; e.t -= 3.5;
+  if (e.t <= 0) { rivalWins(e); return panel({ L: e.r, name: e.name, sub: e.r.tag, emo: 'happy', bar: 0, text: `<b>${e.name}:</b> ${R.no}\n\n💔 ${gl.name} ушла с ним.`, btns: [{ t: 'Эх…', cls: 'wide', f: closePanel }] }); }
+  tone({ f: 200, f2: 150, d: .2, type: 'sawtooth', g: .06, lp: 800 });
+  rivalView(e, `<b>Ты:</b> ${R.t.replace(/^\S+\s/, '')}\n<b>${e.name}:</b> ${R.no}\n\n<i>Не сработало — время уходит. Попробуй по-другому!</i>`);
+  lockBtns(450);
 }
 function cling(f) {
   f.state = 'cling'; hero.cling = f; f.path = [];
@@ -967,13 +1163,15 @@ function actLabel() {
   const n = nearest(); if (!n) return null;
   if (n.kind === 'spot') return 'Взять\n' + ITEMS[n.item].e;
   if (n.kind === 'hide') return '🔍\nОбыскать';
+  if (n.kind === 'girl' && n.state === 'court') return '😤\nПомешать';
   if (n.kind === 'girl') return SAVE.got[n.q.id] ? '😉\nПривет' : n.cool > 0 ? '😤' : hero.follower ? '🤫' : n.date ? '😏\nСвидание' : (SAVE.won[n.q.id] && hasAll(n.q)) ? '🎁\nОтдать' : '💋\nФлирт';
   if (n.kind === 'warden') return '🔦\nВахта';
   if (n.kind === 'tolik') return '💬\nТолик';
   if (n.kind === 'fan') return '😬\n' + n.name;
+  if (n.kind === 'rival') return n.state === 'court' ? '😤\nПомешать' : '💬\n' + n.name;
   return null;
 }
-function addItem(id) { S.inv.push(id); hud(); }
+function addItem(id) { S.inv.push(id); hud(); sChime(); }
 function act() {
   if (paused || S.over) return;
   if (hero.cling) return openFan(hero.cling);
@@ -992,6 +1190,8 @@ function act() {
     S.taken[n.item] = 1; addItem(n.item);
     return toast(`${ITEMS[n.item].e} Взял ${ITEMS[n.item].n}` + (n.desk ? ' со стола вахтёрши. Тихо!' : ''));
   }
+  if (n.kind === 'rival') return openRival(n);
+  if (n.kind === 'girl' && n.state === 'court') { const r = rivals.find(x => x.target === n && x.state === 'court'); if (r) return openRival(r); }
   if (n.kind === 'girl') {
     if (SAVE.got[n.q.id]) return toast(`😉 ${n.name}: «Ещё увидимся…»`);
     if (n.cool > 0) return toast(`😤 ${n.name}: «Отстань, я обиделась!»`);
@@ -1013,7 +1213,7 @@ function panel(o) {
   $('dlg').classList.add('on'); $('act').classList.remove('on');
   $('pimg').innerHTML = portrait(o.L, o.emo, 'd', BUST); $('dname').textContent = o.name; $('dsub').textContent = o.sub || '';
   $('dbar').style.display = o.bar == null ? 'none' : ''; if (o.bar != null) requestAnimationFrame(() => $('dbar').firstChild.style.width = o.bar + '%');
-  $('dtext').innerHTML = o.text;
+  $('dtext').innerHTML = o.text; sndTalk(o);
   const box = $('dbtns'); box.innerHTML = '';
   for (const x of o.btns) { const b = document.createElement('button'); b.textContent = x.t; if (x.cls) b.className = x.cls; b.onclick = x.f; box.appendChild(b); }
 }
@@ -1035,8 +1235,17 @@ function openGirl(gl) {
 }
 const leaveBtn = gl => ({ t: 'Уйти', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } });
 function flirtView(gl, text, emo) {
-  panel({ L: gl.q, name: gl.name, sub: subOf(gl), text, emo, bar: gl.int,
-    btns: [...Object.keys(TYPES).map(tp => ({ t: TYPES[tp], f: () => flirt(gl, tp) })), leaveBtn(gl)] });
+  let tp = pick(TOPICS); for (let i = 0; i < 6 && tp === gl.topic; i++) tp = pick(TOPICS); gl.topic = tp;
+  const ans = shuffle(['joke', 'compl', 'bold', 'smart'], Math.random);
+  panel({ L: gl.q, name: gl.name, sub: subOf(gl), text: text + `\n<b>${gl.name}:</b> ${tp.q}`, emo, bar: gl.int,
+    btns: [...ans.map(k => ({ t: TYPES[k].split(' ')[0] + ' ' + tp[k], cls: 'wide ans', f: () => flirt(gl, k, tp[k]) })),
+      { t: '😏 ' + tp.dirty.replace(/\s*😏$/u, ''), cls: 'wide ans', f: () => flirt(gl, 'dirty', tp.dirty) },
+      { t: gl.asked ? '❓ Уже расспросил' : '❓ Расспросить о ней', cls: gl.asked ? 'no' : '', f: () => askGirl(gl) }, { t: 'Уйти', f: leaveBtn(gl).f }] });
+}
+function askGirl(gl) {
+  if (gl.asked) return; gl.asked = 1; S.min += 10; hud();
+  gl.int = clamp(gl.int + 3, 0, 99); meet(gl.q, { likes: 1 });
+  flirtView(gl, `<b>Ты:</b> А ты сама какая? Что тебе нравится?\n<b>${gl.name}:</b> ${LIKES_HINT[gl.a.likes] || 'Сама не знаю. Удиви меня'} ${gl.a.hates && HATES_HINT[gl.a.hates] ? HATES_HINT[gl.a.hates] + '.' : ''}\n<i>(записано в 📖 журнал · −10 минут ночи)</i>`, 'smile');
 }
 function wishView(gl, text) {
   const ok = hasAll(gl.q), btns = [];
@@ -1044,17 +1253,18 @@ function wishView(gl, text) {
   btns.push(leaveBtn(gl));
   panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: ok ? 'shy' : 'smile', bar: 100, text: text + (ok ? '' : `\n\n<i>Где взять:</i>\n${hintStr(gl.q)}`), btns });
 }
-function flirt(gl, type) {
+function flirt(gl, type, line) {
   const dm = type === 'dirty' ? DIRTY_BY[gl.q.arch] : null;
   const good = dm ? dm === 'love' : gl.a.likes === type, bad = dm ? dm === 'slap' : gl.a.hates === type;
   const delta = good ? 28 + rnd(9) + gl.mood : bad ? -(dm ? 30 + rnd(6) : 20 + rnd(9)) : (dm ? 12 : 7) + rnd(6) + Math.max(0, gl.mood);
   gl.int = clamp(gl.int + delta, 0, 100);
   if (good) meet(gl.q, dm ? { dirty: 1 } : { likes: 1 });
   if (dm === 'slap') meet(gl.q, { slap: 1 });
-  const text = `<b>Ты:</b> ${pick(PL[type])}\n<b>${gl.name}:</b> ${dm ? fresh(DIRTY[dm], gl) : good ? fresh(gl.a.good, gl) : bad ? fresh(gl.a.bad, gl) : fresh(gl.a.neut, gl)}`;
+  const text = `<b>Ты:</b> ${line || pick(PL[type])}\n<b>${gl.name}:</b> ${dm ? fresh(DIRTY[dm], gl) : good ? fresh(gl.a.good, gl) : bad ? fresh(gl.a.bad, gl) : fresh(gl.a.neut, gl)}`;
+  sFlirt(good, bad, dm === 'slap');
   if (dm === 'slap') setTimeout(() => $('pimg').animate([{ transform: 'translateX(-10px) rotate(-4deg)' }, { transform: 'translateX(10px) rotate(4deg)' }, { transform: 'none' }], { duration: 320 }), 30);
   if (gl.int >= 100) {
-    SAVE.won[gl.q.id] = 1; meet(gl.q, { wish: 1 });
+    SAVE.won[gl.q.id] = 1; meet(gl.q, { wish: 1 }); sWin();
     wishView(gl, text + `\n\n<b>${gl.name}:</b> ${pick([].concat(gl.a.ask))}\nПринеси мне ${wishStr(gl.q)}.`);
   } else if (gl.int <= 0) {
     gl.cool = 25; gl.int = 10;
@@ -1064,6 +1274,7 @@ function flirt(gl, type) {
   lockBtns(450);
 }
 function give(gl) {
+  sGive();
   const t = gl.q.wish.find(w => S.tainted[w]); gl.flop = t ? S.tainted[t] : null;   // подарок от поклонницы после ночи с ней → «не встал»
   for (const w of gl.q.wish) { S.inv.splice(S.inv.indexOf(w), 1); delete S.tainted[w]; }
   hud();
@@ -1148,7 +1359,7 @@ function fanNight(f) {
 }
 function release(f, s) { S.fanGrace = 12; hero.cling = null; f.sulk = s; f.tried = {}; f.weak = pick(Object.keys(SHAKE)); goHome(f); closePanel(); }
 function caught(why) {
-  paused = true; S.strikes++; warden.sus = 0; warden.path = []; warden.pause = 3;
+  sWhistle(); paused = true; S.strikes++; warden.sus = 0; warden.path = []; warden.pause = 3;
   const gl = hero.follower; if (gl) { hero.follower = null; gl.cool = 15; goHome(gl); }
   face(warden, hero.x - warden.x, hero.y - warden.y); hud();
   const line = why === 'red' ? 'Та-а-ак… Сам пришёл в мой кабинет? Ну раз уж пришёл… 😏' : why === 'steal' ? 'Ах ты воришка! Положи на место! Это мне студенты подарили!' : pick(CAUGHT);
@@ -1231,9 +1442,9 @@ function curtain(o) {
   tx.textContent = (o.label || PLACES[pl].n) + '. ' + L3[0];
   const hearts = k => { for (let q = 0; q < k; q++) at(q * 420, () => { const e = document.createElement('span'); e.textContent = pick(['❤️', '💗', '💕']); e.style.left = 38 + Math.random() * 24 + '%'; e.style.top = 42 + Math.random() * 12 + '%'; fx.appendChild(e); }); };
   at(400, () => cls('close'));
-  at(2300, () => { cls('kiss'); tx.textContent = L3[1]; });
+  at(2300, () => { cls('kiss'); tx.textContent = L3[1]; sKiss(); });
   if (o.flop) {
-    at(4000, () => { n.classList.remove('kiss'); cls('flopped'); tx.textContent = '…'; });
+    at(4000, () => { n.classList.remove('kiss'); cls('flopped'); tx.textContent = '…'; sSad(); });
     at(5100, () => { tx.textContent = 'Что-то пошло не так 😳'; });
   } else {
     at(2900, () => hearts(4));
@@ -1276,7 +1487,7 @@ function hud() {
 let toastTimer = 0;
 function toast(t, ms = 3000) { const s = $('say'); s.textContent = t; s.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => s.classList.remove('on'), ms); }
 function screen(html, btns) {
-  const s = $('screen'); s.className = ''; s.innerHTML = html;
+  const s = $('screen'); s.className = ''; clearInterval(titleTimer); s.innerHTML = html;
   for (const b of btns) { const e = document.createElement('button'); e.className = 'big' + (b.alt ? ' alt' : ''); e.textContent = b.t; e.onclick = b.f; s.appendChild(e); }
 }
 function hideScreen() { $('screen').className = 'off'; }
@@ -1292,7 +1503,43 @@ function journal(prev) {
   $('jClose').onclick = () => { $('journal').classList.remove('on'); paused = was; };
 }
 $('jBtn').onclick = () => { if (S && !S.over && $('screen').classList.contains('off') && !$('dlg').classList.contains('on')) journal(); };
+let titleTimer = 0;
 function intro() {
+  paused = true; clearInterval(titleTimer);
+  const total0 = Object.keys(SAVE.got).length, faces0 = ROSTER.slice(0, 5).map((q, i) => `<div>${portrait(q, 'smile', 'i' + i, BUST)}</div>`).join('');
+  const wins = Array.from({ length: 18 }, () => '<div class="w"><i class="a"></i><i class="b"></i></div>').join('');
+  screen(`<div class="tsky"></div><div class="tmoon"></div><div class="beam"></div><div class="bld">${wins}<div class="door"></div></div>
+    <div><h1 class="neon">ОБЩАГА</h1><div class="sub2">ночной обход</div></div>
+    <div class="faces">${faces0}</div>
+    <div class="menu">
+      <button class="big" id="tPlay">${SAVE.night > 1 || total0 ? `▶ Ночь ${SAVE.night}  ·  ❤ ${total0}/20` : '▶ Играть'}</button>
+      <div class="row2"><button class="big alt" id="tRules">📜 Как играть</button><button class="big alt" id="tSnd">${SND.on ? '🔊 Звук' : '🔇 Без звука'}</button></div>
+      <div class="chips"><span>👩 20 девушек</span><span>🔦 вахтёрша</span><span>💘 поклонницы</span><span>😠 конкуренты</span><span>🎁 подарки</span></div>
+      <div class="rules" id="tRulesBox">
+        <p>Каждая девушка любит своё: шутки, комплименты, напор или умные разговоры. Выбирай ответы, следи за её реакцией и шкалой ❤.</p>
+        <p>Добился — она скажет, что ей принести. Найди, укради у Петровны или выпроси у Толика.</p>
+        <p>Проведи её к месту свидания мимо вахтёрши с фонариком. Поклонниц отшивай, соседей-конкурентов — останавливай.</p>
+        <p>Тяни пальцем по экрану — идёшь, большая кнопка — действие. На ПК: стрелки/WASD и пробел.</p>
+        <p style="color:#8f84a3;font-size:12px">Все персонажи — совершеннолетние студенты. Ничего откровенного: только тени в окне 😏</p>
+      </div>
+      <div class="ver">Версия 22.11 · 23:30 · 18+ · <a id="tOld" style="color:#8f84a3">старая версия (новелла)</a></div>
+    </div>`, []);
+  $('screen').classList.add('title');
+  $('tPlay').onclick = start;
+  $('tRules').onclick = () => $('tRulesBox').classList.toggle('on');
+  $('tSnd').onclick = () => { sndInit(); sndSet(!SND.on); $('tSnd').textContent = SND.on ? '🔊 Звук' : '🔇 Без звука'; };
+  $('tOld').onclick = () => { location.href = 'novella.html'; };
+  const W2 = [...document.querySelectorAll('#screen .w')];
+  W2.forEach(w => { if (Math.random() < .45) w.classList.add('on'); });
+  titleTimer = setInterval(() => {   // окна гаснут и зажигаются, в розовых — пара сближается
+    const w = pick(W2); if (!w.isConnected) return clearInterval(titleTimer);
+    if (w.classList.contains('duo')) { w.className = 'w'; return; }
+    const r = Math.random();
+    if (r < .18) { w.className = 'w pink duo'; setTimeout(() => w.classList.add('k'), 900); setTimeout(() => { if (w.classList.contains('duo')) w.className = 'w'; }, 3200); }
+    else w.classList.toggle('on');
+  }, 650);
+}
+function introOld() {
   paused = true;
   const total = Object.keys(SAVE.got).length, faces = ROSTER.slice(0, 5).map((q, i) => `<div>${portrait(q, 'smile', 'i' + i, BUST)}</div>`).join('');
   screen(`<h1>ОБЩАГА<small>ночной обход</small></h1><div class="faces">${faces}</div>
@@ -1304,12 +1551,13 @@ function intro() {
      { t: 'Старая версия (новелла)', alt: 1, f: () => location.href = 'novella.html' }]);
 }
 function start() {
+  clearInterval(titleTimer); $('screen').classList.remove('title');
   newNight(); hideScreen(); paused = false;
   toast(`Ночь ${SAVE.night}. Ты в своей комнате (дверь «ТЫ ♥»). Найди девчонок и жми 💋`, 4000);
   setTimeout(() => !paused && toast('Подсказка: каждой нравится своё. Смотри, на что она радуется', 3500), 4500);
 }
 function endNight(kind) {
-  S.over = true; paused = true;
+  S.over = true; paused = true; sEnd(kind);
   const total = Object.keys(SAVE.got).length; SAVE.best = Math.max(SAVE.best || 0, S.tonight);
   if (kind !== 'win') SAVE.night++; persist();
   const T1 = { win: 'ЛЕГЕНДА ОБЩАГИ', morning: 'УТРО', expel: 'ВЫГНАЛИ ДО УТРА', flop: 'НЕ ВСТАЛ 😳' }[kind];
@@ -1327,6 +1575,7 @@ $('menuBtn').onclick = () => {
   if (!S || S.over || !$('screen').classList.contains('off')) return;
   const was = paused; paused = true;
   screen('<h1>ПАУЗА</h1>', [{ t: 'Продолжить', f: () => { hideScreen(); paused = was; } }, { t: '📖 Журнал', alt: 1, f: () => { hideScreen(); journal(was); } },
+    { t: SND.on ? '🔊 Звук: вкл' : '🔇 Звук: выкл', alt: 1, f: () => { sndSet(!SND.on); hideScreen(); paused = was; toast(SND.on ? '🔊 Звук включён' : '🔇 Звук выключен', 1500); } },
     { t: 'Новая общага (сброс)', alt: 1, f: () => { if (confirm('Начать с новыми девушками? Коллекция обнулится.')) resetAll(); } }]);
 };
 
@@ -1385,6 +1634,7 @@ function frameInner(t) {
     for (const e of girls) updGirl(e, dt);
     if (S.fanGrace > 0) S.fanGrace -= dt;
     for (const e of fans) updFan(e, dt);
+    rivalsTick(dt);
     if (!paused && hero.follower) {
       const P = PLACES[placeOf(hero.follower.q)];
       if (Math.hypot(hero.x - P.x, hero.y - P.y) < P.r && (P !== PLACES.room || inRoom(hero, 'hero'))) {
@@ -1397,6 +1647,7 @@ function frameInner(t) {
     for (const e of ents) if (e.moving) e.ft += dt * 8;
     if (Math.floor(S.min) !== Math.floor(S.min - dt)) hud();
   }
+  sndTick(dt);
   const lab = !paused && S && !S.over ? actLabel() : null, a = $('act');
   if (lab) { if (a.textContent !== lab) a.textContent = lab; a.classList.add('on'); } else a.classList.remove('on');
   if (S) render(t);
@@ -1450,6 +1701,18 @@ function render(t) {
   if (RED.alarm) { g.font = '10px system-ui'; g.fillText('🚨', w.x, w.y - 30); }
   if (w.sus > 0) { g.font = 'bold 9px system-ui'; g.fillStyle = w.sus > .6 ? '#ff5d5d' : '#ffd166'; g.fillText(w.sus > .6 ? '!' : '?', w.x, w.y - 29); }
   for (const e of girls) if (SAVE.got[e.q.id] && e.state !== 'hidden') heartPath(g, e.x, e.y - 33, 2.4, '#ff5d8f');
+  for (const e of rivals) {
+    if (e.state !== 'go' && e.state !== 'court') continue;
+    g.font = '8px system-ui'; g.textAlign = 'center';
+    if (e.state === 'go') g.fillText('😠', e.x, e.y - 30 - (Math.floor(t / 250) % 2));
+    else { g.fillText(e.r.ico, e.x, e.y - 31); const gl = e.target; g.globalAlpha = .6 + .4 * Math.sin(t / 120); g.fillText('💔', gl.x, gl.y - 31); g.globalAlpha = 1;
+      g.strokeStyle = '#ff9a3d'; g.lineWidth = 1.3; g.beginPath(); g.arc(e.x, e.y - 34, 6.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(e.t / COURT_T, 0, 1)); g.stroke(); }
+    const tg = e.target, sx = tg.x - camX, sy = tg.y - camY, cw2 = VIEW, m = 10, top = 60;
+    if (sx < m || sy < top || sx > cw2 - m || sy > VH - m) {
+      const cx = cw2 / 2, cy = VH / 2, a = Math.atan2(sy - cy, sx - cx), kk = Math.min(Math.abs((cw2 / 2 - m) / Math.cos(a)), Math.abs((VH / 2 - top) / Math.sin(a)));
+      g.save(); g.translate(camX + cx + Math.cos(a) * kk, camY + cy + Math.sin(a) * kk); g.rotate(a); poly(g, [7, 0, -4, -5.5, -4, 5.5], '#ff9a3d'); g.restore();
+    }
+  }
   for (const e of fans) if (e.state === 'chase' || e.state === 'cling') heartPath(g, e.x, e.y - 33 - (Math.floor(t / 200) % 2), 2.4, '#ff9ec7');
   const n = !paused && !hero.cling && nearest();
   if (n) {
@@ -1465,6 +1728,163 @@ function render(t) {
       poly(g, [7, 0, -4, -5.5, -4, 5.5], '#ff5d8f'); g.restore();
     }
   }
+}
+
+// ---------------- ЗВУК (друг, msg 2586): всё синтезом WebAudio, без файлов ----------------
+const SND = { ac: null, on: localStorage.getItem('obsh2-snd') !== '0', live: 0, bab: [], wMur: 2.5, wStep: 0, stepPh: -1, room: null, sirT: 0, musStep: 0 };
+function sndInit() {
+  if (SND.ac) { if (SND.ac.state === 'suspended' && !document.hidden) SND.ac.resume().catch(() => {}); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  const ac = SND.ac = new AC();
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 6; comp.connect(ac.destination);
+  SND.master = ac.createGain(); SND.master.gain.value = SND.on ? .9 : 0; SND.master.connect(comp);
+  SND.mus = ac.createGain(); SND.mus.gain.value = .32; SND.mus.connect(SND.master);
+  SND.musLp = ac.createBiquadFilter(); SND.musLp.type = 'lowpass'; SND.musLp.frequency.value = 2400; SND.musLp.connect(SND.mus);
+  SND.sfx = ac.createGain(); SND.sfx.connect(SND.master);
+  // вахтёрша — своя шина: громкость от расстояния, панорама от стороны, за стеной глуше
+  SND.wBus = ac.createGain(); SND.wBus.gain.value = 0;
+  SND.wLp = ac.createBiquadFilter(); SND.wLp.type = 'lowpass'; SND.wLp.frequency.value = 7000;
+  SND.wPan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+  SND.wBus.connect(SND.wLp); if (SND.wPan) { SND.wLp.connect(SND.wPan); SND.wPan.connect(SND.sfx); } else SND.wLp.connect(SND.sfx);
+  const len = ac.sampleRate; SND.noise = ac.createBuffer(1, len, ac.sampleRate); const d = SND.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  SND.musNext = ac.currentTime + .2; setInterval(musTick, 100);
+}
+['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, sndInit, { capture: true, passive: true }));
+document.addEventListener('visibilitychange', () => { if (!SND.ac) return; if (document.hidden) SND.ac.suspend().catch(() => {}); else SND.ac.resume().catch(() => {}); });
+setInterval(() => { if (SND.ac && SND.ac.state === 'suspended' && !document.hidden) SND.ac.resume().catch(() => {}); }, 2000);
+function sndSet(on) { SND.on = on; try { localStorage.setItem('obsh2-snd', on ? '1' : '0'); } catch (e) {} if (SND.ac) SND.master.gain.setTargetAtTime(on ? .9 : 0, SND.ac.currentTime, .05); }
+const sndOk = () => SND.ac && SND.on && SND.ac.state === 'running' && SND.live < 40;
+function chain(src, o, t0, d) {   // огибающая + фильтры → шина
+  const ac = SND.ac, g = ac.createGain(), pk = o.g ?? .2;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(pk, t0 + (o.a || .006)); if (o.hold) g.gain.setValueAtTime(pk, t0 + d * o.hold); g.gain.exponentialRampToValueAtTime(.0005, t0 + d);
+  let head = src;
+  for (const [tp, f, q] of [o.lp && ['lowpass', o.lp], o.hp && ['highpass', o.hp], o.bp && ['bandpass', o.bp, o.q || 3]].filter(Boolean)) {
+    const fl = ac.createBiquadFilter(); fl.type = tp; fl.frequency.value = f; if (q) fl.Q.value = q; head.connect(fl); head = fl;
+  }
+  head.connect(g); g.connect(o.out || SND.sfx);
+  SND.live++; src.onended = () => { SND.live--; };
+}
+function tone(o) {
+  if (!sndOk()) return; const ac = SND.ac, t0 = ac.currentTime + (o.t || 0), d = o.d || .15;
+  const osc = ac.createOscillator(); osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(o.f, t0); if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t0 + d);
+  if (o.det) osc.detune.value = o.det;
+  chain(osc, o, t0, d); osc.start(t0); osc.stop(t0 + d + .03); return osc;
+}
+function noise(o) {
+  if (!sndOk()) return; const ac = SND.ac, t0 = ac.currentTime + (o.t || 0), d = o.d || .08;
+  const src = ac.createBufferSource(); src.buffer = SND.noise; if (o.rate) src.playbackRate.value = o.rate;
+  chain(src, o, t0, d); src.start(t0, Math.random() * .8, d + .05);
+}
+// ---- аниме-лепет: слоги с формантами гласных, у каждого персонажа свой голос ----
+const VOICE = {
+  hero:   { f: 150, sp: .085, g: .14 },
+  tolik:  { f: 118, sp: .1, g: .12, lp: 1100 },
+  warden: { f: 182, sp: .115, g: .3, lp: 1300 },
+  fan:    { f: 440, sp: .068, g: .12 },
+};
+const VOW = [[730, 1090], [290, 2250], [320, 870], [530, 1840], [570, 840]];   // а, и, у, э, о
+function voiceOf(L) {
+  if (!L || L === LOOK.hero) return VOICE.hero;
+  if (L === LOOK.warden) return VOICE.warden;
+  if (L === LOOK.tolik) return VOICE.tolik;
+  if (L.voice) return L.voice;                       // соседи-конкуренты
+  if (FANS.includes(L)) return VOICE.fan;
+  const sp = { genki: .058, kuu: .1, goth: .1, tsun: .07, nerd: .072, roman: .09 }[L.arch] || .08;
+  return { f: 290 + (L.seed || .5) * 160, sp, g: .12 };
+}
+function syl(f, vw, t, d, v, out) {
+  const ac = SND.ac, t0 = ac.currentTime + t;
+  const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 1.05, t0); o.frequency.linearRampToValueAtTime(f, t0 + d * .7);
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(v.g, t0 + .014); g.gain.setValueAtTime(v.g, t0 + d * .55); g.gain.exponentialRampToValueAtTime(.0005, t0 + d);
+  const mix = ac.createGain(); mix.gain.value = 1;
+  for (const [fq, q, k] of [[vw[0], 5, 1.6], [vw[1], 7, 1.1]]) { const b = ac.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fq; b.Q.value = q; const kg = ac.createGain(); kg.gain.value = k; o.connect(b); b.connect(kg); kg.connect(mix); }
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.lp || 3200; const dry = ac.createGain(); dry.gain.value = .12; o.connect(lp); lp.connect(dry); dry.connect(mix);
+  mix.connect(g); g.connect(out || SND.sfx);
+  o.start(t0); o.stop(t0 + d + .02); SND.live++; o.onended = () => { SND.live--; }; SND.bab.push(o);
+}
+function babble(text, v, out, delay = 0) {
+  if (!sndOk()) return delay;
+  const plain = String(text).replace(/<[^>]+>/g, '').replace(/[^\p{L}\p{N}?!]+/gu, ' ').trim();
+  if (!plain) return delay;
+  const n = clamp(Math.ceil(plain.replace(/[?!]/g, '').length / 5), 1, 14), ask = /\?\s*$/.test(plain), excl = /!\s*$/.test(plain);
+  let t = delay;
+  for (let i = 0; i < n; i++) {
+    const last = i === n - 1, d = v.sp * (.8 + Math.random() * .5) * (last ? 1.35 : 1);
+    const f = v.f * pick([1, 1.06, 1.12, .94, 1.19, 1]) * (last && ask ? 1.3 : last && excl ? 1.15 : 1);
+    syl(f, pick(VOW), t, d, v, out);
+    t += d + .022 + (Math.random() < .14 ? .08 : 0);
+  }
+  return t;
+}
+function sndTalk(o) {               // окно диалога: сначала говорит «Ты», потом собеседник
+  if (!sndOk()) return;
+  SND.bab.forEach(x => { try { x.stop(); } catch (e) {} }); SND.bab = [];
+  const v = voiceOf(o.L), parts = String(o.text).split('<b>').slice(1).slice(-3); let t = .05;
+  if (!parts.length) { babble(o.text, v); return; }
+  for (const p of parts) { const i = p.indexOf('</b>'), who = p.slice(0, i), txt = p.slice(i + 4).split('\n\n')[0]; t = babble(txt, who.startsWith('Ты') ? VOICE.hero : v, null, t) + .15; }
+}
+const WARDEN_MUTTER = ['ходют тут всякие', 'бу-бу-бу', 'отбой был в одиннадцать', 'где мои очки', 'опять курили в туалете', 'ох, молодёжь', 'кто тут топает', 'сериал пропустила'];
+// ---- события ----
+const sTick = () => tone({ f: 1500, d: .035, type: 'triangle', g: .05 });
+const sChime = () => { tone({ f: 988, d: .18, type: 'triangle', g: .14 }); tone({ f: 1480, t: .09, d: .3, type: 'triangle', g: .12 }); };
+const sWin = () => [523, 659, 784, 1047].forEach((f, i) => tone({ f, t: i * .09, d: .35, type: 'triangle', g: .13 }));
+const sGive = () => [1319, 1568, 2093, 1760, 2637].forEach((f, i) => tone({ f, t: i * .06, d: .25, type: 'sine', g: .08 }));
+function sFlirt(good, bad, slap) {
+  if (slap) { noise({ d: .09, g: .5, bp: 1800, q: 1 }); tone({ f: 220, f2: 90, d: .18, type: 'square', g: .06, lp: 900 }); return; }
+  if (good) { tone({ f: 660, d: .14, type: 'triangle', g: .1, t: .02 }); tone({ f: 880, t: .11, d: .22, type: 'triangle', g: .1 }); }
+  else if (bad) tone({ f: 190, f2: 140, d: .25, type: 'sawtooth', g: .06, lp: 700 });
+  else tone({ f: 600, d: .12, type: 'triangle', g: .07 });
+}
+const sKiss = () => { noise({ d: .05, g: .25, bp: 2600, q: 2 }); tone({ f: 900, f2: 1500, d: .07, type: 'sine', g: .06 }); };
+const sSad = () => [392, 370, 349, 294].forEach((f, i) => tone({ f, f2: i === 3 ? 260 : 0, t: i * .38, d: i === 3 ? .9 : .36, type: 'sawtooth', g: .07, lp: 1100 }));
+const sWhistle = () => { for (let i = 0; i < 6; i++) tone({ f: 2300 + (i % 2) * 180, t: i * .06, d: .07, type: 'sine', g: .1 }); tone({ f: 2400, t: .36, d: .5, type: 'sine', g: .1 }); };
+function sCreak(k = 1) { for (let i = 0; i < k; i++) tone({ f: 170 + Math.random() * 60, f2: 110, t: i * .3, d: .26, type: 'sawtooth', g: .05, bp: 900, q: 6 }); }
+function sStep(out, g = .05, lp = 520) { noise({ d: .05, g, lp, out }); }
+function sGiggle(L) { const v = voiceOf(L); babble('хи хи хи', { ...v, f: v.f * 1.25, sp: .055 }); }
+function sShout() { babble('Эй! Стоять!', { ...VOICE.warden, g: .3, f: 230 }, SND.wBus); }
+function sEnd(kind) {
+  if (kind === 'morning') for (let i = 0; i < 8; i++) tone({ f: 1760, t: i * .14 + (i >= 4 ? .3 : 0), d: .08, type: 'square', g: .05, lp: 3000 });
+  if (kind === 'win') sWin();
+  if (kind === 'flop') sSad();
+  if (kind === 'expel') sWhistle();
+}
+addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) sTick(); }, true);
+// ---- музыка: тихий ночной lo-fi, 4 аккорда по кругу ----
+const MUS_CH = [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]];   // Am7 Fmaj7 Cmaj7 G7
+const MUS_SC = [69, 72, 74, 76, 79, 81];
+const mtof = m => 440 * 2 ** ((m - 69) / 12);
+function musTick() {
+  const ac = SND.ac; if (!ac || ac.state !== 'running' || !SND.on) { if (ac) SND.musNext = ac.currentTime + .1; return; }
+  const st = 60 / 74 / 2;
+  if (SND.musNext < ac.currentTime) SND.musNext = ac.currentTime + .05;
+  while (SND.musNext < ac.currentTime + .4) { musStep(SND.musStep++, SND.musNext - ac.currentTime, st); SND.musNext += st; }
+}
+function musStep(i, t, st) {
+  const ch = MUS_CH[Math.floor(i / 8) % 4], sb = i % 8, out = SND.musLp;
+  if (sb === 0) for (const m of ch) for (const det of [-7, 7]) tone({ f: mtof(m), t, d: st * 8.4, type: 'triangle', g: .035, a: .5, hold: .7, det, out });
+  if (sb === 0 || sb === 5) tone({ f: mtof(ch[0] - 24), t, d: st * 2.2, type: 'sine', g: .16, a: .02, out });
+  if (sb % 2 === 1) noise({ t, d: .03, g: .03, hp: 7000, out });
+  if (sb === 4) noise({ t, d: .09, g: .05, bp: 1500, q: .8, out });
+  if (sb % 2 === 0 && Math.random() < .3) tone({ f: mtof(pick(MUS_SC)), t, d: st * 2.5, type: 'triangle', g: .045, out });
+}
+// ---- каждый кадр: шаги, двери, вахтёрша, сирена ----
+function sndTick(dt) {
+  if (!SND.ac || !S || !hero) return;
+  const ac = SND.ac, live = !paused && !S.over, now = ac.currentTime;
+  const d = dist(warden, hero), vol = live ? Math.max(0, 1 - d / 240) ** 1.5 : 0;
+  SND.wBus.gain.setTargetAtTime(vol, now, .12);
+  if (SND.wPan) SND.wPan.pan.setTargetAtTime(clamp((warden.x - hero.x) / 80, -.9, .9), now, .12);
+  SND.wLp.frequency.setTargetAtTime(los(warden.x, warden.y - 6, hero.x, hero.y - 6) ? 7000 : 600, now, .2);
+  SND.musLp.frequency.setTargetAtTime(RED.alarm ? 500 : 2400, now, .3);
+  if (!live) return;
+  if (vol > .01) {
+    if (warden.moving) { SND.wStep -= dt; if (SND.wStep <= 0) { SND.wStep = RED.alarm ? .2 : .4; noise({ d: .14, g: .22, bp: 700, q: .7, out: SND.wBus }); } }   // шарк тапками
+    SND.wMur -= dt; if (SND.wMur <= 0) { SND.wMur = 3.5 + Math.random() * 4; babble(pick(WARDEN_MUTTER), VOICE.warden, SND.wBus); }
+  }
+  if (hero.moving) { const ph = Math.floor(hero.ft / 2); if (ph !== SND.stepPh) { SND.stepPh = ph; sStep(null, .14, ph % 2 ? 480 : 560); } }
+  const ht = tileOf(hero), rm = RM[ht.y * W + ht.x], rid = rm ? rm.id : 'corr';
+  if (rid !== SND.room) { if (SND.room !== null && (rid === 'corr' || SND.room === 'corr')) sCreak(); SND.room = rid; }
+  if (RED.alarm) { SND.sirT -= dt; if (SND.sirT <= 0) { SND.sirT = .9; tone({ f: 650, f2: 1050, d: .45, type: 'square', g: .045, lp: 2200 }); tone({ f: 1050, f2: 650, t: .45, d: .45, type: 'square', g: .045, lp: 2200 }); } }
 }
 function ageGate() {
   if (localStorage.getItem('obsh2-18')) return intro();
