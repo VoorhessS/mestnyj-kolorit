@@ -613,7 +613,7 @@ const LEVELS = [
       // ОСИНОЕ ГНЕЗДО (46–32): паутина, гнёзда, осы, щелкуны
       B.slime(10, 12, 46); B.slime(40, 42, 46); B.slime(14, 16, 39); B.slime(38, 40, 39); B.slime(11, 13, 32); B.slime(42, 44, 32);
       B.nest(17, 46); B.nest(36, 39); B.nest(9, 32);
-      for (const [x, y] of [[30, 41], [12, 36], [44, 34], [20, 28]]) B.bug(x, y, 'v');
+      for (const [x, y] of [[38, 41], [12, 36], [44, 34], [20, 28]]) B.bug(x, y, 'v');
       B.bug(44, 46, 'j'); B.bug(10, 39, 'j'); B.bug(40, 32, 'j');
       // КРОНА (25–11): огонь ползёт по веткам (L.flames), метатели, летуны
       B.bug(45, 25, 'G'); B.bug(12, 18, 'F'); B.bug(40, 18, 'F'); B.bug(14, 11, 'G');
@@ -1717,13 +1717,13 @@ function drone() {                       // тревожный низкий гу
 }
 const SFX = { n: 0, ac: null, out: null, noise: null, win: 0, wn: 0, boomT: -1 };   // друг (msg 2492): лимит звуков, чтобы телефон не захлёбывался
 function sfxOut() {                      // общий выход эффектов: ограничитель громкости (без перегруза и треска)
-  if (SFX.ac !== ac) { SFX.ac = ac; SFX.n = 0; SFX.noise = null; const c = ac.createDynamicsCompressor(); c.threshold.value = -8; c.knee.value = 4; c.ratio.value = 12; c.attack.value = .002; c.release.value = .12; c.connect(ac.destination); SFX.out = c; }
+  if (SFX.ac !== ac) { SFX.ac = ac; SFX.n = 0; SFX.noise = null; SFX.win = -1; SFX.wn = 0; SFX.boomT = -1; const c = ac.createDynamicsCompressor(); c.threshold.value = -8; c.knee.value = 4; c.ratio.value = 12; c.attack.value = .002; c.release.value = .12; c.connect(ac.destination); SFX.out = c; }
   return SFX.out;
 }
 function sfxOk() {                       // не больше 16 звуков сразу и 8 новых за 0.1 с
   if (!ac || ac.state !== 'running') return false;
   sfxOut();
-  const t = ac.currentTime; if (t - SFX.win > .1) { SFX.win = t; SFX.wn = 0; }
+  const t = ac.currentTime; if (t - SFX.win > .1 || t < SFX.win) { SFX.win = t; SFX.wn = 0; }
   if (SFX.n >= 16 || SFX.wn >= 8) return false;
   SFX.wn++; SFX.n++; return true;
 }
@@ -1737,7 +1737,7 @@ function beep(f0, f1, dur, type = 'square', vol = .05) {
 }
 function boom(vol = .12) {
   if (!ac || ac.state !== 'running') return;
-  if (ac.currentTime - SFX.boomT < .07) return;          // взрывы в одном кадре — один звук
+  sfxOut(); if (ac.currentTime - SFX.boomT < .07 && ac.currentTime >= SFX.boomT) return;          // взрывы в одном кадре — один звук
   if (!sfxOk()) return;
   SFX.boomT = ac.currentTime;
   if (!SFX.noise) {                                       // шум считаем один раз, а не на каждый взрыв
@@ -1962,6 +1962,7 @@ function startLevel(n) {
   if (cart) movers.push(cart);
   swarm = L.chase ? { x: 0, on: false, t: 1.2 } : null;
   fume = L.fume ? { y: 0, on: false, t: 2 } : null;
+  fallsWarned = false;
   falls = L.falls ? L.falls.map(([x, dir]) => ({ x, dir, st: 'stand', t: 0, a: 0, burn: 0, hurtT: 0, d: lv.deco.find(d => d.k === 'tree' && d.x0 === x) })) : null;   // после deco = lv.deco
   treeS = L.tree ? { ph: 'up', wT: rnd(5, 8), g: 0, warn: false, fy: null, hurtT: 0, dd: false } : null;
   for (const g of lv.logs) for (let i = 0; i < g.n; i++) {          // брёвна плывут по течению
@@ -2038,6 +2039,7 @@ function restoreSnap(rx, ry) {
   enemies = enemies.filter(e => e.hp > 0);
 }
 function respawn() {
+  if (treeS) treeS.re = true; if (falls) falls.re = true;   // ревью: dd не срабатывал — treeFx не зовётся, пока герой мёртв
   const solo = !(NET && NET.ready) || (NET.role === 'host' && !mateAlive());
   if (snap && !boss.dead && !MUT() && !(NET && NET.ready)) restoreSnap(save.x, save.y);   // в коопе мир не откатываем: напарник-то жив   // мутанта не откатываем: он бессмертен
   bullets = []; parts = []; good = null; clone = null; roul = 0; waveT = 0;
@@ -2435,10 +2437,10 @@ function treeFx(dt) {
   if (S.rocket) { const r = S.rocket; r.t += dt; r.y += r.vy * dt; r.vy += 60 * dt; parts.push({ x: r.x + rnd(-2, 2), y: r.y + 6, vx: rnd(-20, 20), vy: rnd(20, 60), life: .5, col: pick(['#ffd23f', '#ff7a2a', '#fff']) });
     if (r.t > 1.4) { for (let i = 0; i < 40; i++) { const q = Math.random() * 6.28, v = rnd(40, 160); parts.push({ x: r.x, y: r.y, vx: Math.cos(q) * v, vy: Math.sin(q) * v, life: 1.4, col: pick(['#ff3a3a', '#ffd23f', '#fff']) }); } S.rocket = null; beep(900, 300, .6, 'square', .04); } }
   if (P.dead > 0) { S.dd = true; S.fy = null; return; }
-  if (S.dd) {                                                             // ожил на дискете: огонь отступает, рой и сигнал заново
-    S.dd = false;
+  if (S.dd || S.re) {                                                     // ожил на дискете: огонь отступает, рой и сигнал заново
+    S.dd = S.re = false; S.fy = null;                                     // высота падения до смерти не считается
     if (S.ph === 'hold' && !items.some(i => i.k === 'flare' && i.got)) S.ph = 'up';
-    if (S.ph === 'down') S.by = Math.min(S.by, P.y - 240);
+    if (S.ph === 'down' || S.ph === 'won') { done = true; S.by = Math.min(S.by, P.y - 240); }   // сигнал уже подан — откат мира его не отменяет, выход открыт
   }
   // падение с большой высоты
   if (P.climb || P.mv) S.fy = null;
@@ -2468,10 +2470,11 @@ function treeFx(dt) {
     const sec = Math.ceil(S.t); if (sec !== S.sec && sec > 0) { S.sec = sec; showToast('🎆 рой летит на свет — держись: ' + sec, 1.05); }
     if (!GUEST() && S.sp <= 0 && enemies.filter(e => e.hp > 0 && e.k !== 'n').length < 9) {
       S.sp = rnd(1, 1.8) * (S.t < 8 ? .7 : 1);
-      const k = pick(['v', 'v', 'F']), x = clamp(P.x + pick([-1, 1]) * rnd(70, 170), T * 2, MAPW - T * 3);
-      hatch(k, x, P.y - rnd(60, 120), Math.sign(P.x - x) || 1, 40, null); explode(x, P.y - 80, 6, ['#ffd23f', '#ff7a2a']);
+      const k = pick(['v', 'v', 'F']); let x = clamp(P.x + pick([-1, 1]) * rnd(70, 170), T * 2, MAPW - T * 3), hy = P.y - rnd(60, 120);
+      for (let i = 0; i < 6 && solid(Math.floor(x / T), Math.floor(hy / T)); i++) { x = clamp(P.x + pick([-1, 1]) * rnd(70, 170), T * 2, MAPW - T * 3); hy = P.y - rnd(40, 140); }
+      if (!solid(Math.floor(x / T), Math.floor(hy / T))) hatch(k, x, hy, Math.sign(P.x - x) || 1, 40, null); explode(x, P.y - 80, 6, ['#ffd23f', '#ff7a2a']);
     }
-    if (S.t <= 0) { S.ph = 'won'; complete('🎆 сигнал увидели!'); }
+    if (S.t <= 0 && !GUEST()) { S.ph = 'won'; complete('🎆 сигнал увидели!'); }
   }
   // спуск: крона горит, огонь идёт вниз за героем, сыплются горящие обломки
   if (done && S.ph !== 'down') {
@@ -2493,8 +2496,8 @@ const FALL_SOLID = 5;                                                     // с�
 function fallSpan(f) { return f.dir > 0 ? [f.x + 1, f.x + FALL_SOLID] : [f.x - FALL_SOLID, f.x - 1]; }
 function fallsFx(dt) {
   if (P.dead > 0) { falls.dd = true; return; }
-  if (falls.dd) {                                                         // ожил на дискете: мир откатился — что не легло в сетку, стоит снова
-    falls.dd = false;
+  if (falls.dd || falls.re) {                                             // ожил на дискете: мир откатился — что не легло в сетку, стоит снова
+    falls.dd = falls.re = false;
     for (const f of falls) if (f.st !== 'stand' && !(f.st === 'down' && f.solid && tile(fallSpan(f)[0], f.gy - 2) === SOLID)) { f.st = 'stand'; f.a = 0; f.burn = 0; f.solid = false; if (f.d) f.d.hide = false; }
   }
   for (const f of falls) {
@@ -4019,12 +4022,12 @@ function roach(dt, b, pc) {   // друг (msg 2499): человек-тарак�
     if (Math.random() < dt * 20) beep(rnd(1800, 2600), 1400, .02, 'square', .01);
     if (b.y <= hi) { b.y = hi; b.st = 'cling'; b.t = .6 / sp; b.dir = dir; beep(900, 300, .45, 'sawtooth', .03); }
   } else if (b.st === 'cling') {                                    // замер на стене — метка на полу, куда прыгнет
-    free = false; b.y = hi; b.dir = dir; b.tx = clamp(P.x + 5 + (P.vx || 0) * .4, left + b.w / 2, right - b.w / 2);
-    if (b.t <= 0) { b.st = 'drop'; const tf = .75; b.vx = clamp((b.tx - cx) / tf, -340, 340); b.vy = (floor - b.h - b.y) / tf - GRAV * tf / 2; beep(1400, 300, .3, 'square', .04); }
+    free = false; b.y = hi; b.dir = dir; b.mx = clamp(P.x + 5 + (P.vx || 0) * .4, left + b.w / 2, right - b.w / 2);
+    if (b.t <= 0) { b.st = 'drop'; const tf = .75; b.vx = clamp((b.mx - cx) / tf, -340, 340); b.vy = (floor - b.h - b.y) / tf - GRAV * tf / 2; beep(1400, 300, .3, 'square', .04); }
   } else if (b.st === 'lift') {                                     // ярость: взлетает
     free = false; b.vx = 0; b.y = Math.max(hi, b.y - 200 * dt); b.dir = dir;
     if (Math.random() < dt * 30) beep(rnd(90, 140), 80, .05, 'sawtooth', .015);
-    if (b.t <= 0) { b.st = 'swoop'; b.t = 1.2; const tx = P.x + 5 + (P.vx || 0) * .3, ty = P.y + P.h - b.h, d = Math.hypot(tx - cx, ty - b.y) || 1; b.svx = (tx - cx) / d * 330; b.svy = (ty - b.y) / d * 330; beep(1400, 200, .4, 'sawtooth', .045); }
+    if (b.t <= 0) { b.st = 'swoop'; b.t = 1.2; const tx = P.x + 5 + (P.vx || 0) * .3, ty = Math.max(hi, P.y + P.h - b.h), d = Math.hypot(tx - cx, ty - b.y) || 1; b.svx = (tx - cx) / d * 330; b.svy = (ty - b.y) / d * 330; beep(1400, 200, .4, 'sawtooth', .045); }
   } else if (b.st === 'swoop') {                                    // пикирует прямо на героя
     free = false; b.x += b.svx * dt; b.y += b.svy * dt; b.dir = Math.sign(b.svx) || b.dir;
     if (b.y + b.h >= floor || b.t <= 0) { b.y = Math.min(b.y, floor - b.h); b.vy = 0; land(true, 'open', .7); }
@@ -6088,7 +6091,7 @@ function roachMan(p, ox, oy, o) {         // человек-таракан по 
 }
 function drawRoach(b) {                   // босс базы: человек-таракан (друг, 12.11)
   const wh = b.fl > 0, sh = b.st === 'wake' || b.st === 'cling' || b.st === 'prep' ? (Math.random() - .5) * 4 : 0, fly = ['leap', 'hop', 'lift', 'swoop', 'drop'].includes(b.st);
-  if (b.st === 'cling' && b.tx && Math.floor(time * 8) % 2) { const fx = b.tx - cam, fy = lv.arena.top * T; ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fx - 6, fy - 12); ctx.lineTo(fx + 6, fy); ctx.moveTo(fx + 6, fy - 12); ctx.lineTo(fx - 6, fy); ctx.stroke(); }
+  if (b.st === 'cling' && b.mx && Math.floor(time * 8) % 2) { const fx = b.mx - cam, fy = lv.arena.top * T; ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fx - 6, fy - 12); ctx.lineTo(fx + 6, fy); ctx.moveTo(fx + 6, fy - 12); ctx.lineTo(fx - 6, fy); ctx.stroke(); }
   const up = false, wallc = b.st === 'climb' || b.st === 'cling';
   ctx.save();
   if (up) { ctx.translate(0, 2 * (b.y + b.h / 2)); ctx.scale(1, -1); }   // вверх ногами на потолке
@@ -7444,7 +7447,7 @@ function netSnap() {                           // хозяин → напарн�
     it: items.filter(i => !i.got && i.k !== 'gun').map(i => pk(id(i))), eb: ebullets.filter(nd).map(o => pk(id(o))),
     b: b ? Object.assign(pk(b), { bon: boss.on, bdead: boss.dead }) : null, al: MUT() ? allies.filter(nd).map(a => pk(id(a))) : null,
     lift: lift ? pk({ y: lift.y, go: lift.go, fix: lift.fix }) : null, cart: cart ? pk({ x: cart.x, go: cart.go, stop: cart.stop, v: cart.v }) : null,
-    pv: pvp ? pk(pvp) : null, am: amb ? pk({ t: amb.t, end: amb.end, co: !!amb.co, rev: !!amb.rev }) : null, hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
+    pv: pvp ? pk(pvp) : null, am: amb ? pk({ t: amb.t, end: amb.end, co: !!amb.co, rev: !!amb.rev }) : null, hl: lives, sw: swarm ? pk({ x: swarm.x, on: swarm.on }) : null, tr: treeS ? pk({ ph: treeS.ph, t: treeS.t, by: treeS.by }) : null, fu: fume ? pk({ y: fume.y, on: fume.on }) : null };
 }
 function netMerge(cur, arr, skip) {            // новые данные хозяина поверх своих: координаты — целью для плавного движения
   const old = new Map(); for (const e of cur) if (e.nid) old.set(e.nid, e);
@@ -7481,6 +7484,7 @@ function netWorld(m) {                         // напарник: примен
   const pv0 = NET.pv; NET.pv = m.pv || null;
   if (pv0 && NET.pv && NET.pv.hpG < pv0.hpG) { hpFlash = .35; shake = Math.max(shake, .2); beep(220, 90, .15, 'square', .04); navigator.vibrate?.(40); explode(P.x + 5, P.y + 10, 6, ['#c8102e', '#fff', '#ff7a7a']); }
   if (swarm && m.sw) Object.assign(swarm, m.sw);
+  if (treeS && m.tr) Object.assign(treeS, m.tr);
   if (fume && m.fu) Object.assign(fume, m.fu);
   const r = boss.parts[0];
   if (r && m.b) {
@@ -7714,7 +7718,7 @@ function netMsg(m) {
       it.got = true;
       if (it.k === 'ammo') it.gone = true;
       else if (it.k === 'life') lives++;
-      else if (!['life', 'gun', 'talk', 'meds'].includes(it.k)) { if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3; complete(L.itemTxt || ITEM[it.k]); }
+      else if (!['life', 'gun', 'talk', 'meds'].includes(it.k)) { if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3; if (it.k === 'flare' && treeS && treeS.ph === 'up') treeSignal(); else complete(L.itemTxt || ITEM[it.k]); }
     }
   }
 }
