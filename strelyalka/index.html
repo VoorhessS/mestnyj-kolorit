@@ -18,6 +18,7 @@ Object.assign(EN, { 'дерево трещит — сейчас упадёт п�
 Object.assign(EN, { 'тропа в чащу — на дальнем краю, за оврагом': 'the path into the thicket is at the far end, past the ravine', 'разобьёшь свиту — тропа в логово откроется на дальнем краю, за карьером': 'smash the escort — the path to the lair opens at the far end, past the quarry' });
 Object.assign(EN, { 'таракан взбежал на стену — прыгнет туда, где красная метка: отходи': 'the roach ran up the wall — it will leap at the red mark: step away', 'таракан чует пули и подпрыгивает — стреляй, когда он бежит на тебя или выдохся': 'the roach senses bullets and hops — shoot when it charges at you or is out of breath', 'таракан в ярости — расправил крылья!': 'the roach is enraged — wings out!' });
 Object.assign(EN, {"нажми — дальше":"tap — continue","КОНЕЦ":"THE END","БАГОКАЛИПСИС":"BUGPOCALYPSE","БОССЫ":"BOSSES","Город пал за одну ночь.":"The city fell in a single night.","Рой разлился по стране. Люди прячутся в подвалах и бункерах.":"The swarm spread across the country. People hide in cellars and bunkers.","А во главе орды идёт тот, кто когда-то шёл спасать людей.":"And leading the horde walks the one who once set out to save people.","Говорят, иногда он останавливается и смотрит в небо. Как будто что-то вспоминает…":"They say he sometimes stops and looks at the sky. As if remembering something…","Без Альфы рой потерял голову.":"Without the Alpha the swarm lost its head.","Жуки расползлись по норам и затихли.":"The bugs crawled back into their burrows and went quiet.","Выжившие вернулись в город и начали отстраивать его заново.":"The survivors returned to the city and began to rebuild it.","А вы двое стали легендой лагеря.":"And you two became the legend of the camp.","ЖУК-НОСОРОГ":"RHINO BEETLE","БОГОМОЛ":"MANTIS","ЛИЧИНКА-МАТКА":"LARVA QUEEN","ХИМЕРА":"CHIMERA","ЧЕЛОВЕК-ТАРАКАН":"ROACH-MAN","АЛЬФА":"ALPHA","вожак роя. теперь ты идёшь рядом с ним":"leader of the swarm. now you walk beside it","побеждена в логове":"defeated in its lair","побеждён: крыша дома":"defeated: the rooftop","побеждён: логово в лесу":"defeated: the forest lair","побеждён: логово под землёй":"defeated: the underground lair","побеждён: главная лаборатория":"defeated: the main lab","побеждён: штаб военной базы":"defeated: the base HQ","ТВОЁ ПРОХОЖДЕНИЕ":"YOUR RUN","время в игре:":"time played:","погибал:":"deaths:","боссов побеждено:":"bosses defeated:","СПАСИБО ЗА ИГРУ!":"THANKS FOR PLAYING!","понравилось? оставь свой отзыв":"enjoyed it? leave a review","а теперь пройди в коопе с другом —":"now play it in co-op with a friend —","там другая концовка!":"there is a different ending!","и позови друга — вдвоём в коопе веселее":"and invite a friend — co-op is more fun","продолжение следует?":"to be continued?"});
+Object.assign(EN, {"🏆 РЕКОРДЫ":"🏆 RECORDS","полное соло-прохождение":"full solo run","ПО ОЧКАМ":"BY SCORE","ПО ВРЕМЕНИ":"BY TIME","ЗАКРЫТЬ":"CLOSE","НИК":"NICK","ОЧКИ":"SCORE","ВРЕМЯ":"TIME","пока пусто — пройди игру первым!":"empty so far — be the first to beat the game!","нет связи с сервером — попробуй позже":"no connection — try again later","твоё прохождение:":"your run:","очков":"points","ТВОЙ НИК":"YOUR NICK","ЗАПИСАТЬ В ТАБЛИЦУ":"SUBMIT","впиши ник":"enter a nick","записано! место по очкам:":"saved! rank by score:","по времени:":"by time:","не получилось — проверь интернет и нажми ещё раз":"failed — check your connection and tap again","забег на рекорд:":"record run:","без рекорда: забег начат не с первого уровня":"no record: run not started from level 1","сердечки кончились — глава начнётся заново":"out of hearts — the chapter starts over","нажми — начать главу":"tap — restart chapter"});
 Object.assign(EN, { 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё': 'the queen rears up — a ram is coming: jump onto a ledge or over her', 'матка в ярости!': 'the queen is enraged!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
@@ -164,6 +165,17 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   #menu h2 { margin: 0; font-size: 18px; color: #ffd23f; flex: 1; min-width: 160px; }
   #menu h3 { margin: 8px 0 5px; font-size: 13px; color: #9a9aaa; letter-spacing: 1px; }
   #menu .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  #m-run { color: #9a9aaa; font: 12px monospace; text-align: center; margin-top: 4px; }
+  #lb { position: fixed; inset: 0; z-index: 30; background: rgba(6,6,10,.95); display: none; align-items: flex-start; justify-content: center; overflow-y: auto; font-family: monospace; color: #fff; }
+  #lb .box { width: min(94vw, 460px); padding: 12px 10px calc(env(safe-area-inset-bottom) + 14px); display: flex; flex-direction: column; gap: 8px; }
+  #lb h2 { margin: 0; text-align: center; color: #ffd23f; font-size: 18px; } #lb .sub { text-align: center; color: #8a8a9a; font-size: 11px; margin-top: -4px; }
+  #lb .tabs { display: flex; gap: 6px; } #lb .tabs button { flex: 1; } #lb .tabs button.on { background: #ffd23f; color: #111; }
+  #lb button { font: bold 13px monospace; padding: 8px; background: #2a2a34; color: #fff; border: 1px solid #555; border-radius: 6px; }
+  #lb-list { display: flex; flex-direction: column; gap: 2px; min-height: 120px; font-size: 13px; }
+  #lb-list .r { display: grid; grid-template-columns: 2.2em 1fr 5.5em 5em; gap: 6px; padding: 5px 6px; background: #14141c; border-radius: 4px; }
+  #lb-list .r.me { background: #3a3410; } #lb-list .r .n { color: #ffd23f; } #lb-list .r .s, #lb-list .r .t { text-align: right; } #lb-list .h { color: #8a8a9a; background: none; }
+  #lb-me { background: #1a2a14; border: 1px solid #3a6a2a; border-radius: 6px; padding: 8px; display: none; flex-direction: column; gap: 6px; text-align: center; font-size: 13px; }
+  #lb-me input { font: bold 15px monospace; padding: 7px; text-align: center; background: #000; color: #fff; border: 1px solid #666; border-radius: 6px; }
   #menu button { font: 600 13px system-ui, sans-serif; color: #fff; background: #2e2e3a; border: 2px solid #4a4a5a; border-radius: 8px; padding: 7px 12px; min-height: 44px; min-width: 44px; }   /* под палец (аудит №25) */
   #menu button.cur { border-color: #ffd23f; }
   body:not(.dev) .devonly { display: none !important; }
@@ -253,14 +265,16 @@ addEventListener('DOMContentLoaded', () => { trTree(document.documentElement); s
   <div><i>Esc</i>пауза · <i class="s">M</i>музыка</div></div>
 <button id="keysbtn">⌨ КЛАВИШИ · H</button>
 <div id="m">☰</div>
-<div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
+<div id="menu"><div class="top"><h2>ПАУЗА</h2><button id="close">▶ ПРОДОЛЖИТЬ</button><button id="back">↩ К ДИСКЕТЕ</button><button id="mus">МУЗЫКА: ВКЛ</button><button id="m-lb">🏆 РЕКОРДЫ</button><button id="m-home">⌂ В ГЛАВНОЕ МЕНЮ</button><div id="m-run"></div><button id="m-map" class="devonly">КАРТА</button><button id="m-intro" class="devonly">ЗАСТАВКА</button><button id="god" class="devonly">БЕССМЕРТИЕ: ВЫКЛ</button><button id="auto" class="devonly">АВТОПИЛОТ: ВЫКЛ</button></div><div id="lvls" class="devonly"></div></div>
 <button id="iskip">ПРОПУСТИТЬ ▶▶</button>
 <div id="tmenu"><div id="tm-note"></div>
-  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button><button id="t-lang">🌐 ENGLISH</button></div>
+  <div class="row" id="tm1"><button id="t-solo">СОЛО</button><button id="t-coop">КООП</button><button id="t-help" class="devonly">УПРАВЛЕНИЕ</button><button id="t-vid" class="devonly">ВИДЕО</button><button id="t-lang">🌐 ENGLISH</button><button id="t-lb">🏆 РЕКОРДЫ</button></div>
   <div class="row" id="tm2" style="display:none"><button id="t-back">←</button><button id="t-go">▶ НОВАЯ ИГРА</button><button id="t-cont">ПРОДОЛЖИТЬ</button></div>
   <div class="row" id="tm3" style="display:none"><button id="t-back3">←</button><input id="t-nick" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ТВОЙ НИК"><button id="t-host">СОЗДАТЬ КОМНАТУ</button><button id="t-join">ВОЙТИ ПО КОДУ</button></div>
   <div class="row" id="tm4" style="display:none"><button id="t-back4">←</button><input id="t-code" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" placeholder="КОД"><button id="t-join-go">ВОЙТИ ▶</button></div>
   <div class="row" id="tm5" style="display:none"><button id="t-back5">← ВЫЙТИ ИЗ КОМНАТЫ</button></div></div>
+<div id="lb"><div class="box"><h2>🏆 РЕКОРДЫ</h2><div class="sub">полное соло-прохождение</div><div id="lb-me"></div>
+  <div class="tabs"><button id="lb-s" class="on">ПО ОЧКАМ</button><button id="lb-t">ПО ВРЕМЕНИ</button></div><div id="lb-list"></div><button id="lb-x">ЗАКРЫТЬ</button></div></div>
 <div id="help"><h3>УПРАВЛЕНИЕ</h3>
   <div><b>A</b> — прыжок, <b>B</b> — огонь, крестовина — бег и прицел</div>
   <div>вверх/вниз у лестницы — лезть, вниз + вбок — ползти</div>
@@ -1846,6 +1860,22 @@ let state = 'title', stateT = 0, cam = 0, camY = 0, time = 0, score = 0, lives =
 const STATS = (() => { try { return JSON.parse(localStorage.getItem('strel-stats') || '{}'); } catch (e) { return {}; } })();   // друг (msg 2511): статистика для титров
 let statsT = 0; const statsSave = () => { try { localStorage.setItem('strel-stats', JSON.stringify(STATS)); } catch (e) {} }, statsReset = () => { STATS.t = 0; STATS.d = 0; statsSave(); };
 let credEnd = 'solo';
+const RUN = (() => { try { return Object.assign({ on: false, t: 0, base: 0, lvl: 0, lvlScore: 0, cr: false, fin: null }, JSON.parse(localStorage.getItem('strel-run') || '{}')); } catch (e) { return { on: false, t: 0, base: 0, lvl: 0, lvlScore: 0, cr: false, fin: null }; } })();
+let runT = 0;
+const runSave = () => { try { localStorage.setItem('strel-run', JSON.stringify(RUN)); } catch (e) {} };
+const soloNow = () => MODE === 'solo' && !(NET && NET.ready);
+function runStart(n) { Object.assign(RUN, { on: soloNow() && n === 0, t: 0, base: 0, lvl: n, lvlScore: 0, cr: false }); runSave(); }
+function runLevel(n) {                       // каждый startLevel: следующий уровень — продолжаем, тот же — очки как на входе, начало главы после game over — очки главы сгорают
+  if (!RUN.on) return;
+  if (!soloNow()) { RUN.on = false; runSave(); return; }
+  const rc = LEVELS[RUN.lvl]?.city || 0, c = LEVELS[n]?.city || 0;
+  if (n === RUN.lvl) score = RUN.lvlScore;
+  else if (n === RUN.lvl + 1) { RUN.lvl = n; RUN.lvlScore = score; if (c !== rc) RUN.base = score; }
+  else if (RUN.cr && n === cityStart(rc)) { score = RUN.base; RUN.lvl = n; RUN.lvlScore = RUN.base; }
+  else RUN.on = false;
+  RUN.cr = false; runSave();
+}
+const fmtT = sec => { sec = Math.floor(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s2).padStart(2, '0'); };
 // Оружие: пистолет бесконечный, остальное — с патронами (ящики падают с жуков)
 const WPN = [{ n: 'ПИСТОЛЕТ', cd: .15 }, { n: 'ДРОБОВИК', cd: .55, box: 6, give: 12, col: '#ff7a1a' },
   { n: 'ВИНТОВКА', cd: .55, box: 5, give: 10, col: '#4aa3ff' }, { n: 'ГРАНАТОМЁТ', cd: .85, box: 3, give: 6, col: '#9be22d' }];
@@ -1935,6 +1965,7 @@ function showToast(t, d = 2) { toastTxt = t; toast = d; }
 function startLevel(n) {
   if (ac) acStale = true;   // новый уровень — звук с чистого листа на первом касании (друг, msg 2218: на Андроиде пропадает)
   pvp = null; if (NET) NET.pv = null;   // аудит 15.11: махач не тянется на другой уровень
+  if (gameOn) runLevel(n);
   lvlN = n; L = LEVELS[n]; D = diff(n); saveReach(n);
   if (NET && NET.ready && NET.role === 'host') netSend({ t: 'lvl', n });
   lv = build(L);
@@ -3311,6 +3342,7 @@ function update(dt) {
   if (NET && NET.ready && NET.mpause && state === 'play') return;   // напарник в меню — стоим вместе
   if (innerHeight > innerWidth && 'ontouchstart' in window) return;   // телефон вертикально — пауза под заставкой (аудит №7)
   time += dt; stateT += dt;
+  if (RUN.on && state !== 'title' && state !== 'intro') { RUN.t += dt; if ((runT += dt) > 5) { runT = 0; runSave(); } }
   if (state !== 'play') {
     const k = input();
     if (state === 'intro') { updIntro(dt, k); return; }
@@ -3323,8 +3355,8 @@ function update(dt) {
     }
     if (state === 'cred') {                         // титры: нажатие — к следующему кадру
       const nx = CRED_SEG.find(x => x > stateT + .05);
-      if ((anyTap || k.aPressed) && stateT > .8) { if (nx === undefined || nx >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); } else stateT = nx; }
-      else if (stateT >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); }
+      if ((anyTap || k.aPressed) && stateT > .8) { if (nx === undefined || nx >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); } else stateT = nx; }
+      else if (stateT >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); }
       const ti = stateT - CRED_TEASE;                // намёк: сердце бьётся в коконе
       if (ti > 0 && Math.floor(ti / .9) !== Math.floor((ti - dt) / .9)) beep(70, 40, .14, 'sine', ti > 3.5 ? .1 : .06);
       if (ti > 3.4 && ti - dt <= 3.4) { beep(1400, 200, .5, 'sawtooth', .05); shake = .6; }
@@ -3339,12 +3371,13 @@ function update(dt) {
       anyTap = false; return;
     }
     if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
-      if (state === 'over') { lives = NET && NET.ready ? COOP_LIVES : 3; respawn(); setState('play'); if (NET && NET.ready) netSend({ t: 'cont' }); }   // продолжаем с сохранения
-      else if (state === 'win' && (humansWon || L.mut)) { credEnd = humansWon ? 'coop' : 'solo'; statsSave(); setState('cred'); }   // друг (msg 2508): настоящий финал — титры
-      else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); }
+      if (state === 'over' && !(NET && NET.ready)) { lives = 3; const cs = cityStart(L.city || 0); RUN.cr = true; resetGear(cs); startLevel(cs); }   // друг (msg 2546): соло — кончились сердечки, глава заново
+      else if (state === 'over') { lives = COOP_LIVES; respawn(); setState('play'); netSend({ t: 'cont' }); }   // кооп: продолжаем с сохранения
+      else if (state === 'win' && (humansWon || L.mut)) { credEnd = humansWon ? 'coop' : 'solo'; statsSave(); if (RUN.on && !humansWon) { RUN.fin = { score, t: Math.round(RUN.t) }; RUN.on = false; runSave(); } setState('cred'); }   // друг (msg 2508): настоящий финал — титры
+      else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); if (RUN.fin) lbOpen(); }
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
-      else { score = 0; playT = 0; lives = 3; statsReset(); resetGear(START); startLevel(START); }
+      else { score = 0; playT = 0; lives = 3; statsReset(); runStart(START); resetGear(START); startLevel(START); }
     }
     anyTap = false;
     return;
@@ -6322,11 +6355,11 @@ function drawCredits() {
     txt(nm, 15, '#ffd23f', H * .78);
     txt(i === 5 && credEnd === 'solo' ? 'вожак роя. теперь ты идёшь рядом с ним' : (i === 5 ? 'побеждена в логове' : 'побеждён: ' + where), 9, '#ccc', H * .78 + 16);
   } else if (seg === 11) {                           // статистика
-    const T2 = Math.floor(STATS.t || playT), hh = Math.floor(T2 / 3600), mm = Math.floor(T2 % 3600 / 60), ss = T2 % 60, tm = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
+    const T2 = Math.floor(RUN.fin ? RUN.fin.t : STATS.t || playT), hh = Math.floor(T2 / 3600), mm = Math.floor(T2 % 3600 / 60), ss = T2 % 60, tm = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
     txt('ТВОЁ ПРОХОЖДЕНИЕ', 14, '#ffd23f', H * .24);
     txt(tr('время в игре:') + ' ' + tm, 11, '#fff', H * .42);
     txt(tr('погибал:') + ' ' + (STATS.d || 0), 11, '#fff', H * .52);
-    txt(tr('очки:') + ' ' + score, 11, '#fff', H * .62);
+    txt(tr('очки:') + ' ' + (RUN.fin ? RUN.fin.score : score), 11, '#fff', H * .62);
     txt(tr('боссов побеждено:') + ' ' + (credEnd === 'solo' ? 5 : 6), 11, '#9aff5a', H * .72);
   } else if (seg === 12) {                           // спасибо
     txt('СПАСИБО ЗА ИГРУ!', 18, '#ffd23f', H * .36);
@@ -6951,7 +6984,8 @@ function draw() {
     centerText([[CITY[L.city || 0], 10, '#8a8a9a', 46], [`${lvlN - cityStart(L.city || 0) + 1} из ${cityCount(L.city || 0)} · ${L.name}`, 20, '#ffd23f', 76], [L.task, 11, '#fff', 102],
       ...L.tips.map((t, i) => [t, 9, '#aab', 128 + i * 14]), [blink ? 'жми A или B' : '', 10, '#fff', 184]]);
   }
-  if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
+  if (state === 'over') centerText(NET && NET.ready ? [['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]
+    : [['ТЫ ПОГИБ', 22, '#ff3b3b', 80], ['сердечки кончились — глава начнётся заново', 9, '#fff', 100], [RUN.on ? `очки главы сгорят: ${score} → ${RUN.base}` : `очки: ${score}`, 11, '#ffd23f', 120], ['нажми — начать главу', 10, '#ccc', 146]]);
   if (state === 'win' && humansWon) centerText([['У ЧЕЛОВЕЧЕСТВА ЕСТЬ ШАНС', 18, '#ffd23f', 66], ['Альфа мертва. рой без вожака рассыпается по норам.', 9, '#fff', 88],
     ['вы вдвоём вышли из логова. город ещё можно отбить.', 9, '#9aff5a', 100],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 124], ['нажми — дальше', 10, '#ccc', 150]]);
@@ -6985,6 +7019,7 @@ const menuEl = document.getElementById('menu'), mBtn = document.getElementById('
 function godLabel() { godBtn.textContent = `БЕССМЕРТИЕ: ${IMMORTAL ? 'ВКЛ' : 'ВЫКЛ'}`; godBtn.classList.toggle('on', IMMORTAL); }
 function openMenu(on) {
   menuOpen = on; menuEl.style.display = on ? 'block' : 'none'; releaseAll();
+  if (on) document.getElementById('m-run').textContent = soloNow() ? (RUN.on ? tr('забег на рекорд:') + ' ' + fmtT(RUN.t) + ' · ' + score + ' ' + tr('очков') : tr('без рекорда: забег начат не с первого уровня')) : '';
   if (NET && NET.ready && (on ? state === 'play' : NET.myP) && NET.myP !== on) { NET.myP = on; netSend({ t: 'pause', on }); }   // друг, msg 2032: пауза у обоих
   if (!on) return;
   const box = document.getElementById('lvls'); box.innerHTML = '';
@@ -7865,7 +7900,7 @@ function newGame(noIntro) {
     if (MODE === 'coop') { if (!HOST()) return; introCoop = true; netSend({ t: 'intro' }); } else introCoop = false;
     introNew = true; introGo = true; audioOn(); setState('intro'); return;
   }
-  gameOn = true; score = 0; playT = 0; lives = 3; statsReset(); resetGear(START); startLevel(START); }
+  gameOn = true; score = 0; playT = 0; lives = 3; statsReset(); runStart(START); resetGear(START); startLevel(START); }
 document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-coop').onclick = () => { audioOn(); titleStep(3, 'coop'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-back').onclick = () => { if (MODE === 'coop') { netClose(); titleStep(3); } else titleStep(1); };
@@ -7896,7 +7931,47 @@ tGo.onclick = () => {
   if (saveGet() && !wipeAsk) { wipeAsk = true; tGo.textContent = 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ'; return; }
   saveWipe(); titleHome(); newGame();
 };
-tCont.onclick = () => { audioOn(); if (saveGet()) mapShow(true, false); };
+const lbEl = document.getElementById('lb'), lbList = document.getElementById('lb-list'), lbMe = document.getElementById('lb-me');
+let lbSort = 'score', lbOpenNow = false;
+async function lbLoad() {
+  document.getElementById('lb-s').className = lbSort === 'score' ? 'on' : ''; document.getElementById('lb-t').className = lbSort === 'time' ? 'on' : '';
+  lbList.innerHTML = '<div class="r h"><span>…</span></div>';
+  try {
+    const rows = await (await fetch(NET_API + '/strel/top?sort=' + lbSort)).json(), me = myNick().toLowerCase();
+    lbList.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'r h'; head.innerHTML = '<span>#</span><span>' + tr('НИК') + '</span><span class="s">' + tr('ОЧКИ') + '</span><span class="t">' + tr('ВРЕМЯ') + '</span>'; lbList.appendChild(head);
+    if (!rows.length) { const e = document.createElement('div'); e.className = 'r h'; e.textContent = tr('пока пусто — пройди игру первым!'); lbList.appendChild(e); }
+    rows.forEach((r, i) => { const d = document.createElement('div'); d.className = 'r' + (r.nick.toLowerCase() === me ? ' me' : '');
+      for (const [cl, v] of [['n', i + 1], ['', r.nick], ['s', r.score], ['t', fmtT(r.t)]]) { const sp = document.createElement('span'); if (cl) sp.className = cl; sp.textContent = v; d.appendChild(sp); }
+      lbList.appendChild(d); });
+  } catch (e) { lbList.innerHTML = ''; const d = document.createElement('div'); d.className = 'r h'; d.textContent = tr('нет связи с сервером — попробуй позже'); lbList.appendChild(d); }
+}
+function lbMeShow(msg) {                      // свой законченный забег: ник и кнопка «записать»
+  if (!RUN.fin) { lbMe.style.display = msg ? 'flex' : 'none'; lbMe.textContent = msg || ''; return; }
+  lbMe.style.display = 'flex'; lbMe.innerHTML = '';
+  const t1 = document.createElement('div'); t1.textContent = tr('твоё прохождение:') + ' ' + RUN.fin.score + ' ' + tr('очков') + ' · ' + fmtT(RUN.fin.t); lbMe.appendChild(t1);
+  const inp = document.createElement('input'); inp.maxLength = 16; inp.placeholder = tr('ТВОЙ НИК'); inp.value = myNick(); lbMe.appendChild(inp);
+  const go = document.createElement('button'); go.textContent = tr('ЗАПИСАТЬ В ТАБЛИЦУ'); lbMe.appendChild(go);
+  const note = document.createElement('div'); note.style.color = '#ff8a8a'; lbMe.appendChild(note);
+  go.onclick = async () => {
+    const nick = inp.value.trim().slice(0, 16); if (!nick) { note.textContent = tr('впиши ник'); return; }
+    try { localStorage.setItem('strel-nick', nick.slice(0, 12)); } catch (e) {}
+    go.disabled = true; note.textContent = '…';
+    try {
+      const r = await (await fetch(NET_API + '/strel/score', { method: 'POST', body: JSON.stringify({ nick, score: RUN.fin.score, t: RUN.fin.t }) })).json();
+      if (!r.ok) throw new Error(r.error || 'x');
+      RUN.fin = null; runSave();
+      lbMeShow(tr('записано! место по очкам:') + ' ' + r.rankScore + ' · ' + tr('по времени:') + ' ' + r.rankTime); lbLoad();
+    } catch (e) { go.disabled = false; note.textContent = tr('не получилось — проверь интернет и нажми ещё раз'); }
+  };
+}
+function lbOpen() { lbOpenNow = true; lbEl.style.display = 'flex'; lbMeShow(); lbLoad(); }
+document.getElementById('lb-s').onclick = () => { lbSort = 'score'; lbLoad(); };
+document.getElementById('lb-t').onclick = () => { lbSort = 'time'; lbLoad(); };
+document.getElementById('lb-x').onclick = () => { lbOpenNow = false; lbEl.style.display = 'none'; };
+document.getElementById('t-lb').onclick = () => { audioOn(); lbOpen(); };
+document.getElementById('m-lb').onclick = () => lbOpen();
+tCont.onclick = () => { audioOn(); if (MODE === 'solo' && RUN.on && LEVELS[RUN.lvl]) { gameOn = true; score = RUN.lvlScore; playT = 0; lives = 3; resetGear(RUN.lvl); startLevel(RUN.lvl); return; } if (saveGet()) mapShow(true, false); };   // забег на рекорд продолжается с его уровня
 function titleKey() {                         // клавиатура на титуле: A — дальше по меню
   if (tStep >= 3) return;
   if (tStep === 1) document.getElementById('t-solo').click(); else if (saveGet()) tCont.click(); else tGo.click();
