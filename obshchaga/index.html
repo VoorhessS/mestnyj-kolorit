@@ -1522,7 +1522,7 @@ function intro() {
         <p>Тяни пальцем по экрану — идёшь, большая кнопка — действие. На ПК: стрелки/WASD и пробел.</p>
         <p style="color:#8f84a3;font-size:12px">Все персонажи — совершеннолетние студенты. Ничего откровенного: только тени в окне 😏</p>
       </div>
-      <div class="ver">Версия 22.11 · 23:30 · 18+ · <a id="tOld" style="color:#8f84a3">старая версия (новелла)</a></div>
+      <div class="ver">Версия 23.11 · 00:40 · 18+ · <a id="tOld" style="color:#8f84a3">старая версия (новелла)</a></div>
     </div>`, []);
   $('screen').classList.add('title');
   $('tPlay').onclick = start;
@@ -1732,13 +1732,36 @@ function render(t) {
 
 // ---------------- ЗВУК (друг, msg 2586): всё синтезом WebAudio, без файлов ----------------
 const SND = { ac: null, on: localStorage.getItem('obsh2-snd') !== '0', live: 0, bab: [], wMur: 2.5, wStep: 0, stepPh: -1, room: null, sirT: 0, musStep: 0 };
+let quietEl = null;                     // тихий <audio>: переводит аудиосессию iPhone в «воспроизведение» (слышно и в беззвучном режиме)
+function quietKick() {
+  try {
+    if (!quietEl) {
+      const n = 2205, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => [...t].forEach((c, i) => b[o + i] = c.charCodeAt(0));
+      w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 22050, true); v.setUint32(28, 22050, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+      b.fill(128, 44);
+      quietEl = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))); quietEl.setAttribute('playsinline', ''); quietEl.preload = 'auto';
+    }
+    quietEl.currentTime = 0; const pr = quietEl.play(); if (pr) pr.catch(() => {});
+  } catch (e) {}
+}
 function sndInit() {
-  if (SND.ac) { if (SND.ac.state === 'suspended' && !document.hidden) SND.ac.resume().catch(() => {}); return; }
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
+  if (SND.ac && (SND.ac.state === 'closed' || SND.ac.state === 'interrupted')) { quietKick(); try { SND.ac.resume(); } catch (e) {} }
+  if (SND.ac) {
+    if (SND.ac.state !== 'running' && !document.hidden) {
+      quietKick(); SND.ac.resume().catch(() => {});
+      try { const b = SND.ac.createBufferSource(); b.buffer = SND.ac.createBuffer(1, 1, 22050); b.connect(SND.ac.destination); b.start(0); } catch (e) {}   // тихий щелчок «отпирает» звук на iOS
+    }
+    return;
+  }
+  quietKick();
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   const ac = SND.ac = new AC();
+  try { ac.resume(); const b0 = ac.createBufferSource(); b0.buffer = ac.createBuffer(1, 1, 22050); b0.connect(ac.destination); b0.start(0); } catch (e) {}
   const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 6; comp.connect(ac.destination);
   SND.master = ac.createGain(); SND.master.gain.value = SND.on ? .9 : 0; SND.master.connect(comp);
-  SND.mus = ac.createGain(); SND.mus.gain.value = .32; SND.mus.connect(SND.master);
+  SND.mus = ac.createGain(); SND.mus.gain.value = .55; SND.mus.connect(SND.master);
   SND.musLp = ac.createBiquadFilter(); SND.musLp.type = 'lowpass'; SND.musLp.frequency.value = 2400; SND.musLp.connect(SND.mus);
   SND.sfx = ac.createGain(); SND.sfx.connect(SND.master);
   // вахтёрша — своя шина: громкость от расстояния, панорама от стороны, за стеной глуше
@@ -1749,7 +1772,7 @@ function sndInit() {
   const len = ac.sampleRate; SND.noise = ac.createBuffer(1, len, ac.sampleRate); const d = SND.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   SND.musNext = ac.currentTime + .2; setInterval(musTick, 100);
 }
-['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, sndInit, { capture: true, passive: true }));
+['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(ev => addEventListener(ev, sndInit, { capture: true, passive: true }));
 document.addEventListener('visibilitychange', () => { if (!SND.ac) return; if (document.hidden) SND.ac.suspend().catch(() => {}); else SND.ac.resume().catch(() => {}); });
 setInterval(() => { if (SND.ac && SND.ac.state === 'suspended' && !document.hidden) SND.ac.resume().catch(() => {}); }, 2000);
 function sndSet(on) { SND.on = on; try { localStorage.setItem('obsh2-snd', on ? '1' : '0'); } catch (e) {} if (SND.ac) SND.master.gain.setTargetAtTime(on ? .9 : 0, SND.ac.currentTime, .05); }
