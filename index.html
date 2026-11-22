@@ -850,6 +850,34 @@
   .ad-fake small { opacity: .7; line-height: 1.3; }
   .ad-btn { padding: 12px 22px; border-radius: 12px; background: #fff; color: #111; font-weight: 700; cursor: pointer; }
   .ad-btn.off { background: rgba(255, 255, 255, .25); color: #fff; }
+
+  /* Бой с роботом на телефоне (друг, msg 2623): половина робота — узкая полоска сверху, не вверх ногами;
+     у человека почти весь экран. Площадка (#stage) и летающие предметы (#arena) — под полоской */
+  body { --strip: clamp(56px, 9vh, 84px); }
+  body.strip .half.p1 { flex: 0 0 var(--strip); transform: none; padding: 4px 12px 26px; justify-content: center; }
+  body.strip .half.p1 .msg > :not(h1):not(h2):not(.status) { display: none; }
+  body.strip .half.p1 .msg :is(h1, h2) { font-size: 17px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80vw; }
+  body.strip .half.p1 .msg .granny, body.strip .half.p1 .quit { display: none; }
+  body.strip .half.p1 .hud { padding: 3px 12px; font-size: 13px; }
+  body.strip.menu .half.p1 .msg { visibility: hidden; }
+  body.strip.menu .half.p1::before { content: '🤖'; font-size: 34px; }
+  body.bot .half.p1 .quit { display: none; }
+  body.strip #stage { top: calc(var(--strip) + 21vmin + 14px); }
+  body.strip #arena { bottom: auto; height: calc(2 * (var(--strip) + 21vmin + 14px)); }
+  body.strip .half.p0 { padding-top: calc(42vmin + 28px); }
+  body.strip.no-stage .half.p0 { padding-top: 14px; }
+  body.strip.menu #stage { top: calc(var(--strip) + 12vmin + 10px); }
+  body.strip.menu .half.p0 { padding-top: calc(24vmin + 20px); }
+
+  /* Компьютер с широким экраном (друг, msg 2623): красный слева (Q W E · A S D), синий справа (U I O · J K L),
+     площадка посередине. Меню и игра по сети — как раньше, сверху и снизу */
+  body.row:not(.online):not(.menu) #app { flex-direction: row; }
+  body.row:not(.online):not(.menu) .half { padding: 16px 16px 48px; }
+  body.row:not(.online):not(.menu) .half.p1 { padding-right: calc(21vmin + 18px); }
+  body.row:not(.online):not(.menu) .half.p0 { padding-left: calc(21vmin + 18px); }
+  body.row.no-stage:not(.online):not(.menu) .half { padding: 14px 16px 44px; }
+  body.row:not(.online):not(.menu) .remote { transform: translate(-50%, -50%) rotate(90deg); transition: left .08s linear; }
+  .auto-next { font-size: 13px; opacity: .75; margin-top: 4px; }
 </style>
 </head>
 <body class="menu">
@@ -1070,7 +1098,7 @@ document.title = TITLE;
 document.querySelector('meta[name=apple-mobile-web-app-title]').content = t('Бабкин баттл', 'Babushka');
 
 // Номер сборки — виден внизу «Правил», по нему проверяем, какая версия открыта у игрока
-const BUILD = 57;
+const BUILD = 58;
 
 // Для какого сайта собрана игра: build-single.mjs <сайт> вписывает window.KOLORIT_PORTAL
 // ('newgrounds', 'gamejolt', 'itch' — без рекламы, с игрой по сети; 'gd' — GameDistribution, 'poki' — их реклама)
@@ -1286,6 +1314,15 @@ const STATS = {
     this.hit('open', `open:${plat}`, ...(first ? ['uniq'] : []));
   },
 };
+
+// Воронка (друг, msg 2623): на каком экране нажали ✕ (quit:…) или свернули/закрыли игру (gone:…).
+// Во время обучения экраны с буквой t: tintro, tplay, tbetween, tfinal
+let PHASE = 'menu';
+const phaseGone = new Set();
+function setPhase(ph) { PHASE = (LEARN ? 't' : '') + ph; }
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !phaseGone.has(PHASE)) { phaseGone.add(PHASE); STATS.hit('gone:' + PHASE); }
+});
 
 // ---------- покупка за звёзды ----------
 // Только в Телеграме: «Открыть всё» за Telegram Stars — все стили, «мама» и без рекламы
@@ -1851,7 +1888,17 @@ for (const half of halves) {
     const quit = e.target.closest('.quit');
     if (quit) { askQuit(quit); return; }
     pointers.set(e.pointerId, p);
-    if (state.onTap) state.onTap(p, e.target);
+    let el = e.target;
+    // Компьютер, бой с роботом: клик мимо кнопки — как главная кнопка (друг, msg 2623)
+    if (DESKTOP && BOT.on && !el.closest('.grab, .btn, .win, .mode, [data-act], [data-where], a, input')) {
+      const k = kbTarget(0, 0);
+      if (k && k !== half && k.matches('.grab, .win, [data-act=go], [data-act=next]')) {
+        el = k;
+        k.classList.add('pressed');
+        setTimeout(() => k.classList.remove('pressed'), 120);
+      }
+    }
+    if (state.onTap) state.onTap(p, el);
   });
 }
 
@@ -1869,6 +1916,7 @@ function askQuit(el) {
 }
 function leaveMatch() {
   for (const q of document.querySelectorAll('.hud .quit')) { delete q.dataset.ask; q.classList.remove('ask'); q.textContent = '✕'; }
+  if (!document.body.classList.contains('menu')) STATS.hit('quit:' + PHASE);
   if (FAIR.ws || FAIR.names) FAIR.quit(); else home();
 }
 
@@ -1888,11 +1936,29 @@ for (const type of ['pointerup', 'pointercancel']) {
 // из двух кнопок правая колонка (E, D, O, L) жмёт вторую, остальные — первую.
 const DESKTOP = matchMedia('(hover: hover) and (pointer: fine)').matches;
 if (DESKTOP) document.body.classList.add('desktop');
+// Широкий экран компьютера — игроки слева и справа (row); бой с роботом на узком экране — полоска робота (strip)
+function fitLayout() {
+  const b = document.body;
+  b.classList.toggle('row', DESKTOP && innerWidth >= innerHeight * 1.2 && innerWidth >= 720);
+  b.classList.toggle('bot', BOT.on);
+  b.classList.toggle('strip', BOT.on && !(b.classList.contains('row') && !b.classList.contains('menu')));
+}
+const isRow = () => document.body.matches('.row:not(.online):not(.menu)');
+addEventListener('resize', fitLayout);
 const KB = {
   KeyQ: [1, 0], KeyW: [1, 1], KeyE: [1, 2], KeyA: [1, 3], KeyS: [1, 4], KeyD: [1, 5],
   KeyU: [0, 0], KeyI: [0, 1], KeyO: [0, 2], KeyJ: [0, 3], KeyK: [0, 4], KeyL: [0, 5],
 };
 const KB_HINT = ['U I O · J K L', 'Q W E · A S D'];
+// Один человек за компьютером (робот или соперник по сети): все клавиши его, плюс пробел и Enter
+const solo = () => ONLINE.peer || BOT.on;
+const SOLO_KEYS = ['Space', 'Enter', 'NumpadEnter'];
+function keyHit(code) { return KB[code] || (SOLO_KEYS.includes(code) && (solo() || ONLINE.role === 'guest') ? [0, 0] : null); }
+function kbHint(p) {
+  if (!DESKTOP) return '';
+  if (solo()) return p === 0 ? `<p class="kb-hint">⌨️ ${t('Жми пробел, мышку или любую букву', 'Press Space, click or any letter')}</p>` : '';
+  return `<p class="kb-hint">⌨️ ${t('Твои клавиши', 'Your keys')}: ${KB_HINT[p]}</p>`;
+}
 const kbDown = new Set();
 
 function kbTarget(p, slot, half = halves[p]) {
@@ -1906,14 +1972,14 @@ function kbTarget(p, slot, half = halves[p]) {
 }
 
 document.addEventListener('keydown', e => {
-  const hit = KB[e.code];
+  const hit = keyHit(e.code);
   if (ONLINE.role === 'guest') { if (hit && !e.repeat) ONLINE.key(hit[1], true); return; }
   if (e.code === 'Escape' && !document.body.classList.contains('menu')) { leaveMatch(); return; }
   if (!hit || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input')) return;
   e.preventDefault();
   if (soundMode) audioCtx();
   // По сети за этим компьютером один игрок — синий, любыми из клавиш
-  const [p, slot] = ONLINE.peer ? [0, hit[1]] : hit;
+  const [p, slot] = solo() ? [0, hit[1]] : hit;
   const el = kbTarget(p, slot);
   if (!el) return;
   kbDown.add(e.code);
@@ -1925,11 +1991,11 @@ document.addEventListener('keydown', e => {
 });
 // Отпустил все свои клавиши — как отпустил палец (для игр с удержанием)
 document.addEventListener('keyup', e => {
-  const hit = KB[e.code];
+  const hit = keyHit(e.code);
   if (ONLINE.role === 'guest') { if (hit) ONLINE.key(hit[1], false); return; }
   if (!hit || !kbDown.delete(e.code)) return;
-  const p = ONLINE.peer ? 0 : hit[0];
-  if (![...kbDown].some(c => (ONLINE.peer ? 0 : KB[c][0]) === p) && state.onRelease) state.onRelease(p);
+  const p = solo() ? 0 : hit[0];
+  if (![...kbDown].some(c => (solo() ? 0 : (keyHit(c) || [0])[0]) === p) && state.onRelease) state.onRelease(p);
 });
 
 // ---------- игра по сети ----------
@@ -2305,12 +2371,14 @@ const BOT = {
     this.name = NAMES[this.P];
     NAMES[this.P] = t('🤖 Робот', '🤖 Robot');
     this.timer = setInterval(() => this.think(), 40);
+    fitLayout();
   },
   stop() {
     if (!this.on) return;
     this.on = false;
     NAMES[this.P] = this.name;
     clearInterval(this.timer);
+    fitLayout();
   },
   // Новый раунд или экран — всё, на что уже реагировал, забываем
   reset() { this.memo.clear(); this.next = 0; this.held = false; this.aim = rand(86, 99); },
@@ -2482,7 +2550,11 @@ const REMOTE = {
     const startAt = performance.now();
     let left = Math.round(LIMIT_MS / 1000);
 
-    const draw = () => { remote.style.top = `${50 + pos * 36}%`; };
+    const draw = () => {
+      const at = `${50 + pos * 36}%`, row = isRow();
+      remote.style.top = row ? '' : at;
+      remote.style.left = row ? at : '';
+    };
     const tick = () => sayEach(() => t(`<div class="big">ТЯНИ!!!</div><p>${left} с</p>`, `<div class="big">PULL!!!</div><p>${left} s</p>`));
     draw();
     tick();
@@ -2796,7 +2868,7 @@ const BILL = {
     say(grabUI(t('👉 Давай ты', '👉 Your treat')));
 
     const draw = () => {
-      bill.style.transform = `translate(-50%, calc(-50% + ${holder === 0 ? 10 : -10}vh))`;
+      bill.style.transform = isRow() ? `translate(calc(-50% + ${holder === 0 ? 8 : -8}vw), -50%)` : `translate(-50%, calc(-50% + ${holder === 0 ? 10 : -10}vh))`;
       for (const p of [0, 1]) {
         setStatus(holder === p ? t('<h2>Чек у тебя! 😱</h2>', '<h2>You have the bill! 😱</h2>') : t('<h2>Чек у соперника 😌</h2>', '<h2>Rival has the bill 😌</h2>'), p);
         $p(p, '.grab').classList.toggle('done', holder !== p);
@@ -3844,6 +3916,8 @@ const FAIR = {
 
 // Матч — одна мини-игра до WINS_TO побед
 const WINS_TO = 3;
+function winsTo() { return LEARN ? 2 : WINS_TO; }   // обучение — до 2 побед (друг, msg 2623)
+const waitLabel = p => BOT.on && p === BOT.P ? t('🤖 Готов', '🤖 Ready') : WAITING;
 
 // rec — что считается рекордом: подпись, единица и «чем меньше, тем лучше»
 const MODES = [
@@ -4028,6 +4102,8 @@ function enterMenu() {
   music.start();
   arena.innerHTML = '';
   stage.innerHTML = '<img class="logo-img" src="icon-192.png" alt="">';
+  setPhase('menu');
+  fitLayout();
 }
 
 // Стартовый экран: где играем
@@ -4042,7 +4118,7 @@ function showStart() {
     <div class="modes">
       <div class="mode quick" data-where="quick"><span class="e">▶️</span><span><b>${t('Играть сразу', 'Play now')}</b><small>${t('Бой с роботом, без настроек', 'Versus robot, no setup')}</small></span></div>
       <div class="mode" data-where="local"><span class="e">${ico('local')}</span><span><b>${t('Вдвоём', 'Two players')}</b><small>${DESKTOP ? t('За одним компьютером', 'At one computer') : t('Кладите телефон между собой', 'Put the phone between you')}</small></span></div>
-      <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${t('Ты снизу, робот сверху', 'You at the bottom, robot on top')}</small></span></div>
+      <div class="mode" data-where="bot"><span class="e">${ico('bot')}</span><span><b>${t('Против робота', 'Versus robot')}</b><small>${(DESKTOP && document.body.classList.contains('row') ? t('Ты справа, робот слева', 'You on the right, robot on the left') : t('Ты снизу, робот сверху', 'You at the bottom, robot on top'))}</small></span></div>
       ${PORTAL && ADS.kind !== 'tg' && !LINKS_OK ? '' /* на игровых порталах — без своего сервера */ : `<div class="mode" data-where="online"><span class="e">${ico('online')}</span><span><b>${t('По сети', 'Online')}</b><small>${t('Каждый со своего телефона', 'Each on your own phone')}</small></span></div>`}
       ${TOUR.on ? `<div class="mode" data-where="tour"><span class="e">🏆</span><span><b>${t('Турнир', 'Tournament')}</b><small>${t('Ставки пельмешками 🥟', 'Play for dumplings 🥟')}</small></span></div>` : ''}
       ${LINKS_OK ? `<div class="mode" data-where="tgtour"><span class="e">🏆</span><span><b>${t('Турнир у Бабки', 'Granny’s tournament')}</b><small>${t('В Телеграме, на пельмешки 🥟', 'In Telegram, for dumplings 🥟')}</small></span></div>` : ''}
@@ -4087,6 +4163,7 @@ function quickPlay(learn = false) {
   save('kolorit-quick', n + 1);
   const pool = MODES.filter(m => m.game && !(m.premium && isLocked(m.id)));
   LEARN = learn;
+  if (learn) STATS.hit('tut:go');
   BOT.start();
   startMode(n ? pick(pool) : MODES.find(m => m.id === 'pelmen'));
 }
@@ -4381,7 +4458,8 @@ function showMenu() {
   const pages = Math.ceil(MODES.length / PER_PAGE);
   menuPage = Math.min(menuPage, pages - 1);
   const list = MODES.slice(menuPage * PER_PAGE, (menuPage + 1) * PER_PAGE);
-  say(`<h2>${t('Во что рубимся?', 'Pick your battle')}</h2>
+  const tip = learned && BOT.on ? `<p class="gift">🎓 ${t(`Обучение пройдено! Ещё ${GAMES.length - 1} игр — выбирай любую, снова против робота 🤖`, `Tutorial done! ${GAMES.length - 1} more games — pick any, versus the robot again 🤖`)}</p>` : '';
+  say(`<h2>${t('Во что рубимся?', 'Pick your battle')}</h2>${tip}
     <div class="modes grid">${list.map(m =>
       m.premium && isLocked(m.id)
         ? `<div class="mode locked" data-mode="${m.id}"><span class="e">${modeEmoji(m)}</span><span><b>🔒 ${modeTitle(m)}</b><small>${t('⭐ Супер-уровень · 📺 за рекламу', '⭐ Super level · 📺 watch an ad')}</small></span></div>`
@@ -4430,12 +4508,13 @@ function startMode(mode) {
   state.queue = mode.tour ? openGames().sort(() => Math.random() - .5) : [];
   STATS.hit('start', `mode:${mode.id}`, `where:${ONLINE.role ? 'net' : BOT.on ? 'bot' : 'duo'}`);
   document.body.classList.remove('menu');
+  fitLayout();
   updateHud();
   nextRound();
 }
 
 function matchOver() {
-  return state.mode.tour ? state.round >= state.queue.length : Math.max(...state.wins) >= WINS_TO;
+  return state.mode.tour ? state.round >= state.queue.length : Math.max(...state.wins) >= winsTo();
 }
 
 function nextRound() {
@@ -4453,13 +4532,14 @@ function nextRound() {
 function progressText(p) {
   const progress = state.mode.tour
     ? t(`Игра ${state.round} из ${state.queue.length}`, `Game ${state.round} of ${state.queue.length}`)
-    : t(`Раунд ${state.round} · до ${WINS_TO} побед`, `Round ${state.round} · first to ${WINS_TO} wins`);
+    : t(`Раунд ${state.round} · до ${winsTo()} побед`, `Round ${state.round} · first to ${winsTo()} wins`);
   return `${progress} · ${t('счёт', 'score')} ${state.wins[p]}:${state.wins[1 - p]}`;
 }
 
 // «3, 2, 1» в центре, правило перед глазами, потом игра
 function countdown(game, wait) {
   BOT.reset();
+  setPhase('play');
   music.stop();
   ADS.playing(true);
   document.body.classList.remove('no-stage', 'intro');
@@ -4485,15 +4565,16 @@ function showIntro(game, start) {
   setScene(game.id);
   swipeIn();
   stage.innerHTML = '';
-  const ready = [false, false];
-  const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? WAITING : t('▶ Начать', '▶ Start')}</span>`;
+  setPhase('intro');
+  const ready = [false, BOT.on];   // робот готов сразу — человеку одно нажатие
+  const button = p => `<span class="btn ${ready[p] ? 'on' : ''}" data-act="go">${ready[p] ? waitLabel(p) : t('▶ Начать', '▶ Start')}</span>`;
   // Номер игры показываем только в турнире: в обычном матче это всегда первый раунд
   const head = p => state.mode.tour ? `<p class="demo-progress">${progressText(p)}</p>`
-    : LEARN && state.round === 1 ? `<p class="demo-progress">👋 ${t('Обучение: смотри, куда жать, и сыграй с роботом до 3 побед', 'Tutorial: see where to tap, then beat the robot to 3 wins')}</p>` : '';
+    : LEARN && state.round === 1 ? `<p class="demo-progress">👋 ${t(`Обучение: смотри, куда жать, и сыграй с роботом до ${winsTo()} побед`, `Tutorial: see where to tap, then beat the robot to ${winsTo()} wins`)}</p>` : '';
   sayEach(p => `${head(p)}<h2>${gameIco(game)} ${game.title}</h2>
     <div class="demo"><div class="demo-pic"></div><div class="demo-bar"><b></b><i></i><s></s></div>
       <div class="grab demo-btn"></div><div class="demo-cap"></div></div>
-    <p class="demo-rule">${game.rule}</p>${DESKTOP ? `<p class="kb-hint">⌨️ ${t('Твои клавиши', 'Your keys')}: ${KB_HINT[p]}</p>` : ''}<div class="go">${button(0)}</div>`);
+    <p class="demo-rule">${game.rule}</p>${kbHint(p)}<div class="go">${button(p)}</div>`);
   playDemo(game.demo);
   // Задержка, чтобы тап по «Следующему раунду» не нажал заодно «Начать»
   const shownAt = performance.now();
@@ -4540,6 +4621,8 @@ function roundOver(winner, text, stats) {
   BOT.reset();
   if (winner !== null) state.wins[winner]++;
   updateHud();
+  STATS.hit('rd:' + Math.min(state.round, 9), ...(LEARN ? ['tut:r' + state.round] : []));
+  setPhase(matchOver() ? 'final' : 'between');
   if (winner !== null) { jolt(); confetti(winner, 18); }
   arena.innerHTML = '';
   document.body.classList.remove('no-stage');
@@ -4567,11 +4650,14 @@ function roundOver(winner, text, stats) {
     return;
   }
   // Следующий раунд — только когда оба нажали «Дальше»
-  const ready = [false, false];
+  const ready = [false, BOT.on];
   const draw = () => sayEach(p => result(p) +
-    `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? WAITING : t('Следующий раунд ▶', 'Next round ▶')}</span></div>`);
+    `<div><span class="btn ${ready[p] ? 'on' : ''}" data-act="next">${ready[p] ? waitLabel(p) : t('Следующий раунд ▶', 'Next round ▶')}</span></div>` +
+    (BOT.on && p === 0 && !ready[0] ? `<p class="auto-next">${t('…или сам начнётся через 3 секунды', '…or it starts by itself in 3 seconds')}</p>` : ''));
   draw();
   fresh = false;
+  // С роботом следующий раунд начинается сам (друг, msg 2623)
+  if (BOT.on) later(3000, () => { if (!ready[0]) { ready[0] = true; draw(); state.onTap = null; later(300, nextRound); } });
   // Небольшая задержка, чтобы разогнавшийся в «Пульте» палец не нажал «Дальше» случайно
   const shownAt = performance.now();
   state.onTap = (p, el) => {
@@ -4585,7 +4671,8 @@ function roundOver(winner, text, stats) {
 }
 
 function showFinal() {
-  STATS.hit('final');
+  STATS.hit('final', ...(LEARN ? ['tut:ok'] : []));
+  setPhase('final');
   const [a, b] = state.wins;
   const winner = a === b ? null : (a > b ? 0 : 1);
   const [winText, loseText] = state.mode.final;
@@ -4603,8 +4690,10 @@ function showFinal() {
       : winner === p
       ? `<h1>${t('Победа', 'Victory')} ${state.wins[p]}:${state.wins[1 - p]} 🏆</h1><p>${winText}</p>`
       : `<h1>${t('Проиграл', 'Lost')} ${state.wins[p]}:${state.wins[1 - p]}</h1><p>${loseText}</p>`;
-    const learnLine = LEARN ? `<p>🎓 ${t('Обучение пройдено! На главном — игра вдвоём и по сети', 'Tutorial done! Two-player and online modes are on the main screen')}</p>` : '';
-    return face + head + learnLine + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
+    if (LEARN) return face + head + `<p>🎓 ${t(`Обучение пройдено! Дальше — все ${GAMES.length} игр`, `Tutorial done! Next: all ${GAMES.length} games`)}</p>` +
+      t('<div><span class="btn" data-act="menu">🎮 Все игры</span><span class="btn" data-act="again">🔁 Ещё раз</span></div>',
+        '<div><span class="btn" data-act="menu">🎮 All games</span><span class="btn" data-act="again">🔁 Again</span></div>');
+    return face + head + t('<div><span class="btn" data-act="again">🔁 Реванш</span><span class="btn" data-act="menu">🏠 Меню</span></div>',
       '<div><span class="btn" data-act="again">🔁 Rematch</span><span class="btn" data-act="menu">🏠 Menu</span></div>');
   });
   state.onTap = (p, el) => {
@@ -4612,7 +4701,8 @@ function showFinal() {
     if (act !== 'again' && act !== 'menu') return;
     // Матч сыгран — естественная пауза для рекламы
     state.onTap = null;
-    if (LEARN) learned = true;
+    // После обучения «Все игры» ведут в меню игр с тем же роботом, а не на главный экран
+    if (LEARN) { learned = true; LEARN = false; if (act === 'menu') QUICK = false; }
     ADS.between().then(() => act === 'again' ? startMode(state.mode) : home());
   };
 }
