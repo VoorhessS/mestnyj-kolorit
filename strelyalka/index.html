@@ -506,8 +506,8 @@ const LEVELS = [
       B.rock(72, 14, 73, 15); B.bush(80, 16, 3); B.bug(81, 16, 'A');
       B.fill(96, 16, 127, 17, AIR); B.room(96, 18, 127, 30);                        // овраг, дно — 31
       B.ramp(96, 16, 24); B.fill(104, 24, 105, 24); B.lad(126, 16, 30);             // осыпь в овраг слева, лиана справа
-      B.fill(92, 16, 93, 17, AIR); B.room(92, 18, 93, 30); B.room(94, 27, 95, 30);  // расщелина: наверх — зажми ВВЕРХ, полезешь по стенкам
-      B.water(104, 29, 116, 30);                                                    // ручей на дне
+      B.fill(92, 16, 93, 17, AIR); B.room(92, 18, 93, 30); B.room(94, 29, 95, 30);  // расщелина (вход низкий: после прыжка сразу распор, 22.11): наверх — зажми ВВЕРХ, полезешь по стенкам
+      B.water(104, 31, 116, 32);                                                    // ручей на дне — в русле, вровень с дном (друг, msg 2463: висел над землёй)
       B.fill(106, 24, 110, 24); B.fill(118, 21, 122, 21);                           // каменные полки
       B.room(128, 26, 134, 30); B.item('radio', 132, 31);                           // пещерка с рацией
       for (const [x, y] of [[100, 31], [112, 24], [123, 21], [130, 31]]) B.shroom(x, y);
@@ -657,9 +657,10 @@ const LEVELS = [
       B.slime(56, 62, 22); B.acid(70, 72, 22);
       B.ramp(10, 22, 20); B.fill(12, 20, 15, 21); B.ramp(16, 20, 22);               // бугор
       B.ramp(38, 22, 24); B.room(40, 22, 42, 23); B.ramp(43, 24, 22);               // ложбина
-      B.bigshroom(28, 18, 22); B.bigshroom(66, 17, 22); B.bigshroom(116, 18, 22);
+      B.bigshroom(28, 18, 22); B.bigshroom(66, 17, 22); B.bigshroom(103, 18, 22);   // друг (msg 2474): у стены 116 со шляпки было не слезть
       B.fill(110, 6, 110, 19); B.fill(113, 6, 113, 19); B.room(111, 2, 112, 5);    // щель между столбами — наверх прыжками от стен
       B.room(74, 2, 110, 4); B.room(76, 5, 77, 5);                                 // ход над пещерой, дыра вниз
+      B.sign(111, 20, '^');                                                        // друг (msg 2472) не нашёл подъём: стрелка к щели
       for (const [x, y] of [[12, 20], [44, 14], [54, 22], [86, 12], [98, 22], [76, 22], [100, 5], [82, 5]]) B.shroom(x, y);
       B.nest(20, 22); B.nest(47, 14); B.nest(89, 12); B.nest(106, 22); B.nest(90, 5);
       B.bug(96, 5, 'l'); B.bug(84, 5, 'e'); B.bug(116, 22, 'l'); 
@@ -1928,7 +1929,8 @@ function startLevel(n) {
   lamps = lv.lamps.map(([x, y, post]) => ({ x: x * T + 8, y: y * T + 3, post: !!post, kind: typeof post === 'string' ? post : null, bad: !post && Math.random() < .3, ph: Math.random() * 9 }));
   signs = lv.signs; deco = lv.deco;
   exit = lv.exit ? { x: lv.exit[0] * T, y: lv.exit[1] * T - 32, w: 16, h: 32, txt: lv.exit[2] } : null;
-  L.exitNear = !!exit && !L.stages && !['reach', 'boss', 'lift', 'talk', 'food', 'arms', 'meds'].includes(L.obj) && Math.abs(lv.exit[0] - lv.start[0]) < 25;
+  // друг (22.11, msg 2465, вариант 1): «волшебный выход» убран — уровни спидранились; назад идёшь сам, по пути волна
+  L.exitNear = false && !!exit && !L.stages && !['reach', 'boss', 'lift', 'talk', 'food', 'arms', 'meds'].includes(L.obj) && Math.abs(lv.exit[0] - lv.start[0]) < 25;
   heli = lv.heli ? { x: lv.heli[0] * T, y: lv.heli[1] * T - 24, w: 64, h: 24 } : null;
   const A = lv.arena;
   boss = { on: false, dead: false, deadT: 0, parts: !A ? [] : A.boss === 'alpha'
@@ -3169,6 +3171,11 @@ function update(dt) {
       const rap = L.rapids && L.rapids.some(([a, b]) => cart.x >= a * T && cart.x < b * T), vmax = (L.cartV || 110) * (rap ? 1.6 : 1);   // пороги несут быстрее
       cart.v = cart.v < vmax ? Math.min(vmax, cart.v + 120 * dt) : Math.max(vmax, cart.v - 90 * dt);
       if (rap && L.raft && Math.random() < dt * 3) shake = Math.max(shake, .08);
+      if (L.raft && !P.dead && (cart.wT = (cart.wT ?? 3) - dt) <= 0 && enemies.filter(e => e.k === 'v' && e.hp > 0).length < 4) {
+        cart.wT = rnd(4, 7);
+        const w = mkBug('v', P.x + rnd(150, 230), Math.max(T * 2, P.y - rnd(70, 110)), -1); w.sleep = false; w.spawned = true; w.t = rnd(.8, 1.6);
+        enemies.push(w); beep(1800, 2400, .12, 'sawtooth', .02);
+      }
       cart.dx = Math.min(cart.v * dt, cart.end - cart.w - cart.x); cart.x += cart.dx;
       if (Math.random() < dt * 7) beep(70 + Math.random() * 30, 50, .06, 'square', .012);
       if (!P.dead && !P.on && !P.climb && Math.abs(P.x - cart.x - 15) < 60) P.x += cart.dx;   // в прыжке летишь вместе с ней
@@ -3462,6 +3469,13 @@ function bugAI(e, dt) {
   const dx = P.x + 5 - (e.x + e.w / 2), dyF = P.y + P.h - (e.y + e.h), dir = Math.sign(dx) || 1;
   if (e.k === 'o') { cocoonAI(e, dt, dx); return; }
   if (e.jar) { e.vx = 0; e.vy = 0; if (!P.dead && Math.abs(dx) < 64 && Math.abs(dyF) < 40) breakJar(e); else return; }   // мутант в колбе ждёт
+  if (L.raft && cart?.go && e.on && !e.fly && !e.rj && 'MGASrRj'.includes(e.k) && !P.dead && dyF > 40 && dyF < 170 && dx > -120 && dx < -25) {
+    // сплав: плот подплывает под бревно — жук прыгает сверху на героя (за 0.68 с плот проплывёт cart.v·0.68)
+    e.sleep = false; e.hide = false; e.rj = true; e.vy = -140; e.rjv = dx / .68 + (cart.v || 0); e.dir = Math.sign(e.rjv) || dir;
+    beep(600, 1500, .15, 'sawtooth', .035);
+  }
+  if (e.rj && !e.on) { e.vx = e.rjv; e.vy = Math.min(e.vy + GRAV * dt, 520); moveBody(e, dt); e.run += dt; if (touches(e, ACID) || touches(e, WATER) || e.y > MAPH) e.hp = -1; return; }
+  if (e.rj && e.on && e.vy >= 0) e.rj = false;
   if (e.k === 'w') wormAI(e, dt, dx, dyF, dir);
   else if (e.k === 'v') waspAI(e, dt, dx, dir);
   else if (e.lure) {                               // светляк-обманка: сидит огоньком, кусает вблизи
@@ -3491,22 +3505,32 @@ function bugAI(e, dt) {
   else if (e.k === 'h') zapAI(e, dt, dx, dyF, dir);
   else if (e.k === 't' || e.k === 'P') gasAI(e, dt, dx, dyF, dir);
   else if (e.k === 'G') {                          // метатель: стоит и кидает камешки дугой
-    e.vx = 0; e.dir = dir; e.cd -= dt; e.t -= dt;
+    e.dir = dir; e.cd -= dt; e.t -= dt;
+    // друг (msg 2461): не стоять столбом — держит дистанцию 70–200 px, вплотную отходит, героя не видно — бродит у места
+    const near = !P.dead && Math.abs(dyF) < 150, adx = Math.abs(dx);
+    if (e.t > 0) e.vx = 0;                                   // замах — стоит
+    else if (near && adx > 200 && adx < 320) e.vx = dir * e.sp;
+    else if (near && adx < 70) { e.vx = -dir * e.sp * 1.3; e.dir = -dir; }
+    else if (!near || adx >= 320) { e.hx ??= e.x; e.wd ??= 1; if (e.wall) e.wd = -e.wd; if (Math.abs(e.x - e.hx) > 36) e.wd = Math.sign(e.hx - e.x); e.vx = e.wd * e.sp * .6; e.dir = e.wd; }
+    else e.vx = 0;
     if (e.cd <= 0 && !P.dead && Math.abs(dx) < 260 && Math.abs(dyF) < 150) {
       const tf = .9, dy = P.y + 11 - e.y;
-      ebullets.push({ x: e.x + e.w / 2, y: e.y + 2, w: 5, h: 5, vx: clamp(dx / tf, -230, 230), vy: dy / tf - 300 * tf, g: 600, life: 2.5, k: 'stone' });
+      const lead = L.raft && cart?.go ? (cart.v || 0) * tf : 0;   // сплав: кидает туда, где плот будет
+      ebullets.push({ x: e.x + e.w / 2, y: e.y + 2, w: 5, h: 5, vx: clamp((dx + lead) / tf, -230, 230), vy: dy / tf - 300 * tf, g: 600, life: 2.5, k: 'stone' });
       e.cd = rnd(2, 2.8); e.t = .3; beep(400, 200, .12, 'square', .025);
     }
   } else if (e.k === 'F') {                        // летун: прыгает и планирует
     if (e.on) {
       e.vx = 0; e.t -= dt;
       if (e.t <= 0 && !P.dead && Math.abs(dx) < 260 && Math.abs(dyF) < 170) { e.vy = -240 + clamp(dyF, -140, 0) * 1.3; e.vx = dir * 150; e.dir = dir; e.t = rnd(.8, 1.5); beep(2000, 3000, .05, 'triangle', .015); }
+      else if (e.t <= 0) idleHop(e);
     }
   } else if (e.k === 'H') shieldAI(e, dt, dx, dyF, dir);
   else if (e.k === 'j') {                        // щелкун: замирает и прыгает на героя
     if (e.on) {
       e.vx = 0; e.t -= dt;
       if (e.t <= 0 && !P.dead && Math.abs(dx) < 230 && Math.abs(dyF) < 100) { e.vy = -300; e.vx = dir * 125; e.dir = dir; e.t = rnd(.7, 1.3); beep(1400, 2600, .06, 'square', .02); }
+      else if (e.t <= 0) idleHop(e);
     }
   } else if (e.k === 'b') {                        // бомбардир: подходит и брызгает
     e.cd -= dt;
@@ -3526,10 +3550,25 @@ function bugAI(e, dt) {
   const vx0 = e.vx;
   moveBody(e, dt);
   if (e.wall && !'sHGZ'.includes(e.k)) e.vx = -vx0;
+  else if (e.wall && e.on && vx0 && 'sHZ'.includes(e.k) && e.st === 'walk' && !(e.back > 0)) { e.back = rnd(1.2, 2); e.bdir = -Math.sign(vx0); }   // упёрся в стену — отойти, а не толкать её
   if (e.vx && e.st !== 'stun') e.dir = Math.sign(e.vx);
   e.run += dt;
   if (touches(e, ACID) || touches(e, WATER)) e.hp = -1;     // в кислоте и в воде тонут
   if (e.spawned && (Math.abs(e.x - P.x) > 700 || Math.abs(e.y - P.y) > 400)) e.hp = -1;
+}
+function idleHop(e) {                       // прыгун без героя рядом: короткий подскок туда-сюда у своего места (друг, msg 2461)
+  e.hx ??= e.x; e.t = rnd(1.1, 2.3);
+  const gr = (c, r) => solid(c, r) || tile(c, r) === PLAT, wet = t => t === ACID || t === WATER;
+  const safe = d => {                        // куда приземлится: пол не ниже 3 клеток, не жижа и не стена
+    const c = Math.floor((e.x + e.w / 2 + d * 26) / T), fy = Math.floor((e.y + e.h + 2) / T);
+    if (solid(c, fy - 1) || solid(c, fy - 2)) return false;
+    for (let r = fy - 1; r <= fy + 3; r++) { const t = tile(c, r); if (wet(t)) return false; if (gr(c, r)) return true; }
+    return false;
+  };
+  let d = Math.abs(e.x - e.hx) > 30 ? Math.sign(e.hx - e.x) : Math.random() < .5 ? -1 : 1;
+  if (!safe(d)) d = -d;
+  if (!safe(d)) { e.dir = -e.dir || 1; return; }   // прыгать некуда — просто оглядывается
+  e.vy = e.k === 'F' ? -150 : -170; e.vx = d * 55; e.dir = d;
 }
 function leapAI(e, dt) {                     // впереди вода / кислота / глубокий пролёт — прыжок на землю за ним (до 4 клеток выше), а нет земли — разворот (друг, msg 2056, 2071)
   if (e.leap > 0) { e.leap -= dt; if (!e.on) e.vx = e.leapVx; return; }
@@ -3542,7 +3581,8 @@ function leapAI(e, dt) {                     // впереди вода / кис
     return true;
   };
   if (!hazard(c0)) return;   // друг (msg 2089): прыжки отменили — жуки застревали наверху; впереди опасно — просто разворот
-  e.vx = -e.vx; if (e.wd) e.wd = -e.wd;                                                  // перепрыгнуть некуда — назад
+  e.vx = -e.vx; if (e.wd) e.wd = -e.wd;
+  if ('sHZ'.includes(e.k) && e.st === 'walk') { e.back = rnd(1.2, 2); e.bdir = Math.sign(e.vx); }   // страж у обрыва: отойти, а не дрожать на краю (msg 2461)                                                  // перепрыгнуть некуда — назад
 }
 function cocoonAI(e, dt, dx) {             // кокон: задрожал — через 2.4 с вылупится оса
   e.run += dt;
@@ -3560,10 +3600,11 @@ function waspAI(e, dt, dx, dir) {          // оса: кружит над гер
   if (e.st === 'dive') { if (e.t <= 0 || e.wall || e.on) { e.st = 'hover'; e.t = rnd(1.3, 2.3); } return; }
   e.st = 'hover';
   const tx = P.x + 5 + Math.sin(time * 1.7 + e.ph) * 60, ty = py - 46 + Math.sin(time * 3.1 + e.ph) * 10;
-  e.vx = clamp((tx - cx) * 2.2, -e.sp, e.sp); e.vy = clamp((ty - cy) * 2.2, -e.sp * .8, e.sp * .8);
+  const rv = L.raft && cart?.go ? cart.v || 0 : 0;   // сплав: оса летит вместе с плотом
+  e.vx = clamp((tx - cx) * 2.2, -e.sp, e.sp) + rv; e.vy = clamp((ty - cy) * 2.2, -e.sp * .8, e.sp * .8);
   if (P.dead) return;
   if (e.t <= 0 && Math.hypot(dx, py - cy) < 210) {
-    const d = Math.hypot(dx, py - cy) || 1; e.st = 'dive'; e.t = .75; e.vx = dx / d * 180; e.vy = (py - cy) / d * 180; e.dir = Math.sign(dx) || 1;
+    const d = Math.hypot(dx, py - cy) || 1; e.st = 'dive'; e.t = .75; e.vx = dx / d * 180 + rv; e.vy = (py - cy) / d * 180; e.dir = Math.sign(dx) || 1;
     beep(1800, 600, .25, 'sawtooth', .025);
   }
 }
@@ -3802,7 +3843,8 @@ function lunger(e, dt, dx, dyF, dir) {     // богомолы: подбегаю
 }
 function shieldAI(e, dt, dx, dyF, dir) {   // щитоносец: косы сложены щитом, открывается только при атаке
   e.t -= dt;
-  if (e.st === 'walk') { e.dir = dir; e.vx = dir * e.sp; if (!P.dead && Math.abs(dx) < 75 && Math.abs(dyF) < 30) { e.st = 'prep'; e.t = .4; } }
+  if (e.st === 'walk' && e.back > 0) { e.back -= dt; e.dir = e.bdir; e.vx = e.bdir * e.sp; }
+  else if (e.st === 'walk') { e.dir = dir; e.vx = dir * e.sp; if (!P.dead && Math.abs(dx) < 75 && Math.abs(dyF) < 30) { e.st = 'prep'; e.t = .4; } }
   else if (e.st === 'prep') { e.vx = 0; if (e.t <= 0) { e.st = 'lunge'; e.t = .32; beep(300, 120, .2, 'sawtooth', .04); } }
   else if (e.st === 'lunge') { e.vx = e.dir * 240; if (e.t <= 0 || e.wall) { e.st = 'stun'; e.t = 1; e.vx = 0; } }
   else if (e.st === 'stun') { e.vx = 0; if (e.t <= 0) e.st = 'walk'; }
@@ -3811,7 +3853,8 @@ function shieldAI(e, dt, dx, dyF, dir) {   // щитоносец: косы сл�
 // Страж из свиты: щит спереди, рывок (после него оглушён), плевок кислотой дугой
 function guardAI(e, dt, dx, dyF, dir) {
   e.t -= dt;
-  if (e.st === 'walk') {
+  if (e.st === 'walk' && e.back > 0) { e.back -= dt; e.dir = e.bdir; e.vx = e.bdir * e.sp; }
+  else if (e.st === 'walk') {
     e.dir = dir; e.vx = dir * e.sp;
     if (e.t <= 0 && !P.dead && Math.abs(dyF) < 60 && Math.abs(dx) < 260) {
       if (Math.abs(dx) > 80 && Math.random() < .5) { e.st = 'spit'; e.t = .45; } else { e.st = 'prep'; e.t = .55; }
