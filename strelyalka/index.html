@@ -17,6 +17,7 @@ Object.assign(EN, {"вход — дупло у корней. в узкую ще�
 Object.assign(EN, { 'дерево трещит — сейчас упадёт поперёк дороги: перепрыгни ствол или подкатом под него (бег + вниз)': 'a tree is cracking — it will fall across the path: jump over the trunk or slide under it (run + down)', 'с неба падают горящие ветки — смотри на красную метку на земле': 'burning branches fall from the sky — watch the red mark on the ground', '🌲 дерево падает! прыгай через ствол или подкатом под него': '🌲 tree falling! jump over the trunk or slide under it', '💥 придавило стволом!': '💥 crushed by the trunk!', '🔥 ствол горит!': '🔥 the trunk is burning!', '🔥 горящая ветка!': '🔥 burning branch!' });
 Object.assign(EN, { 'тропа в чащу — на дальнем краю, за оврагом': 'the path into the thicket is at the far end, past the ravine', 'разобьёшь свиту — тропа в логово откроется на дальнем краю, за карьером': 'smash the escort — the path to the lair opens at the far end, past the quarry' });
 Object.assign(EN, { 'таракан взбежал на стену — прыгнет туда, где красная метка: отходи': 'the roach ran up the wall — it will leap at the red mark: step away', 'таракан чует пули и подпрыгивает — стреляй, когда он бежит на тебя или выдохся': 'the roach senses bullets and hops — shoot when it charges at you or is out of breath', 'таракан в ярости — расправил крылья!': 'the roach is enraged — wings out!' });
+Object.assign(EN, {"нажми — дальше":"tap — continue","КОНЕЦ":"THE END","БАГОКАЛИПСИС":"BUGPOCALYPSE","БОССЫ":"BOSSES","Город пал за одну ночь.":"The city fell in a single night.","Рой разлился по стране. Люди прячутся в подвалах и бункерах.":"The swarm spread across the country. People hide in cellars and bunkers.","А во главе орды идёт тот, кто когда-то шёл спасать людей.":"And leading the horde walks the one who once set out to save people.","Говорят, иногда он останавливается и смотрит в небо. Как будто что-то вспоминает…":"They say he sometimes stops and looks at the sky. As if remembering something…","Без Альфы рой потерял голову.":"Without the Alpha the swarm lost its head.","Жуки расползлись по норам и затихли.":"The bugs crawled back into their burrows and went quiet.","Выжившие вернулись в город и начали отстраивать его заново.":"The survivors returned to the city and began to rebuild it.","А вы двое стали легендой лагеря.":"And you two became the legend of the camp.","ЖУК-НОСОРОГ":"RHINO BEETLE","БОГОМОЛ":"MANTIS","ЛИЧИНКА-МАТКА":"LARVA QUEEN","ХИМЕРА":"CHIMERA","ЧЕЛОВЕК-ТАРАКАН":"ROACH-MAN","АЛЬФА":"ALPHA","вожак роя. теперь ты идёшь рядом с ним":"leader of the swarm. now you walk beside it","побеждена в логове":"defeated in its lair","побеждён: крыша дома":"defeated: the rooftop","побеждён: логово в лесу":"defeated: the forest lair","побеждён: логово под землёй":"defeated: the underground lair","побеждён: главная лаборатория":"defeated: the main lab","побеждён: штаб военной базы":"defeated: the base HQ","ТВОЁ ПРОХОЖДЕНИЕ":"YOUR RUN","время в игре:":"time played:","погибал:":"deaths:","боссов побеждено:":"bosses defeated:","СПАСИБО ЗА ИГРУ!":"THANKS FOR PLAYING!","понравилось? оставь свой отзыв":"enjoyed it? leave a review","а теперь пройди в коопе с другом —":"now play it in co-op with a friend —","там другая концовка!":"there is a different ending!","и позови друга — вдвоём в коопе веселее":"and invite a friend — co-op is more fun","продолжение следует?":"to be continued?"});
 Object.assign(EN, { 'матка встала на дыбы — сейчас таран: прыгай на уступ или через неё': 'the queen rears up — a ram is coming: jump onto a ledge or over her', 'матка в ярости!': 'the queen is enraged!' });
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
@@ -1842,6 +1843,9 @@ const SPEED = 92, CRAWL = 42, CLIMB = 78, JUMP = 352, GRAV = 900;
 const SCORE = { r: 100, n: 500 };
 const GOO = ['#9be22d', '#4f8a10', '#e6ff7a', '#fff'];
 let state = 'title', stateT = 0, cam = 0, camY = 0, time = 0, score = 0, lives = 3, shake = 0, playT = 0;
+const STATS = (() => { try { return JSON.parse(localStorage.getItem('strel-stats') || '{}'); } catch (e) { return {}; } })();   // друг (msg 2511): статистика для титров
+let statsT = 0; const statsSave = () => { try { localStorage.setItem('strel-stats', JSON.stringify(STATS)); } catch (e) {} }, statsReset = () => { STATS.t = 0; STATS.d = 0; statsSave(); };
+let credEnd = 'solo';
 // Оружие: пистолет бесконечный, остальное — с патронами (ящики падают с жуков)
 const WPN = [{ n: 'ПИСТОЛЕТ', cd: .15 }, { n: 'ДРОБОВИК', cd: .55, box: 6, give: 12, col: '#ff7a1a' },
   { n: 'ВИНТОВКА', cd: .55, box: 5, give: 10, col: '#4aa3ff' }, { n: 'ГРАНАТОМЁТ', cd: .85, box: 3, give: 6, col: '#9be22d' }];
@@ -2100,7 +2104,7 @@ function killPlayer() {
     return;
   }
   if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
-  P.dead = 1.2; lives--; shake = .3; P.climb = false;
+  P.dead = 1.2; lives--; shake = .3; P.climb = false; STATS.d = (STATS.d || 0) + 1; statsSave();
   if (GUEST()) netSend({ t: 'died' });                   // жизни общие — считает хозяин
   explode(P.x + 5, P.y + 10, 22, ['#4aa3ff', '#fff', '#ffd23f']);
   boom(); navigator.vibrate?.(120);
@@ -3317,6 +3321,15 @@ function update(dt) {
       if (Math.random() < dt * 2) beep(rnd(60, 110), 40, .4, 'sawtooth', .02);
       anyTap = false; return;
     }
+    if (state === 'cred') {                         // титры: нажатие — к следующему кадру
+      const nx = CRED_SEG.find(x => x > stateT + .05);
+      if ((anyTap || k.aPressed) && stateT > .8) { if (nx === undefined || nx >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); } else stateT = nx; }
+      else if (stateT >= CRED_SEG[CRED_SEG.length - 1]) { cureEnd = false; humansWon = false; setState('title'); }
+      const ti = stateT - CRED_TEASE;                // намёк: сердце бьётся в коконе
+      if (ti > 0 && Math.floor(ti / .9) !== Math.floor((ti - dt) / .9)) beep(70, 40, .14, 'sine', ti > 3.5 ? .1 : .06);
+      if (ti > 3.4 && ti - dt <= 3.4) { beep(1400, 200, .5, 'sawtooth', .05); shake = .6; }
+      anyTap = false; return;
+    }
     if (state === 'cut') {
       const nc = LEVELS[lvlN + 1]?.city || 0, nora = nc === 2, lab = nc === 3;
       if (nc === 6 && stateT < 3.6 && Math.floor(stateT / .8) !== Math.floor((stateT - dt) / .8)) beep(70, 40, .14, 'sine', .09);   // сердце
@@ -3327,16 +3340,18 @@ function update(dt) {
     }
     if (stateT > wait && (anyTap || k.aPressed || (state !== 'card' && (k.a || k.b)))) {   // карточку уровня — только новым нажатием, зажатый огонь её не пролистывает (аудит №17)
       if (state === 'over') { lives = NET && NET.ready ? COOP_LIVES : 3; respawn(); setState('play'); if (NET && NET.ready) netSend({ t: 'cont' }); }   // продолжаем с сохранения
+      else if (state === 'win' && (humansWon || L.mut)) { credEnd = humansWon ? 'coop' : 'solo'; statsSave(); setState('cred'); }   // друг (msg 2508): настоящий финал — титры
       else if (state === 'win') { cureEnd = false; humansWon = false; setState('title'); }
       else if (state === 'card') setState('play');
       else if (state === 'title') { if (k.aPressed && !mapOpen && !menuOpen) titleKey(); }   // тап по экрану меню не пролистывает — только кнопки
-      else { score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
+      else { score = 0; playT = 0; lives = 3; statsReset(); resetGear(START); startLevel(START); }
     }
     anyTap = false;
     return;
   }
   anyTap = false;
   playT += dt; toast -= dt; lockMsgT -= dt;
+  if (state === 'play') { STATS.t = (STATS.t || 0) + dt; if ((statsT += dt) > 5) { statsT = 0; statsSave(); } }
   shake = Math.max(0, shake - dt);
   flickT -= dt; flick -= dt;
   if (flickT <= 0) { flick = 1.4; flickT = 15 + Math.random() * 15; }
@@ -6262,6 +6277,75 @@ function drawFinale() {                    // финал (днём, друг 13.
   // подпись «ОРДА ИДЁТ НА ГОРОД» друг попросил убрать (msg 1642)
   ctx.textAlign = 'left';
 }
+const CRED_EPI = { solo: ['Город пал за одну ночь.', 'Рой разлился по стране. Люди прячутся в подвалах и бункерах.', 'А во главе орды идёт тот, кто когда-то шёл спасать людей.', 'Говорят, иногда он останавливается и смотрит в небо. Как будто что-то вспоминает…'],
+  coop: ['Без Альфы рой потерял голову.', 'Жуки расползлись по норам и затихли.', 'Выжившие вернулись в город и начали отстраивать его заново.', 'А вы двое стали легендой лагеря.'] };
+const CRED_BOSS = [['ЖУК-НОСОРОГ', 'крыша дома'], ['БОГОМОЛ', 'логово в лесу'], ['ЛИЧИНКА-МАТКА', 'логово под землёй'], ['ХИМЕРА', 'главная лаборатория'], ['ЧЕЛОВЕК-ТАРАКАН', 'штаб военной базы'], ['АЛЬФА', 'вожак роя']];
+const CRED_SEG = [0, 3.4, 6.8, 10.2, 13.6, 17.2, 19.9, 22.6, 25.3, 28, 30.7, 33.4, 39, 46, 53];   // эпилог ×4, КОНЕЦ, боссы ×6, статистика, спасибо, намёк, конец
+const CRED_TEASE = 46;
+function drawCredits() {
+  const t = stateT, seg = CRED_SEG.findIndex((x, i) => t >= x && t < (CRED_SEG[i + 1] ?? 1e9)), t0 = CRED_SEG[seg] ?? 0, t1 = CRED_SEG[seg + 1] ?? t0 + 3, lt = t - t0;
+  const fade = clamp(Math.min(lt / .6, (t1 - t) / .5), 0, 1);
+  rect(0, 0, W, H, '#07080c');
+  ctx.textAlign = 'center';
+  const txt = (str, size, col, y, a = 1) => { ctx.globalAlpha = a * fade; ctx.font = `bold ${size}px monospace`; ctx.fillStyle = col;
+    const s1 = tr(str), maxW = W - 24; if (ctx.measureText(s1).width <= maxW) { ctx.fillText(s1, W / 2, y); ctx.globalAlpha = 1; return; }
+    const words = s1.split(' '), lines = ['']; for (const w2 of words) { const tl = lines[lines.length - 1] ? lines[lines.length - 1] + ' ' + w2 : w2; if (ctx.measureText(tl).width > maxW && lines[lines.length - 1]) lines.push(w2); else lines[lines.length - 1] = tl; }
+    lines.forEach((l, i) => ctx.fillText(l, W / 2, y + (i - (lines.length - 1) / 2) * (size + 4))); ctx.globalAlpha = 1; };
+  if (seg <= 3) {                                    // эпилог: город на горизонте
+    const solo = credEnd === 'solo', hz = H * .62;
+    const g = ctx.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, solo ? '#1a0a0a' : '#1a2a44'); g.addColorStop(1, solo ? '#5a1a0a' : '#d89a5a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, hz);
+    for (let i = 0; i < 40; i++) { const bx = i * W / 40, bh = 10 + hash(i, 3) % 30 + (i % 7 === 3 ? 24 : 0); rect(bx, hz - bh, W / 40 + 1, bh, solo ? '#120808' : '#2a2a3a'); if (!solo) for (let wy = hz - bh + 3; wy < hz - 2; wy += 5) if (hash(i, wy) % 3 === 0) rect(bx + 2, wy, 2, 2, '#ffd27a'); }
+    rect(0, hz, W, H - hz, solo ? '#100606' : '#1e2a1a');
+    if (solo) for (let i = 0; i < 160; i++) { const u = (t * .05 + hash(i, 9) / 997) % 1; ell((hash(i, 4) % W), hz + 4 + u * (H - hz - 8), 1.5 + u * 2, 1 + u * 1.5, '#2a1a1a'); }   // орда в долине
+    else { ell(W * .5, hz, 40, 18, 'rgba(255,200,120,.35)'); }
+    for (let i = 0; i < 4; i++) { const k = (t * .2 + i / 4) % 1; ell(W * (.25 + i * .17) + k * 10, hz - 30 - k * 50, 6 + k * 10, 4 + k * 6, `rgba(${solo ? '60,30,30' : '90,90,100'},${.4 * (1 - k)})`); }
+    rect(0, H * .72, W, H * .28, 'rgba(0,0,0,.55)');
+    txt(CRED_EPI[credEnd][seg], 11, '#fff', H * .84);
+  } else if (seg === 4) {                            // КОНЕЦ
+    const f = lt < .9 ? (Math.random() < lt ? 1 : .2) : 1;
+    txt('КОНЕЦ', 34, '#ffd23f', H * .5, f);
+    txt('БАГОКАЛИПСИС', 10, '#9aa', H * .5 + 24);
+  } else if (seg >= 5 && seg <= 10) {                // боссы по очереди
+    const i = seg - 5, [nm, where] = CRED_BOSS[i], keep = cam; cam = 0;
+    ctx.globalAlpha = fade;
+    const base = { fl: 0, hp: 100, max: 100, on: true, vx: 0, vy: 0, arm: 0, t: 1, st: 'walk' }, fy = H * .66;
+    const at = (f, w, h, dir, sc) => { try { const b = { ...base, x: W / 2 - w / 2, y: fy - h, w, h, dir }; ctx.save(); ctx.translate(W / 2, fy); ctx.scale(sc, sc); ctx.translate(-W / 2, -fy); f(b); } catch (e) {} ctx.restore(); };
+    rect(W / 2 - 70, fy, 140, 2, '#2a2a30');
+    if (i === 0) at(drawRhino, 56, 34, -1, 1.6);
+    else if (i === 1) at(drawMantisBoss, 26, 60, -1, 1.2);
+    else if (i === 2) { const lb = MON.LB[Math.floor(t * 1.5) % 2].img; ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(lb, Math.round(W / 2 - 75), Math.round(fy - 60), 150, 60); ctx.restore(); }
+    else if (i === 3) at(drawChimera, 44, 40, -1, 1.4);
+    else if (i === 4) at(drawRoach, 30, 44, -1, 1.4);
+    else { try { ctx.save(); ctx.translate(W / 2, fy); ctx.scale(.62, .62); ctx.translate(-W / 2, -fy); drawAlphaBack(W / 2, fy, t); } catch (e) {} ctx.restore(); }
+    ctx.globalAlpha = 1; cam = keep;
+    txt('БОССЫ', 9, '#778', H * .12);
+    txt(nm, 15, '#ffd23f', H * .78);
+    txt(i === 5 && credEnd === 'solo' ? 'вожак роя. теперь ты идёшь рядом с ним' : (i === 5 ? 'побеждена в логове' : 'побеждён: ' + where), 9, '#ccc', H * .78 + 16);
+  } else if (seg === 11) {                           // статистика
+    const T2 = Math.floor(STATS.t || playT), hh = Math.floor(T2 / 3600), mm = Math.floor(T2 % 3600 / 60), ss = T2 % 60, tm = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
+    txt('ТВОЁ ПРОХОЖДЕНИЕ', 14, '#ffd23f', H * .24);
+    txt(tr('время в игре:') + ' ' + tm, 11, '#fff', H * .42);
+    txt(tr('погибал:') + ' ' + (STATS.d || 0), 11, '#fff', H * .52);
+    txt(tr('очки:') + ' ' + score, 11, '#fff', H * .62);
+    txt(tr('боссов побеждено:') + ' ' + (credEnd === 'solo' ? 5 : 6), 11, '#9aff5a', H * .72);
+  } else if (seg === 12) {                           // спасибо
+    txt('СПАСИБО ЗА ИГРУ!', 18, '#ffd23f', H * .36);
+    txt('понравилось? оставь свой отзыв', 10, '#fff', H * .52);
+    if (credEnd === 'solo') { txt('а теперь пройди в коопе с другом —', 10, '#9aff5a', H * .64); txt('там другая концовка!', 10, '#9aff5a', H * .64 + 14); }   // друг (msg 2514)
+    else txt('и позови друга — вдвоём в коопе веселее', 10, '#9aff5a', H * .62);
+  } else if (seg === 13) {                           // намёк: в норе пульсирует кокон
+    const ti = lt, cx = W / 2, cy = H * .55, beat = Math.max(0, Math.sin(ti * 7)) ** 6;
+    rect(0, 0, W, H, '#0c0806');
+    for (let i = 0; i < 30; i++) ell(hash(i, 3) % W, H * .75 + (hash(i, 5) % 30), 10 + hash(i, 7) % 20, 4, '#1a120c');
+    const gl = ctx.createRadialGradient(cx, cy, 4, cx, cy, 60); gl.addColorStop(0, `rgba(154,255,90,${.18 + beat * .25})`); gl.addColorStop(1, 'rgba(154,255,90,0)'); ctx.fillStyle = gl; ctx.fillRect(cx - 60, cy - 60, 120, 120);
+    ell(cx, cy, 16 + beat * 2, 26 + beat * 2, '#3a3a22'); ell(cx - 4, cy - 6, 6, 12, '#5a5a32');
+    if (ti > 2.2) { ctx.strokeStyle = '#9aff5a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx - 2, cy - 22); ctx.lineTo(cx + 3, cy - 10); ctx.lineTo(cx - 3, cy); if (ti > 2.9) { ctx.lineTo(cx + 4, cy + 10); ctx.moveTo(cx + 3, cy - 10); ctx.lineTo(cx + 9, cy - 4); } ctx.stroke(); }
+    if (ti > 3.4) { const o = Math.min(1, (ti - 3.4) * 3); ell(cx - 5, cy - 4, 2.5 * o, 1.5 * o, '#ff3b3b'); ell(cx + 5, cy - 4, 2.5 * o, 1.5 * o, '#ff3b3b'); }
+    if (ti > 4.4) txt('…', 16, '#9aff5a', H * .2);
+    if (ti > 5.2) txt('продолжение следует?', 9, '#778', H * .9);
+  }
+  ctx.textAlign = 'left';
+}
 function drawFinaleBosses(t) {             // боссы прошлых городов стоят на холме по краям и смотрят на город
   const keep = cam, kt = time; cam = 0;
   const one = (f, b, sc) => { try { ctx.save(); ctx.translate(b.x + b.w / 2, b.y + b.h); ctx.scale(sc, sc); ctx.translate(-(b.x + b.w / 2), -(b.y + b.h)); f(b); } catch (e) {} ctx.restore(); };
@@ -6802,6 +6886,7 @@ function draw() {
   ctx.save();
   if (shake > 0) ctx.translate(Math.round((Math.random() - .5) * 6 * shake), Math.round((Math.random() - .5) * 6 * shake));
   if (state === 'fin') { drawFinale(); ctx.restore(); return; }
+  if (state === 'cred') { drawCredits(); ctx.restore(); return; }
   if (state === 'intro') { drawIntro(); ctx.restore(); return; }
   if (state === 'cut') { ({ 2: drawCutNora, 3: drawCutLab, 4: drawCutBase, 5: drawCutCamp, 6: drawCutWake }[LEVELS[lvlN + 1]?.city || 0] || drawCut)(); ctx.restore(); return; }
   if (L && L.zones) useZone(zoneMid());
@@ -6862,11 +6947,11 @@ function draw() {
   if (state === 'over') centerText([['ТЫ ПОГИБ', 22, '#ff3b3b', 86], [`очки: ${score}`, 12, '#fff', 112], ['нажми — продолжить с сохранения', 10, '#ccc', 140]]);
   if (state === 'win' && humansWon) centerText([['У ЧЕЛОВЕЧЕСТВА ЕСТЬ ШАНС', 18, '#ffd23f', 66], ['Альфа мертва. рой без вожака рассыпается по норам.', 9, '#fff', 88],
     ['вы вдвоём вышли из логова. город ещё можно отбить.', 9, '#9aff5a', 100],
-    [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 124], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
+    [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 124], ['нажми — дальше', 10, '#ccc', 150]]);
   else if (state === 'win' && cureEnd) centerText([['ЛЮДИ ОТБИЛИСЬ', 20, '#ffd23f', 70], ['сыворотка подействовала. вы снова вдвоём — люди.', 9, '#fff', 92],
     ['дальше — логово Альфы · продолжение следует…', 9, '#9aff5a', 106], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
-  else if (state === 'win' && L.mut) centerText([['ОРДА ИДЁТ НА ГОРОД', 20, '#9aff5a', 70], ['люди ещё спят. им осталось недолго.', 9, '#fff', 92], ['конец главы · продолжение следует…', 9, '#ffd23f', 106],
-    [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 128], ['нажми, чтобы выйти в меню', 10, '#ccc', 156]]);
+  else if (state === 'win' && L.mut) centerText([['ОРДА ИДЁТ НА ГОРОД', 20, '#9aff5a', 70], ['люди ещё спят. им осталось недолго.', 9, '#fff', 92], ['', 9, '#ffd23f', 106],
+    [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 128], ['нажми — дальше', 10, '#ccc', 156]]);
   else if (state === 'win') centerText([[L.city === 5 ? 'ТЫ ЗАРАЖЁН' : `ПРОЙДЕНО: ${CITY[L.city || 0]}!`, 20, L.city === 5 ? '#9aff5a' : '#ffd23f', 76],
     [L.city === 5 ? 'лекарства у тебя. но в крови уже что-то шевелится.' : 'продолжение следует…', 9, '#fff', 96], [L.city === 5 ? 'продолжение следует…' : '', 9, '#ffd23f', 108],
     [`очки: ${score}   время: ${Math.floor(playT / 60)}:${String(Math.floor(playT % 60)).padStart(2, '0')}`, 12, '#fff', 122], ['нажми, чтобы выйти в меню', 10, '#ccc', 150]]);
@@ -7773,7 +7858,7 @@ function newGame(noIntro) {
     if (MODE === 'coop') { if (!HOST()) return; introCoop = true; netSend({ t: 'intro' }); } else introCoop = false;
     introNew = true; introGo = true; audioOn(); setState('intro'); return;
   }
-  gameOn = true; score = 0; playT = 0; lives = 3; resetGear(START); startLevel(START); }
+  gameOn = true; score = 0; playT = 0; lives = 3; statsReset(); resetGear(START); startLevel(START); }
 document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-coop').onclick = () => { audioOn(); titleStep(3, 'coop'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-back').onclick = () => { if (MODE === 'coop') { netClose(); titleStep(3); } else titleStep(1); };
