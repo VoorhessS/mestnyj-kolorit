@@ -13,6 +13,7 @@ Object.assign(EN, { 'ТОЧНО? ПРОГРЕСС СОТРЁТСЯ': 'SURE? PROG
 Object.assign(EN, { 'напарник в меню — ждём': 'partner is in the menu — waiting' });
 Object.assign(EN, { '📤 ПОДЕЛИТЬСЯ': '📤 SHARE', 'Заходи ко мне в Багокалипсис! Код комнаты': 'Join me in Bugpocalypse! Room code', 'ссылка скопирована — вставь в чат': 'link copied — paste it in a chat' });
 Object.assign(EN, { 'напарник вернулся!': 'partner is back!', '⚠ напарник отключился — ждём, вдруг вернётся': '⚠ partner disconnected — waiting for them to come back', '⚠ связь потеряна — переподключаюсь…': '⚠ connection lost — reconnecting…' });
+Object.assign(EN, {"вход — дупло у корней. в узкую щель запрыгни и зажми ВВЕРХ — полезешь распором":"the way in is the hollow at the roots. jump into the narrow crack and hold UP to brace and climb","гнилые ветки осыпаются под ногами — перепрыгивай трещины":"rotten branches crumble underfoot — jump over the cracks","ветер дует от ствола — держись ближе к стволу и иди против ветра":"the wind blows away from the trunk — stay close to it and walk against the wind","паутина липкая — в ней вязнешь, перепрыгивай":"the web is sticky — you get stuck in it, jump over","по веткам кроны ползёт огонь — проскакивай, когда пламя спадёт":"fire crawls along the crown branches — dash through when the flames die down","ракета приманит рой — держись наверху, пока не увидят сигнал":"the flare lures the swarm — hold out at the top until the signal is seen","с большой высоты не прыгай — разобьёшься. спускайся по веткам, огонь идёт следом":"don't jump from high up — you'll get hurt. climb down the branches, the fire follows you","🎆 РАКЕТА В НЕБЕ! свет манит рой — ДЕРЖИСЬ!":"🎆 FLARE IN THE SKY! the light lures the swarm — HOLD OUT!","💥 высоко! больно падать":"💥 too high! that fall hurt","💨 ветер! держись ближе к стволу":"💨 wind! stay close to the trunk","🔥 горячо!":"🔥 hot!","🎆 рой летит на свет — держись: ":"🎆 the swarm flies to the light — hold out: ","🎆 сигнал увидели!":"🎆 the signal was seen!","🔥 КРОНА ЗАГОРЕЛАСЬ! ВНИЗ — к каменоломне!":"🔥 THE CROWN IS ON FIRE! DOWN — to the quarry!","🔥 огонь догоняет! вниз!":"🔥 the fire is catching up! go down!"});
 Object.assign(EN, { 'богомол замахнулся и задрожал — сейчас выпад: прыгай через него или отбегай': 'the mantis raised its scythes and shakes — a lunge is coming: jump over it or back off', 'богомол в ярости!': 'the mantis is enraged!' });
 Object.assign(EN, { 'носорог подпрыгнул рядом — по полу пойдёт волна, прыгай': 'the rhino hopped nearby — a shockwave runs along the floor, jump' });
 Object.assign(EN, { 'носорог в ярости!': 'the rhino is enraged!' });
@@ -577,24 +578,44 @@ const LEVELS = [
       B.exit(197, 16, 'ДЕРЕВО');
       B.start(3, 16); B.save(70, 16); B.save(120, 16); B.save(160, 16);
     } },
-  { city: 1, name: 'ОГРОМНОЕ ДЕРЕВО', hi: [16, 16, 16, 22, 22, 22, 28, 28, 28, 34, 34, 34, 40, 40, 40, 46, 46, 46, 52, 52, 52, 58, 58, 58, 64, 64, 64], task: 'Достань ракетницу с верхушки и подай сигнал', obj: 'flare', sky: true, day: true, ground: 69, dark: .9, art: 8, burn: true,
+  { city: 1, name: 'ОГРОМНОЕ ДЕРЕВО', task: 'Достань ракетницу с верхушки и подай сигнал', obj: 'flare', sky: true, day: true, ground: 96, dark: .9, burn: true,
+    tree: true, wind: [46, 75], fallDmg: 12, hold: 20,
+    flames: [[8, 18, 25], [37, 47, 25], [9, 19, 18], [36, 46, 18], [8, 17, 11], [37, 46, 11]],
     after: [['r', 'Вижу ракету! Иду к тебе — через каменоломню.']],
-    cols: 50, rows: 70, base: AIR, pal: PAL.forest, spawn: ['M', 'F', 'S'],
-    tips: ['на верхушке — гнездо разведчика с ракетницей', 'лезь по лианам, через дупло — на другую сторону ствола', 'назад вниз быстрее всего — спрыгнуть с ветки. к каменоломне — от корней'],
+    cols: 56, rows: 100, base: AIR, pal: PAL.forest, spawn: ['M', 'F', 'S'],
+    tips: ['вход — дупло у корней. в узкую щель запрыгни и зажми ВВЕРХ — полезешь распором', 'гнилые ветки осыпаются под ногами — перепрыгивай трещины', 'ветер дует от ствола — держись ближе к стволу и иди против ветра', 'паутина липкая — в ней вязнешь, перепрыгивай', 'по веткам кроны ползёт огонь — проскакивай, когда пламя спадёт', 'ракета приманит рой — держись наверху, пока не увидят сигнал', 'с большой высоты не прыгай — разобьёшься. спускайся по веткам, огонь идёт следом'],
     build(B) {
-      B.ground(0, 49, 66);
-      B.fill(20, 8, 29, 65);                                                      // ствол
-      B.room(20, 63, 29, 65);                                                     // дупло у корней
-      const tiers = [60, 54, 48, 42, 36, 30, 24, 18, 12];
+      B.ground(0, 55, 96);
+      B.fill(22, 6, 33, 95);                                                      // ствол
+      // КОРНИ: дупло у земли, щели распором, две пещерки внутри ствола
+      B.room(22, 93, 33, 95);                                                     // дупло насквозь (низкое — из него сразу в щель)
+      B.room(31, 84, 32, 92);                                                     // щель 1 (справа)
+      B.room(23, 81, 32, 83);                                                     // пещерка 1 (низкая — из неё сразу в щель 2)
+      B.room(23, 74, 24, 80);                                                     // щель 2 (слева)
+      B.room(23, 70, 33, 73);                                                     // пещерка 2 — выход на ветку справа
+      B.bug(27, 96, 'w'); B.bug(26, 84, 'w'); B.nest(29, 74); B.bug(15, 96, 'M'); B.bug(40, 96, 'M');
+      B.sign(32, 93, '^');
+      // ветки по ярусам: с обеих сторон, лиана на внешнем конце ведёт на ярус выше, сквозь ствол — дупло
+      const tiers = [74, 67, 60, 53, 46, 39, 32, 25, 18, 11];
       tiers.forEach((r, i) => {
-        B.plat(3, 19, r); B.plat(30, 46, r); B.room(20, r - 3, 29, r - 1);        // ветки и дупло насквозь
-        if (i % 2 === 0) B.lad(44, r, r + 5); else B.lad(5, r, r + 5);             // лианы по очереди справа и слева
+        B.plat(34, 49, r); B.plat(6, 21, r); if (i > 0) B.room(22, r - 3, 33, r - 1);
+        const nx = tiers[i + 1]; if (nx) B.lad(i % 2 === 0 ? 48 : 7, nx, r - 1);
       });
-      B.nest(24, 48); B.nest(24, 30); B.nest(24, 18);
-      B.bug(36, 60, 'M'); B.bug(12, 54, 'S'); B.bug(38, 42, 'S'); B.bug(12, 30, 'F'); B.bug(40, 24, 'F'); B.bug(10, 18, 'G'); B.bug(38, 36, 'M'); B.bug(14, 42, 'M');
-      B.item('flare', 38, 12); B.bug(32, 12, 'M'); B.bug(8, 12, 'S');
-      B.exit(46, 66, 'КАМЕНОЛОМНЯ');
-      B.start(10, 66);
+      B.lad(7, 74, 95); B.lad(46, 74, 95); B.lad(21, 5, 10);                                                           // с верхнего яруса — на макушку ствола
+      // ГНИЛЫЕ ВЕТКИ (ярусы 74–53): трещины, ветер
+      B.crumble(13, 14, 67); B.crumble(39, 40, 67); B.crumble(12, 13, 60); B.crumble(41, 42, 60); B.crumble(14, 15, 53);
+      B.bug(44, 74, 'S'); B.bug(10, 67, 'M'); B.bug(38, 60, 'F'); B.bug(16, 53, 'S'); B.bug(44, 53, 'M');
+      // ОСИНОЕ ГНЕЗДО (46–32): паутина, гнёзда, осы, щелкуны
+      B.slime(10, 12, 46); B.slime(40, 42, 46); B.slime(14, 16, 39); B.slime(38, 40, 39); B.slime(11, 13, 32); B.slime(42, 44, 32);
+      B.nest(17, 46); B.nest(36, 39); B.nest(9, 32);
+      for (const [x, y] of [[30, 41], [12, 36], [44, 34], [20, 28]]) B.bug(x, y, 'v');
+      B.bug(44, 46, 'j'); B.bug(10, 39, 'j'); B.bug(40, 32, 'j');
+      // КРОНА (25–11): огонь ползёт по веткам (L.flames), метатели, летуны
+      B.bug(45, 25, 'G'); B.bug(12, 18, 'F'); B.bug(40, 18, 'F'); B.bug(14, 11, 'G');
+      B.fire(23, 6); B.fire(33, 6);
+      B.item('flare', 29, 6);                                                     // гнездо разведчика на макушке
+      B.exit(52, 96, 'КАМЕНОЛОМНЯ');
+      B.start(4, 96);
     } },
   { city: 1, name: 'КАМЕНОЛОМНЯ', task: 'Разбей свиту богомола', obj: 'guards', guard: 'H', sky: true, day: true, ground: 26, dark: .9, art: 5, burn: true,
     after: [['r', 'Чисто! Иду к тебе... Стой. Земля дрожит...'], ['r', 'Он здесь! А-а-а!..'], 'Связь оборвалась. Его утащили — в логово.'],
@@ -1811,6 +1832,7 @@ function resetGear(n) {
   for (const [l, g] of Object.entries(GUN_AT)) if (n > +l) { owned[g] = true; ammo[g] = WPN[g].give; }   // начали с середины — оружие уже есть
 }
 let P, bullets, enemies, parts, boss, saves, save, heli, exit, items, cracks, lamps, signs, deco, toast = 0, toastTxt = '', flick = 0, flickT = 12;
+let treeS = null;   // огромное дерево: фаза (up → hold → down), ветер, огонь сверху
 let D, done = false, nestsAll = 0, guardsAll = 0, lockMsgT = 0, ebullets = [], lift = null, cart = null, swarm = null, wins = [], movers = [], rocks = [], artT = 8, cutHit = false, fume = null, waveT = 0;
 // Сложность растёт с каждым подуровнем понемногу: запас на следующие города и игру вдвоём
 function diff(i) {
@@ -1913,6 +1935,7 @@ function startLevel(n) {
   if (cart) movers.push(cart);
   swarm = L.chase ? { x: 0, on: false, t: 1.2 } : null;
   fume = L.fume ? { y: 0, on: false, t: 2 } : null;
+  treeS = L.tree ? { ph: 'up', wT: rnd(5, 8), g: 0, warn: false, fy: null, hurtT: 0, dd: false } : null;
   for (const g of lv.logs) for (let i = 0; i < g.n; i++) {          // брёвна плывут по течению
     const span = (g.x1 - g.x0) * T;
     movers.push({ k: 'log', x: g.x0 * T + span * i / g.n, x0: g.x0 * T, x1: g.x1 * T, base: g.y * T - 5, y: g.y * T - 5, w: 40, dx: 0, dy: 0, ph: Math.random() * 6 });
@@ -2373,6 +2396,88 @@ function drawDream(t) {                       // t — секунды от на�
   }
   ctx.globalAlpha = 1;
   drawTalkBox('ТЫ · ПАМЯТЬ', DREAM[i], Math.min(DREAM[i].length, Math.floor(lt * 40)), 'hero', 'think', a);
+}
+function treeSignal() {                    // ракета в небо — свет манит рой, держись L.hold секунд
+  treeS.ph = 'hold'; treeS.t = L.hold || 20; treeS.sp = .6; treeS.sec = -1;
+  treeS.rocket = { x: P.x + 5, y: P.y, vy: -420, t: 0 };
+  showToast('🎆 РАКЕТА В НЕБЕ! свет манит рой — ДЕРЖИСЬ!', 3); boom(.12); shake = .4; beep(300, 2400, .8, 'sawtooth', .05);
+}
+function treeFx(dt) {
+  const S = treeS, cx = 28 * T;                                           // середина ствола
+  if (S.rocket) { const r = S.rocket; r.t += dt; r.y += r.vy * dt; r.vy += 60 * dt; parts.push({ x: r.x + rnd(-2, 2), y: r.y + 6, vx: rnd(-20, 20), vy: rnd(20, 60), life: .5, col: pick(['#ffd23f', '#ff7a2a', '#fff']) });
+    if (r.t > 1.4) { for (let i = 0; i < 40; i++) { const q = Math.random() * 6.28, v = rnd(40, 160); parts.push({ x: r.x, y: r.y, vx: Math.cos(q) * v, vy: Math.sin(q) * v, life: 1.4, col: pick(['#ff3a3a', '#ffd23f', '#fff']) }); } S.rocket = null; beep(900, 300, .6, 'square', .04); } }
+  if (P.dead > 0) { S.dd = true; S.fy = null; return; }
+  if (S.dd) {                                                             // ожил на дискете: огонь отступает, рой и сигнал заново
+    S.dd = false;
+    if (S.ph === 'hold' && !items.some(i => i.k === 'flare' && i.got)) S.ph = 'up';
+    if (S.ph === 'down') S.by = Math.min(S.by, P.y - 240);
+  }
+  // падение с большой высоты
+  if (P.climb || P.mv) S.fy = null;
+  else if (!P.on) S.fy = Math.min(S.fy ?? P.y, P.y);
+  else { if (S.fy != null && L.fallDmg && P.y - S.fy > L.fallDmg * T && !window.__god) { const n = (P.y - S.fy) / T - L.fallDmg; P.inv = 0; hurt(Math.min(100, 30 + n * 12)); showToast('💥 высоко! больно падать', 1.4); shake = .4; } S.fy = null; }
+  // ветер в зоне гнилых веток: порыв от ствола наружу
+  const row = Math.floor((P.y + P.h / 2) / T);
+  if (L.wind && row >= L.wind[0] && row <= L.wind[1]) {
+    S.wT -= dt;
+    if (S.wT <= 1.2 && !S.warn) { S.warn = true; showToast('💨 ветер! держись ближе к стволу', 1.3); beep(200, 120, .5, 'triangle', .02); }
+    if (S.wT <= 0) { S.g = 1.6; S.wT = rnd(5, 8); S.warn = false; }
+  }
+  if (S.g > 0) {
+    S.g -= dt;
+    if (!P.climb && row >= (L.wind?.[0] ?? 0) - 2) { const d = Math.sign(P.x + 5 - cx) || 1, ox = P.x; P.x += d * 74 * dt; if (inSolid(P)) P.x = ox; }
+    if (Math.random() < dt * 30) parts.push({ x: cam + (Math.random() < .5 ? rnd(0, 40) : W - rnd(0, 40)), y: P.y + rnd(-90, 60), vx: (P.x + 5 > cx ? 1 : -1) * rnd(120, 200), vy: rnd(-20, 20), life: .9, col: pick(['#7a8a3a', '#a08a3a', '#5a6a2a']) });
+  }
+  // огонь ползёт по веткам кроны: волна пламени, жжёт
+  S.hurtT -= dt;
+  for (const [x0, x1, r] of L.flames || []) for (let x = x0; x <= x1; x++) if (flameOn(x)) {
+    const fx = x * T, fy = (r - 1) * T;
+    if (S.hurtT <= 0 && P.x + P.w > fx + 2 && P.x < fx + T - 2 && P.y + P.h > fy + 2 && P.y < fy + T) { P.inv = 0; hurt(18); S.hurtT = .5; showToast('🔥 горячо!', .8); }
+  }
+  // оборона наверху: рой летит на свет
+  if (S.ph === 'hold') {
+    S.t -= dt; S.sp -= dt;
+    const sec = Math.ceil(S.t); if (sec !== S.sec && sec > 0) { S.sec = sec; showToast('🎆 рой летит на свет — держись: ' + sec, 1.05); }
+    if (!GUEST() && S.sp <= 0 && enemies.filter(e => e.hp > 0 && e.k !== 'n').length < 9) {
+      S.sp = rnd(1, 1.8) * (S.t < 8 ? .7 : 1);
+      const k = pick(['v', 'v', 'F']), x = clamp(P.x + pick([-1, 1]) * rnd(70, 170), T * 2, MAPW - T * 3);
+      hatch(k, x, P.y - rnd(60, 120), Math.sign(P.x - x) || 1, 40, null); explode(x, P.y - 80, 6, ['#ffd23f', '#ff7a2a']);
+    }
+    if (S.t <= 0) { S.ph = 'won'; complete('🎆 сигнал увидели!'); }
+  }
+  // спуск: крона горит, огонь идёт вниз за героем, сыплются горящие обломки
+  if (done && S.ph !== 'down') {
+    S.ph = 'down'; S.by = Math.max(0, P.y - 240); S.rT = 2;
+    showToast('🔥 КРОНА ЗАГОРЕЛАСЬ! ВНИЗ — к каменоломне!', 2.8); boom(.12); shake = .6; beep(120, 60, .8, 'sawtooth', .06);
+  }
+  if (S.ph === 'down') {
+    const gap = P.y - S.by;
+    if (!GUEST()) S.by += (15 + Math.max(0, gap - 260) * 1.1) * dt;
+    for (const e of enemies) if (e.hp > 0 && e.k !== 'n' && e.y + e.h < S.by) { e.hp = 0; explode(e.x + e.w / 2, e.y + e.h / 2, 6, ['#ffb020', '#ff5a1a', '#3a2a1a']); }
+    if (gap < 140) shake = Math.max(shake, .05);
+    if (P.y < S.by + 4 && S.hurtT <= 0) { P.inv = 0; hurt(20); S.hurtT = .45; showToast('🔥 огонь догоняет! вниз!', 1); }
+    if (P.y + P.h < 95 * T && (S.rT -= dt) <= 0) { S.rT = rnd(1.3, 2.3); throwRock(clamp(P.x + 5 + rnd(-70, 70), T * 2, MAPW - T * 3), false, 1.1); }
+    if (Math.random() < dt * 6) beep(rnd(80, 160), 50, .08, 'sawtooth', .012);
+  }
+}
+const flameOn = x => Math.sin(time * 2.4 - x * .55) > .3;   // волна огня бежит вдоль ветки
+function drawTree() {
+  const S = treeS;
+  for (const [x0, x1, r] of L.flames || []) for (let x = x0; x <= x1; x++) {
+    const sx = x * T - cam, y = (r - 1) * T, on = flameOn(x), k = Math.sin(time * 2.4 - x * .55);
+    if (sx < -T || sx > W + T || y < camY - T || y > camY + H + T) continue;
+    if (!on) { if (k > 0) rect(sx + 5, y + 12, 6, 3, 'rgba(255,120,40,.5)'); rect(sx + 3, y + 14, 10, 2, '#3a2416'); continue; }
+    const h = 10 + (k - .3) * 14 + Math.sin(time * 17 + x) * 2;
+    ell(sx + 8, y + 16 - h / 2, 6, h / 2, 'rgba(255,90,20,.85)'); ell(sx + 8, y + 16 - h / 3, 4, h / 3, 'rgba(255,200,60,.9)'); rect(sx + 7, y + 16 - h * .7, 2, 2, '#fff6c0');
+  }
+  if (S?.rocket) { const r = S.rocket; ell(r.x - cam, r.y, 3, 6, '#ffd23f'); ell(r.x - cam, r.y + 6, 2, 4, '#ff5a1a'); }
+  if (S?.ph === 'down') {
+    const y0 = S.by; if (y0 < camY - 20) return;
+    const top = camY - 20;
+    ctx.fillStyle = 'rgba(40,10,0,.55)'; ctx.fillRect(0, top, W, Math.max(0, y0 - top - 20));
+    ctx.fillStyle = 'rgba(200,60,10,.5)'; ctx.fillRect(0, y0 - 30, W, 20);
+    for (let i = -1; i < W / 12 + 2; i++) { const x = i * 12 - (time * 30) % 12, h = 16 + Math.sin(time * 9 + i * 1.7) * 8; ell(x, y0 - h / 2, 7, h / 2, 'rgba(255,110,20,.8)'); ell(x, y0 - h / 3, 4, h / 3, 'rgba(255,210,80,.85)'); }
+  }
 }
 function startAmbush() {
   amb = { t: L.hold, sp: 1.2, end: 0 };
@@ -3239,6 +3344,7 @@ function update(dt) {
         if (P.x < swarm.x + 2) { P.inv = 0; killPlayer(); if (P.dead) showToast(L.fire ? 'огонь догнал!' : 'стая догнала!', 1.8); }
       }
     }
+    if (treeS) treeFx(dt);
     if (fume && P.dead <= 0) {                     // выброс газа: поднимается снизу, отстанешь — подтягивается
       if (!fume.on) { if ((fume.t -= dt) <= 0) { fume.on = true; showToast('☣ ВЫБРОС ГАЗА! ЛЕЗЬ НАВЕРХ!', 2.2); boom(.12); shake = .5; } }
       else {
@@ -3271,6 +3377,7 @@ function update(dt) {
       else if (it.k === 'meds') startAmbush();
       else {
         if (it.k === 'arms') for (const g of [1, 2, 3]) if (owned[g]) ammo[g] += WPN[g].box * 3;   // патроны — сразу в дело
+        if (it.k === 'flare' && treeS && treeS.ph === 'up') treeSignal(); else
         complete(L.itemTxt || ITEM[it.k]);
       }
     }
@@ -6489,6 +6596,7 @@ function draw() {
   outlined(() => { if (MUT()) drawAllies(); drawEnemies(); if (boss.on && !boss.dead) ({ mantis: drawMantisBoss, rhino: drawRhino, larva: drawLarvaBoss, chimera: drawChimera, roach: drawRoach, alpha: drawAlphaBoss })[boss.parts[0].k](boss.parts[0]); });
   drawPlayer();
   if (fume) drawFume();
+  if (L.tree) drawTree();
   drawWater(); drawFore();
   if (swarm) drawSwarm();
   drawVents();
