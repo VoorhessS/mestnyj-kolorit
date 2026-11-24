@@ -1983,7 +1983,7 @@ function startLevel(n) {
   if (ac) acStale = true;   // новый уровень — звук с чистого листа на первом касании (друг, msg 2218: на Андроиде пропадает)
   pvp = null; if (NET) NET.pv = null;   // аудит 15.11: махач не тянется на другой уровень
   if (gameOn) runLevel(n); else if (RUN.on) { RUN.on = false; runSave(); }
-  lvlN = n; L = LEVELS[n]; D = diff(n); saveReach(n);
+  lvlN = n; L = LEVELS[n]; D = diff(n); saveReach(n); if (gameOn) ctr('buglvl:' + (n + 1), true);
   if (NET && NET.ready && NET.role === 'host') netSend({ t: 'lvl', n });
   lv = build(L);
   saves = lv.saves.map(([x, y]) => ({ x: x * T + 2, y: y * T - 14, w: 12, h: 14, on: false }));
@@ -2120,7 +2120,7 @@ function respawn() {
 }
 // Камера может заехать за край карты: герой у стены не прячется под крестовиной или кнопками
 const camX = () => clamp(P.x + 5 - W * (L && L.mirror ? .55 : .45), -W * .3, MAPW - W * .75);   // по ходу движения видно больше
-function setState(s) { if (s === 'over' && state !== 'over' && NET && NET.ready && !NET.rx) netSend({ t: 'over' }); state = s; stateT = 0; if (s === 'title') try { titleHome(); } catch (e) {} }   // титул всегда начинается с выбора режима
+function setState(s) { if (s !== state) ctrState(s); if (s === 'over' && state !== 'over' && NET && NET.ready && !NET.rx) netSend({ t: 'over' }); state = s; stateT = 0; if (s === 'title') try { titleHome(); } catch (e) {} }   // титул всегда начинается с выбора режима
 function explode(x, y, n = 14, col = ['#ffd23f', '#ff7a1a', '#fff', '#c8102e']) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 120;
@@ -2152,7 +2152,7 @@ function killPlayer() {
     return;
   }
   if (P.dead || P.inv > 0 || window.__god || IMMORTAL || good?.k === 'noclip') return;
-  P.dead = 1.2; lives--; shake = .3; P.climb = false; STATS.d = (STATS.d || 0) + 1; statsSave(); if (RUN.on) { RUN.lives = lives; runSave(); }
+  if (gameOn) ctr('bugdie:' + (lvlN + 1)); P.dead = 1.2; lives--; shake = .3; P.climb = false; STATS.d = (STATS.d || 0) + 1; statsSave(); if (RUN.on) { RUN.lives = lives; runSave(); }
   if (GUEST()) netSend({ t: 'died' });                   // жизни общие — считает хозяин
   explode(P.x + 5, P.y + 10, 22, ['#4aa3ff', '#fff', '#ffd23f']);
   boom(); navigator.vibrate?.(120);
@@ -3248,7 +3248,7 @@ function hurtBoss(r, d) {
   if (GUEST() && !NET.rx) { netSend({ t: 'bh', d }); r.fl = .06; beep(200, 120, .05, 'sawtooth', .03); return; }   // здоровье босса — у хозяина
   r.hp -= d * (r.st === 'stuck' || r.st === 'dizzy' ? 2 : 1); r.fl = .06; beep(200, 120, .05, 'sawtooth', .03);
   if (r.hp <= 0 && !boss.dead) {
-    boss.dead = true; score += 5000; shake = 1.5; boom();
+    boss.dead = true; if (gameOn) ctr('bugboss:' + (lvlN + 1)); score += 5000; shake = 1.5; boom();
     explode(r.x + r.w / 2, r.y + r.h / 2, 40, GOO);
     for (const e of enemies) if (e.k !== 'n') { e.hp = 0; explode(e.x, e.y, 6, GOO); }
     gate(false);
@@ -7749,6 +7749,29 @@ function arenaPull(mx, my) {                   // бой начал напарн
 }
 const NET_API = 'https://babushka-online.17homosapiens.workers.dev';   // сервер комнат друга (Cloudflare); ?api=… — для проверки на локальном сервере
 const netApi = () => { const q = location.search.match(/[?&]api=([^&]+)/); return q ? decodeURIComponent(q[1]) : NET_API; };
+// ===== Счётчик (друг, msg 2826): только события «открыли / начали / дошли до уровня / погибли», без имён и личных данных.
+// Ключи bug* на воркере, страница https://babushka-online.17homosapiens.workers.dev/strel/stats. Выключен на file:, localhost и с ?dev (кроме ?api=… для проверки).
+var ctrSeen = {};
+function ctrOn() { return !DEV && /^https?:/.test(location.protocol) && (/[?&]api=/.test(location.search) || !/^(localhost|127.|[::1]|0.0.0.0)/.test(location.hostname)); }
+function ctr(k, once) {
+  try {
+    const ks = Array.isArray(k) ? k : [k];
+    if (once) { if (ctrSeen[ks[0]]) return; ctrSeen[ks[0]] = 1; }
+    if (ctrOn()) navigator.sendBeacon(netApi() + '/hit', JSON.stringify({ k: ks }));
+  } catch (e) {}
+}
+function ctrState(s) {
+  if (!gameOn) return;
+  if (s === 'over') ctr('bugover:' + (lvlN + 1));
+  if (s === 'win' || s === 'fin') ctr('bugwin:' + MODE, true);
+}
+(() => {
+  const h = location.hostname, src = /github.io$/.test(h) ? 'gh' : /itch.(zone|io)$/.test(h) ? 'itch' : /gamejolt/.test(h) ? 'gj' : 'web';
+  const day = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10), ks = ['bugopen', 'bugopen:' + src, 'buglang:' + LANG, 'bugdev:' + (matchMedia('(pointer: coarse)').matches ? 'touch' : 'pc')];
+  try { if (localStorage.getItem('strel-seen') !== day) { localStorage.setItem('strel-seen', day); ks.push('buguniq'); } } catch (e) {}
+  ctr(ks);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && gameOn && state === 'play') ctr('bugquit:' + (lvlN + 1), true); });
+})();
 function netNote(h) { tmNote.innerHTML = '<b>КООП</b> · ' + h; }
 const netCodeNote = () => netNote(`код комнаты <span class="code">${NET.code}</span> — скажи напарнику · ждём…<button class="share" onclick="netShare()">📤 ПОДЕЛИТЬСЯ</button>`);
 function netClose(silent) {
@@ -7918,7 +7941,7 @@ function newGame(noIntro) {
     if (MODE === 'coop') { if (!HOST()) return; introCoop = true; netSend({ t: 'intro' }); } else introCoop = false;
     introNew = true; introGo = true; audioOn(); setState('intro'); return;
   }
-  gameOn = true; score = 0; playT = 0; lives = 3; statsReset(); runStart(START); resetGear(START); startLevel(START); }
+  ctr('buggo:' + MODE); gameOn = true; score = 0; playT = 0; lives = 3; statsReset(); runStart(START); resetGear(START); startLevel(START); }
 document.getElementById('t-solo').onclick = () => { audioOn(); titleStep(2, 'solo'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-coop').onclick = () => { audioOn(); titleStep(3, 'coop'); beep(700, 900, .05, 'square', .02); };
 document.getElementById('t-back').onclick = () => { if (MODE === 'coop') { netClose(); titleStep(3); } else titleStep(1); };
@@ -8032,7 +8055,7 @@ document.getElementById('rv-x').onclick = rvClose;
 document.getElementById('t-rv').onclick = () => { audioOn(); rvAfter = null; rvOpen(); };
 document.getElementById('m-rv').onclick = () => { rvAfter = null; rvOpen(); };
 document.getElementById('m-lb').onclick = () => lbOpen();
-tCont.onclick = () => { audioOn(); if (MODE === 'solo' && RUN.on && LEVELS[RUN.lvl]) { gameOn = true; score = RUN.lvlScore; playT = 0; lives = Math.max(1, RUN.lives ?? 3); resetGear(RUN.lvl); startLevel(RUN.lvl); lives = Math.max(1, RUN.lives ?? 3); return; } if (saveGet()) mapShow(true, false); };   // забег на рекорд продолжается с его уровня
+tCont.onclick = () => { audioOn(); ctr('buggo:cont'); if (MODE === 'solo' && RUN.on && LEVELS[RUN.lvl]) { gameOn = true; score = RUN.lvlScore; playT = 0; lives = Math.max(1, RUN.lives ?? 3); resetGear(RUN.lvl); startLevel(RUN.lvl); lives = Math.max(1, RUN.lives ?? 3); return; } if (saveGet()) mapShow(true, false); };   // забег на рекорд продолжается с его уровня
 function titleKey() {                         // клавиатура на титуле: A — дальше по меню
   if (tStep >= 3) return;
   if (tStep === 1) document.getElementById('t-solo').click(); else if (saveGet()) tCont.click(); else tGo.click();
