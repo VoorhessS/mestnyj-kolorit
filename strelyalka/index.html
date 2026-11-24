@@ -1648,6 +1648,7 @@ function onPtr(e) {
   e.preventDefault();
   if (e.pointerType === 'touch') { if (e.type === 'pointerdown' || e.type === 'pointerup') { audioOn(); goFull(); } return; }   // пальцы считает onTouch
   if (e.type === 'pointerdown') {
+    try { window.focus(); } catch (x) {}   // preventDefault выше не даёт клику забрать фокус (игра в iframe itch)
     audioOn(); goFull();
     const z = zoneAt(e.clientX, e.clientY);
     if (z !== 'pad') anyTap = true;
@@ -1675,6 +1676,7 @@ function onTouch(e) {                      // при каждом событии
 for (const t of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) document.addEventListener(t, onTouch, { passive: false });
 function releaseAll() { ptrs.clear(); for (const c in keys) keys[c] = false; aEdge = wEdge = gEdge = false; recompute(); }   // ушли из вкладки — всё отпускаем
 addEventListener('blur', releaseAll); addEventListener('pagehide', releaseAll);
+addEventListener('blur', () => { if (KB && state === 'play' && !menuOpen && !(NET && NET.ready)) openMenu(true); });   // клавиатура ушла (полный экран itch, другое окно) — пауза; «Продолжить» вернёт управление
 document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 document.addEventListener('contextmenu', e => e.preventDefault());
 function goFull() {
@@ -1894,7 +1896,7 @@ function runLevel(n) {                       // каждый startLevel: сле�
 }
 const fmtT = sec => { sec = Math.floor(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s2).padStart(2, '0'); };
 // Оружие: пистолет бесконечный, остальное — с патронами (ящики падают с жуков)
-const WPN = [{ n: 'ПИСТОЛЕТ', cd: .15 }, { n: 'ДРОБОВИК', cd: .55, box: 6, give: 12, col: '#ff7a1a' },
+const WPN = [{ n: 'ПИСТОЛЕТ', cd: .2 }, { n: 'ДРОБОВИК', cd: .55, box: 6, give: 12, col: '#ff7a1a' },
   { n: 'ВИНТОВКА', cd: .55, box: 5, give: 10, col: '#4aa3ff' }, { n: 'ГРАНАТОМЁТ', cd: .85, box: 3, give: 6, col: '#9be22d' }];
 const GUN_AT = { 1: 1, 7: 2, 14: 3 };          // глобальный номер подуровня → какое оружие там лежит
 // Баги: полезные — за баг-энергию (рулетка), мешающие — сами, с помехой за секунду
@@ -2807,7 +2809,7 @@ function updatePlayer(dt, k) {
         P.climb = false; P.safe = .8;
       } else if (P.on && k.dy > 0) { P.climb = false; P.safe = .8; }           // спустился на пол
     }
-    if (P.climb) { P.ax = P.face; P.ay = 0; shoot(k); return; }
+    if (P.climb) { if (k.dx) P.face = k.dx; P.ax = k.dy ? k.dx : P.face; P.ay = k.dy; shoot(k); return; }   // msg 2848: на лестнице целимся вверх/вниз и по диагонали
   }
   const feet = P.y + P.h, wet = P.wet = touches(P, WATER);
   if (P.on && !wet && !P.mv && k.dy === 1 && pdy !== 1 && k.dx && P.runT > .18 && P.slideCd <= 0) {   // бежал и нажал вниз — подкат
@@ -2896,7 +2898,7 @@ function shoot(k) {
   } else if (wpn === 3) {                          // гранатомёт: дугой, взрыв
     bullets.push({ x: ox - 3, y: oy - 3, w: 5, h: 5, vx: ux * 260, vy: uy * 260 - 170, g: 560, life: 2.2, k: 'gren' });
     beep(220, 90, .2, 'square', .05);
-  } else { shot(aim, 280, {}); beep(900, 300, .06, 'square', .025); }
+  } else { shot(aim, 280, { life: .55, k: 'pst' }); beep(900, 300, .06, 'square', .025); }   // msg 2846: пистолет бьёт на ~40% экрана — враги успевают двинуться
   P.cd = sp && wpn !== 3 ? Math.min(WPN[wpn].cd, wpn ? .2 : .07) : WPN[wpn].cd;   // в сальто стреляет чаще
   if (wpn) { ammo[wpn]--; if (ammo[wpn] <= 0) { showToast(WPN[wpn].n + ': пусто — пистолет', 1.6); wpn = 0; } }
 }
@@ -6974,6 +6976,7 @@ function draw() {
     else if (b.k === 'pel') rect(x, b.y, 3, 3, '#ffd8a0');
     else if (b.k === 'cl') rect(x, b.y, 4, 4, '#7fe8ff');
     else if (b.k === 'spit') { ell(x + 3, b.y + 3, 3.5, 3, '#4f8a10'); ell(x + 2.5, b.y + 2.5, 2, 1.5, '#b8ff6a'); }
+    else if (b.k === 'pst' && b.life < .14) { const z = b.life < .07 ? 2 : 3; rect(x + (4 - z) / 2, b.y + (4 - z) / 2, z, z, b.life < .07 ? '#999' : '#ccc'); }   // пуля на излёте гаснет
     else rect(x, b.y, 4, 4, '#fff');
   }
   for (const b of blasts) { ctx.strokeStyle = `rgba(255,210,63,${Math.min(1, b.t * 3)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(b.x - cam, b.y, 42 * (1 - b.t / .35) + 6, 0, 7); ctx.stroke(); }
