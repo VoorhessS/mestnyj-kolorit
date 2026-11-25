@@ -67,19 +67,19 @@
 <div class="pad l ctlB"><div class="b" data-k="left">◀</div><div class="b" data-k="right">▶</div></div>
 <div class="pad r ctlB"><div class="b grab big" data-k="grab">ХВАТ<small>держи</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
 <!-- Реализм -->
-<div class="pad l ctlA hide"><div class="b" data-k="q">Q<small>бёдра</small></div><div class="b" data-k="w">W<small>бёдра</small></div></div>
-<div class="pad r ctlA hide"><div class="b grab" data-k="grab">ХВАТ<small>руки</small></div><div class="b" data-k="o">O<small>колени</small></div><div class="b" data-k="p">P<small>колени</small></div></div>
+<div class="pad l ctlA hide"><div class="b big" data-k="legL">ЛЕВАЯ<small>шаг</small></div><div class="b big" data-k="legR">ПРАВАЯ<small>шаг</small></div></div>
+<div class="pad r ctlA hide"><div class="b grab big" data-k="grab">ХВАТ<small>держи</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
 
 <div class="ov" id="ovStart"><div class="card">
   <h1>НИНДЗЯ <span>СПОРТ</span></h1>
   <p>Пять ступеней → канат → кривая стена → кнопка. Упал в воду — забег окончен.</p>
   <div class="modes">
-    <div class="mode real" id="mReal"><b>1. Реализм</b><span>Сам управляешь ногами: Q/W — бёдра, O/P — колени, ХВАТ — руки. Никаких поддержек, как в жизни. Очень сложно!</span></div>
+    <div class="mode real" id="mReal"><b>1. Реализм</b><span>Каждый шаг твой: жми ЛЕВАЯ и ПРАВАЯ по очереди. Подольше держишь — длиннее шаг, долго — многоскок через ступень. Сбился с ноги — споткнёшься. Сам не бежит!</span></div>
     <div class="mode easy" id="mEasy"><b>2. Упрощение</b><span>Тело то же, физическое, но мышцы бегут сами: ◀ ▶, ПРЫЖОК, ХВАТ (держи на канате). На канате ◀ ▶ — раскачка ногами.</span></div>
   </div>
   <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
   <div class="ihint hide" id="instHint"></div>
-  <div class="ver">Версия 26.11 · пробник 2.1 (физика Box2D)</div>
+  <div class="ver">Версия 26.11 · пробник 2.2 (физика Box2D)</div>
 </div></div>
 <div class="ov hide" id="ovEnd"><div class="card">
   <h1 id="endT"></h1><p id="endP"></p>
@@ -143,7 +143,7 @@ function runPose(ph, k) {
 
 // ═════════ Состояние ═════════
 let world, P, J, rope, ropeTop, wallBody, grips, edgeGrip, MODE = 'easy', st, cam, best = {}, splash, running = false;
-const input = { left: false, right: false, jump: false, grab: false, q: false, w: false, o: false, p: false }, pressed = {};
+const input = { left: false, right: false, jump: false, grab: false, legL: false, legR: false }, pressed = {};
 function isRag(f) { const u = f.getBody().getUserData(); return u && (u.rag || u.rope); }
 
 function build() {
@@ -201,7 +201,8 @@ const vel = b => b.getLinearVelocity();
 // Опора под ногами: несколько лучей из таза вниз-вперёд, берём ближайшую поверхность
 function probe() {
   const o = P.pelvis.getPosition(); let best = null;
-  for (const a of [-Math.PI / 2, -Math.PI / 2 + .45, -Math.PI / 2 + .9]) {
+  // в Реализме на ступенях ещё луч чуть назад: ноги после длинного шага приземляются позади таза
+  for (const a of MODE === 'real' && o.x < 16 ? [-Math.PI / 2 - .3, -Math.PI / 2, -Math.PI / 2 + .45, -Math.PI / 2 + .9] : [-Math.PI / 2, -Math.PI / 2 + .45, -Math.PI / 2 + .9]) {
     const e = V(o.x + Math.cos(a) * 1.35, o.y + Math.sin(a) * 1.35);
     world.rayCast(o, e, (f, pt, nrm, fr) => { if (isRag(f)) return -1; if (!best || fr * 1.35 < best.d) best = { d: fr * 1.35, pt: V(pt.x, pt.y), n: V(nrm.x, nrm.y) }; return fr; });
   }
@@ -216,7 +217,7 @@ function step() {
   const tor = P.torso, pel = P.pelvis, M = st.M;
   if (st.lock > 0) st.lock -= DT;
   if (st.mantle > 0) st.mantle -= DT;
-  if (input.right || input.left || input.q || input.w || input.o || input.p || pressed.jump) st.started = true;
+  if (input.right || input.left || input.legL || input.legR || pressed.jump) st.started = true;
 
   // хват: держишь кнопку — руки тянутся и цепляются за канат или край
   if (input.grab && !st.failed) {
@@ -251,7 +252,10 @@ function step() {
   const grounded = g && g.d < 1.08 && g.n.y > .15;
   st.ground = grounded ? g : null;
 
-  if (easy) stepEasy(dirIn, grounded, g, onRope, onEdge); else stepReal(onRope, onEdge, grounded);
+  if (!easy) { // Реализм: на клавиатуре стрелки = ноги
+    if (pressed.left) pressed.legL = true; if (pressed.right) pressed.legR = true;
+    stepEasy((input.legR || input.right ? 1 : 0) - (input.legL || input.left ? 1 : 0), grounded, g, onRope, onEdge);
+  } else stepEasy(dirIn, grounded, g, onRope, onEdge);
 
   world.step(DT, 10, 6);
   for (const k in pressed) pressed[k] = false;
@@ -261,6 +265,7 @@ function step() {
   const tp = tor.getPosition();
   if (!st.finished && !st.failed && tp.x > BUZZ_X - .35 && tp.y > WALL_TOP + .3) finish();
   if (st.started && !st.finished && !st.failed) st.t += DT;
+  if (!st.wallTip && pel.getPosition().x > 25) { st.wallTip = 1; showTip(MODE === 'real' ? 'Стена: разгонись длинными шагами, на изгибе держи ХВАТ и жми ПРЫЖОК' : 'Стена: держи ▶ и ХВАТ, на изгибе жми ПРЫЖОК — руки поймают край'); }
   if (st.buzz > 0) st.buzz -= DT;
   for (const d of splash) { d.t += DT; d.x += d.vx * DT; d.vy -= G * DT; d.y += d.vy * DT; }
   splash = splash.filter(d => d.y > WATER - .05 || d.vy > 0);
@@ -268,7 +273,8 @@ function step() {
 
 // ═════════ Режим «Упрощение»: тело физическое, мышцы и равновесие помогают ═════════
 function stepEasy(dirIn, grounded, g, onRope, onEdge) {
-  const tor = P.torso, pel = P.pelvis, M = st.M, v = vel(pel);
+  const tor = P.torso, pel = P.pelvis, M = st.M, v = vel(pel), real = MODE === 'real';
+  const S = real ? stride(grounded, g) : null;
   const ang = tor.getAngle();
   // упал — полежал — встаёт
   if (st.down > 0) { st.down -= DT; drive(POSE.limp, .12); if (st.down <= 0) st.getup = .9; return; }
@@ -324,18 +330,21 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     const want = dirIn * VMAX;
     let a = (want - vt) * (dirIn ? 1.3 : 3);
     a = Math.max(-5, Math.min(ACC, a)) * (dirIn ? steep : 1);
+    // Реализм: сам не бежит, без шагов скорость гаснет трением подошв
+    if (real) { a = Math.abs(vt) < .25 ? -vt * 3 : -Math.sign(vt) * (.7 + .12 * Math.abs(vt)); if (S.push > 0) a = 0; }
     for (const b of Object.values(P)) { const m = b.getMass(); b.applyForceToCenter(V(t.x * m * a, t.y * m * a), true); } // сила к центру масс — без лишнего опрокидывания
     // равновесие: корпус наклоняется вперёд при разгоне, назад при торможении
     const lean = -(.05 + .18 * Math.max(-1, Math.min(1, a / 6)) + .06 * Math.min(1, Math.abs(vt) / 7) * Math.sign(vt || 1));
     const surf = Math.atan2(n.x, n.y) * -.15;
-    balance(lean + surf, 520 * up, 45);
+    balance(real ? -(.06 + .1 * Math.min(1, Math.abs(vt) / 6)) + surf : lean + surf, 520 * up * (real && S.stumble > 0 ? .25 : 1), 45);
     // ноги: фаза шага от пройденного пути
     st.ph += Math.abs(vt) * DT / .34;
     const k = Math.min(1, Math.abs(vt) / 6);
-    if (input.grab && n.y < .75) drive(Object.assign(runPose(st.ph, Math.max(.25, k)), { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
-    else drive(k > .05 ? runPose(st.ph, Math.max(.25, k)) : POSE.stand, 1);
+    const legs = real ? stridePose(S) : runPose(st.ph, Math.max(.25, k));
+    if (input.grab && n.y < .75) drive(Object.assign(legs, { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
+    else drive(real || k > .05 ? legs : POSE.stand, 1);
     if (pressed.jump && up > .8 && n.y > .5) { // прыгнуть можно только с пологой опоры
-      const add = dirIn ? Math.max(.3, 2.2 - dirIn * v.x) * dirIn : 0;
+      const add = real ? (v.x > .5 ? Math.max(0, 5 - v.x) * .4 : 0) : dirIn ? Math.max(.3, 2.2 - dirIn * v.x) * dirIn : 0;
       for (const b of Object.values(P)) b.applyLinearImpulse(V(b.getMass() * add, b.getMass() * JUMP), b.getWorldCenter(), true);
       st.lock = .25; st.airT = 0; drive(POSE.air, 1.4);
     }
@@ -343,7 +352,7 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     st.airT += DT;
     // застрял лёжа без опоры (на краю ступени и т. п.) — встаёт на чекпоинте
     const sp = vel(tor); if (st.airT > 1.5 && Math.hypot(sp.x, sp.y) < .4) { st.stuck = (st.stuck || 0) + DT; if (st.stuck > 1) { st.stuck = 0; respawn(); } } else st.stuck = 0;
-    drive(input.grab ? (P.pelvis.getPosition().x > WALL_X0 ? POSE.reach : POSE.air) : (st.airT > .35 ? POSE.fly : POSE.air), .8);
+    drive(input.grab ? (P.pelvis.getPosition().x > WALL_X0 ? POSE.reach : POSE.air) : real && (S.leg || S.flight) ? stridePose(S) : (st.airT > .35 ? POSE.fly : POSE.air), .8);
     balance(-.1, 70, 12); // в воздухе слабее: вращение заметно, но приземлиться можно
   }
 }
@@ -355,36 +364,49 @@ function balance(target, kp, kd) {
   }
 }
 
-// ═════════ Режим «Реализм»: только мышцы, никаких поддержек ═════════
-function stepReal(onRope, onEdge, grounded) {
-  const p = {};
-  const base = POSE.stand;
-  for (const k in base) p[k] = base[k];
-  if (input.q) { p.hipL = HQ[0]; p.hipR = HQ[1]; }
-  if (input.w) { p.hipL = HQ[1]; p.hipR = HQ[0]; }
-  if (input.o) { p.knL = -.05; p.knR = KQ; }
-  if (input.p) { p.knL = KQ; p.knR = -.05; }
-  // руки качаются против бёдер, ХВАТ — вверх
-  p.shL = .2 - (p.hipL - .2) * .6; p.shR = .2 - (p.hipR - .2) * .6;
-  if (input.grab) { p.shL = 2.6; p.shR = 2.8; p.elL = .2; p.elR = .2; }
-  if (onEdge && (input.q || input.w || input.o || input.p)) { p.shL = p.shR = 1.3; p.elL = p.elR = 2.3; }
-  if (onEdge && pel().y > EDGE[1] + .12 && P.torso.getPosition().x > EDGE[0]) { for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; input.grab = false; }
-  // рефлекс равновесия: только мышцы голеностопа и бедра (внутренние силы, без подпорок)
-  // центр масс над стопой — как человек держит равновесие голеностопом
-  let M = 0, cx = 0, cv = 0; for (const b of Object.values(P)) { const m = b.getMass(); M += m; cx += m * b.getWorldCenter().x; cv += m * b.getLinearVelocity().x; } cx /= M; cv /= M;
-  const fx = (P.ftL.getPosition().x + P.ftR.getPosition().x) / 2;
-  const fix = grounded ? Math.max(-.6, Math.min(.6, RS * ((cx - fx) * 4 + cv * .8))) : 0;
-  p.anL += fix; p.anR += fix;
-  if (!input.q && !input.w) { p.hipL -= fix * .6; p.hipR -= fix * .6; }
-  // корпус держится прямо мышцами поясницы и бёдер
-  const ta = P.torso.getAngle(), pa = P.pelvis.getAngle();
-  p.waist -= Math.max(-.5, Math.min(.5, (ta - pa) * 0 + ta * WR));
-  p.hipL -= Math.max(-.4, Math.min(.4, pa * HR)); p.hipR -= Math.max(-.4, Math.min(.4, pa * HR));
-  if (grounded && Math.abs(P.torso.getAngle()) > 1.35) { st.lie = (st.lie || 0) + DT; if (st.lie > 1) respawn(); } else st.lie = 0;
-  drive(p, onEdge ? 3 : 1, 12);
-  for (const n of ['anL', 'anR', 'knL', 'knR']) { const j = J[n]; j.setMotorSpeed(Math.max(-14, Math.min(14, (p[n] - j.getJointAngle()) * 30))); } // голеностоп и колено держат жёстче
+// ═════════ Режим «Реализм»: каждый шаг — нажатие игрока ═════════
+// Нажал ногу — она выносится вперёд, опорная нога приседает (заряд). Отпустил — толчок опорной ногой.
+// Короткое нажатие — обычный шаг, долгое — многоскок (длинный полёт, как в тройном прыжке).
+function stride(grounded, g) {
+  const S = st.sd || (st.sd = { leg: null, hold: 0, last: null, push: 0, c: 0, stumble: 0, flight: false });
+  if (S.push > 0) S.push -= DT; if (S.stumble > 0) S.stumble -= DT;
+  if (grounded && st.airT === 0 && S.push <= 0) S.flight = false;
+  // нажал другую ногу, не отпустив прежнюю, — прежняя сначала толкается
+  for (const s of ['L', 'R']) if (pressed['leg' + s]) { if (S.leg && S.leg !== s) push(S, grounded, g); S.leg = s; S.hold = 0; S.c = 0; }
+  if (!S.leg) return S;
+  const held = input['leg' + S.leg] || (S.leg === 'L' ? input.left : input.right);
+  if (held) { S.hold += DT; S.c = Math.min(1, S.hold / RC.hold); return S; }
+  push(S, grounded, g); // отпустил — толчок
+  return S;
 }
-let RS = -1, HQ = [.5, -.25], KQ = -.8, WR = 2, HR = 1.2;
+function push(S, grounded, g) {
+  const c = S.c, n = g && g.n;
+  if (grounded && n.y > .5 && st.down <= 0 && st.getup <= 0 && !(st.vault > 0)) {
+    const t = V(n.y, -n.x), v = vel(P.pelvis), vt = v.x * t.x + v.y * t.y;
+    const same = S.last === S.leg;
+    const cap = RC.cap0 + RC.cap1 * c, dv = (RC.dv0 + RC.dv1 * c) * (same ? .3 : 1);
+    const vNew = Math.max(vt, Math.min(vt + dv, cap)), add = vNew - vt;
+    const upv = same ? .2 : c > .5 ? RC.up0 + RC.up1 * (c - .5) / .5 : .3;
+    for (const b of Object.values(P)) { const m = b.getMass(); b.applyLinearImpulse(V(t.x * m * add, (t.y * add + upv) * m), b.getWorldCenter(), true); }
+    if (same) { S.stumble = .5; showTip('Сбился с ноги — шагай по очереди!'); for (const b of [P.torso, P.head]) b.applyAngularImpulse(-b.getInertia() * 2.5, true); }
+    S.last = S.leg; S.push = .25; S.pushLeg = S.leg; S.pushC = c; S.flight = upv > .5; st.lock = upv > .5 ? .15 : 0;
+    S.steps = (S.steps || 0) + 1;
+  }
+  S.last = S.leg; // очерёдность считается по нажатиям, даже если толчок пришёлся на воздух
+  S.leg = null; S.c = 0;
+}
+const RC = { hold: .45, cap0: 3.0, cap1: 3.6, dv0: 1.0, dv1: 1.3, up0: 1.2, up1: 1.8 };
+// поза ног в Реализме по фазе шага
+function stridePose(S) {
+  const p = Object.assign({}, POSE.stand, { hipL: .1, knL: -.25, hipR: .1, knR: -.25, waist: -.1 });
+  const set = (s, hip, kn) => { p['hip' + s] = hip; p['kn' + s] = kn; };
+  const o = s => s === 'L' ? 'R' : 'L';
+  if (S.leg) { const c = S.c, s = S.leg; set(s, .45 + 1.0 * c, -1.4 + .3 * c); set(o(s), -.05 - .15 * c, -.35 - .35 * c); }
+  else if ((S.push > 0 || S.flight) && S.pushLeg) { const c = S.pushC || 0, s = S.pushLeg; set(s, .9 + .5 * c, -.35); set(o(s), -.55, S.push > 0 ? -.15 : -.65); }
+  // руки работают в противофазе ногам
+  p.shL = .2 - (p.hipL - .2) * .8; p.shR = .2 - (p.hipR - .2) * .8; p.elL = p.elR = 1.2;
+  return p;
+}
 // Реализм: упал на площадке и лежишь — встаёшь на последнем чекпоинте (+2 с)
 const CHECK = [-3.2, 12.8, 21.8];
 function respawn() {
@@ -500,7 +522,7 @@ function frame(t) {
 }
 
 // ═════════ Управление ═════════
-const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', Space: 'jump', ShiftLeft: 'grab', ShiftRight: 'grab', KeyJ: 'grab', KeyK: 'grab', KeyQ: 'q', KeyW: 'w', KeyO: 'o', KeyP: 'p' };
+const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', Space: 'jump', ShiftLeft: 'grab', ShiftRight: 'grab', KeyJ: 'grab', KeyK: 'grab', KeyZ: 'legL', KeyX: 'legR' };
 addEventListener('keydown', e => { const k = KEYS[e.code]; if (!k) return; e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; });
 addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) input[k] = false; });
 for (const el of document.querySelectorAll('.b')) {
@@ -510,7 +532,7 @@ for (const el of document.querySelectorAll('.b')) {
   el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
 }
 addEventListener('contextmenu', e => e.preventDefault());
-const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК · держи ХВАТ на канате', real: 'Q/W — бёдра, O/P — колени. Ритм: Q+P, пауза, W+O, пауза 😉' };
+const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК · держи ХВАТ на канате', real: 'ЛЕВАЯ, ПРАВАЯ по очереди — шаги. Держи дольше — шаг длиннее 😉' };
 function showTip(t) { const tip = document.getElementById('tip'); tip.textContent = t; clearTimeout(tip._t); tip._t = setTimeout(() => tip.textContent = '', 5000); }
 function start(m) {
   MODE = m; build(); running = true;
@@ -544,7 +566,7 @@ try { for (const m of ['easy', 'real']) best[m] = parseFloat(localStorage.getIte
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 resize(); build(); requestAnimationFrame(frame);
-window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, setRunning: r => running = r, probe: () => probe() };
+window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, get rope() { return rope; }, RC, setRunning: r => running = r, probe: () => probe() };
 </script>
 </body>
 </html>
