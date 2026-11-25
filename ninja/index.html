@@ -79,7 +79,7 @@
   </div>
   <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
   <div class="ihint hide" id="instHint"></div>
-  <div class="ver">Версия 25.11 · пробник 2 (физика Box2D)</div>
+  <div class="ver">Версия 26.11 · пробник 2.1 (физика Box2D)</div>
 </div></div>
 <div class="ov hide" id="ovEnd"><div class="card">
   <h1 id="endT"></h1><p id="endP"></p>
@@ -93,7 +93,7 @@ const DT = 1 / 120, G = 9.8, WATER = -1.2;
 // ═════════ Трасса (метры, y вверх) ═════════
 const PADS = [[2.6, -.14, -.3], [4.6, -.14, .3], [6.6, -.14, -.3], [8.6, -.14, .3], [10.6, -.14, -.3]];
 const ROPE_TOP = [17.6, 4.4], ROPE_N = 17, ROPE_L = .2;
-const WALL_X0 = 30, WALL_X1 = 33.3, WALL_TOP = 4.3, END_X = 37.2, BUZZ_X = 35.6;
+const WALL_X0 = 30, WALL_X1 = 33.3, WALL_TOP = 4.0, END_X = 37.2, BUZZ_X = 35.6;
 const EDGE = [WALL_X1, WALL_TOP];
 function quad(p0, p1, p2, n) { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; o.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]); } return o; }
 const CURVE = quad([WALL_X0, 0], [WALL_X1, 0], [WALL_X1, WALL_TOP], 32);
@@ -126,6 +126,7 @@ const POSE = {
   hang: { waist: 0, neck: 0, shL: 3.0, elL: .1, shR: 3.05, elR: .1, hipL: .15, knL: -.2, anL: .2, hipR: .05, knR: -.3, anR: .2 },
   hangF: { waist: -.25, neck: -.1, shL: 3.0, elL: .15, shR: 3.05, elR: .15, hipL: 1.4, knL: -.25, anL: .3, hipR: 1.3, knR: -.35, anR: .3 },
   hangB: { waist: .3, neck: .3, shL: 3.0, elL: .05, shR: 3.05, elR: .05, hipL: -.5, knL: -.9, anL: -.2, hipR: -.4, knR: -1.0, anR: -.2 },
+  reach: { waist: -.1, neck: .2, shL: 2.55, elL: .05, shR: 2.6, elR: .05, hipL: .7, knL: -.5, anL: .2, hipR: -.1, knR: -.6, anR: .2 },
   pull: { waist: -.3, neck: -.2, shL: 1.4, elL: 2.3, shR: 1.4, elR: 2.3, hipL: 1.0, knL: -1.2, anL: .3, hipR: .6, knR: -1.0, anR: .3 },
   limp: { waist: 0, neck: 0, shL: .3, elL: .3, shR: .3, elR: .3, hipL: .2, knL: -.3, anL: 0, hipR: .2, knR: -.3, anR: 0 },
 };
@@ -235,8 +236,9 @@ function step() {
     }
     if (!onEdge && !grips.length && !(st.mantle > 0)) for (const s of ['R', 'L']) {
       const h = hand(s);
-      if (h.x > EDGE[0] - .35 && h.x < EDGE[0] + .5 && h.y > EDGE[1] - .25 && h.y < EDGE[1] + .45 && pel.getPosition().x < EDGE[0] + .1) {
-        for (const s2 of ['R', 'L']) edgeGrip.push(world.createJoint(new pl.RevoluteJoint({}, P['fa' + s2], wallBody, hand(s2))));
+      if (h.x > EDGE[0] - .75 && h.x < EDGE[0] + .5 && h.y > EDGE[1] - .3 && h.y < EDGE[1] + .5 && pel.getPosition().x < EDGE[0] + .1) {
+        // кисти ложатся на край (притягиваются к нему)
+        for (const [s2, dx] of [['R', -.04], ['L', -.16]]) edgeGrip.push(world.createJoint(new pl.RevoluteJoint({ localAnchorA: V(0, -.15), localAnchorB: V(EDGE[0] + dx, EDGE[1] + .02) }, P['fa' + s2], wallBody)));
         st.edgeT = 0; break;
       }
     }
@@ -246,7 +248,7 @@ function step() {
   }
 
   const g = st.lock > 0 || onRope || onEdge ? null : probe();
-  const grounded = g && g.d < 1.08;
+  const grounded = g && g.d < 1.08 && g.n.y > .15;
   st.ground = grounded ? g : null;
 
   if (easy) stepEasy(dirIn, grounded, g, onRope, onEdge); else stepReal(onRope, onEdge, grounded);
@@ -276,12 +278,12 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
       // подтягивание: руки тянут, корпус переваливается через край
       const tp = tor.getPosition(), pp = pel.getPosition(), k = Math.min(1, (st.edgeT - .35) / .4);
       // руки тянут вверх, корпус держится вертикально; когда таз выше края — шаг вперёд на площадку
-      const upF = pp.y < EDGE[1] + .2 ? M * G * 1.18 * k : 0, fwd = pp.y > EDGE[1] - .1 ? M * 4 : 0;
+      const upF = pp.y < EDGE[1] + .2 ? M * G * 1.3 * k : 0, fwd = pp.y > EDGE[1] - .1 ? M * 4 : 0;
       tor.applyForceToCenter(V(fwd * .5, upF * .5), true); pel.applyForceToCenter(V(fwd * .5, upF * .5), true);
       balance(-.15, 600, 50);
       // плечи выше края — выход силой: отпускаем руки и рывком переваливаемся на площадку
-      if (tp.y > EDGE[1] - .3 && st.edgeT > .6) { for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; input.grab = false; st.lock = .35; st.getup = .6; st.mantle = .9;
-        for (const b of Object.values(P)) b.applyLinearImpulse(V(b.getMass() * 2.2, b.getMass() * 4.0), b.getWorldCenter(), true); }
+      if ((tp.y > EDGE[1] - .45 && st.edgeT > .6) || st.edgeT > 1.4) { for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; input.grab = false; st.lock = .35; st.getup = .6; st.mantle = .9;
+        for (const b of Object.values(P)) b.applyLinearImpulse(V(0, b.getMass() * 2.5), b.getWorldCenter(), true); st.vault = 1.3; }
     }
     return;
   }
@@ -294,6 +296,16 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     if (dirIn) pel.applyForceToCenter(V(dirIn * M * 1.6, 0), true);
     return;
   }
+  // выход на площадку: сначала таз выше края, потом вперёд
+  if (st.vault > 0) {
+    st.vault -= DT; const pp = pel.getPosition();
+    const vv = vel(pel), fx = M * Math.max(-3, Math.min(3, 6 * (EDGE[0] - .25 - pp.x) - 2 * vv.x));
+    if (pp.y < EDGE[1] + .4 && pp.x < EDGE[0] + .2) { pel.applyForceToCenter(V(fx * .6, M * G * .9), true); tor.applyForceToCenter(V(fx * .4, M * G * .5), true); }
+    else { pel.applyForceToCenter(V(M * 3, 0), true); tor.applyForceToCenter(V(M * 3, 0), true); }
+    drive(POSE.pull, 1.5); balance(-.2, 300, 30);
+    if (pp.x > EDGE[0] + .35) st.vault = 0;
+    return;
+  }
   const up = st.getup > 0 ? (st.getup -= DT, 1 - st.getup / .9) : 1;
   if (grounded) {
     const n = g.n, t = V(n.y, -n.x); // касательная вправо
@@ -304,13 +316,14 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     // опора: пружина держит таз на высоте ног
     const h0 = 1.02 - .04 * Math.min(1, Math.abs(vt) / 7);
     let F = M * (70 * (h0 - g.d) - 11 * vn) + M * G * Math.max(0, n.y);
-    F = Math.max(0, Math.min(F, 3 * M * G)) * up;
+    // на крутой стене не устоять: опора только там, где поверхность не круче ~55°
+    F = Math.max(0, Math.min(F, 1.8 * M * G)) * up * Math.max(0, Math.min(1, (n.y - .15) / .2));
     pel.applyForceToCenter(V(n.x * F * .7, n.y * F * .7), true); tor.applyForceToCenter(V(n.x * F * .3, n.y * F * .3), true);
     // бег: сила вдоль поверхности, разгон постепенный (в крутую горку не разгонишься)
     const steep = Math.max(0, Math.min(1, (t.x - .45) / .35));
-    const want = dirIn * 7.2;
-    let a = (want - vt) * (dirIn ? 2.2 : 3.5);
-    a = Math.max(-7, Math.min(7, a)) * (dirIn ? steep : 1);
+    const want = dirIn * VMAX;
+    let a = (want - vt) * (dirIn ? 1.3 : 3);
+    a = Math.max(-5, Math.min(ACC, a)) * (dirIn ? steep : 1);
     for (const b of Object.values(P)) { const m = b.getMass(); b.applyForceToCenter(V(t.x * m * a, t.y * m * a), true); } // сила к центру масс — без лишнего опрокидывания
     // равновесие: корпус наклоняется вперёд при разгоне, назад при торможении
     const lean = -(.05 + .18 * Math.max(-1, Math.min(1, a / 6)) + .06 * Math.min(1, Math.abs(vt) / 7) * Math.sign(vt || 1));
@@ -319,18 +332,22 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     // ноги: фаза шага от пройденного пути
     st.ph += Math.abs(vt) * DT / .34;
     const k = Math.min(1, Math.abs(vt) / 6);
-    drive(k > .05 ? runPose(st.ph, Math.max(.25, k)) : POSE.stand, 1);
-    if (pressed.jump && up > .8) {
-      const add = dirIn ? Math.max(.4, 2.6 - dirIn * v.x) * dirIn : 0;
-      for (const b of Object.values(P)) b.applyLinearImpulse(V(b.getMass() * add, b.getMass() * 4.4), b.getWorldCenter(), true);
+    if (input.grab && n.y < .75) drive(Object.assign(runPose(st.ph, Math.max(.25, k)), { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
+    else drive(k > .05 ? runPose(st.ph, Math.max(.25, k)) : POSE.stand, 1);
+    if (pressed.jump && up > .8 && n.y > .5) { // прыгнуть можно только с пологой опоры
+      const add = dirIn ? Math.max(.3, 2.2 - dirIn * v.x) * dirIn : 0;
+      for (const b of Object.values(P)) b.applyLinearImpulse(V(b.getMass() * add, b.getMass() * JUMP), b.getWorldCenter(), true);
       st.lock = .25; st.airT = 0; drive(POSE.air, 1.4);
     }
   } else {
     st.airT += DT;
-    drive(input.grab ? POSE.air : (st.airT > .35 ? POSE.fly : POSE.air), .8);
+    // застрял лёжа без опоры (на краю ступени и т. п.) — встаёт на чекпоинте
+    const sp = vel(tor); if (st.airT > 1.5 && Math.hypot(sp.x, sp.y) < .4) { st.stuck = (st.stuck || 0) + DT; if (st.stuck > 1) { st.stuck = 0; respawn(); } } else st.stuck = 0;
+    drive(input.grab ? (P.pelvis.getPosition().x > WALL_X0 ? POSE.reach : POSE.air) : (st.airT > .35 ? POSE.fly : POSE.air), .8);
     balance(-.1, 70, 12); // в воздухе слабее: вращение заметно, но приземлиться можно
   }
 }
+let VMAX = 6.3, ACC = 3.8, JUMP = 3.7; // Упрощение: скорость бега м/с, разгон м/с², толчок прыжка м/с
 function balance(target, kp, kd) {
   for (const [b, w] of [[P.torso, 1], [P.pelvis, .6]]) {
     const I = b.getInertia(); let e = target - b.getAngle(); e = Math.atan2(Math.sin(e), Math.cos(e));
