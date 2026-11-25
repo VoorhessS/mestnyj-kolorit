@@ -65,21 +65,21 @@
 <div id="rot" class="hide">Поверни телефон боком — так видно трассу</div>
 <!-- Упрощение -->
 <div class="pad l ctlB"><div class="b" data-k="left">◀</div><div class="b" data-k="right">▶</div></div>
-<div class="pad r ctlB"><div class="b grab big" data-k="grab">ХВАТ<small>держи</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
+<div class="pad r ctlB"><div class="b grab big" data-k="grab">ХВАТ<small>руки</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
 <!-- Реализм -->
 <div class="pad l ctlA hide"><div class="b big" data-k="legL">ЛЕВАЯ<small>шаг</small></div><div class="b big" data-k="legR">ПРАВАЯ<small>шаг</small></div></div>
-<div class="pad r ctlA hide"><div class="b grab big" data-k="grab">ХВАТ<small>держи</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
+<div class="pad r ctlA hide"><div class="b grab big" data-k="grab">ХВАТ<small>руки</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
 
 <div class="ov" id="ovStart"><div class="card">
   <h1>НИНДЗЯ <span>СПОРТ</span></h1>
   <p>Пять ступеней → канат → кривая стена → кнопка. Упал в воду — забег окончен.</p>
   <div class="modes">
     <div class="mode real" id="mReal"><b>1. Реализм</b><span>Каждый шаг твой: жми ЛЕВАЯ и ПРАВАЯ по очереди. Подольше держишь — длиннее шаг, долго — многоскок через ступень. Сбился с ноги — споткнёшься. Сам не бежит!</span></div>
-    <div class="mode easy" id="mEasy"><b>2. Упрощение</b><span>Тело то же, физическое, но мышцы бегут сами: ◀ ▶, ПРЫЖОК, ХВАТ (держи на канате). На канате ◀ ▶ — раскачка ногами.</span></div>
+    <div class="mode easy" id="mEasy"><b>2. Упрощение</b><span>Тело то же, физическое, но мышцы бегут сами: ◀ ▶, ПРЫЖОК, ХВАТ (после прыжка руки хватают сами). На канате ◀ ▶ — раскачка ногами.</span></div>
   </div>
   <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
   <div class="ihint hide" id="instHint"></div>
-  <div class="ver">Версия 26.11 · пробник 2.2 (физика Box2D)</div>
+  <div class="ver">Версия 26.11 · пробник 2.3 (физика Box2D)</div>
 </div></div>
 <div class="ov hide" id="ovEnd"><div class="card">
   <h1 id="endT"></h1><p id="endP"></p>
@@ -213,14 +213,24 @@ function probe() {
 function step() {
   const easy = MODE === 'easy';
   const dirIn = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  const onRope = grips.length > 0, onEdge = edgeGrip.length > 0;
+  let onRope = grips.length > 0, onEdge = edgeGrip.length > 0;
   const tor = P.torso, pel = P.pelvis, M = st.M;
   if (st.lock > 0) st.lock -= DT;
   if (st.mantle > 0) st.mantle -= DT;
   if (input.right || input.left || input.legL || input.legR || pressed.jump) st.started = true;
 
-  // хват: держишь кнопку — руки тянутся и цепляются за канат или край
-  if (input.grab && !st.failed) {
+  // хват «липкий»: ХВАТ или ПРЫЖОК готовят руки, держать кнопку не нужно.
+  // Висишь — отпустить: ПРЫЖОК, ХВАТ ещё раз или отпустить зажатый ХВАТ.
+  if (st.noGrab > 0) st.noGrab -= DT;
+  if (onRope || onEdge) {
+    st.gripT = (st.gripT || 0) + DT; // только что схватился — нажатия ещё не отпускают
+    if (st.gripT > .3 && (pressed.jump || pressed.grab || (st.gripHeld && !input.grab))) { letGo(); st.arm = false; st.noGrab = .4; pressed.jump = false; onRope = onEdge = false; }
+  } else {
+    if (st.ground && st.lock <= 0 && st.airT === 0 && !input.grab) st.arm = false; // стоишь на опоре — руки опускаются
+    if (pressed.grab || pressed.jump) st.arm = true;
+  }
+  const gr = st.gr = (input.grab || st.arm) && !st.failed && !(st.noGrab > 0);
+  if (gr) {
     if (!onRope) for (const s of ['R', 'L']) {
       const h = hand(s);
       for (let i = 2; i < ROPE_N; i++) {
@@ -230,23 +240,21 @@ function step() {
           const o = s === 'R' ? 'L' : 'R', h2 = hand(o);
           let bi = i, bd = 9; for (let k2 = Math.max(1, i - 2); k2 <= Math.min(ROPE_N - 1, i + 2); k2++) { const c2 = rope[k2].getPosition(), d = Math.hypot(h2.x - c2.x, h2.y - c2.y); if (d < bd) { bd = d; bi = k2; } }
           if (bd < .5) grips.push(world.createJoint(new pl.RevoluteJoint({}, P['fa' + o], rope[bi], h2)));
-          break;
+          st.gripHeld = input.grab; st.gripT = 0; break;
         }
       }
       if (grips.length) break;
     }
     if (!onEdge && !grips.length && !(st.mantle > 0)) for (const s of ['R', 'L']) {
       const h = hand(s);
-      if (h.x > EDGE[0] - .75 && h.x < EDGE[0] + .5 && h.y > EDGE[1] - .3 && h.y < EDGE[1] + .5 && pel.getPosition().x < EDGE[0] + .1) {
+      if (h.x > EDGE[0] - .75 && h.x < EDGE[0] + .5 && h.y > EDGE[1] - .3 && h.y < EDGE[1] + .5 && pel.getPosition().x < EDGE[0] + .1 && pel.getPosition().y < EDGE[1] + .3) {
         // кисти ложатся на край (притягиваются к нему)
         for (const [s2, dx] of [['R', -.04], ['L', -.16]]) edgeGrip.push(world.createJoint(new pl.RevoluteJoint({ localAnchorA: V(0, -.15), localAnchorB: V(EDGE[0] + dx, EDGE[1] + .02) }, P['fa' + s2], wallBody)));
-        st.edgeT = 0; break;
+        st.edgeT = 0; st.gripHeld = input.grab; st.gripT = 0; break;
       }
     }
-  } else {
-    for (const j of grips) world.destroyJoint(j); grips = [];
-    for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = [];
   }
+  if (st.failed && (grips.length || edgeGrip.length)) letGo();
 
   const g = st.lock > 0 || onRope || onEdge ? null : probe();
   const grounded = g && g.d < 1.08 && g.n.y > .15;
@@ -265,7 +273,7 @@ function step() {
   const tp = tor.getPosition();
   if (!st.finished && !st.failed && tp.x > BUZZ_X - .35 && tp.y > WALL_TOP + .3) finish();
   if (st.started && !st.finished && !st.failed) st.t += DT;
-  if (!st.wallTip && pel.getPosition().x > 25) { st.wallTip = 1; showTip(MODE === 'real' ? 'Стена: разгонись длинными шагами, на изгибе держи ХВАТ и жми ПРЫЖОК' : 'Стена: держи ▶ и ХВАТ, на изгибе жми ПРЫЖОК — руки поймают край'); }
+  if (!st.wallTip && pel.getPosition().x > 25) { st.wallTip = 1; showTip(MODE === 'real' ? 'Стена: разгонись длинными шагами и на изгибе жми ПРЫЖОК — руки сами поймают край' : 'Стена: держи ▶ и на изгибе жми ПРЫЖОК — руки сами поймают край'); }
   if (st.buzz > 0) st.buzz -= DT;
   for (const d of splash) { d.t += DT; d.x += d.vx * DT; d.vy -= G * DT; d.y += d.vy * DT; }
   splash = splash.filter(d => d.y > WATER - .05 || d.vy > 0);
@@ -288,7 +296,7 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
       tor.applyForceToCenter(V(fwd * .5, upF * .5), true); pel.applyForceToCenter(V(fwd * .5, upF * .5), true);
       balance(-.15, 600, 50);
       // плечи выше края — выход силой: отпускаем руки и рывком переваливаемся на площадку
-      if ((tp.y > EDGE[1] - .45 && st.edgeT > .6) || st.edgeT > 1.4) { for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; input.grab = false; st.lock = .35; st.getup = .6; st.mantle = .9;
+      if ((tp.y > EDGE[1] - .45 && st.edgeT > .6) || st.edgeT > 1.4) { for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; st.arm = false; st.gripHeld = false; st.lock = .35; st.getup = .6; st.mantle = .9;
         for (const b of Object.values(P)) b.applyLinearImpulse(V(0, b.getMass() * 2.5), b.getWorldCenter(), true); st.vault = 1.3; }
     }
     return;
@@ -341,7 +349,7 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     st.ph += Math.abs(vt) * DT / .34;
     const k = Math.min(1, Math.abs(vt) / 6);
     const legs = real ? stridePose(S) : runPose(st.ph, Math.max(.25, k));
-    if (input.grab && n.y < .75) drive(Object.assign(legs, { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
+    if ((st.gr || P.pelvis.getPosition().x > WALL_X0 + .3) && n.y < .75) drive(Object.assign(legs, { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
     else drive(real || k > .05 ? legs : POSE.stand, 1);
     if (pressed.jump && up > .8 && n.y > .5) { // прыгнуть можно только с пологой опоры
       const add = real ? (v.x > .5 ? Math.max(0, 5 - v.x) * .4 : 0) : dirIn ? Math.max(.3, 2.2 - dirIn * v.x) * dirIn : 0;
@@ -352,7 +360,7 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     st.airT += DT;
     // застрял лёжа без опоры (на краю ступени и т. п.) — встаёт на чекпоинте
     const sp = vel(tor); if (st.airT > 1.5 && Math.hypot(sp.x, sp.y) < .4) { st.stuck = (st.stuck || 0) + DT; if (st.stuck > 1) { st.stuck = 0; respawn(); } } else st.stuck = 0;
-    drive(input.grab ? (P.pelvis.getPosition().x > WALL_X0 ? POSE.reach : POSE.air) : real && (S.leg || S.flight) ? stridePose(S) : (st.airT > .35 ? POSE.fly : POSE.air), .8);
+    drive(st.gr ? (P.pelvis.getPosition().x > WALL_X0 ? POSE.reach : POSE.air) : real && (S.leg || S.flight) ? stridePose(S) : (st.airT > .35 ? POSE.fly : POSE.air), .8);
     balance(-.1, 70, 12); // в воздухе слабее: вращение заметно, но приземлиться можно
   }
 }
@@ -416,6 +424,7 @@ function respawn() {
   st.t += 2; st.lie = 0; showTip('Упал — встаёшь на чекпоинте, +2 с');
 }
 const pel = () => P.pelvis.getPosition();
+function letGo() { for (const j of grips) world.destroyJoint(j); grips = []; for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; }
 
 // ═════════ Финиш / вода ═════════
 function finish() {
@@ -525,14 +534,27 @@ function frame(t) {
 const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', Space: 'jump', ShiftLeft: 'grab', ShiftRight: 'grab', KeyJ: 'grab', KeyK: 'grab', KeyZ: 'legL', KeyX: 'legR' };
 addEventListener('keydown', e => { const k = KEYS[e.code]; if (!k) return; e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; });
 addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) input[k] = false; });
-for (const el of document.querySelectorAll('.b')) {
+const BTNS = [...document.querySelectorAll('.b')];
+let touchKeys = new Set();
+function syncTouches(e) {
+  const now = new Set(); let onBtn = false;
+  for (const t of e.touches) { const el = document.elementFromPoint(t.clientX, t.clientY), b = el && el.closest('.b'); if (b) now.add(b.dataset.k); }
+  for (const t of e.changedTouches) { const el = document.elementFromPoint(t.clientX, t.clientY); if (el && el.closest('.b')) onBtn = true; }
+  if (onBtn || touchKeys.size) e.preventDefault();
+  for (const k of now) if (!touchKeys.has(k)) { if (!input[k]) pressed[k] = true; input[k] = true; }
+  for (const k of touchKeys) if (!now.has(k)) input[k] = false;
+  touchKeys = now;
+  for (const b of BTNS) b.classList.toggle('on', now.has(b.dataset.k));
+}
+for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) document.addEventListener(ev, syncTouches, { passive: false });
+for (const el of BTNS) { // мышь (на ПК)
   const k = el.dataset.k;
-  const on = e => { e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; el.classList.add('on'); };
-  const off = e => { e.preventDefault(); input[k] = false; el.classList.remove('on'); };
-  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
+  const on = e => { if (e.pointerType !== 'mouse') return; e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; el.classList.add('on'); };
+  const off = e => { if (e.pointerType !== 'mouse') return; input[k] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointerleave', off);
 }
 addEventListener('contextmenu', e => e.preventDefault());
-const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК · держи ХВАТ на канате', real: 'ЛЕВАЯ, ПРАВАЯ по очереди — шаги. Держи дольше — шаг длиннее 😉' };
+const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК — в полёте руки сами хватают канат · отпустить — ещё раз ПРЫЖОК', real: 'ЛЕВАЯ, ПРАВАЯ по очереди — шаги. Держи дольше — шаг длиннее 😉' };
 function showTip(t) { const tip = document.getElementById('tip'); tip.textContent = t; clearTimeout(tip._t); tip._t = setTimeout(() => tip.textContent = '', 5000); }
 function start(m) {
   MODE = m; build(); running = true;
