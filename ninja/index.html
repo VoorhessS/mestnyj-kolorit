@@ -30,6 +30,12 @@
   #time { font: 800 34px/1 "Segoe UI", Arial, sans-serif; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
   #best { font: 600 14px/1.6 "Segoe UI", Arial, sans-serif; color: #9fb0c8; }
   #tools { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); display: flex; gap: 10px; }
+  #tools #tMenu { width: auto; padding: 0 16px; border-radius: 22px; font: 800 15px/1 "Segoe UI", Arial, sans-serif; letter-spacing: .5px; background: rgba(214,41,59,.55); border: 1.5px solid rgba(255,255,255,.35); }
+  #banner { position: fixed; top: 32%; left: 0; right: 0; text-align: center; color: #fff; font: 800 34px/1.3 "Segoe UI", Arial, sans-serif; text-shadow: 0 2px 12px #000; pointer-events: none; }
+  #banner small { display: block; font-size: 17px; color: #ffcf3a; }
+  .learn { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .learn div, .cont { padding: 9px 18px; border-radius: 22px; background: rgba(111,224,160,.14); border: 1.5px solid rgba(111,224,160,.6); color: #dff7ea; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .cont { display: inline-block; margin-bottom: 10px; background: rgba(214,41,59,.5); border-color: rgba(255,255,255,.4); color: #fff; }
   #tools div { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
   .ov { position: fixed; inset: 0; z-index: 5; overflow-y: auto; display: flex; align-items: center; justify-content: center; background: rgba(5,7,13,.86); color: #fff; text-align: center; }
   .ov .card { max-width: 640px; padding: 22px 26px; }
@@ -50,6 +56,7 @@
   @media (max-height: 460px) {
     .ov .card { padding: 6px 14px; } .ov h1 { font-size: 24px; margin: 0; } .ov p { font-size: 12px; margin: 3px 0; }
     .modes { margin-top: 6px; gap: 10px; } .mode { width: 230px; padding: 8px 12px; } .mode b { font-size: 16px; } .mode span { font-size: 11.5px; }
+    .learn { margin-top: 6px; gap: 8px; } .learn div, .cont { padding: 6px 12px; font-size: 13px; } .cont { margin-bottom: 4px; }
     .ov .inst { margin-top: 6px; padding: 5px 14px; font-size: 12px; } .ov .ihint { font-size: 11px; } .ov .ver { margin-top: 4px; }
   }
   .hide { display: none !important; }
@@ -61,7 +68,8 @@
 <canvas id="cv"></canvas>
 <div id="hud"><div id="time">0:00.0</div><div id="best"></div></div>
 <div id="tip"></div>
-<div id="tools"><div id="tRestart" title="Заново">↺</div><div id="tMenu" title="Меню">☰</div></div>
+<div id="tools"><div id="tRestart" title="Заново">↺</div><div id="tMenu" title="Меню">☰ МЕНЮ</div></div>
+<div id="banner"></div>
 <div id="rot" class="hide">Поверни телефон боком — так видно трассу</div>
 <!-- Упрощение -->
 <div class="pad l ctlB"><div class="b" data-k="left">◀</div><div class="b" data-k="right">▶</div></div>
@@ -71,19 +79,17 @@
 <div class="pad r ctlA hide"><div class="b grab big" data-k="grab">ХВАТ<small>руки</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
 
 <div class="ov" id="ovStart"><div class="card">
+  <div class="cont hide" id="btnCont">▶ Продолжить</div>
   <h1>НИНДЗЯ <span>СПОРТ</span></h1>
-  <p>Пять ступеней → канат → кривая стена → кнопка. Упал в воду — забег окончен.</p>
+  <p>Пять ступеней → канат → кривая стена → кнопка. Упал в воду — сразу заново со старта.</p>
   <div class="modes">
     <div class="mode real" id="mReal"><b>1. Реализм</b><span>Каждый шаг твой: жми ЛЕВАЯ и ПРАВАЯ по очереди. Подольше держишь — длиннее шаг, долго — многоскок через ступень. Сбился с ноги — споткнёшься. Сам не бежит!</span></div>
     <div class="mode easy" id="mEasy"><b>2. Упрощение</b><span>Тело то же, физическое, но мышцы бегут сами: ◀ ▶, ПРЫЖОК, ХВАТ (после прыжка руки хватают сами). На канате ◀ ▶ — раскачка ногами.</span></div>
   </div>
+  <div class="learn"><div id="lReal">🎓 Обучение: Реализм</div><div id="lEasy">🎓 Обучение: Упрощение</div></div>
   <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
   <div class="ihint hide" id="instHint"></div>
-  <div class="ver">Версия 26.11 · пробник 2.3 (физика Box2D)</div>
-</div></div>
-<div class="ov hide" id="ovEnd"><div class="card">
-  <h1 id="endT"></h1><p id="endP"></p>
-  <div class="go" id="btnAgain">ЕЩЁ РАЗ</div><div class="go alt" id="btnMenu">РЕЖИМ</div>
+  <div class="ver">Версия 26.11 · пробник 2.4 (физика Box2D)</div>
 </div></div>
 <script src="planck.min.js"></script>
 <script>
@@ -91,13 +97,21 @@
 const pl = planck, V = (x, y) => new pl.Vec2(x, y);
 const DT = 1 / 120, G = 9.8, WATER = -1.2;
 // ═════════ Трасса (метры, y вверх) ═════════
-const PADS = [[2.6, -.14, -.3], [4.6, -.14, .3], [6.6, -.14, -.3], [8.6, -.14, .3], [10.6, -.14, -.3]];
-const ROPE_TOP = [17.6, 4.4], ROPE_N = 17, ROPE_L = .2;
-const WALL_X0 = 30, WALL_X1 = 33.3, WALL_TOP = 4.0, END_X = 37.2, BUZZ_X = 35.6;
-const EDGE = [WALL_X1, WALL_TOP];
+const ROPE_N = 17, ROPE_L = .2;
 function quad(p0, p1, p2, n) { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; o.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]); } return o; }
-const CURVE = quad([WALL_X0, 0], [WALL_X1, 0], [WALL_X1, WALL_TOP], 32);
-const B_OUTLINE = [[21, -3], [21, 0], ...CURVE, [END_X, WALL_TOP], [END_X, -3]];
+// race — трасса; learn — обучение: бег → яма → канат над полом → невысокая кривая стенка
+const LAYOUTS = {
+  race: { PADS: [[2.6, -.14, -.3], [4.6, -.14, .3], [6.6, -.14, -.3], [8.6, -.14, .3], [10.6, -.14, -.3]], FLOORS: [[-5, 0], [12.2, 15.2]], ROPE_TOP: [17.6, 4.4], RUN0: 21, WALL_X0: 30, WALL_X1: 33.3, WALL_TOP: 4.0, END_X: 37.2, BUZZ_X: 35.6, CHECK: [-3.2, 12.8, 21.8] },
+  learn: { PADS: [], FLOORS: [[-5, 10], [13, 22]], ROPE_TOP: [16, 4.4], RUN0: 22, WALL_X0: 25, WALL_X1: 27.2, WALL_TOP: 2.4, END_X: 32, BUZZ_X: 30, CHECK: [-3.2, 8, 13.6, 22.4] },
+};
+let LAYOUT = 'race', PADS, FLOORS, ROPE_TOP, RUN0, WALL_X0, WALL_X1, WALL_TOP, END_X, BUZZ_X, CHECK, EDGE, CURVE, B_OUTLINE;
+function setLayout(name) {
+  LAYOUT = name; ({ PADS, FLOORS, ROPE_TOP, RUN0, WALL_X0, WALL_X1, WALL_TOP, END_X, BUZZ_X, CHECK } = LAYOUTS[name]);
+  EDGE = [WALL_X1, WALL_TOP];
+  CURVE = quad([WALL_X0, 0], [WALL_X1, 0], [WALL_X1, WALL_TOP], 32);
+  B_OUTLINE = [[RUN0, -3], [RUN0, 0], ...CURVE, [END_X, WALL_TOP], [END_X, -3]];
+}
+setLayout('race');
 
 // ═════════ Части тела ═════════
 // мировые координаты при стойке (ноги на y=0, лицом вправо)
@@ -150,8 +164,8 @@ function build() {
   world = new pl.World({ gravity: V(0, -G) });
   const stat = world.createBody();
   const box = (x0, x1, y0, y1) => stat.createFixture(new pl.Box((x1 - x0) / 2, (y1 - y0) / 2, V((x0 + x1) / 2, (y0 + y1) / 2), 0), { friction: .9 });
-  box(-5, 0, -3, 0); box(12.2, 15.2, -3, 0); box(-5.3, -5, -3, 2.6); // стенка за стартом
-  for (const [cx, cy, a] of PADS) stat.createFixture(new pl.Box(.45, .07, V(cx, cy), a), { friction: 1 });
+  for (const [x0, x1] of FLOORS) box(x0, x1, -3, 0); box(-5.3, -5, -3, 2.6); // стенка за стартом
+  for (const [cx, cy, a] of PADS) stat.createFixture(new pl.Box(.45, .07, V(cx, cy), a), { friction: 1, userData: 'pad' });
   wallBody = world.createBody();
   wallBody.createFixture(new pl.Chain(B_OUTLINE.map(p => V(p[0], p[1])), true), { friction: .9 });
   // канат: звенья + верёвочные ограничители, чтобы не тянулся
@@ -204,7 +218,7 @@ function probe() {
   // в Реализме на ступенях ещё луч чуть назад: ноги после длинного шага приземляются позади таза
   for (const a of MODE === 'real' && o.x < 16 ? [-Math.PI / 2 - .3, -Math.PI / 2, -Math.PI / 2 + .45, -Math.PI / 2 + .9] : [-Math.PI / 2, -Math.PI / 2 + .45, -Math.PI / 2 + .9]) {
     const e = V(o.x + Math.cos(a) * 1.35, o.y + Math.sin(a) * 1.35);
-    world.rayCast(o, e, (f, pt, nrm, fr) => { if (isRag(f)) return -1; if (!best || fr * 1.35 < best.d) best = { d: fr * 1.35, pt: V(pt.x, pt.y), n: V(nrm.x, nrm.y) }; return fr; });
+    world.rayCast(o, e, (f, pt, nrm, fr) => { if (isRag(f)) return -1; if (!best || fr * 1.35 < best.d) best = { d: fr * 1.35, pt: V(pt.x, pt.y), n: V(nrm.x, nrm.y), pad: f.getUserData() === 'pad' }; return fr; });
   }
   return best;
 }
@@ -257,7 +271,8 @@ function step() {
   if (st.failed && (grips.length || edgeGrip.length)) letGo();
 
   const g = st.lock > 0 || onRope || onEdge ? null : probe();
-  const grounded = g && g.d < 1.08 && g.n.y > .15;
+  // провалился ниже края площадки (в яму) — ногами уже не выбраться (на узких ступенях не проверяем)
+  const grounded = g && g.d < 1.08 && g.n.y > .15 && (g.pad || pel.getPosition().y - g.pt.y > .45);
   st.ground = grounded ? g : null;
 
   if (!easy) { // Реализм: на клавиатуре стрелки = ноги
@@ -273,7 +288,8 @@ function step() {
   const tp = tor.getPosition();
   if (!st.finished && !st.failed && tp.x > BUZZ_X - .35 && tp.y > WALL_TOP + .3) finish();
   if (st.started && !st.finished && !st.failed) st.t += DT;
-  if (!st.wallTip && pel.getPosition().x > 25) { st.wallTip = 1; showTip(MODE === 'real' ? 'Стена: разгонись длинными шагами и на изгибе жми ПРЫЖОК — руки сами поймают край' : 'Стена: держи ▶ и на изгибе жми ПРЫЖОК — руки сами поймают край'); }
+  if (LAYOUT === 'learn') { const pp = pel.getPosition(), z = pp.y > WALL_TOP + .3 && pp.x > WALL_X1 - .2 ? 4 : pp.x < 6.5 ? 0 : pp.x < 13.6 ? 1 : pp.x < 20 ? 2 : 3; if (z > st.zone) { st.zone = z; learnTip(LEARN[MODE][z]); } }
+  else if (!st.wallTip && pel.getPosition().x > 25) { st.wallTip = 1; showTip(MODE === 'real' ? 'Стена: разгонись длинными шагами и на изгибе жми ПРЫЖОК — руки сами поймают край' : 'Стена: держи ▶ и на изгибе жми ПРЫЖОК — руки сами поймают край'); }
   if (st.buzz > 0) st.buzz -= DT;
   for (const d of splash) { d.t += DT; d.x += d.vx * DT; d.vy -= G * DT; d.y += d.vy * DT; }
   splash = splash.filter(d => d.y > WATER - .05 || d.vy > 0);
@@ -315,7 +331,7 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     st.vault -= DT; const pp = pel.getPosition();
     const vv = vel(pel), fx = M * Math.max(-3, Math.min(3, 6 * (EDGE[0] - .25 - pp.x) - 2 * vv.x));
     if (pp.y < EDGE[1] + .4 && pp.x < EDGE[0] + .2) { pel.applyForceToCenter(V(fx * .6, M * G * .9), true); tor.applyForceToCenter(V(fx * .4, M * G * .5), true); }
-    else { pel.applyForceToCenter(V(M * 3, 0), true); tor.applyForceToCenter(V(M * 3, 0), true); }
+    else { const hold = pp.x < EDGE[0] + .35 ? M * G * .35 : 0; pel.applyForceToCenter(V(M * 3, hold), true); tor.applyForceToCenter(V(M * 3, hold), true); } // пока не над площадкой — руки ещё держат вес
     drive(POSE.pull, 1.5); balance(-.2, 300, 30);
     if (pp.x > EDGE[0] + .35) st.vault = 0;
     return;
@@ -416,12 +432,11 @@ function stridePose(S) {
   return p;
 }
 // Реализм: упал на площадке и лежишь — встаёшь на последнем чекпоинте (+2 с)
-const CHECK = [-3.2, 12.8, 21.8];
-function respawn() {
+function respawn(quiet) {
   const px = P.pelvis.getPosition().x, cx = CHECK.filter(c => c <= px + .5).pop() ?? CHECK[0];
   for (const j of grips) world.destroyJoint(j); grips = []; for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = [];
   for (const [n, [x, y]] of Object.entries(PARTS)) { const b = P[n]; b.setTransform(V(cx + x, y), 0); b.setLinearVelocity(V(0, 0)); b.setAngularVelocity(0); }
-  st.t += 2; st.lie = 0; showTip('Упал — встаёшь на чекпоинте, +2 с');
+  st.lie = 0; if (LAYOUT === 'learn') { st.zone = -1; return; } st.t += 2; if (!quiet) showTip('Упал — встаёшь на чекпоинте, +2 с');
 }
 const pel = () => P.pelvis.getPosition();
 function letGo() { for (const j of grips) world.destroyJoint(j); grips = []; for (const j of edgeGrip) world.destroyJoint(j); edgeGrip = []; }
@@ -429,16 +444,23 @@ function letGo() { for (const j of grips) world.destroyJoint(j); grips = []; for
 // ═════════ Финиш / вода ═════════
 function finish() {
   st.finished = true; st.buzz = 1.5;
-  const t = st.t, key = 'ninja2-best-' + MODE; if (!best[MODE] || t < best[MODE]) { best[MODE] = t; try { localStorage.setItem(key, String(t)); } catch (e) {} }
-  setTimeout(() => endScreen('🏁 ' + fmt(t), (best[MODE] === t ? 'Новый рекорд! ' : 'Рекорд: ' + fmt(best[MODE]) + '. ') + (MODE === 'real' ? 'Режим «Реализм» — ты монстр 💪' : 'Попробуй «Реализм» 😈')), 1300);
+  if (LAYOUT === 'learn') { banner('Обучение пройдено! 🎉', MODE === 'real' ? 'Теперь пробуй трассу в Реализме' : 'Теперь пробуй трассу в Упрощении'); setTimeout(() => { if (st.finished) start(MODE, 'race'); }, 3500); return; }
+  const t = st.t, key = 'ninja2-best-' + MODE, rec = !best[MODE] || t < best[MODE];
+  if (rec) { best[MODE] = t; try { localStorage.setItem(key, String(t)); } catch (e) {} }
+  banner('🏁 ' + fmt(t), rec ? 'Новый рекорд!' : 'Рекорд: ' + fmt(best[MODE]));
+  const w = world; setTimeout(() => { if (world === w && running) start(MODE, LAYOUT); }, 3500);
 }
-function fail() {
+function fail() { // в воду — сразу заново: на трассе со старта, в обучении — перед ямой
   st.failed = true; const x = P.torso.getPosition().x;
   for (let i = 0; i < 26; i++) splash.push({ x: x + (Math.random() - .5) * .8, y: WATER, vx: (Math.random() - .5) * 3, vy: 2 + Math.random() * 4.2, t: 0 });
   for (const b of Object.values(P)) b.setLinearDamping(3);
-  setTimeout(() => endScreen('💦 В воду!', 'Забег окончен. Пробуй ещё — с каждой попыткой трасса понятнее.'), 1300);
+  const w = world;
+  setTimeout(() => { if (world !== w) return;
+    if (LAYOUT === 'learn') { for (const b of Object.values(P)) b.setLinearDamping(.02); st.failed = false; respawn(true); }
+    else start(MODE, LAYOUT); }, 650);
 }
-function endScreen(t, p) { document.getElementById('endT').textContent = t; document.getElementById('endP').textContent = p; document.getElementById('ovEnd').classList.remove('hide'); }
+let bannerT;
+function banner(t, sub) { const el = document.getElementById('banner'); el.innerHTML = ''; el.append(t); if (sub) { const s2 = document.createElement('small'); s2.textContent = sub; el.append(s2); } clearTimeout(bannerT); bannerT = setTimeout(() => el.innerHTML = '', 3300); }
 const fmt = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
 
 // ═════════ Рисование ═════════
@@ -494,15 +516,15 @@ function draw() {
   ctx.fillRect(SX(fx0), SY(fy + .16), .12 * PPM, (fy + .16 - WATER) * PPM); ctx.fillRect(SX(fx1 - .12), SY(fy + .16), .12 * PPM, (fy + .16 - WATER) * PPM);
   ctx.strokeStyle = '#8a96a8'; ctx.lineWidth = .03 * PPM; ctx.beginPath(); for (let x = fx0; x < fx1 - .2; x += .3) { ctx.moveTo(SX(x), SY(fy + .16)); ctx.lineTo(SX(x + .15), SY(fy)); ctx.lineTo(SX(x + .3), SY(fy + .16)); } ctx.stroke();
   // площадки
-  polyW([[-5, 0], [0, 0], [0, -3], [-5, -3]], '#2b3445'); polyW([[12.2, 0], [15.2, 0], [15.2, -3], [12.2, -3]], '#2b3445');
+  for (const [x0, x1] of FLOORS) polyW([[x0, 0], [x1, 0], [x1, -3], [x0, -3]], '#2b3445');
   polyW(B_OUTLINE, '#2b3445');
   polyW([[WALL_X0, 0], ...CURVE, [WALL_X1 + .3, WALL_TOP], [WALL_X1 + .3, 0]], '#3a4a66');
   ctx.strokeStyle = '#7f97bf'; ctx.lineWidth = .04 * PPM; ctx.beginPath(); CURVE.forEach((p, i) => i ? ctx.lineTo(SX(p[0]), SY(p[1])) : ctx.moveTo(SX(p[0]), SY(p[1]))); ctx.stroke();
   for (const [cx, cy, a] of PADS) { const c = Math.cos(a), s = Math.sin(a), q = (x, y) => [cx + x * c - y * s, cy + x * s + y * c]; polyW([q(-.45, -.07), q(.45, -.07), q(.45, .07), q(-.45, .07)], '#c8955a'); }
   ctx.fillStyle = '#ffcf3a';
-  for (const [x0, x1, y] of [[-5, 0, 0], [12.2, 15.2, 0], [21, WALL_X0, 0], [WALL_X1, END_X, WALL_TOP]]) ctx.fillRect(SX(x0), SY(y) - .03 * PPM, (x1 - x0) * PPM, .05 * PPM);
+  for (const [x0, x1, y] of [...FLOORS.map(f => [f[0], f[1], 0]), [RUN0, WALL_X0, 0], [WALL_X1, END_X, WALL_TOP]]) ctx.fillRect(SX(x0), SY(y) - .03 * PPM, (x1 - x0) * PPM, .05 * PPM);
   ctx.font = `800 ${.26 * PPM}px "Segoe UI", Arial`; ctx.fillText('СТАРТ', SX(-2), SY(-.4)); ctx.fillText('ФИНИШ', SX(WALL_X1 + .4), SY(WALL_TOP - .5));
-  ctx.fillStyle = 'rgba(255,207,58,.35)'; for (let x = 22; x < WALL_X0; x += 1) ctx.fillRect(SX(x), SY(-.06), .4 * PPM, .04 * PPM);
+  ctx.fillStyle = 'rgba(255,207,58,.35)'; for (let x = RUN0 + 1; x < WALL_X0; x += 1) ctx.fillRect(SX(x), SY(-.06), .4 * PPM, .04 * PPM);
   // кнопка
   ctx.fillStyle = '#5a6578'; ctx.fillRect(SX(BUZZ_X - .06), SY(WALL_TOP + .9), .12 * PPM, .9 * PPM);
   const lit = st.buzz > 0 && Math.floor(st.buzz * 8) % 2 === 0;
@@ -555,22 +577,30 @@ for (const el of BTNS) { // мышь (на ПК)
 }
 addEventListener('contextmenu', e => e.preventDefault());
 const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК — в полёте руки сами хватают канат · отпустить — ещё раз ПРЫЖОК', real: 'ЛЕВАЯ, ПРАВАЯ по очереди — шаги. Держи дольше — шаг длиннее 😉' };
+const LEARN = {
+  easy: ['Бег: держи ▶. Отпустил — тормозит, ◀ — назад', 'Яма! Разбегись и у края жми ПРЫЖОК', 'Канат: прыгни к нему — руки схватят сами. ◀ ▶ — раскачка, ПРЫЖОК — отпустить', 'Стенка: разбег ▶, на изгибе ПРЫЖОК — руки ловят край, он подтянется сам', 'Готово! Беги к красной кнопке 👊'],
+  real: ['Шаги: ЛЕВАЯ, ПРАВАЯ по очереди. Коротко — шаг, держишь дольше — шаг длиннее', 'Яма! У края подержи ногу подольше — длинный шаг перелетит (или ПРЫЖОК)', 'Канат: прыгни к нему — руки схватят сами. ЛЕВАЯ/ПРАВАЯ — раскачка, ПРЫЖОК — отпустить', 'Стенка: разгон шагами, на изгибе ПРЫЖОК — руки ловят край, он подтянется сам', 'Готово! Шагай к красной кнопке 👊'],
+};
+function learnTip(t) { const tip = document.getElementById('tip'); clearTimeout(tip._t); tip.textContent = t; }
 function showTip(t) { const tip = document.getElementById('tip'); tip.textContent = t; clearTimeout(tip._t); tip._t = setTimeout(() => tip.textContent = '', 5000); }
-function start(m) {
-  MODE = m; build(); running = true;
+function start(m, lay = 'race') {
+  MODE = m; setLayout(lay); build(); running = true; st.zone = -1;
+  document.getElementById('banner').innerHTML = ''; document.getElementById('btnCont').classList.add('hide');
   for (const k in input) input[k] = false;
   document.querySelectorAll('.ctlB').forEach(e => e.classList.toggle('hide', m !== 'easy'));
   document.querySelectorAll('.ctlA').forEach(e => e.classList.toggle('hide', m !== 'real'));
-  document.getElementById('ovStart').classList.add('hide'); document.getElementById('ovEnd').classList.add('hide');
-  showTip(TIPS[m]);
-  document.getElementById('best').textContent = (m === 'real' ? 'Реализм' : 'Упрощение') + (best[m] ? ' · рекорд ' + fmt(best[m]) : '');
+  document.getElementById('ovStart').classList.add('hide');
+  if (lay === 'race') showTip(TIPS[m]);
+  document.getElementById('best').textContent = lay === 'learn' ? 'Обучение · ' + (m === 'real' ? 'Реализм' : 'Упрощение') : (m === 'real' ? 'Реализм' : 'Упрощение') + (best[m] ? ' · рекорд ' + fmt(best[m]) : '');
 }
 document.getElementById('mReal').onclick = () => start('real');
 document.getElementById('mEasy').onclick = () => start('easy');
-document.getElementById('btnAgain').onclick = () => start(MODE);
-document.getElementById('tRestart').onclick = () => start(MODE);
-const menu = () => { running = false; document.getElementById('ovEnd').classList.add('hide'); document.getElementById('ovStart').classList.remove('hide'); };
-document.getElementById('btnMenu').onclick = menu; document.getElementById('tMenu').onclick = menu;
+document.getElementById('lReal').onclick = () => start('real', 'learn');
+document.getElementById('lEasy').onclick = () => start('easy', 'learn');
+document.getElementById('tRestart').onclick = () => start(MODE, LAYOUT);
+const menu = () => { running = false; for (const k in input) input[k] = false; document.getElementById('btnCont').classList.toggle('hide', !st || st.finished || st.failed || !st.started); document.getElementById('ovStart').classList.remove('hide'); };
+document.getElementById('tMenu').onclick = menu;
+document.getElementById('btnCont').onclick = () => { document.getElementById('ovStart').classList.add('hide'); running = true; };
 try { for (const m of ['easy', 'real']) best[m] = parseFloat(localStorage.getItem('ninja2-best-' + m)) || 0; } catch (e) {}
 // На экран «Домой»
 (function () {
@@ -588,7 +618,7 @@ try { for (const m of ['easy', 'real']) best[m] = parseFloat(localStorage.getIte
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 resize(); build(); requestAnimationFrame(frame);
-window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, get rope() { return rope; }, RC, setRunning: r => running = r, probe: () => probe() };
+window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, get layout() { return LAYOUT; }, get rope() { return rope; }, RC, setRunning: r => running = r, probe: () => probe() };
 </script>
 </body>
 </html>
