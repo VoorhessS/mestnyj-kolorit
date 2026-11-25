@@ -10,7 +10,8 @@
   .pad { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 14px; }
   .pad.l { left: calc(14px + env(safe-area-inset-left)); }
   .pad.r { right: calc(14px + env(safe-area-inset-right)); }
-  .b { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.28); color: #fff;
+  @media (max-height: 460px) { .b { transform: scale(.82); } .pad { gap: 6px; } }
+  .b { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,.09); border: 2px solid rgba(255,255,255,.28); color: #fff;
        display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; text-align: center; line-height: 1.1; }
   .b.on { background: rgba(255,207,58,.45); border-color: #ffcf3a; }
   .b.big { width: 88px; height: 88px; }
@@ -255,11 +256,11 @@ function ragStep() {
   let pose = POSE[rag.pose] || POSE.air;
   if (onRope) {
     const vx = (B.pelvis.x - B.pelvis.ox) / DT;
-    if (dirIn) { face = dirIn; pose = dirIn * Math.sign(vx || dirIn) > 0 ? POSE.hangF : POSE.hangB; B.pelvis.ox -= dirIn * 520 * DT * DT; B.kneeL.ox -= dirIn * 300 * DT * DT; B.kneeR.ox -= dirIn * 300 * DT * DT; }
+    if (dirIn) { face = dirIn; pose = dirIn * Math.sign(vx || dirIn) > 0 ? POSE.hangF : POSE.hangB; B.pelvis.ox -= dirIn * 400 * DT * DT; B.kneeL.ox -= dirIn * 300 * DT * DT; B.kneeR.ox -= dirIn * 300 * DT * DT; }
     else pose = POSE.hang;
   }
   integrate(Object.values(B), failed ? .97 : .999);
-  servo(pose, onRope || onEdge ? .03 : .09, onRope || onEdge ? 1 : .85);
+  servo(pose, onRope || onEdge ? .035 : .09, onRope || onEdge ? .15 : .85); // на канате поза держится по вертикали: руки вверх, ноги вниз
   for (let it = 0; it < 14; it++) {
     solve(body);
     for (const p of rag.pins) {
