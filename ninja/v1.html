@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ниндзя спорт</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ниндзя">
+<meta name="theme-color" content="#05070d">
+<style>
+  html, body { margin: 0; height: 100%; background: #05070d; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; font-family: "Segoe UI", Arial, sans-serif; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .pad { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 14px; }
+  .pad.l { left: calc(14px + env(safe-area-inset-left)); }
+  .pad.r { right: calc(14px + env(safe-area-inset-right)); }
+  @media (max-height: 460px) { .b { transform: scale(.82); } .pad { gap: 6px; } }
+  .b { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,.09); border: 2px solid rgba(255,255,255,.28); color: #fff;
+       display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; text-align: center; line-height: 1.1; }
+  .b.on { background: rgba(255,207,58,.45); border-color: #ffcf3a; }
+  .b.big { width: 88px; height: 88px; }
+  .b.grab { background: rgba(214,41,59,.3); border-color: rgba(214,41,59,.8); }
+  .b.grab.on { background: rgba(214,41,59,.75); }
+  #hud { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 0; right: 0; text-align: center; color: #fff; pointer-events: none; }
+  #time { font: 800 34px/1 "Segoe UI", Arial, sans-serif; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
+  #best { font: 600 14px/1.6 "Segoe UI", Arial, sans-serif; color: #9fb0c8; }
+  .ov { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5,7,13,.72); color: #fff; text-align: center; }
+  .ov .card { max-width: 520px; padding: 22px 26px; }
+  .ov h1 { margin: 0 0 6px; font-size: 40px; letter-spacing: 1px; }
+  .ov h1 span { color: #d6293b; }
+  .ov p { color: #c4cfdd; margin: 8px 0; line-height: 1.45; font-size: 16px; }
+  .ov .go { display: inline-block; margin-top: 14px; padding: 14px 40px; border-radius: 30px; background: #d6293b; color: #fff; font-weight: 800; font-size: 20px; cursor: pointer; }
+  .ov .ver { color: #5f6f86; font-size: 12px; margin-top: 14px; }
+  .hide { display: none !important; }
+  .ov .inst { display: inline-block; margin-top: 12px; padding: 9px 20px; border-radius: 22px; border: 1.5px solid rgba(255,255,255,.35); color: #e8eef6; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .ov { z-index: 5; overflow-y: auto; background: rgba(5,7,13,.86); }
+  .kbd { font-size: 13px; color: #7f8ea4 !important; }
+  @media (max-height: 460px) {
+    .ov .card { padding: 8px 18px; }
+    .ov h1 { font-size: 26px; margin: 0 0 2px; }
+    .ov p { font-size: 13px; margin: 4px 0; line-height: 1.35; }
+    .ov .go { margin-top: 6px; padding: 9px 34px; font-size: 17px; }
+    .ov .inst { margin-top: 8px; padding: 6px 16px; font-size: 13px; }
+    .ov .ihint { font-size: 12px; margin-top: 5px; }
+    .ov .ver { margin-top: 6px; }
+    .kbd { display: none; }
+  }
+  .ov .ihint { color: #ffcf3a; font-size: 14px; margin-top: 8px; line-height: 1.5; }
+  #rot { position: fixed; top: 64px; left: 0; right: 0; text-align: center; color: #ffcf3a; font-weight: 700; font-size: 14px; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud"><div id="time">0:00.0</div><div id="best"></div></div>
+<div id="rot" class="hide">Поверни телефон боком — так видно трассу</div>
+<div class="pad l"><div class="b" data-k="left">◀</div><div class="b" data-k="right">▶</div></div>
+<div class="pad r"><div class="b grab big" data-k="grab">ХВАТ<br><small>держи</small></div><div class="b big" data-k="jump">ПРЫ-<br>ЖОК</div></div>
+<div class="ov" id="ovStart"><div class="card">
+  <h1>НИНДЗЯ <span>СПОРТ</span></h1>
+  <p>Пробник трассы: пять ступеней → канат → кривая стена → кнопка.<br>Упал в воду — забег окончен.</p>
+  <p>◀ ▶ — бег · ПРЫЖОК · ХВАТ — держи, чтобы висеть на канате, отпусти — летишь.<br>На канате ◀ ▶ — раскачка.</p>
+  <p class="kbd">Клавиатура: ← → бег, ↑ / пробел прыжок, Shift / J хват</p>
+  <div class="go" id="btnGo">СТАРТ</div><br>
+  <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
+  <div class="ihint hide" id="instHint"></div>
+  <div class="ver">Версия 25.11 · пробник 1.1</div>
+</div></div>
+<div class="ov hide" id="ovEnd"><div class="card">
+  <h1 id="endT"></h1><p id="endP"></p>
+  <div class="go" id="btnAgain">ЕЩЁ РАЗ</div>
+</div></div>
+<script>
+'use strict';
+// ═════════ Мир (единицы — сантиметры, y вниз) ═════════
+const G = 980, WY = 120, DT = 1 / 120;
+const SEG = { torso: 58, neck: 9, head: 14, ua: 32, fa: 30, th: 44, sh: 42, foot: 15 };
+const dir = a => [Math.sin(a), Math.cos(a)];
+const add = (p, a, L) => { const d = dir(a); return [p[0] + d[0] * L, p[1] + d[1] * L]; };
+const PI = Math.PI;
+
+// Препятствия
+const PADS = [[260, 14, .3], [460, 14, -.3], [660, 14, .3], [860, 14, -.3], [1060, 14, .3]]; // центр x, y, наклон
+const PAD_L = 90, PAD_T = 14;
+const ROPE_TOP = [1760, -440], ROPE_N = 20, ROPE_SEG = 17;
+const WALL_X0 = 3000, WALL_X1 = 3330, WALL_TOP = -430, END_X = 3720, BUZZ_X = 3560;
+const EDGE = [WALL_X1, WALL_TOP];
+
+function quad(p0, p1, p2, n) { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; out.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]); } return out; }
+const CURVE = quad([WALL_X0, 0], [WALL_X1, 0], [WALL_X1, WALL_TOP], 28);
+
+// Твёрдые тела (многоугольники) — для куклы
+const SOLIDS = [];
+const BOT = WY + 400;
+SOLIDS.push({ pts: [[-500, 0], [0, 0], [0, BOT], [-500, BOT]], kind: 'plat' });
+for (const [cx, cy, a] of PADS) {
+  const c = Math.cos(a), s = Math.sin(a), hx = PAD_L / 2, hy = PAD_T / 2;
+  const P = (x, y) => [cx + x * c - y * s, cy + x * s + y * c];
+  SOLIDS.push({ pts: [P(-hx, -hy), P(hx, -hy), P(hx, hy), P(-hx, hy)], kind: 'pad', a, cx, cy });
+}
+SOLIDS.push({ pts: [[1220, 0], [1520, 0], [1520, BOT], [1220, BOT]], kind: 'plat' });
+SOLIDS.push({ pts: [[2100, 0], ...CURVE, [END_X, WALL_TOP], [END_X, BOT], [2100, BOT]], kind: 'wall' });
+
+// Поверхности для бега (ломаные, s растёт вправо/вверх)
+const SURF = [];
+function mkSurf(pts, kind) { const seg = []; let L = 0; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]); seg.push({ a, b, l, s0: L }); L += l; } const o = { pts, seg, len: L, kind }; SURF.push(o); return o; }
+mkSurf([[-500, 0], [0, 0]], 'plat');
+for (const S of SOLIDS.filter(s => s.kind === 'pad')) mkSurf([S.pts[0], S.pts[1]], 'pad');
+mkSurf([[1220, 0], [1520, 0]], 'plat');
+const WALLS = mkSurf([[2100, 0], ...CURVE], 'wall');
+const TOPS = mkSurf([[WALL_X1, WALL_TOP], [END_X, WALL_TOP]], 'top');
+function at(S, s) {
+  s = Math.max(0, Math.min(S.len, s));
+  for (const g of S.seg) if (s <= g.s0 + g.l || g === S.seg[S.seg.length - 1]) { const t = (s - g.s0) / g.l, tx = (g.b[0] - g.a[0]) / g.l, ty = (g.b[1] - g.a[1]) / g.l; return { x: g.a[0] + (g.b[0] - g.a[0]) * t, y: g.a[1] + (g.b[1] - g.a[1]) * t, tx, ty }; }
+}
+function nearestOn(S, x, y) { let best = null; for (const g of S.seg) { const dx = g.b[0] - g.a[0], dy = g.b[1] - g.a[1]; let t = ((x - g.a[0]) * dx + (y - g.a[1]) * dy) / (g.l * g.l); t = Math.max(0, Math.min(1, t)); const px = g.a[0] + dx * t, py = g.a[1] + dy * t, d = Math.hypot(x - px, y - py); if (!best || d < best.d) best = { d, s: g.s0 + g.l * t, x: px, y: py }; } return best; }
+
+// ═════════ Поза и манекен ═════════
+const ANG = ['torso', 'head', 'uaL', 'faL', 'uaR', 'faR', 'thL', 'shL', 'thR', 'shR'];
+function fk(o) {
+  const P = {}; P.pelvis = [o.x, o.y];
+  P.neck = add(P.pelvis, o.torso, SEG.torso);
+  P.head = add(P.neck, o.head ?? o.torso, SEG.neck + SEG.head);
+  for (const k of ['L', 'R']) {
+    P['elbow' + k] = add(P.neck, o['ua' + k], SEG.ua); P['hand' + k] = add(P['elbow' + k], o['fa' + k], SEG.fa);
+    P['knee' + k] = add(P.pelvis, o['th' + k], SEG.th); P['foot' + k] = add(P['knee' + k], o['sh' + k], SEG.sh);
+  }
+  return P;
+}
+const mirror = (o, f) => { if (f > 0) return o; const r = Object.assign({}, o); for (const k of ANG) if (r[k] !== undefined) r[k] = -r[k]; return r; };
+const POSE = {
+  stand: { torso: PI, uaL: .04 * PI, faL: .06 * PI, uaR: -.04 * PI, faR: .02 * PI, thL: .02 * PI, shL: 0, thR: -.02 * PI, shR: 0 },
+  air: { torso: .95 * PI, head: .93 * PI, uaL: .72 * PI, faL: .8 * PI, uaR: .62 * PI, faR: .72 * PI, thL: .3 * PI, shL: .02 * PI, thR: -.05 * PI, shR: -.3 * PI },
+  fly: { torso: .97 * PI, uaL: .55 * PI, faL: .62 * PI, uaR: .45 * PI, faR: .5 * PI, thL: .2 * PI, shL: .02 * PI, thR: .1 * PI, shR: -.06 * PI },
+  hang: { torso: PI, uaL: .98 * PI, faL: PI, uaR: 1.02 * PI, faR: PI, thL: .04 * PI, shL: 0, thR: -.04 * PI, shR: -.02 * PI },
+  hangF: { torso: .98 * PI, uaL: .98 * PI, faL: PI, uaR: 1.02 * PI, faR: PI, thL: .4 * PI, shL: .22 * PI, thR: .34 * PI, shR: .16 * PI },
+  hangB: { torso: 1.06 * PI, uaL: .98 * PI, faL: PI, uaR: 1.02 * PI, faR: PI, thL: -.18 * PI, shL: -.32 * PI, thR: -.12 * PI, shR: -.26 * PI },
+};
+function runPose(ph, k, reach) {
+  const thL = k * .32 * PI * Math.sin(ph), thR = -thL;
+  const bL = k * (.1 * PI + .35 * PI * (.5 + .5 * Math.cos(ph))), bR = k * (.1 * PI + .35 * PI * (.5 - .5 * Math.cos(ph)));
+  const o = { torso: PI - k * .07 * PI, thL, shL: thL - bL, thR, shR: thR - bR };
+  if (reach) Object.assign(o, { uaL: .86 * PI, faL: .92 * PI, uaR: .8 * PI, faR: .86 * PI });
+  else { const ua = k * .28 * PI * Math.sin(ph); Object.assign(o, { uaL: -ua + .02, faL: -ua + .45 * PI * k + .04, uaR: ua - .02, faR: ua + .45 * PI * k }); }
+  return o;
+}
+const NAMES = ['pelvis', 'neck', 'head', 'elbowL', 'handL', 'elbowR', 'handR', 'kneeL', 'footL', 'kneeR', 'footR'];
+const MASS = { pelvis: 3, neck: 2.5, head: 1, elbowL: .6, handL: .5, elbowR: .6, handR: .5, kneeL: 1, footL: .6, kneeR: 1, footR: .6 };
+
+// ═════════ Состояние ═════════
+let W, R, ropeC, B, body, mode, gnd, rag, climb, cam, t0, tRun, started, finished, failed, failT, splash, buzzT, best, face;
+const input = { left: false, right: false, jump: false, grab: false }, pressed = {};
+function reset() {
+  // канат
+  R = []; ropeC = [];
+  for (let i = 0; i <= ROPE_N; i++) R.push({ x: ROPE_TOP[0], y: ROPE_TOP[1] + i * ROPE_SEG, ox: ROPE_TOP[0], oy: ROPE_TOP[1] + i * ROPE_SEG, m: .5, pin: i === 0 });
+  for (let i = 0; i < ROPE_N; i++) ropeC.push({ a: R[i], b: R[i + 1], L: ROPE_SEG });
+  // манекен
+  B = {}; for (const n of NAMES) B[n] = { x: 0, y: 0, ox: 0, oy: 0, m: MASS[n] };
+  const bones = [['pelvis', 'neck'], ['neck', 'head'], ['neck', 'elbowL'], ['elbowL', 'handL'], ['neck', 'elbowR'], ['elbowR', 'handR'], ['pelvis', 'kneeL'], ['kneeL', 'footL'], ['pelvis', 'kneeR'], ['kneeR', 'footR']];
+  const P0 = fk(Object.assign({ x: 0, y: 0 }, POSE.stand));
+  body = bones.map(([a, b]) => ({ a: B[a], b: B[b], L: Math.hypot(P0[a][0] - P0[b][0], P0[a][1] - P0[b][1]) }));
+  body.push({ a: B.head, b: B.pelvis, L: SEG.torso + SEG.neck + SEG.head });
+  for (const [a, b, k, L] of [['neck', 'handL', .45, SEG.ua + SEG.fa], ['neck', 'handR', .45, SEG.ua + SEG.fa], ['pelvis', 'footL', .5, SEG.th + SEG.sh], ['pelvis', 'footR', .5, SEG.th + SEG.sh]]) body.push({ a: B[a], b: B[b], min: L * k, max: L * .995 });
+  body.push({ a: B.kneeL, b: B.neck, min: 45, max: 200 }, { a: B.kneeR, b: B.neck, min: 45, max: 200 });
+  face = 1;
+  mode = 'ground'; gnd = { S: SURF[0], s: 300, v: 0, ph: 0 }; rag = null; climb = null;
+  placeGround(true);
+  cam = { x: -100, y: -150 };
+  started = false; finished = false; failed = false; failT = 0; splash = []; buzzT = 0; tRun = 0;
+  document.getElementById('ovEnd').classList.add('hide');
+}
+
+// ═════════ Земля: бег по поверхности ═════════
+function groundPose() {
+  const S = gnd.S, p = at(S, gnd.s), k = Math.min(1, Math.abs(gnd.v) / 520);
+  const slope = Math.atan2(-p.ty, p.tx); // 0 — ровно, π/2 — вертикаль
+  const reach = S === WALLS && slope > .9;
+  let o = k < .05 && !reach ? Object.assign({}, POSE.stand) : runPose(gnd.ph, Math.max(k, reach ? .6 : 0), reach);
+  if (k < .05 && !reach) { const br = Math.sin(performance.now() / 600) * .02; o.uaL += br; o.uaR -= br; }
+  o = mirror(o, face);
+  const P = fk(Object.assign({ x: 0, y: 0 }, o));
+  const low = Math.max(P.footL[1], P.footR[1]);
+  const tilt = S === WALLS ? slope * .12 * face : 0, c = Math.cos(tilt), s = Math.sin(tilt);
+  const out = {};
+  for (const n of NAMES) { const dx = P[n][0], dy = P[n][1] - low; out[n] = [p.x + dx * c - dy * s, p.y + dx * s + dy * c]; }
+  return out;
+}
+function placeGround(snap) {
+  const P = groundPose();
+  const p = at(gnd.S, gnd.s), vx = snap ? gnd.v * p.tx * DT : 0, vy = snap ? gnd.v * p.ty * DT : 0;
+  for (const n of NAMES) { const q = B[n]; if (snap) { q.ox = P[n][0] - vx; q.oy = P[n][1] - vy; } else { q.ox = q.x; q.oy = q.y; } q.x = P[n][0]; q.y = P[n][1]; }
+}
+function groundStep() {
+  const S = gnd.S, p = at(S, gnd.s);
+  const dirIn = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const MAX = S.kind === 'pad' ? 380 : 600, ACC = S.kind === 'pad' ? 900 : 1100;
+  if (dirIn) { face = dirIn; const want = dirIn * Math.sign(p.tx || 1); if (gnd.v * want < MAX) gnd.v += want * ACC * DT * Math.max(0, Math.abs(p.tx) * 1.6 - .6); } // в крутую горку не разгонишься
+  else gnd.v *= Math.exp(-(S.kind === 'pad' ? 9 : 6) * DT);
+  if (!dirIn && Math.abs(gnd.v) > 20) face = Math.sign(gnd.v * (p.tx || 1)) || face;
+  gnd.v += G * p.ty * DT; // гравитация вдоль склона
+  if (S.kind === 'pad') gnd.v *= Math.exp(-2.5 * DT);
+  gnd.s += gnd.v * DT;
+  gnd.ph += Math.abs(gnd.v) * DT / 55;
+  if (dirIn || Math.abs(gnd.v) > 5) started = true;
+  if (gnd.s < 0 || gnd.s > S.len) { toRag('air'); return; } // точки летят с той скоростью, что была
+  placeGround(false);
+  // прыжок: к скорости бега добавляем толчок вверх
+  // если держишь направление — толчок вперёд минимум до 2,6 м/с (так прыгают по ступеням)
+  if (pressed.jump) { const vxNow = gnd.v * p.tx, ex = dirIn ? dirIn * Math.max(60, 260 - dirIn * vxNow) : 0; toRag('air'); impulse(ex, -390); started = true; return; }
+  // край стены: руки дотянулись — хватаемся
+  if (S === WALLS) tryEdge();
+  // кнопка
+  if (S === TOPS && !finished) { const pp = at(S, gnd.s); if (pp.x >= BUZZ_X - 25) finish(); }
+}
+function impulse(vx, vy) { for (const n of NAMES) { B[n].ox -= vx * DT; B[n].oy -= vy * DT; } }
+
+// ═════════ Кукла: физика тела ═════════
+function toRag(pose) { mode = 'rag'; rag = { pins: [], pose, rest: 0, air: 0 }; }
+function torsoAng() { return Math.atan2(B.neck.x - B.pelvis.x, B.neck.y - B.pelvis.y); }
+function servo(pose, k, follow) {
+  const o = mirror(pose, face), P = fk(Object.assign({ x: B.pelvis.x, y: B.pelvis.y }, o));
+  let d = torsoAng() - o.torso; d = Math.atan2(Math.sin(d), Math.cos(d)); d *= follow;
+  const c = Math.cos(d), s = Math.sin(d);
+  let mx = 0, my = 0, M = 0;
+  const pinned = new Set(rag.pins.map(p => p.h));
+  for (const n of NAMES) {
+    if (n === 'pelvis' || pinned.has(B[n])) continue;
+    const vx = P[n][0] - B.pelvis.x, vy = P[n][1] - B.pelvis.y;
+    const tx = B.pelvis.x + vx * c + vy * s, ty = B.pelvis.y - vx * s + vy * c;
+    const q = B[n], dx = (tx - q.x) * k, dy = (ty - q.y) * k;
+    q.x += dx; q.y += dy; mx += dx * q.m; my += dy * q.m; M += q.m;
+  }
+  if (!rag.pins.length) { M += B.pelvis.m; mx /= M; my /= M; for (const n of NAMES) { B[n].x -= mx; B[n].y -= my; } }
+}
+function integrate(pts, damp) {
+  for (const p of pts) { if (p.pin) continue; const vx = (p.x - p.ox) * damp, vy = (p.y - p.oy) * damp; p.ox = p.x; p.oy = p.y; p.x += vx; p.y += vy + G * DT * DT; }
+}
+function solve(cons) {
+  for (const c of cons) {
+    const dx = c.b.x - c.a.x, dy = c.b.y - c.a.y, d = Math.hypot(dx, dy) || 1e-6;
+    let t; if (c.min !== undefined) { if (d < c.min) t = c.min; else if (d > c.max) t = c.max; else continue; } else t = c.L;
+    const wa = c.a.pin ? 0 : 1 / c.a.m, wb = c.b.pin ? 0 : 1 / c.b.m; if (!wa && !wb) continue;
+    const f = (d - t) / d / (wa + wb);
+    c.a.x += dx * f * wa; c.a.y += dy * f * wa; c.b.x -= dx * f * wb; c.b.y -= dy * f * wb;
+  }
+}
+function inPoly(x, y, P) { let r = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) r = !r; } return r; }
+function collide(p) {
+  for (const S of SOLIDS) {
+    if (!inPoly(p.x, p.y, S.pts)) continue;
+    let best = null; const P = S.pts;
+    for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy; let t = ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / L2; t = Math.max(0, Math.min(1, t)); const qx = a[0] + dx * t, qy = a[1] + dy * t, d = Math.hypot(p.x - qx, p.y - qy); if (!best || d < best.d) best = { d, x: qx, y: qy }; }
+    p.x = best.x; p.y = best.y;
+    const vx = p.x - p.ox, vy = p.y - p.oy; p.ox = p.x - vx * .6; p.oy = p.y - vy * .6; // трение
+  }
+}
+function tryEdge() {
+  if (finished || failed) return false;
+  for (const h of [B.handL, B.handR]) {
+    if (h.x > EDGE[0] - 45 && h.x < EDGE[0] + 75 && h.y > EDGE[1] - 80 && h.y < EDGE[1] + 35 && B.pelvis.x < EDGE[0] + 10 && B.pelvis.y > EDGE[1] - 20) {
+      // хват за край: вис у стены → подтягивание на площадку
+      face = 1;
+      const P = fk(Object.assign({ x: 0, y: 0 }, POSE.hang)), dx = EDGE[0] - 8 - P.handR[0], dy = EDGE[1] + 2 - P.handR[1];
+      const hang = {}; for (const n of NAMES) hang[n] = [P[n][0] + dx - 14, P[n][1] + dy];
+      hang.handR[0] += 14; hang.handL[0] += 2;
+      startClimb(TOPS, 45, hang);
+      return true;
+    }
+  }
+  return false;
+}
+function ragStep() {
+  const dirIn = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const onRope = rag.pins.some(p => p.r), onEdge = rag.pins.some(p => p.fix);
+  // поза и раскачка
+  let pose = POSE[rag.pose] || POSE.air;
+  if (onRope) {
+    const vx = (B.pelvis.x - B.pelvis.ox) / DT;
+    if (dirIn) { face = dirIn; pose = dirIn * Math.sign(vx || dirIn) > 0 ? POSE.hangF : POSE.hangB; B.pelvis.ox -= dirIn * 400 * DT * DT; B.kneeL.ox -= dirIn * 300 * DT * DT; B.kneeR.ox -= dirIn * 300 * DT * DT; }
+    else pose = POSE.hang;
+  }
+  integrate(Object.values(B), failed ? .97 : .999);
+  servo(pose, onRope || onEdge ? .035 : .09, onRope || onEdge ? .15 : .85); // на канате поза держится по вертикали: руки вверх, ноги вниз
+  for (let it = 0; it < 14; it++) {
+    solve(body);
+    for (const p of rag.pins) {
+      if (p.r) { const h = p.h, r = p.r, wa = 1 / h.m, wb = 1 / r.m, mx = (h.x * wa + r.x * wb) / (wa + wb), my = (h.y * wa + r.y * wb) / (wa + wb); h.x = r.x = mx; h.y = r.y = my; }
+      else { p.h.x = p.fix[0]; p.h.y = p.fix[1]; }
+    }
+    solve(ropeC);
+  }
+  for (const n of NAMES) collide(B[n]);
+  // хват каната
+  if (input.grab && !onRope && !onEdge && !failed) {
+    outer: for (const h of [B.handR, B.handL]) for (let i = 3; i <= ROPE_N; i++) {
+      if (Math.hypot(h.x - R[i].x, h.y - R[i].y) < 30) { const o = h === B.handR ? B.handL : B.handR; rag.pins = [{ h, r: R[i] }, { h: o, r: R[Math.max(2, i - 1)] }]; rag.pose = 'hang'; break outer; }
+    }
+  }
+  if (onRope && !input.grab) { rag.pins = []; rag.pose = 'fly'; rag.air = 0; }
+  if (!onRope && !onEdge && tryEdge()) return;
+  // край стены: подтягиваемся
+  if (onEdge) { rag.edge += DT; if (rag.edge > .7) startClimb(TOPS, 45); return; }
+  rag.air += DT;
+  // вода
+  if (!failed) for (const n of NAMES) if (B[n].y > WY) { fail(); break; }
+  if (failed) return;
+  // приземление на ноги
+  if (!rag.pins.length && rag.air > .12) {
+    const up = B.pelvis.y - B.neck.y > 32;
+    for (const f of [B.footL, B.footR]) {
+      if (f.y - f.oy < -.2) continue;
+      for (const S of SURF) {
+        const n = nearestOn(S, f.x, f.y);
+        if (n.d < 9 && up && B.pelvis.y < n.y - 30) {
+          const p = at(S, n.s), vx = (B.pelvis.x - B.pelvis.ox) / DT, vy = (B.pelvis.y - B.pelvis.oy) / DT;
+          mode = 'ground'; gnd = { S, s: Math.max(1, Math.min(S.len - 1, n.s)), v: (vx * p.tx + vy * p.ty) * (S.kind === 'pad' ? .7 : .85), ph: 0 }; rag = null;
+          placeGround(true); window.__land && window.__land(S, gnd); return;
+        }
+      }
+    }
+    // лежит — встаёт
+    const sp = Math.hypot(B.pelvis.x - B.pelvis.ox, B.pelvis.y - B.pelvis.oy) / DT;
+    rag.rest = sp < 40 ? rag.rest + DT : 0;
+    if (rag.rest > .6) { let best = null; for (const S of SURF) { const n = nearestOn(S, B.pelvis.x, B.pelvis.y); if (!best || n.d < best.n.d) best = { S, n }; } if (best && best.n.d < 140) startClimb(best.S, best.n.s); }
+  }
+}
+function startClimb(S, s, mid) {
+  mode = 'climb'; rag = null;
+  const from = {}; for (const n of NAMES) from[n] = [B[n].x, B[n].y];
+  gnd = { S, s, v: 0, ph: 0 };
+  climb = { t: 0, from, mid, dur: mid ? .28 : .5 };
+}
+function climbStep() {
+  climb.t += DT; const k = Math.max(0, Math.min(1, climb.t / climb.dur)), e = k * k * (3 - 2 * k);
+  const to = climb.mid || groundPose();
+  for (const n of NAMES) { const q = B[n]; q.ox = q.x; q.oy = q.y; q.x = climb.from[n][0] + (to[n][0] - climb.from[n][0]) * e; q.y = climb.from[n][1] + (to[n][1] - climb.from[n][1]) * e; }
+  if (k >= 1 && climb.mid) { climb.from = climb.mid; climb.mid = null; climb.t = -.35; climb.dur = .65; return; } // повисел — подтягивается
+  if (k >= 1) { mode = 'ground'; climb = null; placeGround(true); }
+}
+function ropeStep() {
+  if (mode !== 'rag') { integrate(R, .996); for (let it = 0; it < 10; it++) solve(ropeC); }
+}
+
+// ═════════ Финиш / вода ═════════
+function finish() {
+  finished = true; buzzT = 1.5;
+  const t = tRun; if (!best || t < best) { best = t; try { localStorage.setItem('ninja-best', String(t)); } catch (e) {} }
+  setTimeout(() => endScreen('🏁 ' + fmt(t), best === t ? 'Новый рекорд! Жми кнопку быстрее в следующий раз 😉' : 'Рекорд: ' + fmt(best)), 1300);
+}
+function fail() {
+  failed = true; failT = 0;
+  const x = B.pelvis.x; for (let i = 0; i < 26; i++) splash.push({ x: x + (Math.random() - .5) * 80, y: WY, vx: (Math.random() - .5) * 300, vy: -200 - Math.random() * 420, t: 0 });
+  setTimeout(() => endScreen('💦 В воду!', 'Забег окончен. Пробуй ещё — с каждой попыткой трасса понятнее.'), 1300);
+}
+function endScreen(t, p) { document.getElementById('endT').textContent = t; document.getElementById('endP').textContent = p; document.getElementById('ovEnd').classList.remove('hide'); }
+const fmt = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+
+// ═════════ Цикл ═════════
+let acc = 0, last = 0, running = false;
+function step() {
+  if (mode === 'ground') groundStep(); else if (mode === 'rag') ragStep(); else if (mode === 'climb') climbStep();
+  ropeStep();
+  for (const k in pressed) pressed[k] = false;
+  if (started && !finished && !failed) tRun += DT;
+  if (failed) failT += DT;
+  for (const d of splash) { d.t += DT; d.x += d.vx * DT; d.vy += G * DT; d.y += d.vy * DT; }
+  splash = splash.filter(d => d.y < WY + 5 || d.vy < 0);
+  if (buzzT > 0) buzzT -= DT;
+}
+function frame(t) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+  if (running) { acc += dt; let n = 0; while (acc >= DT && n < 10) { step(); acc -= DT; n++; } if (n >= 10) acc = 0; }
+  draw();
+}
+
+// ═════════ Рисование ═════════
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let VW = 1, VH = 1, SC = 1;
+function resize() { const d = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * d; cv.height = innerHeight * d; SC = cv.height / 720; VW = cv.width / SC; VH = 720; document.getElementById('rot').classList.toggle('hide', innerWidth >= innerHeight); }
+addEventListener('resize', resize);
+function drawMan(P) {
+  const s = 1, f = face;
+  const C = { near: '#e3c9a1', far: '#a98c66', joint: '#6b5236', hi: 'rgba(255,255,255,.35)' };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const limb = (p, q, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.stroke(); };
+  const joint = (p, r) => { ctx.fillStyle = C.joint; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 7); ctx.fill(); };
+  const toe = k => { const kn = P['knee' + k], ft = P['foot' + k], dx = ft[0] - kn[0], dy = ft[1] - kn[1], L = Math.hypot(dx, dy) || 1; return [ft[0] + f * dy / L * SEG.foot, ft[1] - f * dx / L * SEG.foot]; };
+  const leg = (k, c) => { limb(P.pelvis, P['knee' + k], 15, c); limb(P['knee' + k], P['foot' + k], 12, c); limb(P['foot' + k], toe(k), 8, c); joint(P['knee' + k], 5.5); joint(P['foot' + k], 4.5); };
+  const arm = (k, c) => { limb(P.neck, P['elbow' + k], 11, c); limb(P['elbow' + k], P['hand' + k], 9, c); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(P['hand' + k][0], P['hand' + k][1], 6, 0, 7); ctx.fill(); joint(P['elbow' + k], 4.5); };
+  leg('L', C.far); arm('L', C.far);
+  const nk = P.neck, pv = P.pelvis, ch = [nk[0] + (pv[0] - nk[0]) * .3, nk[1] + (pv[1] - nk[1]) * .3];
+  limb(pv, nk, 20, C.near); ctx.fillStyle = C.near; ctx.beginPath(); ctx.arc(ch[0], ch[1], 14, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(pv[0], pv[1], 12, 0, 7); ctx.fill(); joint(pv, 5);
+  const hd = P.head, ang = Math.atan2(hd[0] - nk[0], hd[1] - nk[1]), hn = add(nk, ang, SEG.neck);
+  limb(nk, hn, 8, C.near);
+  ctx.fillStyle = C.near; ctx.beginPath(); ctx.ellipse(hd[0], hd[1], 11.5, 14, -Math.atan2(hd[0] - nk[0], -(hd[1] - nk[1])), 0, 7); ctx.fill();
+  const b1 = add(hd, ang + PI / 2 * f, 11), b2 = add(hd, ang - PI / 2 * f, 11), bb = add(b1, ang, 2), bt = add(b2, ang, 2);
+  ctx.strokeStyle = '#d6293b'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(...bb); ctx.lineTo(...bt); ctx.stroke();
+  const vx = (B.head.x - B.head.ox) / DT, vy = (B.head.y - B.head.oy) / DT, sp = Math.hypot(vx, vy);
+  const w = sp > 60 ? [-vx / sp, -vy / sp + .3] : [-f * .5, 1];
+  ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(...bb); ctx.quadraticCurveTo(bb[0] + w[0] * 14, bb[1] + w[1] * 14 - 5, bb[0] + w[0] * 26, bb[1] + w[1] * 26 + 3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(...bb); ctx.quadraticCurveTo(bb[0] + w[0] * 12, bb[1] + w[1] * 12 + 4, bb[0] + w[0] * 21, bb[1] + w[1] * 21 + 10); ctx.stroke();
+  leg('R', C.near); arm('R', C.near);
+}
+function drawRope(pts, w) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const path = () => { ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i = 1; i < pts.length - 1; i++) ctx.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x) / 2, (pts[i].y + pts[i + 1].y) / 2); ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y); };
+  ctx.strokeStyle = '#8a6a3c'; ctx.lineWidth = w; path(); ctx.stroke();
+  ctx.strokeStyle = '#d9b77c'; ctx.lineWidth = w * .45; ctx.setLineDash([5, 5]); path(); ctx.stroke(); ctx.setLineDash([]);
+}
+function poly(P, fill) { ctx.fillStyle = fill; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.fill(); }
+function draw() {
+  const Wd = cv.width, Hd = cv.height;
+  // камера
+  if (B) {
+    const lx = B.pelvis.x + face * 160, ly = Math.min(B.pelvis.y - 60, WY - VH / 2 + 60);
+    cam.x += (lx - cam.x) * .08; cam.y += (ly - cam.y) * .08;
+  }
+  // фон (экранные координаты)
+  const g = ctx.createLinearGradient(0, 0, 0, Hd); g.addColorStop(0, '#0e1630'); g.addColorStop(1, '#05070d'); ctx.fillStyle = g; ctx.fillRect(0, 0, Wd, Hd);
+  ctx.save(); ctx.scale(SC, SC);
+  // прожекторы и зрители с параллаксом
+  const px = -cam.x * .3;
+  for (let i = -2; i < 12; i++) { const x = ((i * 420 + px) % 3000 + 3000) % 3000 - 400; const gr = ctx.createLinearGradient(0, 0, 0, VH); gr.addColorStop(0, i % 2 ? 'rgba(120,170,255,.09)' : 'rgba(255,220,150,.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x - 15, 0); ctx.lineTo(x + 15, 0); ctx.lineTo(x + 220, VH); ctx.lineTo(x - 220, VH); ctx.fill(); }
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  for (let i = 0; i < 120; i++) { const x = ((i * 97 + px * .6) % (VW + 100) + VW + 100) % (VW + 100) - 50, y = 30 + (i * 53) % 80; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.fillRect(x - 8, y + 5, 16, 14); }
+  // мир
+  ctx.translate(VW / 2 - cam.x, VH / 2 - cam.y);
+  // опоры ступеней
+  for (const [cx, cy] of PADS) { ctx.fillStyle = '#4b5566'; ctx.fillRect(cx - 4, cy, 8, WY - cy); }
+  // рама каната
+  ctx.fillStyle = '#4b5566'; ctx.fillRect(ROPE_TOP[0] - 180, ROPE_TOP[1] - 16, 360, 16); ctx.fillRect(ROPE_TOP[0] - 176, ROPE_TOP[1] - 16, 12, WY - ROPE_TOP[1] + 16); ctx.fillRect(ROPE_TOP[0] + 164, ROPE_TOP[1] - 16, 12, WY - ROPE_TOP[1] + 16);
+  ctx.strokeStyle = '#8a96a8'; ctx.lineWidth = 3; ctx.beginPath(); for (let x = ROPE_TOP[0] - 176; x < ROPE_TOP[0] + 170; x += 30) { ctx.moveTo(x, ROPE_TOP[1] - 16); ctx.lineTo(x + 15, ROPE_TOP[1]); ctx.lineTo(x + 30, ROPE_TOP[1] - 16); } ctx.stroke();
+  // тела
+  for (const S of SOLIDS) {
+    if (S.kind === 'pad') { poly(S.pts, '#c8955a'); continue; }
+    poly(S.pts, S.kind === 'wall' ? '#2b3445' : '#2b3445');
+  }
+  // кривая стена — светлее, с полосами
+  ctx.fillStyle = '#3a4a66'; ctx.beginPath(); ctx.moveTo(WALL_X0, 0); CURVE.forEach(p => ctx.lineTo(...p)); ctx.lineTo(WALL_X1 + 30, WALL_TOP); ctx.lineTo(WALL_X1 + 30, 0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#7f97bf'; ctx.lineWidth = 4; ctx.beginPath(); CURVE.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.stroke();
+  // жёлтые кромки площадок
+  ctx.fillStyle = '#ffcf3a';
+  for (const S of SURF) if (S.kind !== 'pad' && S.kind !== 'wall') ctx.fillRect(S.pts[0][0], S.pts[0][1] - 3, S.pts[1][0] - S.pts[0][0], 5);
+  ctx.fillRect(2100, -3, WALL_X0 - 2100, 5);
+  // старт / финиш
+  ctx.fillStyle = '#ffcf3a'; ctx.font = '800 26px "Segoe UI", Arial'; ctx.fillText('СТАРТ', -200, 40); ctx.fillText('ФИНИШ', WALL_X1 + 40, WALL_TOP + 50);
+  // разметка разбега
+  ctx.fillStyle = 'rgba(255,207,58,.35)'; for (let x = 2200; x < WALL_X0; x += 100) ctx.fillRect(x, 6, 40, 4);
+  // кнопка
+  ctx.fillStyle = '#5a6578'; ctx.fillRect(BUZZ_X - 6, WALL_TOP - 90, 12, 90);
+  const lit = buzzT > 0 && Math.floor(buzzT * 8) % 2 === 0;
+  ctx.fillStyle = lit ? 'rgba(255,90,90,.45)' : 'rgba(255,51,70,.18)'; ctx.beginPath(); ctx.arc(BUZZ_X, WALL_TOP - 96, lit ? 60 : 36, 0, 7); ctx.fill();
+  ctx.fillStyle = lit ? '#fff' : '#ff3346'; ctx.beginPath(); ctx.arc(BUZZ_X, WALL_TOP - 96, 18, 0, 7); ctx.fill();
+  // канат и манекен
+  drawRope(R, 7);
+  const P = {}; for (const n of NAMES) P[n] = [B[n].x, B[n].y];
+  drawMan(P);
+  // вода
+  const wg = ctx.createLinearGradient(0, WY, 0, WY + 400); wg.addColorStop(0, 'rgba(29,93,143,.92)'); wg.addColorStop(1, '#0a2744');
+  ctx.fillStyle = wg; ctx.fillRect(cam.x - VW, WY, VW * 2, 800);
+  ctx.strokeStyle = 'rgba(180,225,255,.28)'; ctx.lineWidth = 2; const tt = performance.now() / 600;
+  for (let k = 0; k < 4; k++) { ctx.beginPath(); for (let x = cam.x - VW; x <= cam.x + VW; x += 12) ctx.lineTo(x, WY + 6 + k * 24 + Math.sin(x / 45 + k + tt) * 3); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(200,235,255,.85)'; for (const d of splash) { ctx.beginPath(); ctx.arc(d.x, d.y, 4, 0, 7); ctx.fill(); }
+  ctx.restore();
+  // HUD
+  document.getElementById('time').textContent = fmt(tRun || 0);
+}
+
+// ═════════ Управление ═════════
+const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ShiftLeft: 'grab', ShiftRight: 'grab', KeyJ: 'grab', KeyK: 'grab' };
+addEventListener('keydown', e => { const k = KEYS[e.code]; if (!k) return; e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; });
+addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) input[k] = false; });
+const btn = new Map();
+for (const el of document.querySelectorAll('.b')) {
+  const k = el.dataset.k;
+  const on = e => { e.preventDefault(); if (!input[k]) pressed[k] = true; input[k] = true; el.classList.add('on'); btn.set(e.pointerId, k); };
+  const off = e => { e.preventDefault(); input[k] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
+}
+addEventListener('contextmenu', e => e.preventDefault());
+document.getElementById('btnGo').onclick = () => { document.getElementById('ovStart').classList.add('hide'); running = true; };
+document.getElementById('btnAgain').onclick = () => { reset(); running = true; };
+try { best = parseFloat(localStorage.getItem('ninja-best')) || 0; } catch (e) { best = 0; }
+setInterval(() => { document.getElementById('best').textContent = best ? 'Рекорд ' + fmt(best) : ''; }, 500);
+// ═════════ На экран «Домой» ═════════
+(function () {
+  const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
+  const btn = document.getElementById('btnInst'), hint = document.getElementById('instHint');
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let deferred = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!standalone) btn.classList.remove('hide'); });
+  if (!standalone && (ios || matchMedia('(pointer: coarse)').matches)) btn.classList.remove('hide');
+  btn.onclick = async () => {
+    if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; btn.classList.add('hide'); return; }
+    hint.innerHTML = ios ? 'В Safari нажми «Поделиться» <b>⬆️</b> внизу → «На экран „Домой“» → «Добавить».'
+                         : 'Открой меню браузера <b>⋮</b> → «Добавить на главный экран» (или «Установить приложение»).';
+    hint.classList.remove('hide');
+  };
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+resize(); reset(); requestAnimationFrame(frame);
+window.__ninja = { get B() { return B; }, get mode() { return mode; }, get gnd() { return gnd; }, get rag() { return rag; }, get R() { return R; }, input, pressed, step, reset,
+  get state() { return { mode, finished, failed, t: tRun, x: B.pelvis.x, y: B.pelvis.y, face }; }, set: f => f({ get gnd() { return gnd; }, set gnd(v) { gnd = v; }, SURF, WALLS, TOPS, placeGround, setMode: m => { mode = m; } }) };
+</script>
+</body>
+</html>
