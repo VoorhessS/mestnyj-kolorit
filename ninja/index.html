@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Ниндзя спорт</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ниндзя">
+<meta name="theme-color" content="#05070d">
 <style>
   html, body { margin: 0; height: 100%; background: #05070d; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; font-family: "Segoe UI", Arial, sans-serif; }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -28,6 +36,20 @@
   .ov .go { display: inline-block; margin-top: 14px; padding: 14px 40px; border-radius: 30px; background: #d6293b; color: #fff; font-weight: 800; font-size: 20px; cursor: pointer; }
   .ov .ver { color: #5f6f86; font-size: 12px; margin-top: 14px; }
   .hide { display: none !important; }
+  .ov .inst { display: inline-block; margin-top: 12px; padding: 9px 20px; border-radius: 22px; border: 1.5px solid rgba(255,255,255,.35); color: #e8eef6; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .ov { z-index: 5; overflow-y: auto; background: rgba(5,7,13,.86); }
+  .kbd { font-size: 13px; color: #7f8ea4 !important; }
+  @media (max-height: 460px) {
+    .ov .card { padding: 8px 18px; }
+    .ov h1 { font-size: 26px; margin: 0 0 2px; }
+    .ov p { font-size: 13px; margin: 4px 0; line-height: 1.35; }
+    .ov .go { margin-top: 6px; padding: 9px 34px; font-size: 17px; }
+    .ov .inst { margin-top: 8px; padding: 6px 16px; font-size: 13px; }
+    .ov .ihint { font-size: 12px; margin-top: 5px; }
+    .ov .ver { margin-top: 6px; }
+    .kbd { display: none; }
+  }
+  .ov .ihint { color: #ffcf3a; font-size: 14px; margin-top: 8px; line-height: 1.5; }
   #rot { position: fixed; top: 64px; left: 0; right: 0; text-align: center; color: #ffcf3a; font-weight: 700; font-size: 14px; pointer-events: none; }
 </style>
 </head>
@@ -41,9 +63,11 @@
   <h1>НИНДЗЯ <span>СПОРТ</span></h1>
   <p>Пробник трассы: пять ступеней → канат → кривая стена → кнопка.<br>Упал в воду — забег окончен.</p>
   <p>◀ ▶ — бег · ПРЫЖОК · ХВАТ — держи, чтобы висеть на канате, отпусти — летишь.<br>На канате ◀ ▶ — раскачка.</p>
-  <p style="font-size:13px;color:#7f8ea4">Клавиатура: ← → бег, ↑ / пробел прыжок, Shift / J хват</p>
-  <div class="go" id="btnGo">СТАРТ</div>
-  <div class="ver">Версия 25.11 · пробник 1</div>
+  <p class="kbd">Клавиатура: ← → бег, ↑ / пробел прыжок, Shift / J хват</p>
+  <div class="go" id="btnGo">СТАРТ</div><br>
+  <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
+  <div class="ihint hide" id="instHint"></div>
+  <div class="ver">Версия 25.11 · пробник 1.1</div>
 </div></div>
 <div class="ov hide" id="ovEnd"><div class="card">
   <h1 id="endT"></h1><p id="endP"></p>
@@ -463,6 +487,22 @@ document.getElementById('btnGo').onclick = () => { document.getElementById('ovSt
 document.getElementById('btnAgain').onclick = () => { reset(); running = true; };
 try { best = parseFloat(localStorage.getItem('ninja-best')) || 0; } catch (e) { best = 0; }
 setInterval(() => { document.getElementById('best').textContent = best ? 'Рекорд ' + fmt(best) : ''; }, 500);
+// ═════════ На экран «Домой» ═════════
+(function () {
+  const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
+  const btn = document.getElementById('btnInst'), hint = document.getElementById('instHint');
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let deferred = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!standalone) btn.classList.remove('hide'); });
+  if (!standalone && (ios || matchMedia('(pointer: coarse)').matches)) btn.classList.remove('hide');
+  btn.onclick = async () => {
+    if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; btn.classList.add('hide'); return; }
+    hint.innerHTML = ios ? 'В Safari нажми «Поделиться» <b>⬆️</b> внизу → «На экран „Домой“» → «Добавить».'
+                         : 'Открой меню браузера <b>⋮</b> → «Добавить на главный экран» (или «Установить приложение»).';
+    hint.classList.remove('hide');
+  };
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
 resize(); reset(); requestAnimationFrame(frame);
 window.__ninja = { get B() { return B; }, get mode() { return mode; }, get gnd() { return gnd; }, get rag() { return rag; }, get R() { return R; }, input, pressed, step, reset,
   get state() { return { mode, finished, failed, t: tRun, x: B.pelvis.x, y: B.pelvis.y, face }; }, set: f => f({ get gnd() { return gnd; }, set gnd(v) { gnd = v; }, SURF, WALLS, TOPS, placeGround, setMode: m => { mode = m; } }) };
