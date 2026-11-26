@@ -1,6 +1,6 @@
 // Сервис-воркер «Ниндзя спорт»: сначала сеть (видны обновления), без интернета — из памяти.
 // При выкладке меняй VERSION.
-const VERSION = 'ninja-v7';
+const VERSION = 'ninja-v8';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './planck.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== VERSION).map(x => caches.delete(x)))).then(() => self.clients.claim())); });

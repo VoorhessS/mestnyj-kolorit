@@ -83,14 +83,14 @@
   <h1>НИНДЗЯ <span>СПОРТ</span></h1>
   <p>Пять ступеней → канат → кривая стена → кнопка. Упал в воду — сразу заново.</p>
   <div class="modes">
-    <div class="mode tap" id="mTap"><b>▶ СТАРТ</b><span>Одна кнопка — тап по экрану. Бег: тапай в ритм, когда кольцо сжимается к центру. Прыжок — тап на отметке. Ступени, канат и стена — поймай бегунок в зелёном.</span></div>
+    <div class="mode tap" id="mTap"><b>▶ СТАРТ</b><span>Одна кнопка — тап по экрану. Тапай, когда нога касается земли. Прыжок — тап на белой доске. Первый забег — замедленный, с подсказками.</span></div>
     <div class="mode real hide" id="mReal"><b>1. Реализм</b><span>Каждый шаг твой: жми ЛЕВАЯ и ПРАВАЯ по очереди. Подольше держишь — длиннее шаг, долго — многоскок через ступень. Сбился с ноги — споткнёшься. Сам не бежит!</span></div>
     <div class="mode easy hide" id="mEasy"><b>2. Упрощение</b><span>Тело то же, физическое, но мышцы бегут сами: ◀ ▶, ПРЫЖОК, ХВАТ (после прыжка руки хватают сами). На канате ◀ ▶ — раскачка ногами.</span></div>
   </div>
   <div class="learn hide"><div id="lReal">🎓 Обучение: Реализм</div><div id="lEasy">🎓 Обучение: Упрощение</div></div>
   <div class="inst hide" id="btnInst">📲 На экран «Домой»</div>
   <div class="ihint hide" id="instHint"></div>
-  <div class="ver">Версия 26.11 · пробник 3 (одна кнопка, тайминг)</div>
+  <div class="ver">Версия 26.11 · пробник 3.1 (тап = шаг)</div>
 </div></div>
 <script src="planck.min.js"></script>
 <script>
@@ -103,6 +103,7 @@ function quad(p0, p1, p2, n) { const o = []; for (let i = 0; i <= n; i++) { cons
 // race — трасса; learn — обучение: бег → яма → канат над полом → невысокая кривая стенка
 const LAYOUTS = {
   race: { PADS: [[2.6, -.14, -.3], [4.6, -.14, .3], [6.6, -.14, -.3], [8.6, -.14, .3], [10.6, -.14, -.3]], FLOORS: [[-5, 0], [12.2, 15.2]], ROPE_TOP: [17.6, 4.4], RUN0: 21, WALL_X0: 30, WALL_X1: 33.3, WALL_TOP: 4.0, END_X: 37.2, BUZZ_X: 35.6, CHECK: [-3.2, 12.8, 21.8] },
+  tap: { START: -12, PADS: [[2.6, -.14, -.3], [4.6, -.14, .3], [6.6, -.14, -.3], [8.6, -.14, .3], [10.6, -.14, -.3]], FLOORS: [[-14, 0], [12.2, 18.2]], ROPE_TOP: [20.8, 4.4], RUN0: 24.2, WALL_X0: 33.2, WALL_X1: 36.5, WALL_TOP: 4.0, END_X: 40.4, BUZZ_X: 38.8, CHECK: [-12, 12.8, 24.6] },
   learn: { PADS: [], FLOORS: [[-5, 10], [13, 22]], ROPE_TOP: [16, 4.4], RUN0: 22, WALL_X0: 25, WALL_X1: 27.2, WALL_TOP: 2.4, END_X: 32, BUZZ_X: 30, CHECK: [-3.2, 8, 13.6, 22.4] },
 };
 let LAYOUT = 'race', PADS, FLOORS, ROPE_TOP, RUN0, WALL_X0, WALL_X1, WALL_TOP, END_X, BUZZ_X, CHECK, EDGE, CURVE, B_OUTLINE;
@@ -165,7 +166,7 @@ function build() {
   world = new pl.World({ gravity: V(0, -G) });
   const stat = world.createBody();
   const box = (x0, x1, y0, y1) => stat.createFixture(new pl.Box((x1 - x0) / 2, (y1 - y0) / 2, V((x0 + x1) / 2, (y0 + y1) / 2), 0), { friction: .9 });
-  for (const [x0, x1] of FLOORS) box(x0, x1, -3, 0); box(-5.3, -5, -3, 2.6); // стенка за стартом
+  for (const [x0, x1] of FLOORS) box(x0, x1, -3, 0); box(FLOORS[0][0] - .3, FLOORS[0][0], -3, 2.6); // стенка за стартом
   for (const [cx, cy, a] of PADS) stat.createFixture(new pl.Box(.45, .07, V(cx, cy), a), { friction: 1, userData: 'pad' });
   wallBody = world.createBody();
   wallBody.createFixture(new pl.Chain(B_OUTLINE.map(p => V(p[0], p[1])), true), { friction: .9 });
@@ -181,7 +182,7 @@ function build() {
     rope.push(b); prev = b;
   }
   // манекен
-  const X0 = -3.2;
+  const X0 = LAYOUTS[LAYOUT].START ?? -3.2;
   P = {}; J = {};
   for (const [n, [x, y, hw, hh, m, circ]] of Object.entries(PARTS)) {
     const b = world.createBody({ type: 'dynamic', position: V(X0 + x, y), angularDamping: .6, linearDamping: .02, userData: { rag: true, n } });
@@ -362,13 +363,13 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     // равновесие: корпус наклоняется вперёд при разгоне, назад при торможении
     const lean = -(.05 + .18 * Math.max(-1, Math.min(1, a / 6)) + .06 * Math.min(1, Math.abs(vt) / 7) * Math.sign(vt || 1));
     const surf = Math.atan2(n.x, n.y) * -.15;
-    balance(real ? -(.06 + .1 * Math.min(1, Math.abs(vt) / 6)) + surf : lean + surf, 520 * up * (real && S.stumble > 0 ? .25 : 1), 45);
+    balance(MODE === 'tap' && st.q && st.q.sway != null ? st.q.sway : real ? -(.06 + .1 * Math.min(1, Math.abs(vt) / 6)) + surf : lean + surf, 520 * up * (real && S.stumble > 0 ? .25 : 1), 45);
     // ноги: фаза шага от пройденного пути
-    st.ph += Math.abs(vt) * DT / .34;
+    st.ph += MODE === 'tap' ? (st.q && st.q.moving && st.q.ph === 'run' ? Math.PI / stepT(Math.abs(vt)) * DT : 0) : Math.abs(vt) * DT / .34;
     const k = Math.min(1, Math.abs(vt) / 6);
-    const legs = real ? stridePose(S) : runPose(st.ph, Math.max(.25, k));
+    const legs = real ? stridePose(S) : runPose(st.ph, Math.max(MODE === 'tap' && st.q && st.q.moving ? .45 : .25, k));
     if ((st.gr || P.pelvis.getPosition().x > WALL_X0 + .3) && n.y < .75) drive(Object.assign(legs, { shL: 2.55, elL: .05, shR: 2.6, elR: .05 }), 1); // на стене тянется к краю
-    else drive(real || k > .05 ? legs : POSE.stand, 1);
+    else drive(real || k > .05 || (MODE === 'tap' && st.q && st.q.moving && st.q.ph === 'run') ? legs : POSE.stand, 1);
     if (pressed.jump && up > .8 && n.y > .5) { // прыгнуть можно только с пологой опоры
       const add = real ? (v.x > .5 ? Math.max(0, 5 - v.x) * .4 : 0) : dirIn ? Math.max(.3, 2.2 - dirIn * v.x) * dirIn : 0;
       for (const b of Object.values(P)) b.applyLinearImpulse(V(b.getMass() * add, b.getMass() * JUMP), b.getWorldCenter(), true);
@@ -382,192 +383,205 @@ function stepEasy(dirIn, grounded, g, onRope, onEdge) {
     balance(-.1, 70, 12); // в воздухе слабее: вращение заметно, но приземлиться можно
   }
 }
-// ═════════ Режим «Тап»: одна кнопка, всё на тайминге (друг, msg 2945) ═════════
-// Бег — тапы в ритм шагов (кольцо сжимается к цели): ИДЕАЛЬНО / РАНО / ПОЗДНО / МИМО копят разгон.
-// Перед препятствием — отметка прыжка. На ступенях — шкала равновесия. Канат — раскачка в крайних точках
-// и «отпускай» в зелёном. Стена — разгон, прыжок на изгибе, подтягивание по шкале. Кнопка — последний тап.
-const TAKEOFF = { pads: -0.35, rope: 15.05, wall: 31.6 };
+// ═════════ Режим «Тап»: одна кнопка, тап = шаг (друг, msg 2945/2952/2954) ═════════
+// Все подсказки — на персонаже и трассе: тап в момент касания стопой (пыль, «топ», стопа светится),
+// прыжок — тап на белой доске, на ступенях — тап, когда выпрямился (повязка зелёная),
+// канат — тап в верхней точке размаха, отпустить — когда площадка зелёная, подтягивание — частые тапы.
 const TF = 2 * 3.4 / G; // время полёта между ступенями при вертикальной скорости 3.4
-const FXT = { perfect: ['ИДЕАЛЬНО!', '#6fe0a0'], early: ['РАНО', '#ffcf3a'], late: ['ПОЗДНО', '#ffcf3a'], miss: ['МИМО', '#ff5a5a'], skip: ['ПРОПУСК', '#ff5a5a'], ok: ['ЕСТЬ!', '#6fe0a0'] };
-const tri = x => (2 / Math.PI) * Math.asin(Math.sin(x * Math.PI)); // треугольная волна −1…1, период 2
-function tq() { return st.q || (st.q = { ph: 'ready', vt: 0, beatAt: 0, T: .6, clock: 0, fxK: '', fxT: -9, label: 'Тапни — старт!' }); }
+const FXT = { perfect: ['ИДЕАЛЬНО!', '#6fe0a0'], early: ['РАНО', '#ffcf3a'], late: ['ПОЗДНО', '#ffcf3a'], miss: ['МИМО', '#ff5a5a'], skip: ['ПРОПУСК', '#ff5a5a'], ok: ['ЕСТЬ!', '#6fe0a0'], fall: ['УПАЛ!', '#ff5a5a'] };
+const stepT = v => Math.max(.3, Math.min(.56, .56 - .04 * v)); // длительность шага: быстрее бег — чаще шаги
+let sfxCtx = null;
+function beep(f, d, vol, type = 'sine') {
+  if (!sfxCtx) return;
+  try { const o = sfxCtx.createOscillator(), g = sfxCtx.createGain(), t0 = sfxCtx.currentTime; o.type = type; o.frequency.setValueAtTime(f, t0); o.frequency.exponentialRampToValueAtTime(f * .6, t0 + d);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + d); o.connect(g); g.connect(sfxCtx.destination); o.start(t0); o.stop(t0 + d); } catch (e) {}
+}
+function boards() { const e1 = FLOORS[1][1]; return [[-1.6, 0, 'pads'], [e1 - 1.6, e1, 'rope'], [WALL_X0 + .8, WALL_X0 + 2.0, 'wall']]; }
+const HINTS = {
+  ready: 'Тапни — побежал. Тапай, когда нога касается земли: пыль и «топ»',
+  board: 'Белая доска у края — тап на ней, и он прыгнет!',
+  bal: 'Его шатает. Тап, когда выпрямился — повязка зелёная',
+  rope: 'Тап в верхней точке размаха — раскачка. Площадка зелёная — тап, отпускай!',
+  wall: 'Разгон, тап на доске у стены — руки схватят край',
+  pull: 'Быстро тапай — подтягивайся!',
+  buzz: 'Жми кнопку!',
+  back: 'Не долетел. Тапай — новый разбег',
+};
+function tq() {
+  if (st.q) return st.q;
+  let first = true; try { first = !localStorage.getItem('ninja3-first'); } catch (e) {}
+  return st.q = { ph: 'run', moving: false, vt: 0, clock: 0, fxK: '', fxT: -9, lastN: -1, judgedN: -1, fallAt: -9, dust: [], slow: first, hinted: {}, sway: null, cue: false };
+}
+function hint(k) { const Q = tq(); if (Q.hinted[k]) return; Q.hinted[k] = 1; (Q.slow ? learnTip : showTip)(HINTS[k]); }
 function judge(dt, w) { const a = Math.abs(dt); return a < w[0] ? 'perfect' : a < w[1] ? (dt < 0 ? 'early' : 'late') : 'miss'; }
 function qfx(k) { const Q = tq(); Q.fxK = k; Q.fxT = Q.clock; }
 function launch(vx, vy) { for (const b of Object.values(P)) { b.setLinearVelocity(V(vx, vy)); b.setAngularVelocity(0); } st.lock = .3; st.airT = 0; tq().launchT = tq().clock; }
-function runTo(Q, to) { Q.ph = 'run'; Q.to = to; Q.vt = Math.max(1.2, Math.min(Q.vt, 2)); Q.T = .6; Q.beatAt = Q.clock + Q.T; Q.label = 'Тапай в ритм шагов'; }
-function startBar(Q, ph, spd, w, lim, label) { Object.assign(Q, { ph, barT0: Q.clock, spd, w, lim, label }); }
-function topple(Q, dirX) { st.down = 3; launch(dirX * 2.2, 1.4); Q.ph = 'fall'; Q.label = ''; }
+function topple(Q, dirX) { st.down = 3; launch(dirX * 2.2, 1.4); Q.ph = 'fall'; Q.sway = null; Q.cue = false; qfx('fall'); }
+function newRun(Q) { Q.ph = 'run'; Q.moving = false; Q.vt = 0; }
+function resumeRun(Q, vt) { Q.jumped = false; Q.ph = 'run'; Q.moving = true; Q.vt = vt; Q.lastN = Math.floor((st.ph - Math.PI / 2) / Math.PI); Q.judgedN = Q.lastN; Q.fallAt = Q.clock; }
 
 function stepTap(grounded, g, onRope, onEdge) {
   const Q = tq(), tap = pressed.tap || pressed.jump; Q.clock += DT;
   const now = Q.clock, pp = P.pelvis.getPosition(), v = vel(P.pelvis);
   let dir = 0, pump = 0;
-  Q.s = null;
+  Q.cue = false; Q.relWin = false;
+  // шаги: следующее касание стопой
+  const T = stepT(Math.abs(v.x)), phi = ((Math.PI / 2 - st.ph) % Math.PI + Math.PI) % Math.PI;
+  Q.tNext = phi * T / Math.PI; Q.T = T;
   switch (Q.ph) {
-    case 'ready':
-      if (tap) { st.started = true; Q.vt = 1.2; runTo(Q, TAKEOFF.pads); }
-      break;
-    case 'run': case 'takeoff': {
+    case 'run': {
+      if (!Q.hinted.ready) hint('ready');
+      const B = boards().find(b => pp.x > b[0] - .1 && pp.x < b[1] + .35);
+      if (boards().some(b => pp.x > b[0] - 3 && pp.x < b[1] && b[2] !== 'wall')) hint('board');
+      if (pp.x > WALL_X0 - 4 && pp.x < WALL_X0 + 2.2) hint('wall');
+      if (!Q.moving) { if (tap && grounded) { Q.moving = true; Q.vt = 1.6; st.started = true; Q.lastN = Math.floor((st.ph - Math.PI / 2) / Math.PI); Q.judgedN = Q.lastN; qfx('ok'); } break; }
       dir = Q.vt > .2 ? 1 : 0;
-      if (Q.ph === 'run') {
-        Q.T = Math.max(.32, Math.min(.62, .62 - Q.vt * .045));
-        const tt = (Q.to - pp.x) / Math.max(.6, v.x);
-        if (tt < .9 && grounded) { Q.ph = 'takeoff'; Q.toAt = now + tt; Q.toLen = tt; Q.label = 'ПРЫЖОК — тап на отметке!'; break; }
-        if (tap) {
-          const j = judge(now - Q.beatAt, [.07, .16]); qfx(j);
-          Q.vt += j === 'perfect' ? .8 : j === 'miss' ? -.9 : .35; Q.beatAt += Q.T;
-        } else if (now > Q.beatAt + .16) { qfx('skip'); Q.vt -= .6; Q.beatAt += Q.T; }
-        Q.vt = Math.max(0, Math.min(7, Q.vt));
-      } else if (tap || pp.x > Q.to + .3) {
-        const j = tap ? judge(now - Q.toAt, [.08, .2]) : 'skip'; qfx(j);
-        const err = j === 'perfect' ? 0 : j === 'skip' ? 0 : j === 'miss' ? .75 : .25, sgn = now < Q.toAt ? -1 : 1;
-        if (Q.to === TAKEOFF.pads) {           // на первую ступень
-          const need = (PADS[0][0] - pp.x) / TF, can = Q.vt * 1.1 + 1.4;
-          launch(Math.min(need + sgn * err / TF, can), 3.4); Q.ph = 'fly'; Q.pad = 0;
-        } else if (Q.to === TAKEOFF.rope) {    // к канату: руки готовы хватать
-          const need = (ROPE_TOP[0] - .15 - pp.x) / .5, can = Q.vt * 1.1 + 1;
-          st.arm = true; launch(Math.min(need + sgn * err / .5, can), 3.9); Q.ph = 'fly'; Q.label = '';
-        } else {                               // на стену: высоту даёт разгон
-          const fast = Q.vt >= 4 && j !== 'miss' && j !== 'skip';
-          // с разгоном таз взлетает к краю (руки дотягиваются), без разгона — не хватает
-          const peakY = fast ? EDGE[1] - .65 : EDGE[1] - 1.8, vy = Math.sqrt(2 * G * Math.max(.3, peakY - pp.y)), vx = Math.max(.6, (EDGE[0] - .65 - pp.x) * G / vy);
-          st.arm = true; launch(vx, vy); Q.ph = 'fly'; Q.label = fast ? '' : 'Мало разгона!';
+      // прошёл край без прыжка
+      const past = boards().find(b => pp.x > b[1] + .35 && pp.x < b[1] + 1.2);
+      if (past && !Q.jumped) { Q.ph = 'fly'; Q.launchT = now; qfx('miss'); Q.wallTry = past[2] === 'wall'; break; }
+      if (tap) {
+        // к какому касанию относится тап: прошедшему (поздно) или следующему (рано)
+        const since = now - Q.fallAt, n = Q.lastN;
+        let dt, idx;
+        if (Q.judgedN < n && since < Q.tNext) { dt = since; idx = n; } else { dt = -Q.tNext; idx = n + 1; }
+        if (idx <= Q.judgedN) { qfx('miss'); Q.vt -= .3; }
+        else {
+          Q.judgedN = idx;
+          const j = judge(dt, [.08, .17]); qfx(j);
+          if (B && grounded) { takeoff(Q, B[2], j, pp); break; }
+          Q.vt += j === 'perfect' ? .6 : j === 'miss' ? -.5 : .25;
+          if (j === 'perfect') beep(420, .07, .18, 'triangle');
         }
-        if (j === 'skip') { Q.ph = 'fly'; }
       }
+      Q.vt = Math.max(0, Math.min(7, Q.vt));
+      if (Q.vt < .3) Q.moving = false;
       break;
     }
     case 'fly':
       if (grounded && now - (Q.launchT || 0) > .25) {
-        if (g.pad) { // ступень: гасим скорость, ловим равновесие
+        if (g.pad) {
           let pi = 0, bd = 9; PADS.forEach((p2, i) => { const d = Math.abs(p2[0] - pp.x); if (d < bd) { bd = d; pi = i; } }); Q.pad = pi;
           for (const b of Object.values(P)) { const bv = b.getLinearVelocity(); b.setLinearVelocity(V(bv.x * .2, bv.y)); }
-          startBar(Q, 'bal', .9 + pi * .14, .22 - pi * .015, 3, 'РАВНОВЕСИЕ — поймай середину!');
-        } else if (pp.x > FLOORS[1][0] - .3 && pp.x < FLOORS[1][1]) { // площадка перед канатом: гасим скорость, новый разбег
-          for (const b of Object.values(P)) { const bv = b.getLinearVelocity(); b.setLinearVelocity(V(bv.x * .3, bv.y)); }
-          Q.vt = 1.2; runTo(Q, TAKEOFF.rope);
-        }
-        else if (pp.x > RUN0 && pp.x < TAKEOFF.wall && pp.y < 2.2) { Q.vt = Math.max(1.2, Math.min(2.5, v.x)); runTo(Q, TAKEOFF.wall); }
-        else if (pp.y > WALL_TOP + .3) { Q.ph = 'top'; Q.label = ''; }
+          Object.assign(Q, { ph: 'bal', t0: now, f: .55 + pi * .07 }); hint('bal');
+        } else if (pp.x > FLOORS[1][0] - .3 && pp.x < FLOORS[1][1]) {
+          for (const b of Object.values(P)) { const bv = b.getLinearVelocity(); b.setLinearVelocity(V(bv.x * .4, bv.y)); }
+          resumeRun(Q, 1.6);
+        } else if (pp.x > RUN0 && pp.x < WALL_X0 + 2.4 && pp.y < 2.4) {
+          if (now - (Q.launchT || 0) > .6 && Q.wallTry) { Q.ph = 'back'; hint('back'); }
+          else resumeRun(Q, Math.max(1.6, Math.min(3, v.x)));
+        } else if (pp.y > WALL_TOP + .3) Q.ph = 'top';
       }
-      if (onRope) { Q.ph = 'rope'; Q.ext = now; Q.half = 1.5; Q.beatAt = now + 1.5; Q.lastVx = v.x; Q.maxX = pp.x; Q.label = 'КАЧ — тап в крайней точке'; Q.pumps = 0; }
-      if (onEdge) startBar(Q, 'pull', 1.1, .2, 3, 'ПОДТЯНИСЬ — поймай середину!');
+      if (onRope) { Object.assign(Q, { ph: 'rope', ext: now, half: 1.5, lastVx: v.x, maxX: pp.x, pumps: 0, pumpN: -1 }); hint('rope'); }
+      if (onEdge) { Object.assign(Q, { ph: 'pull', t0: now, pull: 0, pullOK: false }); hint('pull'); }
       break;
     case 'bal': {
-      const s = Q.s = tri((now - Q.barT0) * Q.spd - .5);
-      if (tap || now - Q.barT0 > Q.lim) {
-        if (tap && Math.abs(s) < Q.w) {
-          qfx('perfect');
+      const sway = Q.sway = .36 * Math.cos(2 * Math.PI * Q.f * (now - Q.t0));
+      Q.cue = Math.abs(sway) < .12;
+      if (tap || now - Q.t0 > 4) {
+        if (tap && Q.cue) {
+          qfx('perfect'); beep(520, .09, .2, 'triangle');
           const tgt = Q.pad + 1 < PADS.length ? PADS[Q.pad + 1][0] : FLOORS[1][0] + .45;
-          launch((tgt - pp.x) / TF, 3.4); Q.ph = 'fly'; Q.label = '';
-        } else { qfx(tap ? 'miss' : 'skip'); topple(Q, s < 0 ? -1 : 1); }
+          Q.sway = null; launch((tgt - pp.x) / TF, 3.4); Q.ph = 'fly';
+        } else topple(Q, sway > 0 ? -1 : 1);
       }
       break;
     }
     case 'rope': {
       if (!onRope) { Q.ph = 'fly'; break; }
-      if (Math.sign(v.x) !== Math.sign(Q.lastVx) && Math.abs(v.x) > .05) { // крайняя точка
-        Q.half = Math.max(.8, Math.min(2.2, now - Q.ext)); Q.ext = now; Q.beatAt = now + Q.half;
-      }
+      if (Math.sign(v.x) !== Math.sign(Q.lastVx) && Math.abs(v.x) > .05) { Q.half = Math.max(.8, Math.min(2.2, now - Q.ext)); Q.ext = now; }
       Q.lastVx = v.x; if (v.x > 0) Q.maxX = Math.max(Q.maxX, pp.x);
-      const s = (pp.x - ROPE_TOP[0]) / 1.8;
+      const s = Q.s = (pp.x - ROPE_TOP[0]) / 1.8, since = now - Q.ext, toNext = Q.half - since;
       Q.canRel = Q.pumps >= 2 || Q.maxX > ROPE_TOP[0] + 1.1;
-      if (Q.canRel) { Q.s = s; Q.label = 'ОТПУСКАЙ — тап в зелёном!'; }
+      Q.relWin = Q.canRel && v.x > .5 && s > .1 && s < .6;
+      Q.cue = since < .25 || toNext < .2; // верхняя точка размаха
       if (tap) {
         if (Q.canRel && v.x > .5 && s > -.2) {
-          const good = s > .1 && s < .6; qfx(good ? 'perfect' : 'miss'); letGo(); st.arm = false; st.noGrab = .8;
-          if (good) launch((RUN0 + 2.2 - pp.x) / .8, 3.2);
-          Q.ph = 'fly'; Q.label = '';
+          qfx(Q.relWin ? 'perfect' : 'miss'); letGo(); st.arm = false; st.noGrab = .8;
+          if (Q.relWin) launch((RUN0 + 2.2 - pp.x) / .8, 3.2);
+          Q.ph = 'fly';
         } else {
-          const sinceExt = now - Q.ext, dt = sinceExt < Q.half / 2 ? sinceExt : now - Q.beatAt;
-          const j = judge(dt, [.15, .3]); qfx(j);
-          if (j !== 'miss') { Q.pumpT = .55; Q.pumpDir = sinceExt < Q.half / 2 ? Math.sign(v.x || 1) : -Math.sign(v.x || 1); Q.pumps++; }
+          const dt = since < Q.half / 2 ? since : -toNext, j = judge(dt, [.15, .3]); qfx(j);
+          if (j !== 'miss' && Q.pumpN !== Q.ext) { Q.pumpN = Q.ext; Q.pumpT = .55; Q.pumpDir = since < Q.half / 2 ? Math.sign(v.x || 1) : -Math.sign(v.x || 1); Q.pumps++; beep(330, .12, .15, 'triangle'); }
         }
       }
       if (Q.pumpT > 0) { Q.pumpT -= DT; pump = Q.pumpDir; }
       break;
     }
-    case 'pull': {
+    case 'pull':
       if (!onEdge) { Q.ph = 'fly'; break; }
       if (Q.pullOK) break;
-      const s = Q.s = tri((now - Q.barT0) * Q.spd - .5);
-      if (tap || now - Q.barT0 > Q.lim) {
-        if (tap && Math.abs(s) < Q.w) { qfx('perfect'); Q.pullOK = true; Q.label = ''; }
-        else { qfx(tap ? 'miss' : 'skip'); letGo(); st.arm = false; st.noGrab = 1; Q.ph = 'slide'; Q.label = 'Сорвался — ещё разбег!'; }
-      }
+      if (tap) { Q.pull += .14; beep(260 + Q.pull * 200, .05, .12, 'square'); }
+      Q.pull = Math.max(0, Q.pull - .3 * DT);
+      if (Q.pull >= 1) { Q.pullOK = true; qfx('perfect'); }
+      else if (now - Q.t0 > 5) { qfx('fall'); letGo(); st.arm = false; st.noGrab = 1; Q.ph = 'fly'; Q.wallTry = true; Q.launchT = now; }
       break;
-    }
-    case 'slide': case 'fall':
-      if (Q.ph === 'slide' && grounded && pp.x < TAKEOFF.wall && pp.y < 2.2) { Q.ph = 'back'; }
-      break;
-    case 'back': // откатился со стены — отходит на разбег
-      dir = -1; VMAX = 2.5;
-      if (pp.x < 25.5) runTo(Q, TAKEOFF.wall);
-      break;
-    case 'top':
-      dir = 1;
-      if (pp.x > BUZZ_X - 1.1) { Q.ph = 'buzz'; Q.label = 'ЖМИ КНОПКУ!'; Q.toAt = now + .01; }
-      break;
-    case 'buzz':
-      if (tap) { qfx('ok'); Q.ph = 'go'; Q.label = ''; }
-      break;
+    case 'back': dir = -1; if (pp.x < RUN0 + 1.5) { newRun(Q); Q.jumped = false; Q.wallTry = false; } break;
+    case 'top': dir = 1; if (pp.x > BUZZ_X - 1.1) { Q.ph = 'buzz'; hint('buzz'); } break;
+    case 'buzz': Q.cue = true; if (tap) { qfx('ok'); Q.ph = 'go'; } break;
     case 'go': dir = 1; break;
   }
-  // на стене после прыжка, если упал вниз, — снова разбег
-  if (Q.ph === 'fly' && grounded && now - (Q.launchT || 0) > .6 && pp.x > RUN0 && pp.x < TAKEOFF.wall + .3 && pp.y < 2.4 && !g.pad) Q.ph = 'back';
   VMAX = Q.ph === 'back' ? 2.5 : Q.ph === 'top' || Q.ph === 'go' ? 2.2 : Math.max(1.2, Q.vt);
   stepEasy(Q.ph === 'rope' ? pump : dir, grounded, g, onRope, onEdge);
   if (onRope && pump) P.pelvis.applyForceToCenter(V(pump * st.M * 1.8, 0), true);
-  if (onEdge && !Q.pullOK) st.edgeT = Math.min(st.edgeT, .3); // висит, пока не поймал середину
+  if (onEdge && !Q.pullOK) st.edgeT = Math.min(st.edgeT, .3); // висит, пока не подтянется
+  if (Q.ph === 'bal') drive({ shL: 1.7 + 1.3 * Math.sin(now * 9), shR: 1.7 + 1.3 * Math.sin(now * 9 + Math.PI), elL: .3, elR: .3 }, 1); // руки «мельницей»
+  // касание стопой: пыль, «топ», пропуск
+  if (Q.ph === 'run' && Q.moving && grounded) {
+    const n = Math.floor((st.ph - Math.PI / 2) / Math.PI);
+    if (n > Q.lastN) {
+      if (Q.judgedN < Q.lastN && Q.lastN >= 0 && now - Q.fallAt < 1) { qfx('skip'); Q.vt = Math.max(0, Q.vt - .45); }
+      Q.lastN = n; Q.fallAt = now;
+      const f = P[n % 2 === 0 ? 'ftL' : 'ftR'].getPosition();
+      for (let i = 0; i < 6; i++) Q.dust.push({ x: f.x + (Math.random() - .5) * .2, y: f.y - .03, vx: (Math.random() - .7) * 1.2, vy: Math.random() * .8, t: 0 });
+      beep(110, .09, .3, 'sine');
+    }
+  }
+  for (const d of Q.dust) { d.t += DT; d.x += d.vx * DT; d.y += d.vy * DT; d.vy -= 2 * DT; }
+  Q.dust = Q.dust.filter(d => d.t < .45);
 }
-
-function drawTap() {
+function takeoff(Q, kind, j, pp) {
+  Q.jumped = true; beep(200, .15, .25, 'triangle');
+  const k = j === 'perfect' ? 1 : j === 'miss' ? .75 : .9;
+  if (kind === 'pads') { const need = (PADS[0][0] - pp.x) / TF, can = (Q.vt * 1.1 + 1.4) * k; launch(Math.min(need, can), 3.4); Q.pad = 0; }
+  else if (kind === 'rope') { const need = (ROPE_TOP[0] - .15 - pp.x) / .5, can = (Q.vt * 1.1 + 1) * k; st.arm = true; launch(Math.min(need, can), 3.9); }
+  else { // стена: высоту даёт разгон
+    const fast = Q.vt >= 4 && j !== 'miss';
+    const peakY = fast ? EDGE[1] - .65 : EDGE[1] - 1.8, vy = Math.sqrt(2 * G * Math.max(.3, peakY - pp.y)), vx = Math.max(.6, (EDGE[0] - .65 - pp.x) * G / vy);
+    st.arm = true; launch(vx, vy); Q.wallTry = true; if (!fast) showTip('Мало разгона! Тапай точнее в шаг');
+  }
+  Q.ph = 'fly';
+}
+// подсказки на персонаже и трассе (в мировых координатах)
+function drawTapWorld() {
   const Q = st.q; if (!Q) return;
-  const W = cv.width, H = cv.height, now = Q.clock, u = Math.min(W, H);
-  const cx = W / 2, cy = H * .8, R = u * .06;
-  ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  // разгон
-  if (['run', 'takeoff'].includes(Q.ph)) {
-    const bw = W * .18, bx = W * .04, by = H * .9;
-    ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(bx, by, bw, H * .025);
-    ctx.fillStyle = Q.vt >= 4 ? '#6fe0a0' : '#ffcf3a'; ctx.fillRect(bx, by, bw * Q.vt / 7, H * .025);
-    ctx.fillStyle = '#fff'; ctx.font = `700 ${u * .035}px "Segoe UI", Arial`; ctx.textAlign = 'left'; ctx.fillText('РАЗГОН', bx, by - H * .025); ctx.textAlign = 'center';
+  // доски толчка
+  for (const [x0, x1] of boards()) {
+    const y = x0 > WALL_X0 ? CURVE.reduce((a, p) => Math.abs(p[0] - (x0 + x1) / 2) < Math.abs(a[0] - (x0 + x1) / 2) ? p : a)[1] : 0;
+    ctx.fillStyle = '#f4f1e8'; ctx.fillRect(SX(x0), SY(y) - .02 * PPM, (x1 - x0) * PPM, .07 * PPM);
+    ctx.fillStyle = '#d6293b'; ctx.fillRect(SX(x1 - .1), SY(y) - .02 * PPM, .1 * PPM, .07 * PPM);
   }
-  // кольцо: ритм шагов, прыжок, раскачка, кнопка
-  let p = null;
-  if (Q.ph === 'run') p = (Q.beatAt - now) / Q.T;
-  else if (Q.ph === 'takeoff') p = (Q.toAt - now) / Q.toLen;
-  else if (Q.ph === 'rope' && !Q.canRel) p = (Q.beatAt - now) / Q.half;
-  else if (Q.ph === 'ready' || Q.ph === 'buzz') p = .35 + .25 * Math.sin(now * 6);
-  if (p !== null) {
-    const tgt = Q.ph === 'takeoff' ? '#ff8a3d' : '#ffffff';
-    ctx.lineWidth = u * .012; ctx.strokeStyle = tgt; ctx.globalAlpha = .9;
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fill();
-    ctx.strokeStyle = p < .12 ? '#6fe0a0' : '#ffcf3a'; ctx.lineWidth = u * .008;
-    ctx.beginPath(); ctx.arc(cx, cy, R * (1 + 1.8 * Math.max(0, Math.min(1.2, p))), 0, 7); ctx.stroke();
-    ctx.globalAlpha = 1;
+  // площадка за канатом светится, когда пора отпускать
+  if (Q.relWin) { ctx.fillStyle = 'rgba(80,255,140,.55)'; ctx.fillRect(SX(RUN0), SY(0) - .06 * PPM, 3.5 * PPM, .12 * PPM); }
+  // пыль
+  for (const d of Q.dust) dot(V(d.x, d.y), .05 * (1 + d.t * 2), `rgba(220,220,230,${.6 * (1 - d.t / .45)})`);
+  // стопа, которой сейчас касаться
+  if (Q.ph === 'run' && Q.moving) {
+    const since = Q.clock - Q.fallAt, n = Q.lastN;
+    const near = Q.tNext < .1 ? n + 1 : since < .08 ? n : null;
+    if (near !== null) { const f = P[near % 2 === 0 ? 'ftL' : 'ftR'].getPosition(), a = Q.tNext < .1 ? 1 - Q.tNext / .1 : 1 - since / .08; dot(V(f.x + .02, f.y), .12, `rgba(255,255,255,${.55 * a})`); }
   }
-  // шкала: равновесие, подтягивание, «отпускай»
-  if (Q.s !== null && Q.s !== undefined) {
-    const bw = W * .5, bx = cx - bw / 2, bh = H * .045, by = cy - bh / 2;
-    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
-    ctx.fillStyle = '#c0392b'; ctx.fillRect(bx, by, bw, bh);
-    let g0 = -Q.w, g1 = Q.w; const rel = Q.ph === 'rope'; if (rel) { g0 = .1; g1 = .6; }
-    const vOk = !rel || vel(P.pelvis).x > .5;
-    ctx.fillStyle = vOk ? '#2ecc71' : 'rgba(46,204,113,.35)'; ctx.fillRect(bx + (g0 + 1) / 2 * bw, by, (g1 - g0) / 2 * bw, bh);
-    const mx = bx + (Math.max(-1, Math.min(1, Q.s)) + 1) / 2 * bw;
-    ctx.fillStyle = '#fff'; ctx.fillRect(mx - u * .007, by - bh * .35, u * .014, bh * 1.7);
-    if (Q.lim && !rel) { const left = Math.max(0, 1 - (now - Q.barT0) / Q.lim); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(bx, by + bh + 8, bw * left, 5); }
-  }
-  // подпись и оценка
-  if (Q.label) { ctx.fillStyle = '#fff'; ctx.font = `800 ${u * .045}px "Segoe UI", Arial`; ctx.shadowColor = '#000'; ctx.shadowBlur = 8; ctx.fillText(Q.label, cx, cy - R * 3.1); ctx.shadowBlur = 0; }
-  const age = now - Q.fxT;
-  if (Q.fxK && age < .7) {
-    const [t, c] = FXT[Q.fxK]; ctx.globalAlpha = 1 - age / .7; ctx.fillStyle = c; ctx.font = `900 ${u * .075 * (1 + .25 * (1 - age / .7))}px "Segoe UI", Arial`;
-    ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.fillText(t, cx, H * .42); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-  }
-  ctx.restore();
+  // подтягивание: полоска над головой
+  if (Q.ph === 'pull' && !Q.pullOK) { const h = P.head.getPosition(); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(SX(h.x - .4), SY(h.y + .45), .8 * PPM, .1 * PPM); ctx.fillStyle = '#6fe0a0'; ctx.fillRect(SX(h.x - .4), SY(h.y + .45), .8 * PPM * Math.min(1, Q.pull), .1 * PPM); }
+  // оценка над головой
+  const age = Q.clock - Q.fxT;
+  if (Q.fxK && age < .6) { const h = P.head.getPosition(), [t, c] = FXT[Q.fxK]; ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = 1 - age / .6; ctx.fillStyle = c; ctx.font = `900 ${.3 * PPM}px "Segoe UI", Arial`; ctx.shadowColor = '#000'; ctx.shadowBlur = 6; ctx.fillText(t, SX(h.x), SY(h.y + .55 + age * .4)); ctx.restore(); }
+}
+function drawTap() { // разгон — маленькая шкала в углу
+  const Q = st.q; if (!Q || !['run'].includes(Q.ph) || !Q.moving) return;
+  const W = cv.width, H = cv.height, u = Math.min(W, H), bw = W * .16, bx = W * .04, by = H * .92;
+  ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(bx, by, bw, H * .02);
+  ctx.fillStyle = Q.vt >= 4 ? '#6fe0a0' : '#ffcf3a'; ctx.fillRect(bx, by, bw * Q.vt / 7, H * .02);
+  ctx.fillStyle = '#fff'; ctx.font = `700 ${u * .03}px "Segoe UI", Arial`; ctx.fillText('РАЗГОН', bx, by - H * .015);
 }
 
 let VMAX = 6.3, ACC = 3.8, JUMP = 3.7; // Упрощение: скорость бега м/с, разгон м/с², толчок прыжка м/с
@@ -634,6 +648,7 @@ function letGo() { for (const j of grips) world.destroyJoint(j); grips = []; for
 // ═════════ Финиш / вода ═════════
 function finish() {
   st.finished = true; st.buzz = 1.5;
+  if (MODE === 'tap') { try { localStorage.setItem('ninja3-first', '1'); } catch (e) {} const tip = document.getElementById('tip'); tip.textContent = ''; }
   if (LAYOUT === 'learn') { banner('Обучение пройдено! 🎉', MODE === 'real' ? 'Теперь пробуй трассу в Реализме' : 'Теперь пробуй трассу в Упрощении'); setTimeout(() => { if (st.finished) start(MODE, 'race'); }, 3500); return; }
   const t = st.t, key = 'ninja2-best-' + MODE, rec = !best[MODE] || t < best[MODE];
   if (rec) { best[MODE] = t; try { localStorage.setItem(key, String(t)); } catch (e) {} }
@@ -682,9 +697,10 @@ function drawMan() {
   line(t.getWorldPoint(V(0, .22)), h.getWorldPoint(V(0, -.08)), .08, near);
   ctx.fillStyle = near; ctx.beginPath(); ctx.ellipse(SX(hc.x), SY(hc.y), .115 * PPM, .14 * PPM, -ha, 0, 7); ctx.fill();
   const b1 = h.getWorldPoint(V(-.115, .03)), b2 = h.getWorldPoint(V(.115, .03));
-  line(b1, b2, .05, '#d6293b');
+  const band = MODE === 'tap' && st.q && st.q.cue ? '#4cff8a' : '#d6293b';
+  line(b1, b2, .05, band);
   const hv = vel(h), sp = Math.hypot(hv.x, hv.y), w = sp > .6 ? [-hv.x / sp, -hv.y / sp - .3] : [-.5, -1];
-  ctx.strokeStyle = '#d6293b'; ctx.lineWidth = .035 * PPM;
+  ctx.strokeStyle = band; ctx.lineWidth = .035 * PPM;
   for (const [l, dy] of [[.26, .04], [.21, -.1]]) { ctx.beginPath(); ctx.moveTo(SX(b1.x), SY(b1.y)); ctx.quadraticCurveTo(SX(b1.x + w[0] * l * .5), SY(b1.y + w[1] * l * .5 + .04), SX(b1.x + w[0] * l), SY(b1.y + w[1] * l + dy)); ctx.stroke(); }
   side('R', near); arm('R', near);
 }
@@ -713,7 +729,7 @@ function draw() {
   for (const [cx, cy, a] of PADS) { const c = Math.cos(a), s = Math.sin(a), q = (x, y) => [cx + x * c - y * s, cy + x * s + y * c]; polyW([q(-.45, -.07), q(.45, -.07), q(.45, .07), q(-.45, .07)], '#c8955a'); }
   ctx.fillStyle = '#ffcf3a';
   for (const [x0, x1, y] of [...FLOORS.map(f => [f[0], f[1], 0]), [RUN0, WALL_X0, 0], [WALL_X1, END_X, WALL_TOP]]) ctx.fillRect(SX(x0), SY(y) - .03 * PPM, (x1 - x0) * PPM, .05 * PPM);
-  ctx.font = `800 ${.26 * PPM}px "Segoe UI", Arial`; ctx.fillText('СТАРТ', SX(-2), SY(-.4)); ctx.fillText('ФИНИШ', SX(WALL_X1 + .4), SY(WALL_TOP - .5));
+  ctx.font = `800 ${.26 * PPM}px "Segoe UI", Arial`; ctx.fillText('СТАРТ', SX((LAYOUTS[LAYOUT].START ?? -3.2) + 1.2), SY(-.4)); ctx.fillText('ФИНИШ', SX(WALL_X1 + .4), SY(WALL_TOP - .5));
   ctx.fillStyle = 'rgba(255,207,58,.35)'; for (let x = RUN0 + 1; x < WALL_X0; x += 1) ctx.fillRect(SX(x), SY(-.06), .4 * PPM, .04 * PPM);
   // кнопка
   ctx.fillStyle = '#5a6578'; ctx.fillRect(SX(BUZZ_X - .06), SY(WALL_TOP + .9), .12 * PPM, .9 * PPM);
@@ -724,6 +740,7 @@ function draw() {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const rpath = () => { ctx.beginPath(); ctx.moveTo(SX(rp[0].x), SY(rp[0].y)); for (let i = 1; i < rp.length - 1; i++) ctx.quadraticCurveTo(SX(rp[i].x), SY(rp[i].y), (SX(rp[i].x) + SX(rp[i + 1].x)) / 2, (SY(rp[i].y) + SY(rp[i + 1].y)) / 2); ctx.lineTo(SX(rp[rp.length - 1].x), SY(rp[rp.length - 1].y)); };
   ctx.strokeStyle = '#8a6a3c'; ctx.lineWidth = .07 * PPM; rpath(); ctx.stroke(); ctx.strokeStyle = '#d9b77c'; ctx.lineWidth = .03 * PPM; ctx.setLineDash([.05 * PPM, .05 * PPM]); rpath(); ctx.stroke(); ctx.setLineDash([]);
+  if (MODE === 'tap') drawTapWorld();
   drawMan();
   // вода
   const wy = SY(WATER), wg = ctx.createLinearGradient(0, wy, 0, H); wg.addColorStop(0, 'rgba(29,93,143,.92)'); wg.addColorStop(1, '#0a2744'); ctx.fillStyle = wg; ctx.fillRect(0, wy, W, H - wy);
@@ -739,7 +756,7 @@ let acc = 0, last = 0;
 function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
-  if (running) { acc += dt; let n = 0; while (acc >= DT && n < 8) { step(); acc -= DT; n++; } if (n >= 8) acc = 0; }
+  if (running) { acc += dt * (MODE === 'tap' && st && st.q && st.q.slow ? .65 : 1); let n = 0; while (acc >= DT && n < 8) { step(); acc -= DT; n++; } if (n >= 8) acc = 0; }
   draw();
 }
 
@@ -767,7 +784,7 @@ for (const el of BTNS) { // мышь (на ПК)
   el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointerleave', off);
 }
 addEventListener('contextmenu', e => e.preventDefault());
-cv.addEventListener('pointerdown', e => { e.preventDefault(); pressed.tap = true; });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); pressed.tap = true; try { if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); sfxCtx.resume(); } catch (er) {} });
 addEventListener('keydown', e => { if (e.code === 'Enter') pressed.tap = true; });
 const TIPS = { easy: '◀ ▶ бег · ПРЫЖОК — в полёте руки сами хватают канат · отпустить — ещё раз ПРЫЖОК', real: 'ЛЕВАЯ, ПРАВАЯ по очереди — шаги. Держи дольше — шаг длиннее 😉' };
 const LEARN = {
@@ -787,7 +804,7 @@ function start(m, lay = 'race') {
   if (lay === 'race' && TIPS[m]) showTip(TIPS[m]);
   document.getElementById('best').textContent = lay === 'learn' ? 'Обучение · ' + (m === 'real' ? 'Реализм' : 'Упрощение') : m === 'tap' ? (best[m] ? 'рекорд ' + fmt(best[m]) : '') : (m === 'real' ? 'Реализм' : 'Упрощение') + (best[m] ? ' · рекорд ' + fmt(best[m]) : '');
 }
-document.getElementById('mTap').onclick = () => start('tap');
+document.getElementById('mTap').onclick = () => start('tap', 'tap');
 document.getElementById('mReal').onclick = () => start('real');
 document.getElementById('mEasy').onclick = () => start('easy');
 document.getElementById('lReal').onclick = () => start('real', 'learn');
@@ -813,7 +830,7 @@ try { for (const m of ['easy', 'real', 'tap']) best[m] = parseFloat(localStorage
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 resize(); build(); requestAnimationFrame(frame);
-window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, get q() { return st.q; }, tap: () => { pressed.tap = true; }, get layout() { return LAYOUT; }, get rope() { return rope; }, RC, setRunning: r => running = r, probe: () => probe() };
+window.__ninja = { input, pressed, step, start, get P() { return P; }, get st() { return st; }, get grips() { return grips; }, get edge() { return edgeGrip; }, get mode() { return MODE; }, get q() { const q = st.q; if (q) { q.floorsEnd = FLOORS[1][1]; q.wx0 = WALL_X0; } return q; }, tap: () => { pressed.tap = true; }, get layout() { return LAYOUT; }, get rope() { return rope; }, RC, setRunning: r => running = r, probe: () => probe() };
 </script>
 </body>
 </html>
