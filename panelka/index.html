@@ -17,6 +17,8 @@ html,body{margin:0;height:100%;background:#4aa3f0;overflow:hidden;touch-action:n
 canvas{display:block;width:100vw;height:100vh;height:100dvh}
 .ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:radial-gradient(ellipse at 50% 40%,rgba(20,32,70,.35),rgba(10,16,40,.72))}
 .card{max-height:92vh;overflow:auto;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;color:#fff;padding:26px 20px 22px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.28);box-shadow:0 20px 50px rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.card{max-height:100% !important;box-sizing:border-box;touch-action:pan-y;overscroll-behavior:contain}.card>*{flex-shrink:0}
+@media (max-height:600px){.ov{padding:8px}.card{padding:16px 16px 14px;gap:10px}}
 .hide{display:none!important}
 h1{margin:0;font-size:42px;font-weight:900;line-height:.98;letter-spacing:.5px;background:linear-gradient(180deg,#fff7c2,#ffc23a 60%,#ff9a1f);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(90,40,0,.55))}
 h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 rgba(0,0,0,.35)}
@@ -73,8 +75,8 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .opt{font:inherit;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:6px 11px;background:rgba(255,255,255,.12);color:#fff}
 .opt.off{opacity:.5;text-decoration:line-through}
-#helpers{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 14px);display:flex;justify-content:center;gap:12px;pointer-events:none}
-.hb{pointer-events:auto;position:relative;width:54px;height:54px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(14,24,52,.55);display:flex;align-items:center;justify-content:center;padding:0}
+#helpers{position:fixed;left:calc(env(safe-area-inset-left) + 8px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.hb{pointer-events:auto;position:relative;width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(14,24,52,.55);display:flex;align-items:center;justify-content:center;padding:0}
 .hb.on{border-color:#5be38a;box-shadow:0 0 0 4px rgba(91,227,138,.35);background:rgba(30,90,60,.6)}
 .hb b{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;border-radius:9px;background:#ffd23f;color:#4a2c00;font-size:12px;line-height:18px}
 .rank{width:100%;font-size:13px}
@@ -86,6 +88,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .chip.sel{background:#ffd23f;color:#4a2c00;border-color:#ffd23f}
 .chip.lock{opacity:.35}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+@media (max-width:360px){.pill{font-size:14px;padding:5px 8px;gap:4px}#hLives svg{width:15px;height:13px}#bMenu{padding:6px 8px}#hud .row{gap:4px}}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
@@ -112,7 +115,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn sec hide" id="bInst">На экран «Домой»</button>
   <div class="sub small hide" id="instHint"></div>
   <div class="opts"><button class="opt" id="oMus"></button><button class="opt" id="oSfx"></button><button class="opt" id="oVib"></button></div>
-</div><div id="ver">версия 0.9</div></div>
+</div><div id="ver">версия 0.10</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -183,23 +186,25 @@ const SPINFO = {
   precise: ['Только ровно', 'Криво поставил — тоже минус каска. Целься в центр!'],
 };
 function level(i) {
-  const sp = i >= 2 ? SPECIALS[(i - 2) % 6] : '';
+  const sp = i >= 2 ? SPECIALS[(i - 2) % 6] : '', dd = Math.min(3, Math.floor(i / 5));
   let goal = Math.min(8 + i * 2, 40);
-  if (sp === 'precise') goal = Math.min(goal, 10);
-  if (sp === 'timer') goal = Math.min(goal, 16);
+  if (sp === 'precise') goal = Math.min(goal, 10 + 2 * Math.max(0, dd - 1)); // 10, 12, 14
+  if (sp === 'timer') goal = Math.min(goal, 16 + 4 * dd);                      // 16, 24, 28
   return {
     goal, sp,
+    fw: [150, 146, 136, 126][dd],                                 // дальше — уже этажи
+    lives: (sp === 'precise' ? 4 : 5) - (dd >= 2 ? 1 : 0),        // в дальних районах на каску меньше
     amp: Math.min(.38 + i * .045, .95),               // размах качания, рад
     per: Math.max(2.5 - i * .06, 1.55),               // период качания, с
     wind: i >= 3 ? Math.min(.25 + (i - 3) * .08, 1) : 0, // ветер раскачивает дом
-    drift: i >= 5 ? Math.min(30 + (i - 5) * 8, 80) : 0,  // тележка крана ездит
-    time: sp === 'timer' ? Math.round(goal * 3.8 + 6) : 0,
+    drift: i >= 5 ? Math.min(30 + (i - 5) * 8, i >= 15 ? 110 : 80) : 0,  // тележка крана ездит
+    time: sp === 'timer' ? Math.round(goal * (3.8 - dd * .15) + 6) : 0,
   };
 }
 
 
 const ICON = {
-  helmet: (on = true) => `<svg viewBox="0 0 24 20" width="22" height="18"><path d="M3 15 Q3 4 12 4 Q21 4 21 15 Z" fill="${on ? '#ffc21f' : 'rgba(255,255,255,.18)'}" stroke="${on ? '#b07800' : 'rgba(255,255,255,.4)'}" stroke-width="1.4"/><rect x="1" y="14" width="22" height="3.5" rx="1.5" fill="${on ? '#f0a800' : 'rgba(255,255,255,.18)'}"/><rect x="10.5" y="4" width="3" height="10" fill="${on ? '#ffe07a' : 'none'}"/></svg>`,
+  helmet: (on = true) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 20" width="22" height="18"><path d="M3 15 Q3 4 12 4 Q21 4 21 15 Z" fill="${on ? '#ffc21f' : 'rgba(255,255,255,.18)'}" stroke="${on ? '#b07800' : 'rgba(255,255,255,.4)'}" stroke-width="1.4"/><rect x="1" y="14" width="22" height="3.5" rx="1.5" fill="${on ? '#f0a800' : 'rgba(255,255,255,.18)'}"/><rect x="10.5" y="4" width="3" height="10" fill="${on ? '#ffe07a' : 'none'}"/></svg>`,
   people: () => `<svg viewBox="0 0 26 20" width="22" height="17"><circle cx="9" cy="6" r="4" fill="#d9f0ff"/><path d="M2 19 Q2 11 9 11 Q16 11 16 19 Z" fill="#d9f0ff"/><circle cx="18.5" cy="7" r="3.3" fill="#9fcff0"/><path d="M14 19 Q14 12 18.5 12 Q24 12 24 19 Z" fill="#9fcff0"/></svg>`,
   floors: () => `<svg viewBox="0 0 20 22" width="17" height="19"><rect x="3" y="2" width="14" height="19" rx="1.5" fill="#e6dfcf"/><rect x="3" y="17" width="14" height="4" fill="#d4553a"/>${[4, 9, 14].map(y => `<rect x="5.5" y="${y}" width="3.5" height="3" fill="#7fb3e3"/><rect x="11" y="${y}" width="3.5" height="3" fill="#ffd36b"/>`).join('')}</svg>`,
   star: on => `<svg viewBox="0 0 24 24" width="46" height="46"><path d="M12 1.8l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.9l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z" fill="${on ? '#ffd23f' : 'rgba(255,255,255,.15)'}" stroke="${on ? '#c98a00' : 'rgba(255,255,255,.55)'}" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
@@ -325,7 +330,7 @@ save.xp = save.xp || 0; save.pend = save.pend || [];
 save.own = Object.assign({ facade: ['panel'], crane: ['yellow'], decor: [] }, save.own || {});
 save.skin = Object.assign({ facade: 'panel', crane: 'yellow' }, save.skin || {});
 (save.stars || []).forEach((k, i) => { if (k && !save.h[i]) save.h[i] = { pct: 100, stars: k }; }); // перенос со старой версии
-const hInfo = i => save.h[i] || { pct: 0, stars: 0 };
+const hInfo = i => { const x = save.h[i]; return x ? { pct: +x.pct || 0, stars: +x.stars || 0 } : { pct: 0, stars: 0 }; };
 const distStats = d => { let st2 = 0, pc = 0; for (let i = d * 5; i < d * 5 + 5; i++) { st2 += hInfo(i).stars; pc += hInfo(i).pct; } return { stars: st2, pct: Math.round(pc / 5) }; };
 const distOpen = d => d * 5 <= save.lvl;
 const houseOpen = i => i <= save.lvl;
@@ -348,7 +353,8 @@ function resize() {
   const dpr = Math.min(2, window.devicePixelRatio || 1), w = innerWidth, h = innerHeight;
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   if (h / w >= 1.4) { W = 400; H = h / w * 400; } else { H = 620; W = w / h * 620; }
-  S = cv.width / W; GY = H - 96; CX = W / 2; MX = Math.min(W - 34, CX + 175);
+  const oldCX = CX; S = cv.width / W; GY = H - 96; CX = W / 2; MX = Math.min(W - 34, CX + 175);
+  if (st && CX !== oldCX) { const dx = CX - oldCX; if (st.drop) st.drop.x += dx; for (const a of [st.debris, st.jumpers, st.texts, st.parts, st.rings]) for (const o of a || []) o.x += dx; }
   buildBG(); district = null;
 }
 
@@ -456,7 +462,7 @@ function house(li = LVL) { return HOUSES[li % HOUSES.length]; }
 function makeFloor(i) {
   const seed = i * 977 + LVL * 131 + 7, r = rnd(seed);
   const decs = ['', '', 'balcony', 'dog', 'cat', 'plant', 'laundry', 'dish', 'balcony', 'lit', 'tv', 'flowers', 'balcony'];
-  const w = CFG.sp === 'widths' && i > 1 ? [110, 130, 150, 175, 200][r() * 5 | 0] : FW;
+  const fw = CFG.fw || FW, w = CFG.sp === 'widths' && i > 1 ? Math.round([110, 130, 150, 175, 200][r() * 5 | 0] * fw / 150) : fw;
   const n = w <= 125 ? 2 : w >= 175 ? 4 : 3;
   return { off: 0, w, n, dec: decs[r() * decs.length | 0], slot: r() * n | 0, win: [r(), r(), r(), r()], cur: [r(), r(), r(), r()], tone: [r(), r(), r(), r()], door: i === 1, night: night() };
 }
@@ -667,19 +673,22 @@ let LVL = save.lvl, CFG = level(LVL), st = null, mode = 'menu';
 let ENDLESS = false;
 const SKY_LVL = 915; // вид центра города
 function skyCfg(n) {
-  return { goal: Infinity, sp: '', time: 0,
-    amp: Math.min(.4 + n * .009, .95), per: Math.max(2.4 - n * .012, 1.55),
-    wind: n >= 10 ? Math.min(.3 + (n - 10) * .02, 1) : 0, drift: n >= 20 ? Math.min(30 + (n - 20) * 1.5, 80) : 0 };
+  // после 60-го этажа: кран быстрее, ветер сильнее, этажи уже
+  const hi = Math.max(0, n - 60);
+  return { goal: Infinity, sp: '', time: 0, lives: 5, fw: Math.max(104, 150 - hi * 1.1),
+    amp: Math.min(.4 + n * .009, .95), per: Math.max(2.4 - n * .012 - hi * .006, 1.2),
+    wind: n >= 10 ? Math.min(.3 + (n - 10) * .02 + hi * .012, 1.6) : 0, drift: n >= 20 ? Math.min(30 + (n - 20) * 1.5 + hi, 120) : 0 };
 }
 function playSky() {
-  ENDLESS = true; LVL = SKY_LVL; $('menu').classList.add('hide'); $('end').classList.add('hide');
+  clearTimeout(chestTimer); $('chest').classList.add('hide'); ENDLESS = true; LVL = SKY_LVL; $('menu').classList.add('hide'); $('end').classList.add('hide');
   newGame(); CFG = skyCfg(0); st.lvlPlayed = LVL; st.sky = true; audio(); mode = 'play'; hudShow(true); hud();
   float('Небоскрёб: строй, пока есть каски!', CX, st.crane - 250, '#fff', 1);
 }
 function newGame() {
+  tapBlock = 0;
   CFG = level(LVL);
   st = {
-    floors: [], lives: CFG.sp === 'precise' ? 4 : 5, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
+    floors: [], lives: CFG.lives, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
     hold: null, drop: null, crane: 430, debris: [], jumpers: [], texts: [], parts: [], rings: [], shake: 0, wait: 0, enter: 0,
     sway: 0, x: 0, v: 0, stab: [], creak: 0, done: false, roof: null, endT: 0, perfects: 0, time: CFG.time, why: '', lastTick: 99,
   };
@@ -733,7 +742,7 @@ function collapse(j, why) {
     const pool = RES.filter(r => r.d <= distOf(ENDLESS ? save.lvl : LVL)), id = f.res || pool[Math.random() * pool.length | 0].id;
     s.jumpers.push({ id, x: floorX(i) + (Math.random() - .5) * f.w * .6, y: i * FH + FH * .6, vx: dir * (40 + Math.random() * 80) * (Math.random() < .35 ? -1 : 1), vy: 220 + Math.random() * 160, t: -h * .06, open: false, land: 0, seed: Math.random() * 9, sheet: SHEETS[Math.random() * SHEETS.length | 0], rot: 0 });
   }
-  F.length = j; s.people = Math.max(0, s.people - lost);
+  F.length = j; s.people = Math.max(0, s.people - lost); if (ENDLESS) Object.assign(CFG, skyCfg(j));
   s.stab = stability(); s.x *= .3; s.v *= .3; s.combo = 0; s.lives--; s.shake = .7;
   thud(.9); sfx.miss();
   float(why || 'Обвал! −1', CX, topY() + 100, '#ff8a7a', 1.3, 'helmet');
@@ -915,6 +924,7 @@ function daily(k, v) {
 const tasksReady = () => dailyTasks().filter(t => t.p >= t.n && !t.claimed).length;
 function dead() { // каски кончились? запасная спасает
   if (st.lives > 0) return false;
+  if (CFG.time && st.time <= 0) return true; // время вышло — запасную не тратим
   if ((save.spare || 0) > 0) { save.spare--; store(); st.lives = 1; float('Запасная каска!', CX, topY() + 130, '#ffd23f', 1.2, 'helmet'); tone(784, .15, 'triangle', .1); hud(); return false; }
   return true;
 }
@@ -924,7 +934,7 @@ function showTasks() {
   $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n} · ${TASKS[t.k].sum ? 'копится за день во всех домах' : 'в одной стройке'}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : 'Приз'}</button>`}</div>`; }).join('');
   $('tkList').querySelectorAll('.claim[data-i]').forEach(b => b.onclick = () => {
     const t = list[+b.dataset.i]; if (t.p < t.n || t.claimed) return;
-    t.claimed = true; const pick = ['plumb', 'calm', 'cement', 'spare'][Math.random() * 4 | 0]; grant(['help', pick]); addXP(30); store(); audio(); sfx.win(); showTasks(); $('tkInfo').innerHTML = `Получено: <b>${HELP[pick].name}</b> — ${HELP[pick].about}. И +30 опыта.`;
+    t.claimed = true; const opts = ['plumb', 'calm', 'cement'].concat((save.spare || 0) < MAX_SPARE ? ['spare'] : []), pick = opts[Math.random() * opts.length | 0]; grant(['help', pick]); addXP(30); store(); audio(); sfx.win(); showTasks(); $('tkInfo').innerHTML = `Получено: <b>${HELP[pick].name}</b> — ${HELP[pick].about}. И +30 опыта.`;
   });
   $('menu').classList.add('hide'); $('tasks').classList.remove('hide');
 }
@@ -951,7 +961,7 @@ function physics() {
 }
 function topX() { return st.floors.length ? floorX(st.floors.length - 1) : CX; }
 function topW() { return st.floors.length ? st.floors[st.floors.length - 1].w : FW + 44; }
-function pivot() { return { x: CX + CFG.drift * Math.sin(st.t * .55), y: st.crane }; }
+function pivot() { return { x: CX + (st.follow || 0) + CFG.drift * Math.sin(st.t * .55), y: st.crane }; }
 function hook() {
   const amp = CFG.amp * (st.calm ? .55 : 1), w = 2 * Math.PI / (CFG.per * (st.calm ? 1.3 : 1)), a = amp * Math.sin(w * st.t + st.phase), da = amp * w * Math.cos(w * st.t + st.phase);
   const p = pivot(), enter = Math.max(0, 1 - st.enter) * 160;
@@ -959,8 +969,10 @@ function hook() {
 }
 
 // ═════════ Ввод ═════════
+let tapBlock = 0;
 function tap() {
   audio();
+  if (st && st.t < tapBlock) return;
   if (mode !== 'play' || st.done || st.drop || !st.hold || st.enter < 1) return;
   const h = hook();
   st.drop = { f: st.hold, x: h.x, y: h.y, vx: h.vx * .9, vy: Math.max(0, h.vy) * .5, rot: h.a };
@@ -980,13 +992,14 @@ function step() {
   if (!s.done || s.roof) physics();
   if (s.enter < 1) s.enter = Math.min(1, s.enter + DT * 2.5);
   s.crane += (topY() + 430 - s.crane) * Math.min(1, DT * 2.5);
+  s.follow = (s.follow || 0) + ((s.floors.length ? clamp(topX() - CX, -90, 90) * .8 : 0) - (s.follow || 0)) * DT * .8; // кран подтягивается за верхом дома
   const camT = Math.max(0, s.crane + 80 - GY);
   s.cam += (camT - s.cam) * Math.min(1, DT * 3);
   s.shake = Math.max(0, s.shake - DT * 2);
   if (CFG.time && !s.done) {
-    s.time -= DT;
+    s.time = Math.max(0, s.time - DT);
     if (s.time < 5.5 && Math.ceil(s.time) !== s.lastTick) { s.lastTick = Math.ceil(s.time); sfx.tick(); }
-    if (s.time <= 0) { s.time = 0; s.done = true; s.why = 'time'; s.endT = 1.1; s.hold = null; float('Время вышло!', CX, topY() + 110, '#ff8a7a', 1.3); sfx.miss(); }
+    if (s.time <= 0 && !s.drop) { s.time = 0; s.done = true; s.why = 'time'; s.endT = 1.1; s.hold = null; float('Время вышло!', CX, topY() + 110, '#ff8a7a', 1.3); sfx.miss(); }
   }
 
   const d = s.drop;
@@ -1045,7 +1058,7 @@ function land(off) {
   if (s.cement > 0) { f.cement = true; f.img = null; s.cement--; helpersUI(); }
   f.gain = gain; s.floors.push(f); s.drop = null;
   if (ENDLESS) {
-    const n = s.floors.length, rec = save.sky || 0; Object.assign(CFG, skyCfg(n));
+    const n = s.floors.length, rec = save.sky || 0; s.peak = Math.max(s.peak || 0, n); Object.assign(CFG, skyCfg(n));
     if (n % 10 === 0) float(`${n} этажей!`, CX, topY() + 150, '#ffd23f', 1.3);
     if (rec && n === rec + 1) { float('Новый рекорд!', CX, topY() + 190, '#5be38a', 1.3); sfx.win(); }
   } daily('floors', 1); daily('people', gain); addXP(1);
@@ -1054,7 +1067,7 @@ function land(off) {
   const worst = s.stab.reduce((a, b, j) => b.s < a.s ? { s: b.s, j } : a, { s: 9, j: -1 });
   if (worst.s < TIP) { s.wait = .7; collapse(worst.j, worst.j === s.floors.length - 1 ? 'Сорвался! −1' : 'Перевес! −1'); return; }
   if (s.stab[s.floors.length - 1].s < SHAKY || worst.s < SHAKY) float('Шатается!', CX + f.off, y + 64, '#ffb347', 1.05);
-  if (bad) { s.lives--; s.shake = .4; sfx.miss(); if (dead()) { s.done = true; s.why = 'lives'; s.endT = 1.3; hud(); return; } }
+  if (bad) { s.lives--; s.shake = .4; sfx.miss(); if (s.floors.length < CFG.goal && dead()) { s.done = true; s.why = 'lives'; s.endT = 1.3; hud(); return; } }
   if (s.floors.length >= CFG.goal) { s.done = true; s.roof = { y: topY() + 260, vy: 0 }; float('Дом готов!', CX, topY() + 120, '#ffe14a', 1.4); }
   else s.wait = CFG.time ? .2 : .35;
   hud();
@@ -1088,18 +1101,20 @@ function miss() {
   hud();
 }
 function stars() { const s = st, g = CFG.goal; return s.people >= g * 22 ? 3 : s.people >= g * 12 ? 2 : 1; }
+let endAt = 0;
 function finish(won) {
   mode = 'end'; hudShow(false);
+  if (st.cement >= 3) { save.inv.cement = (save.inv.cement || 0) + 1; st.cement = 0; store(); }
   if (ENDLESS) {
-    const n = st.floors.length, rec = save.sky || 0, nr = n > rec; if (nr) { save.sky = n; save.skyPeople = st.people; } store(); sfx.lose();
+    const n = Math.max(st.peak || 0, st.floors.length), rec = save.sky || 0, nr = n > rec; if (nr) { save.sky = n; save.skyPeople = st.people; } store(); if (nr) sfx.win(); else sfx.lose();
     $('eT').textContent = nr ? 'Новый рекорд!' : 'Небоскрёб'; $('eStars').innerHTML = '';
-    $('eS').innerHTML = `Высота: <b>${n}</b> этажей · Жильцов: <b>${st.people}</b><br>Рекорд: <b>${Math.max(rec, n)}</b> этажей<br><span class="small">Чем выше, тем сильнее качает и дует ветер.</span>`;
+    $('eS').innerHTML = `Высота: <b>${n}</b> этажей (лучшая за игру) · Жильцов: <b>${st.people}</b><br>Рекорд: <b>${Math.max(rec, n)}</b> этажей<br><span class="small">Чем выше, тем сильнее качает и дует ветер.</span>`;
     $('eNext').textContent = '↻ Ещё раз'; $('eNext').dataset.act = 'sky'; $('eAgain').classList.add('hide');
     $('end').classList.remove('hide'); return;
   }
   if (won) {
     const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
-    addXP(20 + k * 5); daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.sp === 'precise' ? 4 : 5)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
+    addXP(20 + k * 5); daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.lives)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
     if (save.lvl <= LVL) save.lvl = LVL + 1; store();
     const D1 = distInfo(LVL), dEnd = D1.house === 5, D2 = distInfo(LVL + 1), fresh = RES.filter(r => r.d === D2.d);
     $('eT').textContent = dEnd ? 'Район сдан!' : 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
@@ -1115,8 +1130,8 @@ function finish(won) {
     $('eS').innerHTML = `${st.why === 'time' ? 'Время вышло.' : 'Каски кончились.'}<br>Построено <b>${st.floors.length}</b> из ${CFG.goal} этажей — готовность <b>${pct}%</b>.<br><span class="small">Дом останется недостроенным. Вернуться и построить заново можно в «Районах».</span>`;
     $('eNext').textContent = `▶ Следующий дом`; $('eNext').dataset.act = 'next'; $('eAgain').classList.remove('hide');
   }
-  $('end').classList.remove('hide');
-  if (save.pend.length) setTimeout(showChest, 900);
+  $('end').classList.remove('hide'); endAt = performance.now();
+  if (save.pend.length) chestSoon(900);
 }
 
 // ═════════ HUD и меню ═════════
@@ -1124,8 +1139,8 @@ const $ = id => document.getElementById(id);
 function hudShow(v) { $('hud').classList.toggle('hide', !v); if (v) helpersUI(); else $('helpers').classList.add('hide'); }
 function hud() {
   if (!st) return;
-  $('hFloors').innerHTML = ENDLESS ? `${ICON.floors()} ${st.floors.length} <small style="font-size:11px;opacity:.8">рекорд ${Math.max(save.sky || 0, st.floors.length)}</small>` : `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
-  $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('') + (save.spare ? `<b style="font-size:12px;margin-left:4px;color:#ffd23f">+${save.spare}</b>` : '');
+  $('hFloors').innerHTML = ENDLESS ? `${ICON.floors()} ${st.floors.length} <small style="font-size:11px;opacity:.8">рекорд ${Math.max(save.sky || 0, st.peak || 0, st.floors.length)}</small>` : `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
+  $('hLives').innerHTML = Array.from({ length: CFG.lives }, (_, i) => ICON.helmet(i < st.lives)).join('') + (save.spare ? `<b style="font-size:12px;margin-left:4px;color:#ffd23f">+${save.spare}</b>` : '');
   $('hPeople').innerHTML = `${ICON.people()} ${st.people}`;
   $('tbar').classList.toggle('hide', !CFG.time);
   if (mode === 'play' && !st.done) helpersUI(); else $('helpers').classList.add('hide');
@@ -1135,7 +1150,7 @@ function hudTime() {
   const k = clamp(st.time / CFG.time, 0, 1);
   $('tfill').style.width = (k * 100).toFixed(1) + '%';
   $('tfill').style.background = k > .35 ? 'linear-gradient(90deg,#5be38a,#ffd23f)' : 'linear-gradient(90deg,#ff5a5a,#ff9a3d)';
-  $('ttxt').innerHTML = `${ICON.clock()} ${Math.ceil(st.time)} с`;
+  const sec = Math.ceil(st.time); if (hudTime.sec !== sec) { hudTime.sec = sec; $('ttxt').innerHTML = `${ICON.clock()} ${sec} с`; }
 }
 
 function rankOf(xp) { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][1]) i++; return i; }
@@ -1179,13 +1194,17 @@ function itemPreview(c, [t, k]) {
   g.restore();
 }
 function ctx2Decor(g, k) { g.save(); g.translate(28, 46); g.scale(1.1, 1.1); drawOneDecor(g, k, 0); g.restore(); }
+let chestTimer = 0, chestBack = null;
+function chestSoon(ms) { clearTimeout(chestTimer); chestTimer = setTimeout(showChest, ms); }
 function showChest() {
-  if (!save.pend.length) return false;
+  if (!save.pend.length || (mode !== 'menu' && mode !== 'end')) return false;
+  if ($('chest').classList.contains('hide')) chestBack = !$('end').classList.contains('hide') ? 'end' : 'menu';
   const c = save.pend[0], items = c.items || (c.items = chestRoll()); store();
   $('chWhy').textContent = c.why;
   $('chList').innerHTML = items.map((it, i) => `<div class="rw"><canvas width="112" height="112" data-i="${i}"></canvas><div><b>${itemName(it)}</b><span class="small">${itemAbout(it)}</span></div></div>`).join('');
   $('chList').querySelectorAll('canvas').forEach(cv2 => itemPreview(cv2, items[+cv2.dataset.i]));
-  $('chOk').onclick = () => { items.forEach(grant); save.pend.shift(); store(); audio(); sfx.win(); $('chest').classList.add('hide'); if (!showChest()) showMenu(); };
+  const shownAt = performance.now();
+  $('chOk').onclick = () => { if (performance.now() - shownAt < 450) return; items.forEach(grant); save.pend.shift(); store(); audio(); sfx.win(); $('chest').classList.add('hide'); if (!showChest()) { if (chestBack === 'end' && mode === 'end') { $('end').classList.remove('hide'); endAt = performance.now(); } else showMenu(); } };
   ['menu', 'end', 'tasks', 'dist', 'coll', 'style'].forEach(id => $(id).classList.add('hide')); $('chest').classList.remove('hide');
   return true;
 }
@@ -1206,9 +1225,11 @@ function showMenu() {
   $('bSky').textContent = save.sky ? `Небоскрёб · рекорд ${save.sky}` : 'Небоскрёб';
   const ri = rankOf(save.xp), nx = RANKS[ri + 1], st0 = save.streak ? save.streak.n : 1;
   $('mRank').innerHTML = `<b>${RANKS[ri][0]}</b> · опыт ${save.xp}${nx ? '/' + nx[1] : ''} · ${st0} ${dayWord(st0)} подряд${nx ? `<div class="bar"><i style="width:${Math.min(100, (save.xp - RANKS[ri][1]) / (nx[1] - RANKS[ri][1]) * 100)}%"></i></div>` : ''}`;
-  if (save.pend.length) setTimeout(showChest, 250);
+  if (save.pend.length) chestSoon(250);
   const tr2 = tasksReady(), tl = dailyTasks(); $('bTasks').innerHTML = `Задания ${tl.filter(t => t.p >= t.n).length}/3` + (tr2 ? `<span class="badge">${tr2}</span>` : '');
-  $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL && !st.done));
+  const canCont = !!(st && !st.done && (st.floors.length || st.plumb || st.calm || st.cement) && st.lvlPlayed === LVL);
+  $('bCont').classList.toggle('hide', !canCont); $('bCont').className = 'btn' + (canCont ? '' : ' sec hide'); $('bPlay').className = 'btn' + (canCont ? ' sec' : '');
+  $('bCont').textContent = canCont ? (ENDLESS ? '▶ Продолжить Небоскрёб' : `▶ Продолжить №${LVL + 1}`) : 'Продолжить';
 }
 
 const starRow = (k, size = 14) => [0, 1, 2].map(i => ICON.star(i < k).replace('width="46" height="46"', `width="${size}" height="${size}"`)).join('');
@@ -1236,7 +1257,7 @@ function showHouses(d) {
 }
 
 function play(l) {
-  ENDLESS = false; LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
+  clearTimeout(chestTimer); $('chest').classList.add('hide'); ENDLESS = false; LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
   if (st.snow.lvl) float(st.snow.lvl === 2 ? 'Метель!' : 'Снегопад', CX, st.crane - 260, '#e8f6ff', 1.1);
   if (CFG.sp) { mode = 'intro'; $('iT').textContent = SPINFO[CFG.sp][0]; $('iS').textContent = SPINFO[CFG.sp][1]; $('intro').classList.remove('hide'); }
   else { mode = 'play'; hudShow(true); }
@@ -1261,7 +1282,7 @@ optUI();
   if (!standalone && (ios || matchMedia('(pointer: coarse)').matches)) btn.classList.remove('hide');
   btn.onclick = async () => {
     if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; btn.classList.add('hide'); return; }
-    hint.innerHTML = ios ? 'В Safari нажми «Поделиться» внизу → «На экран „Домой“» → «Добавить».' : 'Меню браузера (три точки) → «Добавить на главный экран».';
+    hint.innerHTML = ios ? 'В Safari нажми «Поделиться» внизу → «На экран „Домой“» → «Добавить».<br>Важно: на iPhone прогресс из Safari в иконку не переносится, лучше поставить пораньше.' : 'Меню браузера (три точки) → «Добавить на главный экран».';
     hint.classList.remove('hide');
   };
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -1275,13 +1296,14 @@ $('bColl').onclick = () => {
   $('menu').classList.add('hide'); $('coll').classList.remove('hide');
 };
 $('cClose').onclick = () => { $('coll').classList.add('hide'); showMenu(); };
-$('iGo').onclick = () => { $('intro').classList.add('hide'); mode = 'play'; hudShow(true); hud(); };
-$('bCont').onclick = () => { $('menu').classList.add('hide'); mode = 'play'; hudShow(true); };
-$('bMenu').onclick = e => { e.stopPropagation(); showMenu(); };
+$('iGo').onclick = () => { audio(); tapBlock = st.t + .25; $('intro').classList.add('hide'); mode = 'play'; hudShow(true); hud(); };
+$('bCont').onclick = () => { audio(); tapBlock = st.t + .3; $('menu').classList.add('hide'); mode = 'play'; hudShow(true); hud(); };
+$('bMenu').onclick = e => { e.stopPropagation(); if (st && st.done && mode === 'play') return; showMenu(); };
 $('bMenu').addEventListener('pointerdown', e => e.stopPropagation());
-$('eMenu').onclick = showMenu;
-$('eNext').onclick = () => $('eNext').dataset.act === 'sky' ? playSky() : play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
-$('eAgain').onclick = () => play(LVL);
+const endReady = () => performance.now() - endAt > 450;
+$('eMenu').onclick = () => { if (endReady()) showMenu(); };
+$('eNext').onclick = () => !endReady() ? 0 : $('eNext').dataset.act === 'sky' ? playSky() : play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
+$('eAgain').onclick = () => { if (endReady()) play(LVL); };
 
 // ═════════ Рисование сцены ═════════
 const sy = wy => GY - (wy - (st ? st.cam : 0));
@@ -1461,14 +1483,19 @@ function useHelper(k) {
   if (!st || st.done || !(save.inv[k] > 0)) return;
   if ((k === 'plumb' && st.plumb) || (k === 'calm' && st.calm)) return;
   save.inv[k]--; store(); audio(); tone(700, .12, 'triangle', .08); tone(1050, .15, 'triangle', .06, 0, .08);
-  if (k === 'plumb') st.plumb = true; if (k === 'calm') st.calm = true; if (k === 'cement') st.cement = (st.cement || 0) + 3;
+  if (k === 'plumb') st.plumb = true;
+  if (k === 'calm') { // сохранить текущий угол и направление
+    const h0 = hook(), amp = CFG.amp * .55, w = 2 * Math.PI / (CFG.per * 1.3), q = Math.asin(clamp(h0.a / amp, -1, 1));
+    st.calm = true; st.phase = (h0.vx >= 0 ? q : Math.PI - q) - w * st.t;
+  } if (k === 'cement') st.cement = (st.cement || 0) + 3;
   float(HELP[k].name + '!', CX, topY() + 150, '#9effa8', 1.1); helpersUI();
 }
 // отвес: где упадёт этаж, если отпустить сейчас
 function drawPlumb() {
   if (!st.plumb || !st.hold || st.enter < 1) return;
   const h = hook(), vx = h.vx * .9, vy = Math.max(0, h.vy) * .5, dy = h.y - FH / 2 - topY(), k = -Math.log(.6);
-  const t = (vy + Math.sqrt(vy * vy + 2 * G * Math.max(0, dy))) / G, x = h.x + vx * (1 - Math.exp(-k * t)) / k, off = x - topX();
+  const t = (vy + Math.sqrt(vy * vy + 2 * G * Math.max(0, dy))) / G, x = h.x + vx * (1 - Math.exp(-k * t)) / k, om = 1.96;
+  const xf = st.x * Math.cos(om * t) + st.v / om * Math.sin(om * t), off = x - (topX() + (xf - st.sway) * fac(st.floors.length));
   const col = Math.abs(off) < PERF ? '#5be38a' : Math.abs(off) < 30 ? '#ffd23f' : '#ff6b5a', yT = sy(topY());
   ctx.save(); ctx.setLineDash([6, 6]); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, sy(h.y) + FH / 2); ctx.lineTo(x, yT); ctx.stroke();
   ctx.setLineDash([4, 4]); ctx.strokeRect(x - st.hold.w / 2, yT - FH, st.hold.w, FH); ctx.restore();
@@ -1551,6 +1578,12 @@ function frame(now) {
 addEventListener('resize', resize); resize();
 streakCheck();
 showMenu();
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (mode === 'play' && st && !st.done) showMenu(); try { ac && ac.suspend(); } catch (e) {} return; }
+  try { ac && ac.resume(); } catch (e) {}
+  const n0 = save.pend.length; streakCheck(); if (mode === 'menu' && save.pend.length > n0) showMenu();
+});
+addEventListener('touchend', () => { if (ac && ac.state !== 'running') audio(); }, { passive: true });
 if (document.fonts) document.fonts.load('900 20px Rubik').then(() => { for (const f of st ? st.floors : []) f.img = null; district = null; }).catch(() => {});
 requestAnimationFrame(frame);
 
