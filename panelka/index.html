@@ -77,7 +77,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn sec hide" id="bCont">Продолжить</button>
   <button class="btn sec" id="bDist">Районы</button>
   <button class="btn sec" id="bColl">Жильцы</button>
-</div><div id="ver">версия 0.4</div></div>
+</div><div id="ver">версия 0.4.1</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -527,7 +527,7 @@ function newGame() {
   CFG = level(LVL);
   st = {
     floors: [], lives: CFG.sp === 'precise' ? 4 : 5, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
-    hold: null, drop: null, crane: 430, debris: [], texts: [], parts: [], rings: [], shake: 0, wait: 0, enter: 0,
+    hold: null, drop: null, crane: 430, debris: [], jumpers: [], texts: [], parts: [], rings: [], shake: 0, wait: 0, enter: 0,
     sway: 0, x: 0, v: 0, stab: [], creak: 0, done: false, roof: null, endT: 0, perfects: 0, time: CFG.time, why: '', lastTick: 99,
   };
   st.hold = makeFloor(1);
@@ -575,15 +575,66 @@ function collapse(j, why) {
     const f = F[i], h = i - j;
     s.debris.push({ f, x: floorX(i), y: i * FH + FH / 2, vx: dir * (90 + h * 35) + (Math.random() - .5) * 60, vy: 40 + Math.random() * 80, rot: floorRot(i), vr: dir * (1.2 + h * .4 + Math.random()) });
     lost += f.gain || 0;
+    const pool = RES.filter(r => r.d <= distOf(LVL)), id = f.res || pool[Math.random() * pool.length | 0].id;
+    s.jumpers.push({ id, x: floorX(i) + (Math.random() - .5) * f.w * .6, y: i * FH + FH * .6, vx: dir * (40 + Math.random() * 80) * (Math.random() < .35 ? -1 : 1), vy: 220 + Math.random() * 160, t: -h * .06, open: false, land: 0, seed: Math.random() * 9, sheet: SHEETS[Math.random() * SHEETS.length | 0], rot: 0 });
   }
   F.length = j; s.people = Math.max(0, s.people - lost);
   s.stab = stability(); s.x *= .3; s.v *= .3; s.combo = 0; s.lives--; s.shake = .7;
   thud(.9); sfx.miss();
   float(why || 'Обвал! −1', CX, topY() + 100, '#ff8a7a', 1.3, 'helmet');
   if (lost) float(`−${lost}`, CX + 40, topY() + 60, '#ffb39a', .85, 'people');
+  float('Жильцы спасаются!', CX, topY() + 140, '#d9f0ff', .95);
   if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.5; s.hold = null; }
   hud();
 }
+
+// ═════════ Жильцы на простынях ═════════
+const SHEETS = [['#ffffff', '#ff7a8a'], ['#fff6d6', '#4aa3f0'], ['#e8f6ff', '#5be38a'], ['#ffffff', '#ffb347'], ['#f3e8ff', '#b48be0']];
+function stepJumpers() {
+  for (const j of st.jumpers) {
+    j.t += DT; if (j.t < 0) continue;
+    if (j.land) { j.land += DT; continue; }
+    if (!j.open) {
+      j.vy -= G * .75 * DT; j.rot += Math.sign(j.vx || 1) * 7 * DT;
+      if (j.t > .38) { j.open = true; tone(500 + Math.random() * 200, .25, 'triangle', .035, -250); }
+    } else {
+      j.vy += (-58 - j.vy) * Math.min(1, DT * 4);
+      j.vx += (Math.sin(j.t * 1.8 + j.seed) * 28 - j.vx) * DT * 1.5;
+      j.rot *= Math.pow(.02, DT);
+    }
+    j.x = clamp(j.x + j.vx * DT, 14, W - 14); j.y += j.vy * DT;
+    if (j.y <= 0) { j.y = 0; j.land = DT; }
+  }
+  st.jumpers = st.jumpers.filter(j => j.land < 2.2);
+}
+function drawJumpers() {
+  for (const j of st.jumpers) {
+    if (j.t < 0) continue;
+    const x = j.x, y = sy(j.y), a = j.land ? Math.max(0, 1 - (j.land - 1.4) / .8) : 1;
+    if (y < -80 || y > H + 60) continue;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1.3, 1.3); ctx.translate(-x, -y);
+    if (j.land) { // простыня лежит рядом
+      ctx.fillStyle = j.sheet[0]; ctx.beginPath(); ctx.ellipse(x + 16, y - 2, 14, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = j.sheet[1]; ctx.fillRect(x + 6, y - 3, 20, 1.5);
+    } else if (j.open) { // купол из простыни и стропы
+      const sw = Math.sin(j.t * 1.8 + j.seed) * .15, cx = x + sw * 20, cy = y - 46;
+      ctx.strokeStyle = 'rgba(60,60,60,.7)'; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(cx - 19, cy + 6); ctx.lineTo(x - 5, y - 18); ctx.moveTo(cx + 19, cy + 6); ctx.lineTo(x + 5, y - 18); ctx.moveTo(cx - 7, cy + 8); ctx.lineTo(x - 2, y - 18); ctx.moveTo(cx + 7, cy + 8); ctx.lineTo(x + 2, y - 18); ctx.stroke();
+      ctx.fillStyle = j.sheet[0]; ctx.beginPath(); ctx.moveTo(cx - 21, cy + 7); ctx.quadraticCurveTo(cx, cy - 20, cx + 21, cy + 7);
+      ctx.quadraticCurveTo(cx + 14, cy + 3, cx + 7, cy + 8); ctx.quadraticCurveTo(cx, cy + 4, cx - 7, cy + 8); ctx.quadraticCurveTo(cx - 14, cy + 3, cx - 21, cy + 7); ctx.fill();
+      ctx.save(); ctx.clip(); ctx.fillStyle = j.sheet[1]; for (let k = -3; k <= 3; k++) ctx.fillRect(cx + k * 7 - 1.5, cy - 20, 3, 30); ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.stroke();
+    }
+    // человечек: ноги и бюст жильца
+    ctx.translate(x, y); if (!j.open && !j.land) ctx.rotate(j.rot);
+    const kick = j.land ? 0 : Math.sin(j.t * 9) * 2.5;
+    ctx.strokeStyle = '#2d3e66'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-4 - kick, 6); ctx.moveTo(3, -2); ctx.lineTo(4 + kick, 6); ctx.stroke();
+    paintResident(ctx, j.id, 0, 0, .55);
+    if (j.open && !j.land) { ctx.strokeStyle = RESD[j.id].skin; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(-6, -18); ctx.moveTo(8, -8); ctx.lineTo(6, -18); ctx.stroke(); }
+    ctx.restore();
+  }
+}
+
 function physics() {
   const s = st, n = s.floors.length, S2 = s.stab;
   let weak = 0, lean = 0;
@@ -657,6 +708,7 @@ function step() {
     }
     if (s.drop && d.past && d.y < ty - 380) { s.debris.push({ f: d.f, x: d.x, y: d.y, vx: d.vx, vy: d.vy, rot: d.rot, vr: Math.sign(d.vx || 1) * 1.5 }); miss(); }
   }
+  stepJumpers();
   for (const b of s.debris) { b.vy -= G * DT; b.x += b.vx * DT; b.y += b.vy * DT; b.rot += b.vr * DT; }
   s.debris = s.debris.filter(b => b.y > s.cam - 400);
   for (const p of s.parts) {
@@ -1011,6 +1063,7 @@ function render() {
   for (const r of s.rings) { const k = r.t / .6; ctx.strokeStyle = `rgba(255,225,74,${1 - k})`; ctx.lineWidth = 4 * (1 - k) + 1; ctx.beginPath(); ctx.ellipse(r.x, sy(r.y), r.w / 2 + k * 60, 8 + k * 20, 0, 0, 7); ctx.stroke(); }
   if (s.drop) drawFloor(s.drop.f, s.drop.x, sy(s.drop.y), -s.drop.rot, true);
   for (const b of s.debris) drawFloor(b.f, b.x, sy(b.y), b.rot, true);
+  drawJumpers();
   for (const p of s.parts) {
     const a = 1 - p.t / p.life;
     if (p.k === 'conf') { ctx.save(); ctx.translate(p.x, sy(p.y)); ctx.rotate(p.r); ctx.globalAlpha = Math.min(1, a * 2); ctx.fillStyle = p.c; ctx.fillRect(-4, -2.5, 8, 5); ctx.restore(); ctx.globalAlpha = 1; }
