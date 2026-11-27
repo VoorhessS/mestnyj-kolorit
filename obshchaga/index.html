@@ -255,6 +255,24 @@
   #ntext { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 96px); text-align: center; font-weight: 700; font-size: 16px; z-index: 8;
     text-shadow: 0 2px 6px #000, 0 0 12px #000; white-space: pre-line; }
   #nbtn { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 26px); transform: translateX(-50%); display: none; z-index: 9; }
+  /* аудит 28.11 */
+  #journal { z-index: 30; }
+  #dlg, #screen, #journal { touch-action: manipulation; }
+  #hud button { width: 46px; height: 42px; font-size: 21px; }
+  #journal h2 button { padding: 10px 16px; font-size: 16px; }
+  #screen.title { overflow-y: auto; }
+  @media (max-height: 720px) {
+    #pimg { width: 74px; height: 86px; }
+    #dbtns { gap: 5px; }
+    #dbtns .ans { font-size: 12.5px; padding: 6px 9px; min-height: 34px; }
+    #dbtns button, .big { padding-top: 7px; padding-bottom: 7px; }
+    #dbtns .wide { min-height: 36px; }
+    #screen.title .faces { display: none; }
+  }
+  @media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+    #game { max-width: none; }
+    #hud, #dlg, #say { max-width: 560px; margin-left: auto; margin-right: auto; }
+  }
 </style>
 </head>
 <body>
@@ -470,7 +488,7 @@ const PLACES = {
   room:   { i: '🛏', n: 'Твоя комната',  to: 'к тебе в комнату', go: 'к себе в комнату (дверь «ТЫ ♥»)', x: 2 * 16 + 6, y: 17 * 16, r: 30 },
   shower: { i: '🚿', n: 'Душевая кабинка', to: 'в душевую кабинку в прачечной', go: 'в душевую кабинку в прачечной (внизу слева)', x: 5 * 16 + 8, y: 37 * 16 + 12, r: 22 },
   store:  { i: '🚪', n: 'Кладовка',      to: 'в кладовку, там дверь с матовым стеклом', go: 'в кладовку (внизу справа)', x: 12 * 16 + 8, y: 38 * 16 + 9, r: 24 },
-  roof:   { i: '🌙', n: 'Крыша',         to: 'на крышу, под луну. Только ключ достань', go: 'на крышу: люк в самом верху коридора, нужен 🔑', x: 8 * 16 + 8, y: 1 * 16 + 12, r: 20, key: 1 },
+  roof:   { i: '🌙', n: 'Крыша',         to: 'на крышу, под луну', go: 'на крышу: люк в самом верху коридора, нужен 🔑', x: 8 * 16 + 8, y: 1 * 16 + 12, r: 20, key: 1 },
   bench:  { i: '🪑', n: 'Лавочка за общагой', to: 'на лавочку за общагой, под фонарь', go: 'на улицу через выход у вахты', x: 8 * 16, y: 47 * 16, r: 24 },
   bushes: { i: '🌳', n: 'Кусты за общагой', to: 'в кусты за общагой 😏', go: 'на улицу через выход у вахты', x: 8 * 16, y: 47 * 16, r: 24 },
   kitchen: { i: '🍳', n: 'Кухня', to: 'на кухню, пока все спят', go: 'на кухню (вверху слева)', x: 3 * 16 + 8, y: 2 * 16 + 9, r: 26 },
@@ -553,7 +571,7 @@ const RIVAL_SHAKE = {
   bait:   { t: '📣 «Там тебя Зинка ищет!»', ok: 'ЗИНКА?! Где?! Всё, я побежал!', no: 'Зинку я не боюсь, она мне пирожки носит' },
 };
 const RIVAL_THANKS = ['Фух, спасибо, что спас 😅', 'Наконец-то он ушёл! Ты милый 😊', 'Он мне уже весь мозг вынес. Спасибо!', 'Ох, ты вовремя ☺️'];
-const COURT_T = 11;
+const COURT_T = 14;
 // девушка уже идёт на свидание с тобой — сама отшивает (её фраза, его ответ)
 const RIVAL_REJECT = {
   stas:  [['Бицепс большой, а шансов ноль. Я занята 😏', 'Понял… пойду пожму штангу от обиды 💪😢'], ['Иди качай мозг, Стас. Его у тебя не видно 😂', 'Мозг не качается, я проверял…']],
@@ -868,18 +886,29 @@ function chibi(c, x, y, L, dir, fr, t) {
 }
 
 // ---------------- сохранение ----------------
-let SAVE = JSON.parse(localStorage.getItem('obsh2') || 'null');
+let SAVE = null; try { SAVE = JSON.parse(localStorage.getItem('obsh2') || 'null'); } catch (e) { SAVE = null; }
 function freshSave() { return { seed: (Math.random() * 1e9) | 0, night: 1, got: {}, met: {}, won: {}, redo: {}, best: 0 }; }
 const applyRedo = () => { SAVE.redo = SAVE.redo || {}; for (const q of ROSTER) { const r = SAVE.redo[q.id]; if (r) { q.wish = r.wish; q.place = r.place; } } };
-if (!SAVE || !SAVE.seed) SAVE = freshSave();
-const persist = () => localStorage.setItem('obsh2', JSON.stringify(SAVE));
-let ROSTER = genRoster(SAVE.seed); applyRedo();
+if (!SAVE || typeof SAVE !== 'object' || !SAVE.seed) SAVE = freshSave();
+{ const f = freshSave(); for (const k of ['got', 'met', 'won', 'redo']) if (!SAVE[k] || typeof SAVE[k] !== 'object') SAVE[k] = {}; SAVE.night = Math.max(1, +SAVE.night || 1); SAVE.best = +SAVE.best || 0; }
+const persist = () => { try { localStorage.setItem('obsh2', JSON.stringify(SAVE)); } catch (e) {} };
+// ═══ 1. желания, которые нельзя исполнить: ключ от крыши и два подарка одной поклонницы ═══
+function fixWish(q) {
+  const fanOf = w => FANS.find(f => f.gifts.includes(w)), bad = (w, list) => w === 'key' || list.some(x => x !== w && fanOf(x) && fanOf(x) === fanOf(w));
+  const all = Object.keys(ITEMS);
+  for (let i = 0; i < q.wish.length; i++) {
+    if (!bad(q.wish[i], q.wish)) continue;
+    const ok = all.filter(w => !q.wish.includes(w) && !bad(w, q.wish.filter((_, j) => j !== i)));
+    q.wish[i] = ok[Math.floor(((q.seed || .5) * 7919 + i * 13)) % ok.length];
+  }
+}
+let ROSTER = genRoster(SAVE.seed); applyRedo(); ROSTER.forEach(fixWish);
 function paintBeds() { for (const k in BEDC) delete BEDC[k]; for (const q of ROSTER) { const r = ROOM[q.room]; BEDC[(r.y0 + q.bed * 2) * W + r.outer] = q.top; BEDC[(r.y0 + q.bed * 2 + 1) * W + r.outer] = q.top; }
   for (const f of FANS) { const i = FANS.indexOf(f), r = ROOM.fans; BEDC[(r.y0 + i * 2) * W + r.outer] = f.top; BEDC[(r.y0 + i * 2 + 1) * W + r.outer] = f.top; } drawMap(); }
 
 // ---------------- сущности ----------------
 const cv = $('cv'), g = cv.getContext('2d');
-const VIEW = 176;
+let VIEW = 176;
 let k = 2, VH = 380, S, ents, hero, warden, tolik, girls, fans, rivals = [], paused = true, camX = 0, camY = 0;
 function ent(kind, L, tx, ty, extra = {}) {
   return Object.assign({ kind, look: L, x: tx * T + 8, y: ty * T + 9, dir: 0, ft: 0, moving: false, path: [], wait: Math.random() * 3, state: 'idle' }, extra);
@@ -891,7 +920,8 @@ function newNight() {
   tolik = ent('tolik', LOOK.tolik, 2, 19, { dir: 2, state: 'still', name: 'Толик' });
   warden = ent('warden', LOOK.warden, 4, 45, { ang: -Math.PI / 2, base: -Math.PI / 2, sus: 0, pause: 3, name: 'Галина Петровна' });
   girls = ROSTER.map(q => { const r = ROOM[q.room], t = pick(r.tiles);
-    return ent('girl', q, t.x, t.y, { name: q.name, q, a: ARCH[q.arch], room: r, int: 10, mood: rnd(11) - 4, cool: 0 }); });
+    const m = SAVE.met[q.id] || {}, keep = SAVE.won[q.id] && !SAVE.got[q.id];
+    return ent('girl', q, t.x, t.y, { name: q.name, q, a: ARCH[q.arch], room: r, int: 10, mood: rnd(11) - 4, cool: 0, gave: !!(keep && m.gave), date: keep && m.gave && m.date ? 1 : 0, flop: keep && m.gave ? m.flop || null : null }); });
   fans = FANS.map((q, i) => { const r = ROOM.fans, t = r.tiles[i * 3];
     return ent('fan', q, t.x, t.y, { name: q.name, f: q, room: r, sulk: 0, weak: pick(Object.keys(SHAKE)), tried: {} }); });
   rivals = RIVALS.map(r => { const t = pick(ROOM[r.home].tiles); return ent('rival', r, t.x, t.y, { name: r.name, r, room: ROOM[r.home], sulk: 0, target: null, t: 0, repath: 0, weak: pick(Object.keys(RIVAL_SHAKE)), tried: {} }); });
@@ -978,7 +1008,7 @@ function sees(p) {
   return d < CONE_L && a < CONE_A && los(warden.x, warden.y - 6, p.x, p.y - 6);
 }
 const RED_D = () => ({ x: RED.door.x * T + 8, y: RED.door.y * T + 8 });
-const nearRedDoor = () => !RED.open && !inRoom(hero, 'red') && dist(hero, RED_D()) < 22;
+const nearRedDoor = () => !RED.open && !inRoom(hero, 'red') && !hero.follower && !hero.cling && dist(hero, RED_D()) < 22;
 function redDoor() {
   if (inRoom(warden, 'hall') || dist(warden, RED_D()) < 70) return toast('🔒 «Служебное». Заперто. Петровна рядом — не при ней же 😅');
   paused = true;
@@ -1002,11 +1032,11 @@ function redAlarm(w, dt) {   // Петровна бежит на сигнали�
     return;
   }
   if (inRoom(hero, 'red')) return caught('red');
-  RED.alarm = false; RED.open = false; w.pause = 3; w.base = w.ang = -Math.PI / 2;
+  RED.alarm = false; w.pause = 3; w.base = w.ang = -Math.PI / 2;
   toast('🔦 Галина Петровна: «Опять сигнализация барахлит… Кто тут шастал?!»');
 }
 function updRed() {
-  if (!RED.alarm && !inRoom(hero, 'red')) RED.open = false;
+  const d = RED_D(); if (!RED.alarm && !inRoom(hero, 'red') && !(Math.abs(hero.x - d.x) < 14 && Math.abs(hero.y - d.y) < 14)) RED.open = false;
 }
 function updWarden(dt, t) {
   const w = warden;
@@ -1082,7 +1112,7 @@ function updRival(e, dt) {
   if (e.state === 'court') {
     e.moving = false; const gl = e.target; if (gl.state !== 'talk') gl.state = 'court';
     if (!RED.alarm && sees(e)) { toast(`🔦 Петровна застукала ${RIV_ACC[e.r.id]} у ${gent(gl.name)}: «А ну марш к себе!» Он сбежал 😂`, 3500); return rivalQuit(e, 70); }
-    e.t -= dt; if (e.t <= 0) rivalWins(e);
+    if (dist(hero, gl) > 40) e.t -= dt; if (e.t <= 0) rivalWins(e);   // ты рядом — он мнётся
     return;
   }
   wander(e, dt, 24, .5);
@@ -1105,7 +1135,9 @@ function rivalQuit(e, sulk) {
 function rivalWins(e) {
   const gl = e.target, id = gl.q.id, had = !!SAVE.won[id];
   if (had) { delete SAVE.won[id]; persist(); }
-  gl.int = had ? 40 : 10; gl.date = 0; if (had) S.prep = {};
+  gl.int = had ? 40 : 10; gl.date = 0; gl.gave = false;
+  if (SAVE.met[id]) { delete SAVE.met[id].gave; delete SAVE.met[id].date; delete SAVE.met[id].flop; persist(); }
+  if (had && !girls.some(g => g !== gl && g.date && !SAVE.got[g.q.id])) S.prep = {};
   toast(`💔 ${e.r.ico} ${e.r.win.replace('Она', gl.name)}${had ? ' — снова придётся добиваться' : ''}`, 4200);
   tone({ f: 300, f2: 150, d: .5, type: 'sawtooth', g: .07, lp: 900 });
   rivalQuit(e, 90);
@@ -1128,7 +1160,7 @@ function rivalTry(e, k) {
     return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'happy', bar: SAVE.won[gl.q.id] ? 100 : gl.int,
       text: `<b>Ты:</b> ${R.t.replace(/^\S+\s/, '')}\n<b>${e.name}:</b> ${R.ok}\n<b>${gl.name}:</b> ${pick(RIVAL_THANKS)}`, btns: [{ t: 'Обращайся 😎', cls: 'wide', f: () => { gl.state = 'idle'; closePanel(); } }] });
   }
-  e.tried[k] = 1; e.t -= 3.5;
+  e.tried[k] = 1; e.t -= 2.5;
   if (e.t <= 0) { rivalWins(e); return panel({ L: e.r, name: e.name, sub: e.r.tag, emo: 'happy', bar: 0, text: `<b>${e.name}:</b> ${R.no}\n\n💔 ${gl.name} ушла с ним.`, btns: [{ t: 'Эх…', cls: 'wide', f: closePanel }] }); }
   tone({ f: 200, f2: 150, d: .2, type: 'sawtooth', g: .06, lp: 800 });
   rivalView(e, `<b>Ты:</b> ${R.t.replace(/^\S+\s/, '')}\n<b>${e.name}:</b> ${R.no}\n\n<i>Не сработало — время уходит. Попробуй по-другому!</i>`);
@@ -1144,7 +1176,7 @@ function cling(f) {
 // ---------------- взаимодействие ----------------
 const hasAll = q => q.wish.every(w => S.inv.includes(w));
 const inWork = () => ROSTER.filter(q => SAVE.won[q.id] && !SAVE.got[q.id]).length;   // добился, но свидания ещё не было
-const needed = it => !S.inv.includes(it) && girls.some(g => SAVE.won[g.q.id] && !SAVE.got[g.q.id] && (SAVE.met[g.q.id] || {}).wish && g.q.wish.includes(it));
+const needed = it => !S.inv.includes(it) && girls.some(g => SAVE.won[g.q.id] && !SAVE.got[g.q.id] && !g.gave && (SAVE.met[g.q.id] || {}).wish && g.q.wish.includes(it));
 function nearest() {
   let best = null, bd = 21;
   for (const e of ents) {
@@ -1158,6 +1190,7 @@ function nearest() {
 function canPickpocket() { return S.key && !hero.follower && dist(warden, hero) < 18 && angTo(hero) > 2.0; }
 function actLabel() {
   if (hero.cling) return '🙅\nОтшить';
+  if (hero.follower && !canPickpocket() && !nearest()) return '👋\nОтпустить';
   if (canPickpocket()) return '🫳\nСтащить 🔑';
   if (nearRedDoor()) return '🚪\nСлужебное';
   if (nearShower()) return '🚿\nПомыться';
@@ -1165,7 +1198,7 @@ function actLabel() {
   if (n.kind === 'spot') return 'Взять\n' + ITEMS[n.item].e;
   if (n.kind === 'hide') return '🔍\nОбыскать';
   if (n.kind === 'girl' && n.state === 'court') return '😤\nПомешать';
-  if (n.kind === 'girl') return SAVE.got[n.q.id] ? '😉\nПривет' : n.cool > 0 ? '😤' : hero.follower ? '🤫' : n.date ? '😏\nСвидание' : (SAVE.won[n.q.id] && hasAll(n.q)) ? '🎁\nОтдать' : '💋\nФлирт';
+  if (n.kind === 'girl') return SAVE.got[n.q.id] ? '😉\nПривет' : n.cool > 0 ? '😤' : hero.follower ? '🤫' : n.date ? '😏\nСвидание' : n.gave ? '💕\nКуда?' : (SAVE.won[n.q.id] && hasAll(n.q)) ? '🎁\nОтдать' : '💋\nФлирт';
   if (n.kind === 'warden') return '🔦\nВахта';
   if (n.kind === 'tolik') return '💬\nТолик';
   if (n.kind === 'fan') return '😬\n' + n.name;
@@ -1176,6 +1209,9 @@ function addItem(id) { S.inv.push(id); hud(); sChime(); }
 function act() {
   if (paused || S.over) return;
   if (hero.cling) return openFan(hero.cling);
+  if (hero.follower && !canPickpocket() && !nearest()) { const gl = hero.follower; paused = true;
+    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'smile', bar: null, text: `<b>${gl.name}:</b> Мы идём или как? 😏`,
+      btns: [{ t: 'Идём ❤', cls: 'wide hot', f: closePanel }, { t: '👋 «Подожди меня у себя»', cls: 'wide', f: () => { hero.follower = null; gl.state = 'idle'; goHome(gl); closePanel(); toast(`💕 ${gl.name} ушла к себе ждать. Свидание в силе — приходи за ней`); } }] }); }
   if (canPickpocket()) { S.key = false; addItem('key'); return toast('🫳 Ты вытащил 🔑 ключ от крыши из кармана Галины Петровны. Она ничего не заметила!'); }
   if (nearRedDoor()) return redDoor();
   if (nearShower()) { S.prep.shower = 1; hero.busy = 1.5; hud(); return toast('🚿 Ты принял душ. Свежий, бодрый, пахнешь «Морским бризом» 😎 Теперь — за ней'); }
@@ -1221,7 +1257,7 @@ function panel(o) {
 function closePanel() { $('dlg').classList.remove('on'); paused = false; }
 function lockBtns(ms) { const bs = [...$('dbtns').children]; bs.forEach(b => b.disabled = true); setTimeout(() => bs.forEach(b => b.disabled = false), ms); }
 function faceEach(a, b) { face(a, b.x - a.x, b.y - a.y); face(b, a.x - b.x, a.y - b.y); }
-const wishStr = q => q.wish.map(w => ITEMS[w].e + ' ' + ITEMS[w].n).join(' и ');
+const wishStr = q => { const a = q.wish.map(w => ITEMS[w].e + ' ' + ITEMS[w].n); return a.length > 1 ? a.slice(0, -1).join(', ') + ' и ' + a[a.length - 1] : a[0]; };
 const hintStr = q => q.wish.map(w => `${ITEMS[w].e} — ${ITEMS[w].where}`).join('\n');
 function meet(q, patch) { SAVE.met[q.id] = Object.assign(SAVE.met[q.id] || {}, patch); persist(); }
 function subOf(gl) { const m = SAVE.met[gl.q.id] || {}; return `${gl.a.t} · ${gl.a.d}` + (m.likes ? ` · любит ${TYPE_NAME[gl.a.likes]}` : '') + (m.dirty ? ' · любит пошлости 😏' : m.slap ? ' · за пошлости бьёт 💥' : ''); }
@@ -1230,6 +1266,7 @@ function openGirl(gl) {
   paused = true; gl.state = 'talk'; gl.path = []; faceEach(hero, gl); meet(gl.q, {});
   if (gl.date && !SAVE.got[gl.q.id]) return dateView(gl);
   if (SAVE.won[gl.q.id]) meet(gl.q, { wish: 1 });
+  if (SAVE.won[gl.q.id] && gl.gave) return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'shy', bar: 100, text: `<b>${gl.name}:</b> Подарки твои у меня 😊 Ну… так куда ты меня поведёшь?`, btns: placeBtns(gl) });
   if (SAVE.won[gl.q.id]) return wishView(gl, `<b>${gl.name}:</b> ${hasAll(gl.q) ? 'Ой, это мне? 😳' : 'Ну что, принёс? Мне нужно: ' + wishStr(gl.q) + '.'}`);
   if (!SAVE.won[gl.q.id] && inWork() >= 2) return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'angry', bar: null, text: `<b>${gl.name}:</b> ${pick(BUSY)}\n\n<i>В работе уже две девушки. Доведи их до свидания (или до провала), потом заходи.</i>`, btns: [leaveBtn(gl)] });
   flirtView(gl, `<b>${gl.name}:</b> ${fresh(gl.a.hi, gl)}`, 'smile');
@@ -1239,14 +1276,14 @@ function flirtView(gl, text, emo) {
   let tp = pick(TOPICS); for (let i = 0; i < 6 && tp === gl.topic; i++) tp = pick(TOPICS); gl.topic = tp;
   const ans = shuffle(['joke', 'compl', 'bold', 'smart'], Math.random);
   panel({ L: gl.q, name: gl.name, sub: subOf(gl), text: text + `\n<b>${gl.name}:</b> ${tp.q}`, emo, bar: gl.int,
-    btns: [...ans.map(k => ({ t: TYPES[k].split(' ')[0] + ' ' + tp[k], cls: 'wide ans', f: () => flirt(gl, k, tp[k]) })),
-      { t: '😏 ' + tp.dirty.replace(/\s*😏$/u, ''), cls: 'wide ans', f: () => flirt(gl, 'dirty', tp.dirty) },
+    btns: [...shuffle([...ans.map(k => ({ t: tp[k], cls: 'wide ans', f: () => flirt(gl, k, tp[k]) })),
+      { t: tp.dirty.replace(/\s*😏$/u, ''), cls: 'wide ans', f: () => flirt(gl, 'dirty', tp.dirty) }], Math.random),
       { t: gl.asked ? '❓ Уже расспросил' : '❓ Расспросить о ней', cls: gl.asked ? 'no' : '', f: () => askGirl(gl) }, { t: 'Уйти', f: leaveBtn(gl).f }] });
 }
 function askGirl(gl) {
   if (gl.asked) return; gl.asked = 1; S.min += 10; hud();
   gl.int = clamp(gl.int + 3, 0, 99); meet(gl.q, { likes: 1 });
-  flirtView(gl, `<b>Ты:</b> А ты сама какая? Что тебе нравится?\n<b>${gl.name}:</b> ${LIKES_HINT[gl.a.likes] || 'Сама не знаю. Удиви меня'} ${gl.a.hates && HATES_HINT[gl.a.hates] ? HATES_HINT[gl.a.hates] + '.' : ''}\n<i>(записано в 📖 журнал · −10 минут ночи)</i>`, 'smile');
+  flirtView(gl, `<b>Ты:</b> А ты сама какая? Что тебе нравится?\n<b>${gl.name}:</b> ${LIKES_HINT[gl.a.likes] || 'Сама не знаю. Удиви меня'} ${[gl.a.hates, hates2Of(gl)].filter((x, i, a) => x && HATES_HINT[x] && a.indexOf(x) === i).map(x => HATES_HINT[x]).join('. И ') + '.'}\n<i>(записано в 📖 журнал · −10 минут ночи)</i>`, 'smile');
 }
 function wishView(gl, text) {
   const ok = hasAll(gl.q), btns = [];
@@ -1279,6 +1316,7 @@ function flirt(gl, type, line) {
 function give(gl) {
   sGive();
   const t = gl.q.wish.find(w => S.tainted[w]); gl.flop = t ? S.tainted[t] : null;   // подарок от поклонницы после ночи с ней → «не встал»
+  gl.gave = true; meet(gl.q, { gave: 1, flop: gl.flop || 0 });
   for (const w of gl.q.wish) { S.inv.splice(S.inv.indexOf(w), 1); delete S.tainted[w]; }
   hud();
   panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Держи ${gl.q.wish.map(w => ITEMS[w].e).join('')}\n<b>${gl.name}:</b> ${pick([].concat(gl.a.yes))}\n\n<b>${gl.name}:</b> Ну… и куда ты меня поведёшь? 😏`,
@@ -1296,8 +1334,8 @@ function choosePlace(gl, k) {
   if (gl.noPlace[k]) return;
   if (k === placeOf(gl.q)) {
     meet(gl.q, { place: 1 }); gl.noPlace = {};
-    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Пойдём ${PLACES[k].to}.\n<b>${gl.name}:</b> Да… именно туда 💕 Только не прямо сейчас. Подготовься: прими душ или раздобудь вина. И приходи за мной, когда будешь готов 😘`,
-      btns: [{ t: 'Договорились 😏', cls: 'wide hot', f: () => { gl.date = 1; gl.state = 'idle'; gl.wait = 2; closePanel(); toast('💕 Свидание назначено! Подготовься: душ 🚿 в прачечной или вино 🍷 у Толика. Потом возвращайся за ней — когда Петровна будет подальше', 5500); } }] });
+    return panel({ L: gl.q, name: gl.name, sub: subOf(gl), emo: 'love', bar: 100, text: `<b>Ты:</b> Пойдём ${PLACES[k].to}.\n<b>${gl.name}:</b> Да… именно туда 💕 Только не прямо сейчас. Подготовься: прими душ или раздобудь вина. И приходи за мной, когда будешь готов 😘` + (PLACES[k].key ? `\n<i>Люк на крышу заперт — нужен 🔑 ключ из кармана Петровны.</i>` : ''),
+      btns: [{ t: 'Договорились 😏', cls: 'wide hot', f: () => { gl.date = 1; meet(gl.q, { date: 1 }); gl.state = 'idle'; gl.wait = 2; closePanel(); toast('💕 Свидание назначено! Подготовься: душ 🚿 в прачечной или вино 🍷 у Толика. Потом возвращайся за ней — когда Петровна будет подальше', 5500); } }] });
   }
   gl.noPlace[k] = 1;
   const miss = Object.keys(gl.noPlace).length;
@@ -1310,15 +1348,16 @@ function choosePlace(gl, k) {
 function redoGirl(gl) {
   const q = gl.q, keys = Object.keys(ITEMS).filter(k => k !== 'key' && !q.wish.includes(k)), n = 1 + Math.floor(Math.random() * 3);
   const wish = shuffle(keys, Math.random).slice(0, n), place = pick(PLACE_KEYS.filter(k => k !== placeOf(q)));
-  SAVE.redo[q.id] = { wish, place }; q.wish = wish; q.place = place;
-  delete SAVE.won[q.id]; if (SAVE.met[q.id]) { delete SAVE.met[q.id].wish; delete SAVE.met[q.id].place; }
-  gl.int = 0; gl.noPlace = {}; gl.date = 0; persist();
+  q.wish = wish; fixWish(q); SAVE.redo[q.id] = { wish: q.wish, place }; q.place = place;
+  delete SAVE.won[q.id]; if (SAVE.met[q.id]) { for (const k of ['wish', 'place', 'gave', 'date', 'flop']) delete SAVE.met[q.id][k]; }
+  gl.int = 0; gl.noPlace = {}; gl.date = 0; gl.gave = false; gl.flop = null; persist();
 }
 function dateView(gl) {
   const pr = S.prep, P = PLACES[placeOf(gl.q)], base = { L: gl.q, name: gl.name, sub: subOf(gl), bar: 100 };
   if (!pr.shower && !pr.wine) return panel({ ...base, emo: 'smile', text: `<b>${gl.name}:</b> Ну что, готов? Не-е, так не пойдёт 😏 Сначала прими душ или раздобудь вина. Я подожду 😘\n\n<i>Душ 🚿 — в прачечной, вино 🍷 — у Толика.</i>`, btns: [leaveBtn(gl)] });
   if (S.power <= 0) return panel({ ...base, emo: 'shy', text: `<b>${gl.name}:</b> Ты какой-то выжатый… Точно сегодня? 🤨\n\n<i>Сил на эту ночь не осталось 💪. Пойдёшь — скорее всего, «не встанет», и с ней придётся начинать заново.</i>`,
     btns: [{ t: 'Рискну 😬', cls: 'wide', f: () => startFollow(gl) }, { t: 'Давай завтра', cls: 'wide hot', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } }] });
+  if (P.key && !S.inv.includes('key')) return panel({ ...base, emo: 'smile', text: `<b>${gl.name}:</b> На крышу без ключа? Люк же заперт 🙄 Достань 🔑 — и приходи.\n\n<i>Ключ в кармане у Галины Петровны. Подкрадись со спины.</i>`, btns: [leaveBtn(gl)] });
   const how = pr.wine && pr.shower ? 'Свежий, да ещё и с вином? Ты идеален 😍' : pr.wine ? 'О, вино! 🍷 Вот это я понимаю — подготовился' : 'М-м, пахнешь гелем для душа 😏';
   panel({ ...base, emo: 'love', text: `<b>${gl.name}:</b> ${how}\nПошли ${P.to} 💕\n\n<i>Сначала глянь, где Петровна с фонариком.</i>`,
     btns: [{ t: 'Пошли! ❤', cls: 'wide hot', f: () => startFollow(gl) }, { t: 'Чуть позже', cls: 'wide', f: () => { gl.state = 'idle'; gl.wait = 1.5; closePanel(); } }] });
@@ -1337,9 +1376,9 @@ function openFan(f) {
   panel({ L: f.f, name: f.name, sub: 'поклонница. Хочет тебя просто так' + (tried ? ` · не сработало: ${tried}` : ''), emo: 'happy', bar: null,
     text: `<b>${f.name}:</b> ${pick(f.f.easy)}`, btns: fanBtns(f) });
 }
-const fanBtns = f => [...Object.keys(SHAKE).map(q => ({ t: SHAKE[q].t, f: () => shake(f, q) })), { t: '😏 «Ну… пошли»', cls: 'wide', f: () => fanNight(f) }];
+const fanBtns = f => [...Object.keys(SHAKE).map(q => ({ t: SHAKE[q].t, cls: f.tried[q] ? 'no' : '', f: () => shake(f, q) })), { t: '😏 «Ну… пошли»', cls: 'wide', f: () => fanNight(f) }];
 function shake(f, q) {
-  const s = SHAKE[q];
+  if (f.tried[q]) return; const s = SHAKE[q];
   if (f.weak === q) {
     const it = fanGift(f); if (it) { S.gift[f.f.id] = 1; addItem(it); }
     panel({ L: f.f, name: f.name, sub: 'поклонница', emo: 'angry', bar: null,
@@ -1398,7 +1437,7 @@ const RED_SVG = `<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"
 function redRoom(after) {
   RED.open = false; RED.alarm = false;
   paused = true; sceneTimers.forEach(clearTimeout); sceneTimers = [];
-  const n = $('night'), master = Math.random() < 1 / 8;
+  const n = $('night'), master = S.strikes < 3 && Math.random() < 1 / 8;
   n.innerHTML = `<div class="stg pl-red">${RED_SVG}<div class="duo"><div class="sil p0">${portrait(hero.look, 'smile', 'r0')}</div><div class="sil p1">${portrait(warden.look, 'smile', 'r1')}</div></div></div><div class="veil"></div><div id="nfx"></div><div id="ntext"></div><button class="big" id="nbtn"></button>`;
   n.className = 'on';
   const tx = $('ntext'), at = (ms, f) => sceneTimers.push(setTimeout(f, ms)), cls = c => n.classList.add(c);
@@ -1408,9 +1447,10 @@ function redRoom(after) {
   at(3800, () => { tx.textContent = master ? '«Ладно… сегодня командуешь ты» 😏' : '«Здесь командую я. Сядь.»'; });
   at(5000, () => { cls('fade'); tx.textContent = 'Красный свет погас.'; });
   at(6800, () => {
-    S.min += 60; hero.x = 3 * T + 8; hero.y = 18 * T + 9; hero.trail = []; warden.x = 3 * T + 8; warden.y = 45 * T + 9; warden.path = []; warden.pause = 4;
+    S.min += 60; hero.x = 3 * T + 8; hero.y = 18 * T + 9; hero.trail = [];
+    if (hero.cling) { const f = hero.cling; hero.cling = null; f.state = 'idle'; f.sulk = 40; f.tried = {}; const tt = pick(f.room.tiles); f.x = tt.x * T + 8; f.y = tt.y * T + 9; f.path = []; } warden.x = 3 * T + 8; warden.y = 45 * T + 9; warden.path = []; warden.pause = 4;
     if (master) { S.strikes = Math.max(0, S.strikes - 1); tx.textContent = 'Через час ты вышел оттуда хозяином положения.\nГалина Петровна порвала одну объяснительную и подмигнула. Память цела 😏'; }
-    else { SAVE.met = {}; for (const g of girls) g.noPlace = {}; persist(); tx.textContent = 'Через час ты очнулся у себя в комнате. В голове пусто…\nВсё, что ты знал о девушках, забыто. Журнал чист.'; }
+    else { for (const id in SAVE.met) { const m = SAVE.met[id]; delete m.likes; delete m.dirty; delete m.slap; if (!SAVE.won[id] && !SAVE.got[id]) delete SAVE.met[id]; } for (const g of girls) g.noPlace = {}; persist(); tx.textContent = 'Через час ты очнулся у себя в комнате. В голове пусто…\nКто что любит — забыто. Помнишь только тех, кого уже добился.'; }
     hud();
     const b = $('nbtn'); b.textContent = master ? 'Дальше 😏' : 'Кто я?.. 😵'; b.style.display = 'block';
     b.onclick = () => { b.style.display = 'none'; n.className = ''; paused = false; after && after(); };
@@ -1475,7 +1515,7 @@ function nightScene(gl) {
   S.power--;
   const pl = placeOf(gl.q);
   curtain({ L: gl.q, place: pl, done: () => {
-    SAVE.got[gl.q.id] = SAVE.night; S.tonight++; S.min += 60; persist(); hud();
+    SAVE.got[gl.q.id] = SAVE.night; S.tonight++; S.min += 60; gl.gave = false; persist(); hud();
     return `❤ ${gl.name} — ${Object.keys(SAVE.got).length} из 20\n${gl.name}: «${pick(AFTER)}»`;
   }, next: () => { back(); if (pl === 'room') setTimeout(() => toast('😴 Толик утром: «' + pick(TOLIK_RATE) + '»', 3500), 600); const total = Object.keys(SAVE.got).length; if (total >= 20) endNight('win'); else if (S.min >= 540) endNight('morning'); } });
 }
@@ -1516,7 +1556,7 @@ function intro() {
     <div><h1 class="neon">ОБЩАГА</h1><div class="sub2">ночной обход</div></div>
     <div class="faces">${faces0}</div>
     <div class="menu">
-      <button class="big" id="tPlay">${SAVE.night > 1 || total0 ? `▶ Ночь ${SAVE.night}  ·  ❤ ${total0}/20` : '▶ Играть'}</button>
+      <button class="big" id="tPlay">${total0 >= 20 ? '🏆 Легенда! Новая общага' : SAVE.night > 1 || total0 ? `▶ Ночь ${SAVE.night}  ·  ❤ ${total0}/20` : '▶ Играть'}</button>
       <div class="row2"><button class="big alt" id="tRules">📜 Как играть</button><button class="big alt" id="tSnd">${SND.on ? '🔊 Звук' : '🔇 Без звука'}</button></div>
       <div class="chips"><span>👩 20 девушек</span><span>🔦 вахтёрша</span><span>💘 поклонницы</span><span>😠 конкуренты</span><span>🎁 подарки</span></div>
       <div class="rules" id="tRulesBox">
@@ -1526,10 +1566,10 @@ function intro() {
         <p>Тяни пальцем по экрану — идёшь, большая кнопка — действие. На ПК: стрелки/WASD и пробел.</p>
         <p style="color:#8f84a3;font-size:12px">Все персонажи — совершеннолетние студенты. Ничего откровенного: только тени в окне 😏</p>
       </div>
-      <div class="ver">Версия 23.11 · 02:30 · 18+ · <a id="tOld" style="color:#8f84a3">старая версия (новелла)</a></div>
+      <div class="ver">Версия 28.11 · 01:00 · 18+ · <a id="tOld" style="color:#8f84a3">старая версия (новелла)</a></div>
     </div>`, []);
   $('screen').classList.add('title');
-  $('tPlay').onclick = start;
+  $('tPlay').onclick = total0 >= 20 ? resetAll : start;
   $('tRules').onclick = () => $('tRulesBox').classList.toggle('on');
   $('tSnd').onclick = () => { sndInit(); sndSet(!SND.on); $('tSnd').textContent = SND.on ? '🔊 Звук' : '🔇 Без звука'; };
   $('tOld').onclick = () => { location.href = 'novella.html'; };
@@ -1556,6 +1596,7 @@ function introOld() {
 }
 function start() {
   clearInterval(titleTimer); $('screen').classList.remove('title');
+  $('dlg').classList.remove('on'); $('journal').classList.remove('on'); sceneTimers.forEach(clearTimeout); sceneTimers = []; $('night').className = '';
   newNight(); hideScreen(); paused = false;
   toast(`Ночь ${SAVE.night}. Ты в своей комнате (дверь «ТЫ ♥»). Найди девчонок и жми 💋`, 4000);
   setTimeout(() => !paused && toast('Подсказка: каждой нравится своё. Смотри, на что она радуется', 3500), 4500);
@@ -1566,15 +1607,15 @@ function endNight(kind) {
   if (kind !== 'win') SAVE.night++; persist();
   const T1 = { win: 'ЛЕГЕНДА ОБЩАГИ', morning: 'УТРО', expel: 'ВЫГНАЛИ ДО УТРА', flop: 'НЕ ВСТАЛ 😳' }[kind];
   const txt = {
-    win: `Все 20 сердец за ${SAVE.night} ноч${SAVE.night === 1 ? 'ь' : SAVE.night < 5 ? 'и' : 'ей'}! Галина Петровна до сих пор не понимает, как.`,
+    win: `Все 20 сердец за ${SAVE.night} ${((n, a, b) => a === 1 && b !== 11 ? 'ночь' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'ночи' : 'ночей')(SAVE.night, SAVE.night % 10, SAVE.night % 100)}! Галина Петровна до сих пор не понимает, как.`,
     morning: `Будильник, пары… За ночь ❤ ${S.tonight}, всего ${total} из 20. ${S.tonight >= 2 ? 'Неплохо 😏' : 'Толик говорит, что следующей ночью повезёт.'}`,
     flop: S.flop ? (S.flop.fan ? `${S.flop.girl} рассказала всей общаге. ${S.flop.fan} ходит довольная. Мораль: не спи с поклонницей ради подарка.` : `Третья за ночь — перебор. ${S.flop.girl} рассказала всей общаге. Мораль: две за ночь — твой предел.`) + ` С ${S.flop.girl} теперь всё сначала. За ночь ❤ ${S.tonight}, всего ${total} из 20.` : '',
     expel: `Третья объяснительная — ночуешь у Толика на балконе. За ночь ❤ ${S.tonight}, всего ${total} из 20.`,
   }[kind];
   screen(`<h1>${T1}</h1><p>${txt}</p>`, [{ t: kind === 'win' ? 'Новая общага' : `Ночь ${SAVE.night}`, f: kind === 'win' ? resetAll : start },
-    { t: '📖 Журнал', alt: 1, f: () => { journal(); } }]);
+    { t: '📖 Журнал', alt: 1, f: () => { journal(true); } }]);
 }
-function resetAll() { SAVE = freshSave(); persist(); ROSTER = genRoster(SAVE.seed); applyRedo(); paintBeds(); start(); }
+function resetAll() { SAVE = freshSave(); persist(); ROSTER = genRoster(SAVE.seed); applyRedo(); ROSTER.forEach(fixWish); paintBeds(); start(); }
 $('menuBtn').onclick = () => {
   if (!S || S.over || !$('screen').classList.contains('off')) return;
   const was = paused; paused = true;
@@ -1588,7 +1629,7 @@ const keys = {}; let joy = null;
 addEventListener('keydown', e => { keys[e.code] = 1; if (['Space', 'Enter', 'KeyE'].includes(e.code)) { e.preventDefault(); act(); } });
 addEventListener('keyup', e => { keys[e.code] = 0; });
 $('game').addEventListener('pointerdown', e => {
-  if (paused || e.target.closest('button, #dlg, #journal')) return;
+  if (paused || joy || e.target.closest('button, #dlg, #journal')) return;
   joy = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
   const j = $('joy'), r = $('game').getBoundingClientRect(); j.style.left = (e.clientX - r.left) + 'px'; j.style.top = (e.clientY - r.top) + 'px'; j.style.display = 'block'; j.firstChild.style.transform = '';
 });
@@ -1611,7 +1652,8 @@ function input() {
 // ---------------- цикл ----------------
 function resize() {
   const r = $('game').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
-  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); k = cv.width / VIEW; VH = cv.height / k;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  if (r.width > r.height * 1.2) { k = cv.height / 230; VIEW = cv.width / k; } else { VIEW = 176; k = cv.width / VIEW; } VH = cv.height / k;
 }
 addEventListener('resize', resize);
 const LAMPS = [];
@@ -1651,7 +1693,7 @@ function frameInner(t) {
     for (const e of ents) if (e.moving) e.ft += dt * 8;
     if (Math.floor(S.min) !== Math.floor(S.min - dt)) hud();
   }
-  sndTick(dt);
+  sndTick(dt); if (SND.bab && SND.bab.length > 120) SND.bab.splice(0, SND.bab.length - 60);
   const lab = !paused && S && !S.over ? actLabel() : null, a = $('act');
   if (lab) { if (a.textContent !== lab) a.textContent = lab; a.classList.add('on'); } else a.classList.remove('on');
   if (S) render(t);
@@ -1659,11 +1701,12 @@ function frameInner(t) {
 }
 function render(t) {
   const cw = VIEW, ch = VH;
-  camX = clamp(hero.x - cw / 2, 0, W * T - cw);
+  camX = cw >= W * T ? (W * T - cw) / 2 : clamp(hero.x - cw / 2, 0, W * T - cw);
   camY = clamp(hero.y - ch / 2 + 10, -58, H * T - ch + 40);
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#120e1c'; g.fillRect(0, 0, cv.width, cv.height);
   g.setTransform(k, 0, 0, k, -camX * k, -camY * k);
-  g.imageSmoothingEnabled = true; g.drawImage(mapCv, 0, 0, W * T, H * T);
+  g.imageSmoothingEnabled = true;
+  { const x0 = Math.max(0, Math.floor(camX) - 2), y0 = Math.max(0, Math.floor(camY) - 2), ww = Math.min(W * T - x0, cw + 4), hh = Math.min(H * T - y0, ch + 4); if (ww > 0 && hh > 0) g.drawImage(mapCv, x0 * MS, y0 * MS, ww * MS, hh * MS, x0, y0, ww, hh); }
   { const dx = RED.door.x * T, dy = RED.door.y * T;
     if (RED.open) { g.fillStyle = '#ff2a4a55'; g.fillRect(dx + 3, dy + 1, 10, 15); g.fillStyle = '#1a0306'; g.fillRect(dx + 3, dy + 1, 6, 15); }
     else { g.font = '5px system-ui'; g.textAlign = 'center'; g.fillText('🔒', dx + 8, dy + 6); } }
@@ -1687,8 +1730,8 @@ function render(t) {
   g.globalCompositeOperation = 'lighter';
   for (const L of LAMPS) {
     if (L.y < camY - 60 || L.y > camY + ch + 60) continue;
-    const gr = g.createRadialGradient(L.x, L.y, 0, L.x, L.y, L.r); gr.addColorStop(0, `rgba(${L.c},${L.a})`); gr.addColorStop(1, `rgba(${L.c},0)`);
-    g.fillStyle = gr; g.fillRect(L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
+    if (!L.gr) { L.gr = g.createRadialGradient(L.x, L.y, 0, L.x, L.y, L.r); L.gr.addColorStop(0, `rgba(${L.c},${L.a})`); L.gr.addColorStop(1, `rgba(${L.c},0)`); }
+    g.fillStyle = L.gr; g.fillRect(L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
   }
   const w = warden, ox = w.x, oy = w.y - 6;
   g.fillStyle = w.sus > 0 ? `rgba(255,140,90,${.22 + w.sus * .2})` : 'rgba(255,236,150,.22)';
@@ -1752,7 +1795,7 @@ function quietKick() {
 }
 function sndInit() {
   try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
-  if (SND.ac && (SND.ac.state === 'closed' || SND.ac.state === 'interrupted')) { quietKick(); try { SND.ac.resume(); } catch (e) {} }
+  if (SND.ac && (SND.ac.state === 'closed' || SND.ac.state === 'interrupted')) { quietKick(); try { SND.ac.resume().catch(() => {}); } catch (e) {} }
   if (SND.ac) {
     if (SND.ac.state !== 'running' && !document.hidden) {
       quietKick(); SND.ac.resume().catch(() => {});
@@ -1786,7 +1829,7 @@ function sndInit() {
 document.addEventListener('visibilitychange', () => { if (!SND.ac) return; if (document.hidden) SND.ac.suspend().catch(() => {}); else SND.ac.resume().catch(() => {}); });
 setInterval(() => { if (SND.ac && SND.ac.state === 'suspended' && !document.hidden) SND.ac.resume().catch(() => {}); }, 2000);
 function sndSet(on) { SND.on = on; try { localStorage.setItem('obsh2-snd', on ? '1' : '0'); } catch (e) {} if (SND.ac) SND.master.gain.setTargetAtTime(on ? .9 : 0, SND.ac.currentTime, .05); }
-const sndOk = () => SND.ac && SND.on && SND.ac.state === 'running' && SND.live < 40;
+const sndOk = () => SND.ac && SND.on && SND.ac.state === 'running' && SND.live < 90;
 function chain(src, o, t0, d) {   // огибающая + фильтры → шина
   const ac = SND.ac, g = ac.createGain(), pk = o.g ?? .2;
   g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(pk, t0 + (o.a || .006)); if (o.hold) g.gain.setValueAtTime(pk, t0 + d * o.hold); g.gain.exponentialRampToValueAtTime(.0005, t0 + d);
