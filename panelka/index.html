@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Панелька до неба</title>
+<meta name="theme-color" content="#7ec0ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+html,body{margin:0;height:100%;background:#7ec0ff;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+canvas{display:block;width:100vw;height:100vh;height:100dvh}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(18,28,52,.62);color:#fff;text-align:center;padding:24px;box-sizing:border-box}
+.hide{display:none!important}
+h1{margin:0;font-size:38px;line-height:1.02;text-shadow:0 3px 0 #0007;letter-spacing:.5px}
+.btn{font:inherit;font-size:22px;font-weight:800;border:0;border-radius:16px;padding:14px 30px;background:#ffcc33;color:#3a2a00;box-shadow:0 5px 0 #b38a00;cursor:pointer}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b38a00}
+.btn.sec{background:#fff;color:#234;box-shadow:0 5px 0 #9ab;font-size:18px;padding:10px 22px}
+.sub{opacity:.92;font-size:16px;max-width:330px;line-height:1.35}
+.stars{font-size:34px;letter-spacing:4px}
+#hud{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 8px) 12px 0;color:#fff;font-weight:800;font-size:18px;text-shadow:0 2px 0 #0006;pointer-events:none}
+#hud .r{display:flex;gap:10px;align-items:center}
+#bMenu{pointer-events:auto;font:inherit;font-weight:800;font-size:15px;border:0;border-radius:10px;padding:6px 10px;background:#ffffffd0;color:#234}
+#ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.6;color:#fff}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud" class="hide"><span id="hFloors"></span><span id="hLives"></span><span class="r"><span id="hPeople"></span><button id="bMenu">☰</button></span></div>
+
+<div id="menu" class="ov">
+  <h1>Панелька<br>до неба</h1>
+  <div class="sub">Кран качает этаж. <b>Тапни</b> — и он упадёт.<br>Ставь ровно — будет «Идеально!» и больше жильцов.</div>
+  <button class="btn" id="bPlay">▶ Играть</button>
+  <div class="sub" id="mInfo"></div>
+  <button class="btn sec hide" id="bCont">Продолжить</button>
+  <div id="ver">версия 0.1</div>
+</div>
+
+<div id="end" class="ov hide">
+  <h1 id="eT"></h1>
+  <div class="stars" id="eStars"></div>
+  <div class="sub" id="eS"></div>
+  <button class="btn" id="eNext"></button>
+  <button class="btn sec" id="eMenu">Меню</button>
+</div>
+
+<script>
+'use strict';
+// ═════════ Настройки ═════════
+const FW = 150, FH = 56, G = 1500, L = 170;          // этаж: ширина, высота; гравитация; длина троса
+const SAVE = 'panelka-v1';
+const HOUSES = [ // цвет стен и полоски у каждого дома
+  ['#ddd6c6', '#c8553d'], ['#cfd8de', '#2f7fb8'], ['#e4d8c0', '#3a9d5d'], ['#d9d2dc', '#8a4fb0'],
+  ['#d7dccd', '#e0912f'], ['#e2d0c8', '#b83a5e'], ['#cdd5e0', '#e5b82a'], ['#d8d8d8', '#2aa39a'],
+];
+function level(i) {
+  return {
+    goal: Math.min(8 + i * 2, 40),                    // этажей
+    amp: Math.min(.38 + i * .045, .95),               // размах качания, рад
+    per: Math.max(2.5 - i * .06, 1.55),               // период качания, с
+    wind: i >= 3 ? Math.min(.25 + (i - 3) * .08, 1) : 0, // ветер раскачивает дом
+    drift: i >= 5 ? Math.min(30 + (i - 5) * 8, 80) : 0,  // тележка крана ездит
+  };
+}
+
+// ═════════ Сохранение ═════════
+let save = { lvl: 0, stars: [] };
+try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {}
+const store = () => { try { localStorage.setItem(SAVE, JSON.stringify(save)); } catch (e) {} };
+
+// ═════════ Холст ═════════
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W = 400, H = 700, S = 1, GY = 610, CX = 200;
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), w = innerWidth, h = innerHeight;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  if (h / w >= 1.4) { W = 400; H = h / w * 400; } else { H = 620; W = w / h * 620; }
+  S = cv.width / W; GY = H - 90; CX = W / 2;
+}
+addEventListener('resize', resize); resize();
+
+function rnd(seed) { return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// ═════════ Звук ═════════
+let ac = null;
+function audio() { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {} }
+function tone(f, d, type = 'sine', v = .15, slide = 0, delay = 0) {
+  if (!ac) return; const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function thud(v = .5) {
+  if (!ac) return; const t = ac.currentTime, n = ac.sampleRate * .25, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  f.type = 'lowpass'; f.frequency.value = 260; g.gain.value = v; s.buffer = b; s.connect(f).connect(g).connect(ac.destination); s.start(t);
+  tone(70, .18, 'sine', v * .5, -30);
+}
+const sfx = {
+  drop: () => tone(520, .08, 'triangle', .06, -200),
+  land: () => thud(.6),
+  perfect: c => { thud(.5); tone(660 + c * 60, .12, 'triangle', .12); tone(990 + c * 90, .18, 'triangle', .1, 0, .08); },
+  miss: () => { tone(300, .5, 'sawtooth', .07, -220); },
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .12, 0, i * .11)),
+  lose: () => [392, 330, 262].forEach((f, i) => tone(f, .3, 'square', .06, 0, i * .16)),
+};
+
+// ═════════ Состояние ═════════
+let LVL = save.lvl, CFG = level(LVL), st = null, mode = 'menu';
+function makeFloor(i) {
+  const r = rnd(i * 977 + LVL * 131 + 7);
+  const decs = ['', '', 'balcony', 'babka', 'cat', 'plant', 'laundry', 'dish', 'balcony', 'lit', 'tv', 'babka'];
+  return { off: 0, dec: decs[r() * decs.length | 0], slot: r() * 3 | 0, win: [r(), r(), r()], cur: [r(), r(), r()], door: i === 1 };
+}
+function newGame() {
+  CFG = level(LVL);
+  st = {
+    floors: [], lives: 3, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
+    hold: makeFloor(1), drop: null, crane: 430, debris: [], texts: [], parts: [], shake: 0, wait: 0, enter: 0,
+    sway: 0, done: false, roof: null, endT: 0, perfects: 0,
+  };
+  mode = 'play';
+  hud();
+}
+const topY = () => st.floors.length * FH;
+const fac = i => Math.pow(i / 12, 1.2);
+function swayAmp() {
+  const n = st.floors.length, lean = n ? Math.abs(st.floors[n - 1].off) : 0;
+  return Math.min(45, CFG.wind * Math.min(1, n / 8) * 22 + lean * .22);
+}
+function floorX(i) { return CX + st.floors[i].off + st.sway * fac(i + 1); }
+function topX() { return st.floors.length ? floorX(st.floors.length - 1) : CX; }
+function pivot() { return { x: CX + CFG.drift * Math.sin(st.t * .55), y: st.crane }; } // кран растёт вместе с домом
+function hook() {
+  const w = 2 * Math.PI / CFG.per, a = CFG.amp * Math.sin(w * st.t + st.phase), da = CFG.amp * w * Math.cos(w * st.t + st.phase);
+  const p = pivot(), enter = Math.max(0, 1 - st.enter) * 160;
+  return { x: p.x + L * Math.sin(a), y: p.y - L * Math.cos(a) + enter, vx: L * Math.cos(a) * da, vy: L * Math.sin(a) * da, a };
+}
+
+// ═════════ Ввод ═════════
+function tap() {
+  audio();
+  if (mode !== 'play' || st.done || st.drop || !st.hold || st.enter < 1) return;
+  const h = hook();
+  st.drop = { f: st.hold, x: h.x, y: h.y, vx: h.vx * .9, vy: Math.max(0, h.vy) * .5, rot: h.a };
+  st.hold = null; sfx.drop();
+}
+cv.addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); tap(); } });
+
+// ═════════ Шаг игры ═════════
+const DT = 1 / 120;
+function float(txt, x, y, col = '#fff', big = 1) { st.texts.push({ txt, x, y, t: 0, col, big }); }
+function dust(x, y, n = 14) { for (let i = 0; i < n; i++) st.parts.push({ x: x + (Math.random() - .5) * FW, y, vx: (Math.random() - .5) * 160, vy: Math.random() * 90, t: 0, life: .5 + Math.random() * .4 }); }
+
+function step() {
+  const s = st; s.t += DT;
+  s.sway = swayAmp() * Math.sin(s.t * 2 * Math.PI / 3.2);
+  if (s.enter < 1) s.enter = Math.min(1, s.enter + DT * 2.5);
+  // камера: верх дома примерно на трети экрана снизу
+  s.crane += (topY() + 430 - s.crane) * Math.min(1, DT * 2.5);
+  const camT = Math.max(0, s.crane + 80 - GY);
+  s.cam += (camT - s.cam) * Math.min(1, DT * 3);
+  s.shake = Math.max(0, s.shake - DT * 2);
+
+  const d = s.drop;
+  if (d) {
+    d.vy -= G * DT; d.vx *= Math.pow(.6, DT); d.x += d.vx * DT; d.y += d.vy * DT; d.rot *= Math.pow(.004, DT);
+    const ty = topY(), tx = topX();
+    if (d.y - FH / 2 <= ty && d.vy < 0) {
+      const off = d.x - tx;
+      if (Math.abs(off) < FW * .7) land(off);
+      else if (Math.abs(off) < FW + 4) { // зацепился краем — кувыркается вниз
+        s.debris.push({ f: d.f, x: d.x, y: ty + FH / 2, vx: Math.sign(off) * 140, vy: 60, rot: 0, vr: Math.sign(off) * 3 }); miss();
+      } else if (d.y < ty - 400) { s.debris.push({ f: d.f, x: d.x, y: d.y, vx: d.vx, vy: d.vy, rot: d.rot, vr: Math.sign(d.vx || 1) * 1.5 }); miss(); }
+    }
+  }
+  for (const b of s.debris) { b.vy -= G * DT; b.x += b.vx * DT; b.y += b.vy * DT; b.rot += b.vr * DT; }
+  s.debris = s.debris.filter(b => b.y > s.cam - 400);
+  for (const p of s.parts) { p.t += DT; p.vy -= 200 * DT; p.x += p.vx * DT; p.y += p.vy * DT; }
+  s.parts = s.parts.filter(p => p.t < p.life);
+  for (const t of s.texts) t.t += DT;
+  s.texts = s.texts.filter(t => t.t < 1.3);
+
+  if (s.wait > 0) { s.wait -= DT; if (s.wait <= 0 && !s.done && s.lives > 0) { s.hold = makeFloor(s.floors.length + 1); s.enter = 0; } }
+  if (s.roof) { const r = s.roof; r.vy -= G * DT; r.y += r.vy * DT; if (r.y - 12 <= topY()) { r.y = topY() + 12; if (!r.landed) { r.landed = true; thud(.7); dust(topX(), topY(), 20); s.shake = .5; sfx.win(); s.endT = 1.4; } } }
+  if (s.endT > 0) { s.endT -= DT; if (s.endT <= 0) finish(s.lives > 0); }
+}
+
+function land(off) {
+  const s = st, n = s.floors.length, prev = n ? s.floors[n - 1].off : 0, d = s.drop;
+  const f = d.f, y = topY() + FH;
+  let gain;
+  if (Math.abs(off) < 7) {
+    s.combo++; s.perfects++; f.off = prev; gain = 10 + 5 * Math.min(s.combo, 6);
+    float(s.combo > 1 ? `Идеально! ×${s.combo}` : 'Идеально!', topX(), y + 30, '#ffe14a', 1.25);
+    sfx.perfect(s.combo); s.shake = .25;
+    // три идеальных подряд — дом немного выпрямляется
+    if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
+  } else {
+    s.combo = 0; f.off = prev + off; gain = Math.max(2, Math.round(10 - Math.abs(off) / 7));
+    float(Math.abs(off) < 30 ? 'Хорошо' : 'Криво…', topX() + off, y + 30, Math.abs(off) < 30 ? '#fff' : '#ffb39a');
+    sfx.land(); s.shake = .18;
+  }
+  s.people += gain; s.best = Math.max(s.best, s.combo);
+  float(`+${gain} 👥`, CX + f.off + 70, y - 10, '#d9f0ff', .8);
+  s.floors.push(f); s.drop = null;
+  dust(CX + f.off, topY() - FH);
+  if (s.floors.length >= CFG.goal) { s.done = true; s.roof = { y: topY() + 260, vy: 0 }; float('Дом готов!', CX, topY() + 120, '#ffe14a', 1.4); }
+  else s.wait = .35;
+  hud();
+}
+function miss() {
+  const s = st; s.drop = null; s.combo = 0; s.lives--; s.shake = .4; sfx.miss();
+  float('Мимо! −⛑️', CX, topY() + 90, '#ff8a7a', 1.2);
+  if (s.lives <= 0) { s.done = true; s.endT = 1.3; } else s.wait = .7;
+  hud();
+}
+function stars() { const s = st, g = CFG.goal; return s.people >= g * 22 ? 3 : s.people >= g * 12 ? 2 : 1; }
+function finish(won) {
+  mode = 'end'; hudShow(false);
+  const e = id => document.getElementById(id);
+  if (won) {
+    const k = stars(); save.stars[LVL] = Math.max(save.stars[LVL] || 0, k);
+    if (save.lvl <= LVL) save.lvl = LVL + 1; store();
+    e('eT').textContent = 'Дом сдан! 🏢'; e('eStars').textContent = '⭐'.repeat(k) + '☆'.repeat(3 - k);
+    e('eS').innerHTML = `Этажей: <b>${CFG.goal}</b> · Жильцов: <b>${st.people}</b><br>Идеальных: ${st.perfects} · Лучшая серия: ${st.best}` + (k < 3 ? `<br><small>Для ⭐⭐⭐ нужно ${CFG.goal * 22} жильцов — ставь ровнее!</small>` : '');
+    e('eNext').textContent = `▶ Стройка №${LVL + 2}`; e('eNext').dataset.act = 'next';
+  } else {
+    sfx.lose();
+    e('eT').textContent = 'Прораб недоволен 😤'; e('eStars').textContent = '';
+    e('eS').innerHTML = `Каски кончились.<br>Построено <b>${st.floors.length}</b> из ${CFG.goal} этажей.`;
+    e('eNext').textContent = '↻ Ещё раз'; e('eNext').dataset.act = 'again';
+  }
+  e('end').classList.remove('hide');
+}
+
+// ═════════ HUD и меню ═════════
+const $ = id => document.getElementById(id);
+function hudShow(v) { $('hud').classList.toggle('hide', !v); }
+function hud() {
+  if (!st) return;
+  $('hFloors').textContent = `🏗️ ${st.floors.length}/${CFG.goal}`;
+  $('hLives').textContent = '⛑️'.repeat(Math.max(0, st.lives)) + '·'.repeat(3 - Math.max(0, st.lives));
+  $('hPeople').textContent = `👥 ${st.people}`;
+}
+function showMenu() {
+  mode = 'menu'; hudShow(false); $('end').classList.add('hide'); $('menu').classList.remove('hide');
+  const built = save.stars.filter(Boolean).length, all = save.stars.reduce((a, b) => a + (b || 0), 0);
+  $('bPlay').textContent = `▶ Стройка №${save.lvl + 1}`;
+  $('mInfo').innerHTML = built ? `Сдано домов: <b>${built}</b> · звёзд: ${all} ⭐` : 'Первая стройка — 8 этажей.';
+  $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length));
+}
+function play(l) { LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); hudShow(true); audio(); }
+$('bPlay').onclick = () => play(save.lvl);
+$('bCont').onclick = () => { $('menu').classList.add('hide'); mode = 'play'; hudShow(true); };
+$('bMenu').onclick = e => { e.stopPropagation(); showMenu(); };
+$('bMenu').addEventListener('pointerdown', e => e.stopPropagation());
+$('eMenu').onclick = showMenu;
+$('eNext').onclick = () => play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
+
+// ═════════ Рисование ═════════
+const sy = wy => GY - (wy - (st ? st.cam : 0));
+function house() { return HOUSES[LVL % HOUSES.length]; }
+function drawFloor(cx, cy, f, rot = 0, hc = house()) {
+  ctx.save(); ctx.translate(cx, cy); if (rot) ctx.rotate(rot);
+  const w = FW, h = FH;
+  ctx.fillStyle = hc[0]; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.fillStyle = hc[1]; ctx.fillRect(-w / 2, h / 2 - 7, w, 7);
+  ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = 1;
+  ctx.beginPath(); for (const x of [-w / 6 * 2 + 1, w / 6 * 2 - 1]) { ctx.moveTo(x - 24, -h / 2); ctx.lineTo(x - 24, h / 2 - 7); } ctx.stroke();
+  ctx.strokeRect(-w / 2 + .5, -h / 2 + .5, w - 1, h - 1);
+  for (let k = 0; k < 3; k++) {
+    const wx = (k - 1) * 48, wy = -h / 2 + 9;
+    if (f.door && k === 1) {
+      ctx.fillStyle = '#7a4b2a'; ctx.fillRect(wx - 13, wy + 6, 26, h - 22);
+      ctx.fillStyle = '#5c381e'; ctx.fillRect(wx - 18, wy + 2, 36, 5);
+      ctx.fillStyle = '#ffd54a'; ctx.fillRect(wx + 6, wy + 22, 3, 3);
+      ctx.fillStyle = '#245'; ctx.font = 'bold 7px system-ui'; ctx.textAlign = 'center'; ctx.fillText('ПОДЪЕЗД', wx, wy - 1); continue;
+    }
+    const lit = f.dec === 'lit' || f.win[k] > .72;
+    ctx.fillStyle = '#f4f4f0'; ctx.fillRect(wx - 16, wy, 32, 29);
+    const gl = ctx.createLinearGradient(0, wy, 0, wy + 27);
+    if (lit) { gl.addColorStop(0, '#fff2a8'); gl.addColorStop(1, '#ffc95a'); } else { gl.addColorStop(0, '#9fd0f2'); gl.addColorStop(1, '#4f88bf'); }
+    ctx.fillStyle = gl; ctx.fillRect(wx - 14, wy + 2, 28, 25);
+    if (f.cur[k] > .55) { ctx.fillStyle = ['#e86f6f', '#7fbf6a', '#f0b85a', '#b48be0'][(f.cur[k] * 40 | 0) % 4]; ctx.beginPath(); ctx.moveTo(wx - 14, wy + 2); ctx.lineTo(wx - 4, wy + 2); ctx.lineTo(wx - 14, wy + 22); ctx.fill(); ctx.beginPath(); ctx.moveTo(wx + 14, wy + 2); ctx.lineTo(wx + 4, wy + 2); ctx.lineTo(wx + 14, wy + 22); ctx.fill(); }
+    ctx.fillStyle = '#f4f4f0'; ctx.fillRect(wx - 1, wy + 2, 2, 25); ctx.fillRect(wx - 14, wy + 11, 28, 2);
+    if (k === f.slot) decor(f.dec, wx, wy);
+  }
+  ctx.restore();
+}
+function decor(dec, wx, wy) {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  if (dec === 'babka') { ctx.font = '19px serif'; ctx.fillText('👵', wx, wy + 26); }
+  else if (dec === 'cat') { ctx.font = '15px serif'; ctx.fillText('🐈', wx + 6, wy + 28); }
+  else if (dec === 'plant') { ctx.font = '14px serif'; ctx.fillText('🪴', wx - 7, wy + 27); }
+  else if (dec === 'tv') { ctx.fillStyle = '#3df0ff55'; ctx.fillRect(wx - 14, wy + 2, 28, 25); }
+  else if (dec === 'dish') { ctx.fillStyle = '#bfc4c8'; ctx.beginPath(); ctx.arc(wx + 21, wy + 6, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#888'; ctx.stroke(); }
+  else if (dec === 'balcony') {
+    ctx.fillStyle = '#b9c2c8'; ctx.fillRect(wx - 21, wy + 22, 42, 15); ctx.strokeStyle = '#7d8a92'; ctx.lineWidth = 1;
+    ctx.beginPath(); for (let x = -18; x <= 18; x += 6) { ctx.moveTo(wx + x, wy + 22); ctx.lineTo(wx + x, wy + 37); } ctx.stroke();
+  } else if (dec === 'laundry') {
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(wx - 20, wy + 4); ctx.quadraticCurveTo(wx, wy + 10, wx + 20, wy + 4); ctx.stroke();
+    ['#e85d5d', '#5d9be8', '#f2d24b', '#fff'].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(wx - 16 + i * 9, wy + 6 + (i % 2), 6, 9); });
+  }
+}
+function drawRoof(cx, cy) {
+  ctx.fillStyle = '#6b6f75'; ctx.fillRect(cx - FW / 2 - 4, cy - 2, FW + 8, 14);
+  ctx.fillStyle = '#4c5056'; ctx.fillRect(cx - FW / 2 - 4, cy - 6, FW + 8, 5);
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(cx - 40, cy - 6); ctx.lineTo(cx - 40, cy - 40); ctx.moveTo(cx - 52, cy - 34); ctx.lineTo(cx - 28, cy - 34); ctx.moveTo(cx - 49, cy - 26); ctx.lineTo(cx - 31, cy - 26);
+  ctx.moveTo(cx + 45, cy - 6); ctx.lineTo(cx + 45, cy - 28); ctx.stroke();
+  ctx.fillStyle = '#ff4040'; ctx.beginPath(); ctx.arc(cx + 45, cy - 30, 3, 0, 7); ctx.fill();
+}
+// дома, сданные раньше, — стоят вокруг стройки
+function drawDistrict() {
+  const built = save.stars.map((k, i) => k ? i : -1).filter(i => i >= 0 && i !== LVL);
+  const spots = [-1, 1, -2, 2, -3, 3, -4, 4];
+  built.slice(-8).forEach((li, j) => {
+    const side = spots[j], x = CX + side * 105 + (side > 0 ? 25 : -25), sc = .42, n = level(li).goal, hc = HOUSES[li % HOUSES.length];
+    ctx.save(); ctx.translate(x, sy(0) - 6); ctx.scale(sc, sc);
+    for (let i = 0; i < n; i++) drawFloor(0, -FH / 2 - i * FH, { win: [.8 * ((i * 7 + li) % 3 === 0), .3, ((i + li) % 4 === 0) ? .9 : .2], cur: [0, 0, 0], dec: '', slot: 9 }, 0, hc);
+    drawRoof(0, -n * FH - 6);
+    ctx.restore();
+  });
+}
+function drawSky() {
+  const k = Math.min(1, (st ? st.cam : 0) / 3200);
+  const mix = (a, b) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+  const top = mix([94, 172, 245], [18, 26, 70]), bot = mix([178, 222, 255], [90, 110, 190]);
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, `rgb(${top})`); g.addColorStop(1, `rgb(${bot})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (k > .5) { ctx.fillStyle = `rgba(255,255,255,${(k - .5) * 1.6})`; for (let i = 0; i < 40; i++) ctx.fillRect((i * 97) % W, (i * 53 + 11) % (H * .6), 2, 2); }
+  // облака (медленнее камеры)
+  const cam = st ? st.cam : 0;
+  for (let i = Math.floor((cam * .5 - 200) / 230); i < (cam * .5 + H) / 230; i++) {
+    if (i < 1) continue; const r = rnd(i * 31)(), x = ((r * 1.7 + (st ? st.t : 0) * .004 * (i % 3 + 1)) % 1.4 - .2) * W, y = GY - (i * 230 - cam * .5);
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; for (const [dx, dy, rr] of [[0, 0, 22], [22, 4, 17], [-22, 5, 15], [10, -10, 16]]) { ctx.beginPath(); ctx.arc(x + dx, y + dy, rr, 0, 7); ctx.fill(); }
+  }
+  // далёкий город
+  const by = GY + cam * .7 - 0;
+  if (by - 160 < H) {
+    ctx.fillStyle = 'rgba(120,150,190,.55)';
+    for (let i = 0; i < 14; i++) { const r = rnd(i + 5), w = 30 + r() * 40, h = 60 + r() * 120, x = (i / 14) * W * 1.1 - 20; ctx.fillRect(x, by - h, w, h); }
+  }
+}
+function drawGround() {
+  const g0 = sy(0); if (g0 > H + 10) return;
+  ctx.fillStyle = '#6cbf4f'; ctx.fillRect(0, g0, W, H - g0 + 10); ctx.fillStyle = '#8a6a45'; ctx.fillRect(0, g0 + 26, W, H);
+  ctx.fillStyle = '#9aa1a8'; ctx.fillRect(CX - FW / 2 - 20, g0 - 4, FW + 40, 14); // фундамент
+  // забор и табличка
+  ctx.fillStyle = '#4f7f9c'; for (let x = 6; x < W; x += 16) if (Math.abs(x - CX) > FW / 2 + 30) ctx.fillRect(x, g0 - 26, 13, 30);
+  ctx.fillStyle = '#fff'; ctx.fillRect(10, g0 - 40, 96, 28); ctx.fillStyle = '#234'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText(`СТРОЙКА №${LVL + 1}`, 16, g0 - 28); ctx.font = '9px system-ui'; ctx.fillText(`этажей: ${CFG.goal}`, 16, g0 - 17);
+  ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.fillText('👷', W - 40, g0 + 2);
+}
+function drawCrane() {
+  const p = pivot(), py = sy(p.y);
+  ctx.strokeStyle = '#e8a417'; ctx.lineWidth = 3; ctx.fillStyle = '#f2b628';
+  ctx.fillRect(-10, py - 14, W + 20, 10);
+  ctx.beginPath(); for (let x = -10; x < W + 10; x += 20) { ctx.moveTo(x, py - 14); ctx.lineTo(x + 10, py - 4); ctx.lineTo(x + 20, py - 14); } ctx.lineWidth = 1.5; ctx.strokeStyle = '#b98012'; ctx.stroke();
+  ctx.fillStyle = '#555'; ctx.fillRect(p.x - 12, py - 6, 24, 8); // тележка
+  return { x: p.x, y: py + 2 };
+}
+function drawHeld(tr) {
+  const s = st;
+  if (s.hold) {
+    const h = hook(), cx = h.x, cy = sy(h.y), a = -h.a;
+    const top = { x: cx + Math.sin(a) * (FH / 2 + 24), y: cy - Math.cos(a) * (FH / 2 + 24) }; // крюк над блоком
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tr.x, tr.y); ctx.lineTo(top.x, top.y); ctx.stroke();
+    // стропы к углам
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0, -FH / 2 - 24); ctx.lineTo(-FW / 2 + 6, -FH / 2); ctx.moveTo(0, -FH / 2 - 24); ctx.lineTo(FW / 2 - 6, -FH / 2); ctx.stroke();
+    ctx.fillStyle = '#e8a417'; ctx.beginPath(); ctx.arc(0, -FH / 2 - 24, 5, 0, 7); ctx.fill();
+    ctx.restore();
+    drawFloor(cx, cy, s.hold, a);
+    // подсказка, куда упадёт: тень на крыше
+    if (mode === 'play' && !s.floors.length && !s.drop && save.lvl === 0) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 18px system-ui'; ctx.textAlign = 'center'; ctx.fillText('Тапни, когда этаж над домом!', CX, sy(topY()) - 24); }
+  } else {
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tr.x, tr.y); ctx.lineTo(tr.x, tr.y + 60); ctx.stroke();
+    ctx.fillStyle = '#e8a417'; ctx.beginPath(); ctx.arc(tr.x, tr.y + 62, 5, 0, 7); ctx.fill();
+  }
+}
+function render() {
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  if (!st) { CFG = level(save.lvl); LVL = save.lvl; newGame(); mode = 'menu'; }
+  const s = st, sh = s.shake > 0 ? s.shake * 8 : 0;
+  drawSky();
+  ctx.save(); if (sh) ctx.translate((Math.random() - .5) * sh, (Math.random() - .5) * sh);
+  drawDistrict();
+  drawGround();
+  const n = s.floors.length;
+  for (let i = 0; i < n; i++) { const y = sy(i * FH + FH / 2); if (y < -FH || y > H + FH) continue; drawFloor(floorX(i), y, s.floors[i], fac(i + 1) * s.sway * -.0025); }
+  if (s.roof) drawRoof(topX(), sy(s.roof.y - 12) - 6);
+  if (s.drop) drawFloor(s.drop.x, sy(s.drop.y), s.drop.f, -s.drop.rot);
+  for (const b of s.debris) drawFloor(b.x, sy(b.y), b.f, b.rot);
+  for (const p of s.parts) { ctx.fillStyle = `rgba(200,190,170,${1 - p.t / p.life})`; ctx.beginPath(); ctx.arc(p.x, sy(p.y), 4 + p.t * 10, 0, 7); ctx.fill(); }
+  const tr = drawCrane();
+  if (!s.done) drawHeld(tr);
+  ctx.restore();
+  ctx.textAlign = 'center';
+  for (const t of s.texts) {
+    const a = Math.min(1, 2.6 - t.t * 2), y = sy(t.y) - t.t * 40;
+    ctx.globalAlpha = Math.max(0, a); ctx.font = `900 ${Math.round(22 * t.big)}px system-ui`; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.45)';
+    ctx.strokeText(t.txt, t.x, y); ctx.fillStyle = t.col; ctx.fillText(t.txt, t.x, y); ctx.globalAlpha = 1;
+  }
+}
+
+// ═════════ Цикл ═════════
+let last = performance.now(), acc = 0, running = true;
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (running && st && (mode === 'play' || (mode === 'end'))) { acc += dt; while (acc >= DT) { if (mode === 'play') step(); acc -= DT; } }
+  else if (st && mode === 'menu') st.t += dt;
+  render();
+  requestAnimationFrame(frame);
+}
+showMenu();
+requestAnimationFrame(frame);
+
+// для автотестов
+window.__p = { get st() { return st; }, get mode() { return mode; }, get cfg() { return CFG; }, hook, topX, topY, tap, step, play, setRunning: v => { running = v; }, get save() { return save; } };
+</script>
+</body>
+</html>
