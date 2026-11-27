@@ -48,7 +48,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn" id="bPlay">▶ Играть</button>
   <div class="sub small" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
-</div><div id="ver">версия 0.2.1</div></div>
+</div><div id="ver">версия 0.3</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -387,7 +387,7 @@ function newGame() {
   st = {
     floors: [], lives: 3, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
     hold: null, drop: null, crane: 430, debris: [], texts: [], parts: [], rings: [], shake: 0, wait: 0, enter: 0,
-    sway: 0, done: false, roof: null, endT: 0, perfects: 0, time: CFG.time, why: '', lastTick: 99,
+    sway: 0, x: 0, v: 0, stab: [], creak: 0, done: false, roof: null, endT: 0, perfects: 0, time: CFG.time, why: '', lastTick: 99,
   };
   st.hold = makeFloor(1);
   district = null;
@@ -395,11 +395,74 @@ function newGame() {
 }
 const topY = () => st.floors.length * FH;
 const fac = i => Math.pow(Math.min(i, 14) / 14, 1.3); // качание: низ стоит, выше 14-го этажа дом качается целиком
-function swayAmp() {
-  const n = st.floors.length, lean = n ? Math.abs(st.floors[n - 1].off) : 0;
-  return Math.min(45, CFG.wind * Math.min(1, n / 8) * 22 + lean * .22);
+// ═════════ Физика стопки ═════════
+// Стопка держится, пока центр тяжести этажей j..верх лежит над опорой (этажом j-1).
+// Запас s: 1 — ровно по центру, 0 — центр тяжести на краю опоры, меньше 0 — свисает.
+const SHAKY = .3, TIP = -.5;
+function stability() {
+  const F = st.floors, res = [];
+  let m = 0, mx = 0;
+  for (let j = F.length - 1; j >= 0; j--) {
+    m += F[j].w; mx += F[j].w * F[j].off;
+    const sup = j ? F[j - 1] : { off: 0, w: FW + 44 }, half = sup.w / 2, d = mx / m - sup.off;
+    res[j] = { s: (half - Math.abs(d)) / half, dir: Math.sign(d) || 1 };
+  }
+  return res;
 }
-function floorX(i) { return CX + st.floors[i].off + st.sway * fac(i + 1); }
+// нижний шаткий этаж: от него и выше дом качается на ребре опоры
+function rock() {
+  const S2 = st.stab;
+  for (let j = 0; j < S2.length; j++) if (S2[j].s < SHAKY) {
+    const k = Math.min(1, (SHAKY - S2[j].s) * 2.2);
+    return { j, ang: clamp(st.x / 50, -1.6, 1.6) * .1 * k };
+  }
+  return null;
+}
+function floorX(i) {
+  const r = rock(), extra = r && i >= r.j ? r.ang * ((i - r.j) * FH + FH / 2) : 0;
+  return CX + st.floors[i].off + st.sway * fac(i + 1) + extra;
+}
+function floorRot(i) {
+  const r = rock();
+  return (fac(i + 1) - fac(i)) * st.sway / FH * .8 + (r && i >= r.j ? r.ang : 0);
+}
+function collapse(j, why) {
+  const s = st, F = s.floors, dir = s.stab[j] ? s.stab[j].dir : 1;
+  if (s.lives <= 0) return;
+  let lost = 0;
+  for (let i = F.length - 1; i >= j; i--) {
+    const f = F[i], h = i - j;
+    s.debris.push({ f, x: floorX(i), y: i * FH + FH / 2, vx: dir * (90 + h * 35) + (Math.random() - .5) * 60, vy: 40 + Math.random() * 80, rot: floorRot(i), vr: dir * (1.2 + h * .4 + Math.random()) });
+    lost += f.gain || 0;
+  }
+  F.length = j; s.people = Math.max(0, s.people - lost);
+  s.stab = stability(); s.x *= .3; s.v *= .3; s.combo = 0; s.lives--; s.shake = .7;
+  thud(.9); sfx.miss();
+  float(why || 'Обвал! −1', CX, topY() + 100, '#ff8a7a', 1.3, 'helmet');
+  if (lost) float(`−${lost}`, CX + 40, topY() + 60, '#ffb39a', .85, 'people');
+  if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.5; s.hold = null; }
+  hud();
+}
+function physics() {
+  const s = st, n = s.floors.length, S2 = s.stab;
+  let weak = 0, lean = 0;
+  for (let j = 0; j < S2.length; j++) { const k = SHAKY - S2[j].s; if (k > 0) { weak += k; lean += k * S2[j].dir; } }
+  const K = 3.85 * Math.max(.45, 1 - weak * .9), C = .8 - Math.min(1.15, weak * 1.5);
+  const wind = CFG.wind * Math.min(1, n / 8) * 26 * Math.sin(s.t * 1.96);
+  s.v += (-K * s.x - C * s.v + wind + lean * 32) * DT; s.x = clamp(s.x + s.v * DT, -140, 140);
+  s.sway = s.x;
+  if (weak > .05) {
+    s.creak -= DT;
+    if (s.creak <= 0 && Math.abs(s.x) > 6) { s.creak = 1.1; tone(85 + Math.random() * 20, .3, 'sawtooth', .035, 25); }
+  }
+  // раскачка тянет шаткий этаж за край — копим напряжение
+  for (let j = 0; j < S2.length; j++) {
+    if (S2[j].s >= SHAKY) { s.floors[j].strain = 0; continue; }
+    const eff = S2[j].s - Math.max(0, s.x * S2[j].dir) / 50, f = s.floors[j];
+    f.strain = eff < TIP ? (f.strain || 0) + DT : Math.max(0, (f.strain || 0) - DT * .5);
+    if (f.strain > .8 && !s.roof) { collapse(j); break; }
+  }
+}
 function topX() { return st.floors.length ? floorX(st.floors.length - 1) : CX; }
 function topW() { return st.floors.length ? st.floors[st.floors.length - 1].w : FW + 44; }
 function pivot() { return { x: CX + CFG.drift * Math.sin(st.t * .55), y: st.crane }; }
@@ -428,7 +491,7 @@ function confetti() { const cols = ['#ff5a5a', '#ffd23f', '#5be38a', '#4aa3f0', 
 
 function step() {
   const s = st; s.t += DT;
-  s.sway = swayAmp() * Math.sin(s.t * 2 * Math.PI / 3.2);
+  if (!s.done || s.roof) physics();
   if (s.enter < 1) s.enter = Math.min(1, s.enter + DT * 2.5);
   s.crane += (topY() + 430 - s.crane) * Math.min(1, DT * 2.5);
   const camT = Math.max(0, s.crane + 80 - GY);
@@ -446,7 +509,7 @@ function step() {
     const ty = topY(), tx = topX(), half = (topW() + d.f.w) / 2;
     if (d.y - FH / 2 <= ty && d.vy < 0 && !d.past) {
       const off = d.x - tx;
-      if (Math.abs(off) < half * .7) land(off);
+      if (Math.abs(off) < topW() / 2 * 1.45) land(off);
       else if (Math.abs(off) < half + 4) { // зацепился краем — кувыркается вниз
         s.debris.push({ f: d.f, x: d.x, y: ty + FH / 2, vx: Math.sign(off) * 140, vy: 60, rot: 0, vr: Math.sign(off) * 3 }); miss();
       } else d.past = true;
@@ -478,24 +541,31 @@ function land(off) {
     float(s.combo > 1 ? `Идеально! ×${s.combo}` : 'Идеально!', topX(), y + 30, '#ffe14a', 1.25);
     s.rings.push({ x: topX(), y: topY(), t: 0, w: f.w });
     sfx.perfect(s.combo); s.shake = .25;
-    if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
+    s.v *= .35; s.x *= .7; // ровный этаж гасит раскачку
+    if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; s.x = 0; s.v = 0; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
   } else {
     s.combo = 0; f.off = prev + off; gain = Math.max(2, Math.round(10 - Math.abs(off) / 7));
     bad = CFG.sp === 'precise' && Math.abs(off) > 20;
     float(bad ? 'Криво! −1' : Math.abs(off) < 30 ? 'Хорошо' : 'Криво…', topX() + off, y + 30, bad ? '#ff8a7a' : Math.abs(off) < 30 ? '#fff' : '#ffb39a', bad ? 1.15 : 1, bad ? 'helmet' : '');
     sfx.land(); s.shake = .18;
+    s.v += clamp(off, -60, 60) * 1.2; // удар со смещением раскачивает дом
   }
   s.people += gain; s.best = Math.max(s.best, s.combo);
   float(`+${gain}`, CX + f.off + f.w / 2 - 14, y - 10, '#d9f0ff', .8, 'people');
-  s.floors.push(f); s.drop = null;
+  f.gain = gain; s.floors.push(f); s.drop = null;
   dust(CX + f.off, topY() - FH, f.w);
+  s.stab = stability();
+  const worst = s.stab.reduce((a, b, j) => b.s < a.s ? { s: b.s, j } : a, { s: 9, j: -1 });
+  if (worst.s < TIP) { s.wait = .7; collapse(worst.j, worst.j === s.floors.length - 1 ? 'Сорвался! −1' : 'Перевес! −1'); return; }
+  if (s.stab[s.floors.length - 1].s < SHAKY || worst.s < SHAKY) float('Шатается!', CX + f.off, y + 64, '#ffb347', 1.05);
   if (bad) { s.lives--; s.shake = .4; sfx.miss(); if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.3; hud(); return; } }
   if (s.floors.length >= CFG.goal) { s.done = true; s.roof = { y: topY() + 260, vy: 0 }; float('Дом готов!', CX, topY() + 120, '#ffe14a', 1.4); }
   else s.wait = CFG.time ? .2 : .35;
   hud();
 }
 function miss() {
-  const s = st; s.drop = null; s.combo = 0; s.lives--; s.shake = .4; sfx.miss();
+  const s = st;
+  if (s.lives <= 0) { s.drop = null; return; } s.drop = null; s.combo = 0; s.lives--; s.shake = .4; sfx.miss();
   float('Мимо! −1', CX, topY() + 90, '#ff8a7a', 1.2, 'helmet');
   if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.3; } else s.wait = .7;
   hud();
@@ -685,7 +755,7 @@ function render() {
   drawMast();
   drawSite();
   const n = s.floors.length;
-  for (let i = 0; i < n; i++) { const y = sy(i * FH + FH / 2); if (y < -FH * 2 || y > H + FH) continue; drawFloor(s.floors[i], floorX(i), y, (fac(i + 1) - fac(i)) * s.sway / FH * .8, i === n - 1 && !s.roof); }
+  for (let i = 0; i < n; i++) { const y = sy(i * FH + FH / 2); if (y < -FH * 2 || y > H + FH) continue; drawFloor(s.floors[i], floorX(i), y, floorRot(i), i === n - 1 && !s.roof); }
   if (s.roof) drawRoof(topX(), sy(s.roof.y), topW());
   for (const r of s.rings) { const k = r.t / .6; ctx.strokeStyle = `rgba(255,225,74,${1 - k})`; ctx.lineWidth = 4 * (1 - k) + 1; ctx.beginPath(); ctx.ellipse(r.x, sy(r.y), r.w / 2 + k * 60, 8 + k * 20, 0, 0, 7); ctx.stroke(); }
   if (s.drop) drawFloor(s.drop.f, s.drop.x, sy(s.drop.y), -s.drop.rot, true);
