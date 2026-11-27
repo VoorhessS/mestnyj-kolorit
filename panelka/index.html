@@ -34,7 +34,7 @@ h1{margin:0;font-size:38px;line-height:1.02;text-shadow:0 3px 0 #0007;letter-spa
   <button class="btn" id="bPlay">▶ Играть</button>
   <div class="sub" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
-  <div id="ver">версия 0.1</div>
+  <div id="ver">версия 0.1.1</div>
 </div>
 
 <div id="end" class="ov hide">
@@ -110,7 +110,7 @@ const sfx = {
 let LVL = save.lvl, CFG = level(LVL), st = null, mode = 'menu';
 function makeFloor(i) {
   const r = rnd(i * 977 + LVL * 131 + 7);
-  const decs = ['', '', 'balcony', 'babka', 'cat', 'plant', 'laundry', 'dish', 'balcony', 'lit', 'tv', 'babka'];
+  const decs = ['', '', 'balcony', 'dog', 'cat', 'plant', 'laundry', 'dish', 'balcony', 'lit', 'tv', 'flowers'];
   return { off: 0, dec: decs[r() * decs.length | 0], slot: r() * 3 | 0, win: [r(), r(), r()], cur: [r(), r(), r()], door: i === 1 };
 }
 function newGame() {
@@ -292,7 +292,8 @@ function drawFloor(cx, cy, f, rot = 0, hc = house()) {
 }
 function decor(dec, wx, wy) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  if (dec === 'babka') { ctx.font = '19px serif'; ctx.fillText('👵', wx, wy + 26); }
+  if (dec === 'dog') { ctx.font = '16px serif'; ctx.fillText('🐕', wx + 5, wy + 27); }
+  else if (dec === 'flowers') { ctx.font = '12px serif'; ctx.fillText('🌷🌷', wx, wy + 27); }
   else if (dec === 'cat') { ctx.font = '15px serif'; ctx.fillText('🐈', wx + 6, wy + 28); }
   else if (dec === 'plant') { ctx.font = '14px serif'; ctx.fillText('🪴', wx - 7, wy + 27); }
   else if (dec === 'tv') { ctx.fillStyle = '#3df0ff55'; ctx.fillRect(wx - 14, wy + 2, 28, 25); }
