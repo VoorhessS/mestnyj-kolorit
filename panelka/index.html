@@ -7,13 +7,16 @@
 <meta name="theme-color" content="#4aa3f0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <style>
 @font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
 @font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-lat.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
 html,body{margin:0;height:100%;background:#4aa3f0;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;font-family:Rubik,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 canvas{display:block;width:100vw;height:100vh;height:100dvh}
 .ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:radial-gradient(ellipse at 50% 40%,rgba(20,32,70,.35),rgba(10,16,40,.72))}
-.card{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;color:#fff;padding:26px 20px 22px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.28);box-shadow:0 20px 50px rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.card{max-height:92vh;overflow:auto;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;color:#fff;padding:26px 20px 22px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.28);box-shadow:0 20px 50px rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .hide{display:none!important}
 h1{margin:0;font-size:42px;font-weight:900;line-height:.98;letter-spacing:.5px;background:linear-gradient(180deg,#fff7c2,#ffc23a 60%,#ff9a1f);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(90,40,0,.55))}
 h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 rgba(0,0,0,.35)}
@@ -67,6 +70,9 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .claim{font:inherit;font-weight:900;font-size:14px;border:0;border-radius:12px;padding:8px 12px;background:linear-gradient(180deg,#ffe066,#ffb31f);color:#4a2c00;box-shadow:0 3px 0 #b9700a;flex:none}
 .claim[disabled]{background:rgba(255,255,255,.2);color:#fff;box-shadow:none}
 .badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:99px;background:#ff5a5a;color:#fff;font-size:13px;line-height:18px}
+.opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.opt{font:inherit;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:6px 11px;background:rgba(255,255,255,.12);color:#fff}
+.opt.off{opacity:.5;text-decoration:line-through}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
@@ -81,12 +87,16 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <h1>Панелька<br>до неба</h1>
   <div class="sub">Кран качает этаж. <b>Тапни</b> — и он упадёт.<br>Ставь ровно — будет «Идеально!» и больше жильцов.</div>
   <button class="btn" id="bPlay">▶ Играть</button>
+  <button class="btn sec" id="bSky">Небоскрёб</button>
   <div class="sub small" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
   <button class="btn sec" id="bTasks">Задания</button>
   <button class="btn sec" id="bDist">Районы</button>
   <button class="btn sec" id="bColl">Жильцы</button>
-</div><div id="ver">версия 0.6.1</div></div>
+  <button class="btn sec hide" id="bInst">На экран «Домой»</button>
+  <div class="sub small hide" id="instHint"></div>
+  <div class="opts"><button class="opt" id="oMus"></button><button class="opt" id="oSfx"></button><button class="opt" id="oVib"></button></div>
+</div><div id="ver">версия 0.8</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -153,7 +163,7 @@ function level(i) {
     per: Math.max(2.5 - i * .06, 1.55),               // период качания, с
     wind: i >= 3 ? Math.min(.25 + (i - 3) * .08, 1) : 0, // ветер раскачивает дом
     drift: i >= 5 ? Math.min(30 + (i - 5) * 8, 80) : 0,  // тележка крана ездит
-    time: sp === 'timer' ? Math.round(goal * 3.4 + 4) : 0,
+    time: sp === 'timer' ? Math.round(goal * 3.8 + 6) : 0,
   };
 }
 
@@ -310,25 +320,69 @@ function buildBG() {
 }
 
 // ═════════ Звук ═════════
-let ac = null;
-function audio() { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {} }
+let ac = null, busS = null, busM = null, windSrc = null, windG = null;
+const OPT = Object.assign({ music: true, sfx: true, vib: true }, save.opt || {}); save.opt = OPT;
+function audio() {
+  try {
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      busS = ac.createGain(); busS.connect(ac.destination); busM = ac.createGain(); busM.connect(ac.destination);
+      // ветер: петля шума через полосовой фильтр
+      const n = ac.sampleRate * 2, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0); let l = 0;
+      for (let i = 0; i < n; i++) { l = l * .98 + (Math.random() * 2 - 1) * .02; d[i] = l * 6; }
+      windSrc = ac.createBufferSource(); windSrc.buffer = b; windSrc.loop = true; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = .6;
+      windG = ac.createGain(); windG.gain.value = 0; windSrc.connect(f).connect(windG).connect(busS); windSrc.start();
+      applyOpt();
+    }
+    ac.resume();
+  } catch (e) {}
+}
+function applyOpt() { if (!ac) return; busS.gain.value = OPT.sfx ? 1 : 0; busM.gain.value = OPT.music ? .55 : 0; }
+function vib(p) { if (OPT.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
+// ═════════ Музыка: своя, генерируется на лету ═════════
+// 4 такта: C – Am – F – G, бас, мягкие аккорды, мелодия на пентатонике, шорох «тарелки»
+const MUS = { next: 0, step: 0 }, BPM = 104;
+const CHORDS = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]];
+const MEL = [12, -1, 16, -1, 19, 16, -1, 14, 12, -1, 9, -1, 12, 14, -1, -1, 9, -1, 12, -1, 16, -1, 14, 12, 9, -1, 7, -1, 9, -1, -1, -1,
+  5, -1, 9, -1, 12, -1, 14, 12, 9, -1, 12, -1, 9, 7, -1, -1, 7, -1, 11, -1, 14, -1, 19, 17, 14, -1, 11, -1, 14, -1, -1, -1];
+const hz = st2 => 261.63 * Math.pow(2, st2 / 12);
+function mnote(f, t, d, type, v) { const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .015); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(busM); o.start(t); o.stop(t + d + .05); }
+function musicTick() {
+  if (!ac || !OPT.music || ac.state !== 'running') return;
+  const e8 = 60 / BPM / 2;
+  if (MUS.next < ac.currentTime) MUS.next = ac.currentTime + .05;
+  while (MUS.next < ac.currentTime + .3) {
+    const i = MUS.step % 64, bar = i >> 4, t = MUS.next, ch = CHORDS[bar];
+    if (i % 4 === 0) mnote(hz(ch[0] - 24), t, e8 * 3.5, 'triangle', .16);
+    if (i % 16 === 0) for (const n of ch) mnote(hz(n - 12), t, e8 * 15, 'sine', .035);
+    if (i % 16 === 8) for (const n of ch) mnote(hz(n), t, e8 * 7, 'sine', .025);
+    if (MEL[i] >= 0) mnote(hz(MEL[i]), t, e8 * 1.6, 'square', .018);
+    if (i % 2 === 1) { const n = ac.createBufferSource(), b = ac.createBuffer(1, 900, ac.sampleRate), d = b.getChannelData(0); for (let k = 0; k < 900; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / 900); const f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'highpass'; f.frequency.value = 6000; g.gain.value = .05; n.buffer = b; n.connect(f).connect(g).connect(busM); n.start(t); }
+    MUS.step++; MUS.next += e8;
+  }
+}
+function windTick() {
+  if (!windG || !st) return;
+  const want = mode === 'play' || mode === 'menu' ? (st.snow && st.snow.lvl === 2 ? .09 : 0) + CFG.wind * .03 + night() * .02 : 0;
+  windG.gain.value += (want - windG.gain.value) * .02;
+}
 function tone(f, d, type = 'sine', v = .15, slide = 0, delay = 0) {
   if (!ac) return; const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
-  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(busS); o.start(t); o.stop(t + d + .02);
 }
 function thud(v = .5) {
   if (!ac) return; const t = ac.currentTime, n = ac.sampleRate * .25, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
   const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-  f.type = 'lowpass'; f.frequency.value = 260; g.gain.value = v; s.buffer = b; s.connect(f).connect(g).connect(ac.destination); s.start(t);
+  f.type = 'lowpass'; f.frequency.value = 260; g.gain.value = v; s.buffer = b; s.connect(f).connect(g).connect(busS); s.start(t);
   tone(70, .18, 'sine', v * .5, -30);
 }
 const sfx = {
   drop: () => tone(520, .08, 'triangle', .06, -200),
-  land: () => thud(.6),
-  perfect: c => { thud(.5); tone(660 + c * 60, .12, 'triangle', .12); tone(990 + c * 90, .18, 'triangle', .1, 0, .08); },
-  miss: () => tone(300, .5, 'sawtooth', .07, -220),
+  land: () => { thud(.6); vib(15); },
+  perfect: c => { thud(.5); vib(25); tone(660 + c * 60, .12, 'triangle', .12); tone(990 + c * 90, .18, 'triangle', .1, 0, .08); },
+  miss: () => { tone(300, .5, 'sawtooth', .07, -220); vib([60, 40, 60]); },
   tick: () => tone(1200, .05, 'square', .04),
   win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .12, 0, i * .11)),
   lose: () => [392, 330, 262].forEach((f, i) => tone(f, .3, 'square', .06, 0, i * .16)),
@@ -539,6 +593,19 @@ function buildDistrict() {
 
 // ═════════ Состояние ═════════
 let LVL = save.lvl, CFG = level(LVL), st = null, mode = 'menu';
+// ═════════ Небоскрёб: бесконечная стройка на рекорд ═════════
+let ENDLESS = false;
+const SKY_LVL = 915; // вид центра города
+function skyCfg(n) {
+  return { goal: Infinity, sp: '', time: 0,
+    amp: Math.min(.4 + n * .009, .95), per: Math.max(2.4 - n * .012, 1.55),
+    wind: n >= 10 ? Math.min(.3 + (n - 10) * .02, 1) : 0, drift: n >= 20 ? Math.min(30 + (n - 20) * 1.5, 80) : 0 };
+}
+function playSky() {
+  ENDLESS = true; LVL = SKY_LVL; $('menu').classList.add('hide'); $('end').classList.add('hide');
+  newGame(); CFG = skyCfg(0); st.lvlPlayed = LVL; st.sky = true; audio(); mode = 'play'; hudShow(true); hud();
+  float('Небоскрёб: строй, пока есть каски!', CX, st.crane - 250, '#fff', 1);
+}
 function newGame() {
   CFG = level(LVL);
   st = {
@@ -592,7 +659,7 @@ function collapse(j, why) {
     const f = F[i], h = i - j;
     s.debris.push({ f, x: floorX(i), y: i * FH + FH / 2, vx: dir * (90 + h * 35) + (Math.random() - .5) * 60, vy: 40 + Math.random() * 80, rot: floorRot(i), vr: dir * (1.2 + h * .4 + Math.random()) });
     lost += f.gain || 0;
-    const pool = RES.filter(r => r.d <= distOf(LVL)), id = f.res || pool[Math.random() * pool.length | 0].id;
+    const pool = RES.filter(r => r.d <= distOf(ENDLESS ? save.lvl : LVL)), id = f.res || pool[Math.random() * pool.length | 0].id;
     s.jumpers.push({ id, x: floorX(i) + (Math.random() - .5) * f.w * .6, y: i * FH + FH * .6, vx: dir * (40 + Math.random() * 80) * (Math.random() < .35 ? -1 : 1), vy: 220 + Math.random() * 160, t: -h * .06, open: false, land: 0, seed: Math.random() * 9, sheet: SHEETS[Math.random() * SHEETS.length | 0], rot: 0 });
   }
   F.length = j; s.people = Math.max(0, s.people - lost);
@@ -904,7 +971,12 @@ function land(off) {
   }
   s.people += gain; s.best = Math.max(s.best, s.combo);
   float(`+${gain}`, CX + f.off + f.w / 2 - 14, y - 10, '#d9f0ff', .8, 'people');
-  f.gain = gain; s.floors.push(f); s.drop = null; daily('floors', 1); daily('people', gain);
+  f.gain = gain; s.floors.push(f); s.drop = null;
+  if (ENDLESS) {
+    const n = s.floors.length, rec = save.sky || 0; Object.assign(CFG, skyCfg(n));
+    if (n % 10 === 0) float(`${n} этажей!`, CX, topY() + 150, '#ffd23f', 1.3);
+    if (rec && n === rec + 1) { float('Новый рекорд!', CX, topY() + 190, '#5be38a', 1.3); sfx.win(); }
+  } daily('floors', 1); daily('people', gain);
   dust(CX + f.off, topY() - FH, f.w);
   s.stab = stability();
   const worst = s.stab.reduce((a, b, j) => b.s < a.s ? { s: b.s, j } : a, { s: 9, j: -1 });
@@ -928,7 +1000,7 @@ function toast(id, isNew) {
   if (isNew) { tone(880, .12, 'triangle', .1); tone(1320, .2, 'triangle', .08, 0, .1); }
 }
 function moveIn(f) {
-  const d = distOf(LVL), pool = RES.filter(r => r.d <= d);
+  const d = distOf(ENDLESS ? save.lvl : LVL), pool = RES.filter(r => r.d <= d);
   const r = pool[Math.random() * pool.length | 0];
   const ks = []; for (let k = 0; k < f.n; k++) if (!(f.door && k === (f.n >> 1))) ks.push(k);
   f.res = r.id; f.resK = ks[Math.random() * ks.length | 0]; f.img = null;
@@ -946,6 +1018,13 @@ function miss() {
 function stars() { const s = st, g = CFG.goal; return s.people >= g * 22 ? 3 : s.people >= g * 12 ? 2 : 1; }
 function finish(won) {
   mode = 'end'; hudShow(false);
+  if (ENDLESS) {
+    const n = st.floors.length, rec = save.sky || 0, nr = n > rec; if (nr) { save.sky = n; save.skyPeople = st.people; } store(); sfx.lose();
+    $('eT').textContent = nr ? 'Новый рекорд!' : 'Небоскрёб'; $('eStars').innerHTML = '';
+    $('eS').innerHTML = `Высота: <b>${n}</b> этажей · Жильцов: <b>${st.people}</b><br>Рекорд: <b>${Math.max(rec, n)}</b> этажей<br><span class="small">Чем выше, тем сильнее качает и дует ветер.</span>`;
+    $('eNext').textContent = '↻ Ещё раз'; $('eNext').dataset.act = 'sky'; $('eAgain').classList.add('hide');
+    $('end').classList.remove('hide'); return;
+  }
   if (won) {
     const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
     daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.sp === 'precise' ? 4 : 5)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
@@ -972,7 +1051,7 @@ const $ = id => document.getElementById(id);
 function hudShow(v) { $('hud').classList.toggle('hide', !v); }
 function hud() {
   if (!st) return;
-  $('hFloors').innerHTML = `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
+  $('hFloors').innerHTML = ENDLESS ? `${ICON.floors()} ${st.floors.length} <small style="font-size:11px;opacity:.8">рекорд ${Math.max(save.sky || 0, st.floors.length)}</small>` : `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
   $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('') + (save.spare ? `<b style="font-size:12px;margin-left:4px;color:#ffd23f">+${save.spare}</b>` : '');
   $('hPeople').innerHTML = `${ICON.people()} ${st.people}`;
   $('tbar').classList.toggle('hide', !CFG.time);
@@ -991,8 +1070,9 @@ function showMenu() {
   const Di = distInfo(save.lvl), got = RES.filter(r => save.res[r.id]).length;
   $('mInfo').innerHTML = `<b>${Di.name}</b> · дом ${Di.house} из 5<br>${c.goal} этажей${c.sp ? ` · особая: <b>${SPINFO[c.sp][0]}</b>` : ''}` + (built ? `<br>Сдано домов: <b>${built}</b> · звёзд: ${all}` : '');
   $('bColl').textContent = `Жильцы ${got}/${RES.length}`;
+  $('bSky').textContent = save.sky ? `Небоскрёб · рекорд ${save.sky}` : 'Небоскрёб';
   const tr2 = tasksReady(), tl = dailyTasks(); $('bTasks').innerHTML = `Задания ${tl.filter(t => t.p >= t.n).length}/3` + (tr2 ? `<span class="badge">${tr2}</span>` : '');
-  $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL));
+  $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL && !st.done));
 }
 
 const starRow = (k, size = 14) => [0, 1, 2].map(i => ICON.star(i < k).replace('width="46" height="46"', `width="${size}" height="${size}"`)).join('');
@@ -1020,7 +1100,7 @@ function showHouses(d) {
 }
 
 function play(l) {
-  LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
+  ENDLESS = false; LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
   if (st.snow.lvl) float(st.snow.lvl === 2 ? 'Метель!' : 'Снегопад', CX, st.crane - 260, '#e8f6ff', 1.1);
   if (CFG.sp) { mode = 'intro'; $('iT').textContent = SPINFO[CFG.sp][0]; $('iS').textContent = SPINFO[CFG.sp][1]; $('intro').classList.remove('hide'); }
   else { mode = 'play'; hudShow(true); }
@@ -1028,6 +1108,26 @@ function play(l) {
 $('bPlay').onclick = () => play(save.lvl);
 $('bDist').onclick = showDistricts;
 $('bTasks').onclick = showTasks;
+$('bSky').onclick = playSky;
+function optUI() {
+  for (const [id, k, t] of [['oMus', 'music', 'Музыка'], ['oSfx', 'sfx', 'Звуки'], ['oVib', 'vib', 'Вибрация']]) { $(id).textContent = t; $(id).classList.toggle('off', !OPT[k]); $(id).onclick = () => { OPT[k] = !OPT[k]; store(); audio(); applyOpt(); optUI(); if (k === 'vib' && OPT.vib) vib(30); }; }
+}
+optUI();
+// На экран «Домой»
+(function () {
+  const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
+  const btn = $('bInst'), hint = $('instHint');
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let deferred = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!standalone) btn.classList.remove('hide'); });
+  if (!standalone && (ios || matchMedia('(pointer: coarse)').matches)) btn.classList.remove('hide');
+  btn.onclick = async () => {
+    if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; btn.classList.add('hide'); return; }
+    hint.innerHTML = ios ? 'В Safari нажми «Поделиться» внизу → «На экран „Домой“» → «Добавить».' : 'Меню браузера (три точки) → «Добавить на главный экран».';
+    hint.classList.remove('hide');
+  };
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
 $('tkBack').onclick = () => { $('tasks').classList.add('hide'); showMenu(); };
 $('bColl').onclick = () => {
   const d = distOf(save.lvl);
@@ -1042,7 +1142,7 @@ $('bCont').onclick = () => { $('menu').classList.add('hide'); mode = 'play'; hud
 $('bMenu').onclick = e => { e.stopPropagation(); showMenu(); };
 $('bMenu').addEventListener('pointerdown', e => e.stopPropagation());
 $('eMenu').onclick = showMenu;
-$('eNext').onclick = () => play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
+$('eNext').onclick = () => $('eNext').dataset.act === 'sky' ? playSky() : play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
 $('eAgain').onclick = () => play(LVL);
 
 // ═════════ Рисование сцены ═════════
@@ -1055,7 +1155,7 @@ function drawSky() {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   if (k > .45) { ctx.fillStyle = '#fff'; for (let i = 0; i < 60; i++) { const tw = .5 + .5 * Math.sin((st ? st.t : 0) * 2 + i); ctx.globalAlpha = clamp((k - .45) * 2, 0, 1) * (.4 + .6 * tw); ctx.fillRect((i * 97.3) % W, (i * 53.7 + 11) % (H * .7), i % 5 ? 1.5 : 2.5, i % 5 ? 1.5 : 2.5); } ctx.globalAlpha = 1; }
   // солнце садится по мере роста дома
-  const sx = W * .78, sY = H * .16 + k * H * .62, sc = mixc([255, 246, 190], [255, 110, 60], k);
+  const sx = W * .78, sY = H * .16 + k * H * .95, sc = mixc([255, 246, 190], [255, 110, 60], k);
   const glow = ctx.createRadialGradient(sx, sY, 0, sx, sY, 110); glow.addColorStop(0, `rgba(${sc},.55)`); glow.addColorStop(1, `rgba(${sc},0)`);
   ctx.fillStyle = glow; ctx.fillRect(sx - 110, sY - 110, 220, 220);
   ctx.fillStyle = `rgb(${sc})`; ctx.beginPath(); ctx.arc(sx, sY, 26, 0, 7); ctx.fill();
@@ -1156,7 +1256,7 @@ function drawSite() {
   ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(12, g0 - 44, 118, 32);
   ctx.fillStyle = '#fff'; ctx.fillRect(10, g0 - 46, 118, 32); ctx.fillStyle = '#ff6b3d'; ctx.fillRect(10, g0 - 46, 118, 5);
   ctx.fillStyle = '#1f3550'; ctx.font = '900 11px Rubik, system-ui'; ctx.textAlign = 'left';
-  ctx.fillText(`СТРОЙКА №${LVL + 1}`, 16, g0 - 29); ctx.font = '600 9px Rubik, system-ui'; ctx.fillText(`${distInfo(LVL).name} · ${CFG.goal} эт.`, 16, g0 - 19);
+  ctx.fillText(ENDLESS ? 'НЕБОСКРЁБ' : `СТРОЙКА №${LVL + 1}`, 16, g0 - 29); ctx.font = '600 9px Rubik, system-ui'; ctx.fillText(ENDLESS ? `рекорд: ${save.sky || 0} эт.` : `${distInfo(LVL).name} · ${CFG.goal} эт.`, 16, g0 - 19);
   paintWorker(ctx, CX + FW / 2 + 54, g0 + 1, st ? st.t : 0);
 }
 function drawMast() {
@@ -1259,7 +1359,7 @@ function frame(now) {
   const dt = Math.min(.1, (now - last) / 1000); last = now;
   if (running && st && mode === 'play') { acc += dt; while (acc >= DT) { step(); acc -= DT; if (mode !== 'play') break; } }
   else if (st) { acc = 0; if (mode !== 'end') st.t += dt; }
-  snowTick(dt);
+  snowTick(dt); musicTick(); windTick();
   render();
   requestAnimationFrame(frame);
 }
