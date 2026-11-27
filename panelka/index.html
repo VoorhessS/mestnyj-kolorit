@@ -73,11 +73,25 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .opt{font:inherit;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:6px 11px;background:rgba(255,255,255,.12);color:#fff}
 .opt.off{opacity:.5;text-decoration:line-through}
+#helpers{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 14px);display:flex;justify-content:center;gap:12px;pointer-events:none}
+.hb{pointer-events:auto;position:relative;width:54px;height:54px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(14,24,52,.55);display:flex;align-items:center;justify-content:center;padding:0}
+.hb.on{border-color:#5be38a;box-shadow:0 0 0 4px rgba(91,227,138,.35);background:rgba(30,90,60,.6)}
+.hb b{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;border-radius:9px;background:#ffd23f;color:#4a2c00;font-size:12px;line-height:18px}
+.rank{width:100%;font-size:13px}
+.rank .bar{margin-top:4px}
+.rw{display:flex;align-items:center;gap:10px;text-align:left;border-radius:14px;padding:8px 10px;background:rgba(255,255,255,.14)}
+.rw canvas{width:56px;height:56px;flex:none;border-radius:12px;background:rgba(255,255,255,.15)}
+.rw b{display:block}
+.chip{font:inherit;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:6px 10px;background:rgba(255,255,255,.12);color:#fff}
+.chip.sel{background:#ffd23f;color:#4a2c00;border-color:#ffd23f}
+.chip.lock{opacity:.35}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
+<div id="helpers" class="hide"></div>
 <div id="hud" class="hide">
   <div class="row"><span class="pill" id="hFloors"></span><span class="pill" id="hLives"></span><span class="row"><span class="pill" id="hPeople"></span><button id="bMenu" aria-label="Меню"><svg viewBox="0 0 16 14" width="16" height="14" style="display:block"><rect y="1" width="16" height="2.6" rx="1.3" fill="#1f3550"/><rect y="5.7" width="16" height="2.6" rx="1.3" fill="#1f3550"/><rect y="10.4" width="16" height="2.6" rx="1.3" fill="#1f3550"/></svg></button></span></div>
   <div id="tbar" class="hide"><div id="tfill"></div><div id="ttxt"></div></div>
@@ -93,10 +107,12 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn sec" id="bTasks">Задания</button>
   <button class="btn sec" id="bDist">Районы</button>
   <button class="btn sec" id="bColl">Жильцы</button>
+  <button class="btn sec" id="bStyle">Стиль</button>
+  <div class="rank" id="mRank"></div>
   <button class="btn sec hide" id="bInst">На экран «Домой»</button>
   <div class="sub small hide" id="instHint"></div>
   <div class="opts"><button class="opt" id="oMus"></button><button class="opt" id="oSfx"></button><button class="opt" id="oVib"></button></div>
-</div><div id="ver">версия 0.8</div></div>
+</div><div id="ver">версия 0.9</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -121,6 +137,20 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <div class="sub small" id="tkInfo"></div>
   <div id="tkList" class="list"></div>
   <button class="btn sec" id="tkBack">Назад</button>
+</div></div>
+
+<div id="chest" class="ov hide"><div class="card">
+  <span class="tag" id="chWhy"></span>
+  <h2>Сундук!</h2>
+  <div id="chList" class="list"></div>
+  <button class="btn" id="chOk">Забрать</button>
+</div></div>
+
+<div id="style" class="ov hide"><div class="card wide">
+  <h2>Стиль</h2>
+  <div class="sub small">Красоту дают сундуки: за новое звание прораба и за дни подряд.</div>
+  <div id="stList" class="list"></div>
+  <button class="btn sec" id="stBack">Назад</button>
 </div></div>
 
 <div id="dist" class="ov hide"><div class="card wide">
@@ -199,6 +229,10 @@ const RES = [
   { id: 'catman', name: 'Кошатник Игорь', say: 'Со мной всего восемь котов.', d: 2, skin: '#eebd96', shirt: '#8a6a4a' },
   { id: 'astro', name: 'Космонавт Юра', say: 'А этаж повыше есть?', d: 3, skin: '#f0c39a', shirt: '#eef2f6' },
   { id: 'ninja', name: 'Ниндзя Кэндзи', say: 'Я по стене. Лифт не нужен.', d: 3, skin: '#e9b48a', shirt: '#1f1f26' },
+  { id: 'santa', name: 'Дед Мороз', say: 'Подарки по этажам — на лифте!', d: 99, rare: true, skin: '#f3cba4', shirt: '#d63b3b' },
+  { id: 'hero', name: 'Супер-Сосед', say: 'Кто уронил этаж? Поймаю!', d: 99, rare: true, skin: '#e9b48a', shirt: '#2f6db5' },
+  { id: 'fireman', name: 'Пожарный Лёша', say: 'Шашлык на балконе? Я рядом.', d: 99, rare: true, skin: '#eab792', shirt: '#2b2b2b' },
+  { id: 'richcat', name: 'Кот-миллионер', say: 'Беру весь этаж. Мяу.', d: 99, rare: true, skin: '#f2a03d', shirt: '#1f1f26' },
 ];
 const RESD = Object.fromEntries(RES.map(r => [r.id, r]));
 function paintResident(g, id, x, y, sc = 1) {
@@ -226,7 +260,7 @@ function paintResident(g, id, x, y, sc = 1) {
   if (id === 'blogger') { hair('#f2d16b', () => { g.ellipse(0, -33, 9.5, 6.5, 0, Math.PI, 0); }); hair('#f2d16b', () => { g.arc(0, -42, 4.5, 0, 7); }); hair('#f2d16b', () => { g.ellipse(-8, -27, 2.5, 6, 0, 0, 7); g.ellipse(8, -27, 2.5, 6, 0, 0, 7); }); }
   if (id === 'artist' || id === 'gardener' || id === 'plumber' || id === 'chef') hair('#3a2a1a', () => { g.ellipse(0, -35, 8.5, 4, 0, Math.PI, 0); });
   // лицо
-  if (id !== 'ninja') {
+  if (id !== 'ninja' && id !== 'richcat' && id !== 'hero') {
     g.fillStyle = '#1d1d1d'; g.beginPath(); g.arc(-3.2, -30, 1.2, 0, 7); g.arc(3.2, -30, 1.2, 0, 7); g.fill();
     g.strokeStyle = '#7a3b2e'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -26.5, 3, .25, Math.PI - .25); g.stroke();
     g.fillStyle = 'rgba(255,120,120,.35)'; g.beginPath(); g.arc(-6, -26.5, 1.8, 0, 7); g.arc(6, -26.5, 1.8, 0, 7); g.fill();
@@ -243,6 +277,10 @@ function paintResident(g, id, x, y, sc = 1) {
   if (id === 'artist') { g.fillStyle = '#d63b3b'; g.beginPath(); g.ellipse(-1, -37, 10, 4, -.15, 0, 7); g.fill(); g.fillRect(-1.5, -42, 2, 3); g.strokeStyle = '#1d1d1d'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-5, -25); g.quadraticCurveTo(0, -27, 5, -25); g.stroke(); g.save(); g.translate(13, -6); g.rotate(-.4); g.fillStyle = '#a0703c'; g.fillRect(-1, -16, 2, 16); g.fillStyle = '#4aa3f0'; g.beginPath(); g.ellipse(0, -18, 2, 3.5, 0, 0, 7); g.fill(); g.restore(); }
   if (id === 'catman') { g.fillStyle = '#6b4a2a'; g.beginPath(); g.moveTo(-8.5, -27); g.quadraticCurveTo(-8, -17, 0, -16); g.quadraticCurveTo(8, -17, 8.5, -27); g.quadraticCurveTo(0, -22, -8.5, -27); g.fill(); g.fillStyle = '#8b8f96'; g.beginPath(); g.ellipse(0, -36, 9.5, 5.5, 0, Math.PI, 0); g.fill(); g.fillRect(-9.5, -37, 19, 3); g.save(); g.translate(13, -15); g.scale(.85, .85); paintCat(g, 0, 0); g.restore(); }
   if (id === 'astro') { g.fillStyle = 'rgba(160,210,255,.45)'; g.strokeStyle = '#dfe6ee'; g.lineWidth = 3; g.beginPath(); g.arc(0, -29, 13, 0, 7); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(-5, -34, 3, 5, .5, 0, 7); g.fill(); g.strokeStyle = '#9aa3ab'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(6, -41); g.lineTo(8, -47); g.stroke(); g.fillStyle = '#ff3b3b'; g.beginPath(); g.arc(8, -47.5, 1.6, 0, 7); g.fill(); }
+  if (id === 'santa') { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-9, -29); g.quadraticCurveTo(-11, -12, 0, -8); g.quadraticCurveTo(11, -12, 9, -29); g.quadraticCurveTo(0, -22, -9, -29); g.fill(); g.fillRect(-4, -26, 8, 2); g.fillStyle = '#d63b3b'; g.beginPath(); g.moveTo(-9, -35); g.quadraticCurveTo(2, -50, 13, -38); g.lineTo(8, -35); g.fill(); g.fillStyle = '#fff'; g.fillRect(-10, -37, 20, 4); g.beginPath(); g.arc(13, -38, 3, 0, 7); g.fill(); }
+  if (id === 'hero') { g.fillStyle = '#d63b3b'; g.beginPath(); g.moveTo(-16, -15); g.lineTo(-20, 0); g.lineTo(-12, 0); g.fill(); g.beginPath(); g.moveTo(16, -15); g.lineTo(20, 0); g.lineTo(12, 0); g.fill(); g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(0, -14); g.lineTo(5, -9); g.lineTo(0, -4); g.lineTo(-5, -9); g.fill(); g.fillStyle = '#1f3550'; g.fillRect(-8, -33, 16, 5); g.fillStyle = '#fff'; g.fillRect(-5, -32, 3, 2.4); g.fillRect(2, -32, 3, 2.4); g.fillStyle = '#3a2a1a'; g.beginPath(); g.ellipse(0, -36, 9, 4, 0, Math.PI, 0); g.fill(); }
+  if (id === 'fireman') { g.fillStyle = '#ffd23f'; g.fillRect(-17, -9, 34, 3); g.fillStyle = '#d63b3b'; g.beginPath(); g.ellipse(0, -35, 11, 6, 0, Math.PI, 0); g.fill(); g.fillRect(-14, -36, 28, 3); g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(0, -38, 2.6, 0, 7); g.fill(); g.strokeStyle = '#1d1d1d'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-5, -25); g.quadraticCurveTo(0, -27, 5, -25); g.stroke(); }
+  if (id === 'richcat') { g.fillStyle = R.skin; g.beginPath(); g.moveTo(-8, -34); g.lineTo(-7, -42); g.lineTo(-2, -37); g.fill(); g.beginPath(); g.moveTo(8, -34); g.lineTo(7, -42); g.lineTo(2, -37); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.ellipse(0, -25, 5, 3.5, 0, 0, 7); g.fill(); g.fillStyle = '#ff7a8a'; g.beginPath(); g.arc(0, -27, 1.3, 0, 7); g.fill(); g.strokeStyle = '#555'; g.lineWidth = .8; g.beginPath(); g.moveTo(-3, -25); g.lineTo(-11, -27); g.moveTo(-3, -24); g.lineTo(-11, -23); g.moveTo(3, -25); g.lineTo(11, -27); g.moveTo(3, -24); g.lineTo(11, -23); g.stroke(); g.fillStyle = '#1d1d1d'; g.fillRect(-7, -32, 14, 1.4); g.beginPath(); g.arc(-3.5, -30.5, 2.6, 0, 7); g.arc(3.5, -30.5, 2.6, 0, 7); g.fill(); g.fillStyle = '#ffd23f'; g.fillRect(-1.5, -14, 3, 8); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-3, -17); g.lineTo(0, -14); g.lineTo(3, -17); g.fill(); }
   if (id === 'ninja') { g.fillStyle = '#1f1f26'; g.beginPath(); g.ellipse(0, -29, 9.6, 10.6, 0, 0, 7); g.fill(); g.fillStyle = R.skin; g.fillRect(-7, -32.5, 14, 5); g.fillStyle = '#1d1d1d'; g.fillRect(-5, -31, 2.6, 2); g.fillRect(2.4, -31, 2.6, 2); g.fillStyle = '#d6293b'; g.fillRect(-9.5, -38, 19, 3); g.beginPath(); g.moveTo(9, -37); g.lineTo(17, -40); g.lineTo(16, -35); g.closePath(); g.fill(); }
   g.restore();
 }
@@ -257,11 +295,35 @@ function portrait(c, id, locked) {
   g.restore();
 }
 
+
+// ═════════ Награды: помощники, звания, сундуки, красота ═════════
+const HELP = {
+  plumb: { name: 'Отвес', about: 'пунктир показывает, куда упадёт этаж (на всю стройку)' },
+  calm: { name: 'Тихий кран', about: 'кран качается медленнее и меньше (на всю стройку)' },
+  cement: { name: 'Цемент', about: 'следующие 3 этажа не шатаются и не падают' },
+  spare: { name: 'Запасная каска', about: 'спасает стройку, когда каски кончились' },
+};
+const HICON = {
+  plumb: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><path d="M12 2v9" stroke="#fff" stroke-width="2"/><path d="M7 11h10l-5 10z" fill="#ffd23f" stroke="#b07800" stroke-width="1.2"/></svg>`,
+  calm: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><path d="M3 4h18" stroke="#ffd23f" stroke-width="3"/><path d="M12 4v8" stroke="#fff" stroke-width="2"/><path d="M8 12h8v6H8z" fill="#e6dfcf" stroke="#fff"/><path d="M4 16q-2 3 1 5M20 16q2 3-1 5" stroke="#9fd4ff" stroke-width="1.6" fill="none"/></svg>`,
+  cement: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><path d="M5 8h14l-2 12H7z" fill="#9aa3ab" stroke="#fff" stroke-width="1.2"/><path d="M5 8q7-5 14 0" fill="#c9c3b5"/><path d="M14 3l6 6" stroke="#8a5a34" stroke-width="2.5"/></svg>`,
+  spare: '',
+};
+const RANKS = [['Стажёр', 0], ['Разнорабочий', 150], ['Бригадир', 400], ['Прораб', 800], ['Главный инженер', 1400], ['Архитектор', 2200], ['Мэр стройки', 3200]];
+const FACADES = { panel: 'Панельный', brick: 'Кирпичный', stalin: 'Сталинка', glass: 'Стеклянный', color: 'Цветные панели' };
+const CRANES = { yellow: 'Жёлтый кран', red: 'Красный кран', striped: 'Полосатый кран', garland: 'Кран с гирляндой' };
+const DECOR = { bench: 'Скамейки', flowerbed: 'Клумба', swing: 'Качели', tree: 'Ёлка с огоньками', fountain: 'Фонтан', statue: 'Памятник прорабу' };
+const COSMETICS = [...Object.keys(FACADES).filter(k => k !== 'panel').map(k => ['facade', k]), ...Object.keys(CRANES).filter(k => k !== 'yellow').map(k => ['crane', k]), ...Object.keys(DECOR).map(k => ['decor', k]), ...['santa', 'hero', 'fireman', 'richcat'].map(k => ['res', k])];
+
 // ═════════ Сохранение ═════════
 let save = { lvl: 0, stars: [], res: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {}
 save.res = save.res || {};
 save.h = save.h || {};
+save.inv = Object.assign({ plumb: 1, calm: 1, cement: 1 }, save.inv || {}); // по одному помощнику на пробу
+save.xp = save.xp || 0; save.pend = save.pend || [];
+save.own = Object.assign({ facade: ['panel'], crane: ['yellow'], decor: [] }, save.own || {});
+save.skin = Object.assign({ facade: 'panel', crane: 'yellow' }, save.skin || {});
 (save.stars || []).forEach((k, i) => { if (k && !save.h[i]) save.h[i] = { pct: 100, stars: k }; }); // перенос со старой версии
 const hInfo = i => save.h[i] || { pct: 0, stars: 0 };
 const distStats = d => { let st2 = 0, pc = 0; for (let i = d * 5; i < d * 5 + 5; i++) { st2 += hInfo(i).stars; pc += hInfo(i).pct; } return { stars: st2, pct: Math.round(pc / 5) }; };
@@ -405,13 +467,19 @@ function floorImg(f, hc = house()) {
   paintFloor(g, f, hc); f.img = c; f.imgS = S; f.P = P; return c;
 }
 function paintFloor(g, f, hc) {
-  const w = f.w, h = FH, [wall, acc] = hc, dy = D * .6;
+  const w = f.w, h = FH, dy = D * .6, FK = save.skin.facade;
+  let [wall, acc] = hc;
+  if (FK === 'brick') wall = '#b8583c'; else if (FK === 'stalin') { wall = '#ecdcb9'; acc = '#c9a66b'; } else if (FK === 'glass') { wall = '#5f93c9'; acc = '#2f5f93'; }
   // правая грань — тень
   g.fillStyle = shade(wall, .7); g.beginPath(); g.moveTo(w / 2, -h / 2); g.lineTo(w / 2 + D, -h / 2 - dy); g.lineTo(w / 2 + D, h / 2 - dy); g.lineTo(w / 2, h / 2); g.fill();
   g.fillStyle = shade(acc, .7); g.beginPath(); g.moveTo(w / 2, h / 2 - 8); g.lineTo(w / 2 + D, h / 2 - 8 - dy); g.lineTo(w / 2 + D, h / 2 - dy); g.lineTo(w / 2, h / 2); g.fill();
   // фасад: панели чуть разного тона, свет слева
   const cell = w / f.n;
-  for (let k = 0; k < f.n; k++) { g.fillStyle = shade(wall, 1.02 - k * .025 + (f.tone[k] - .5) * .04); g.fillRect(-w / 2 + k * cell, -h / 2, cell + .5, h); }
+  const PAST = ['#f2b8b8', '#b8dcf2', '#c8efb8', '#f6e3a6', '#d9c6f2'];
+  for (let k = 0; k < f.n; k++) { g.fillStyle = FK === 'color' ? PAST[(k + (f.tone[k] * 10 | 0)) % 5] : shade(wall, 1.02 - k * .025 + (f.tone[k] - .5) * .04); g.fillRect(-w / 2 + k * cell, -h / 2, cell + .5, h); }
+  if (FK === 'brick') { g.strokeStyle = 'rgba(255,235,220,.35)'; g.lineWidth = .8; g.beginPath(); for (let yy = -h / 2 + 4, r2 = 0; yy < h / 2 - 8; yy += 4, r2++) { g.moveTo(-w / 2, yy); g.lineTo(w / 2, yy); for (let xx = -w / 2 + (r2 % 2) * 5; xx < w / 2; xx += 10) { g.moveTo(xx, yy); g.lineTo(xx, yy + 4); } } g.stroke(); }
+  if (FK === 'stalin') { g.fillStyle = '#f7ecd3'; g.fillRect(-w / 2, -h / 2, w, 4); g.fillStyle = 'rgba(150,120,70,.35)'; for (let xx = -w / 2 + 2; xx < w / 2; xx += 6) g.fillRect(xx, -h / 2 + 4, 3, 2); for (let k = 1; k < f.n; k++) { g.fillStyle = '#f3e6c8'; g.fillRect(-w / 2 + k * cell - 3, -h / 2 + 6, 6, h - 14); } }
+  if (FK === 'glass') { const gg = g.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2); gg.addColorStop(0, 'rgba(255,255,255,.35)'); gg.addColorStop(.5, 'rgba(255,255,255,0)'); gg.addColorStop(1, 'rgba(255,255,255,.2)'); g.fillStyle = gg; g.fillRect(-w / 2, -h / 2, w, h); }
   const lg = g.createLinearGradient(-w / 2, 0, w / 2, 0); lg.addColorStop(0, 'rgba(255,255,255,.12)'); lg.addColorStop(1, 'rgba(0,0,0,.06)');
   g.fillStyle = lg; g.fillRect(-w / 2, -h / 2, w, h);
   // тень от плиты сверху
@@ -424,10 +492,12 @@ function paintFloor(g, f, hc) {
   g.fillStyle = acc; g.fillRect(-w / 2, h / 2 - 8, w, 8);
   g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(-w / 2, h / 2 - 8, w, 1.5);
   g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(-w / 2, h / 2 - 1.5, w, 1.5);
+  if (f.cement) { g.fillStyle = '#9aa3ab'; g.fillRect(-w / 2, h / 2 - 3, w, 3); g.fillStyle = 'rgba(255,255,255,.4)'; for (let xx = -w / 2 + 3; xx < w / 2; xx += 9) g.fillRect(xx, h / 2 - 2.5, 4, 1); }
   for (let k = 0; k < f.n; k++) {
     const wx = -w / 2 + cell * (k + .5), wy = -h / 2 + 9;
     if (f.door && k === (f.n >> 1)) { paintDoor(g, wx, h); continue; }
     paintWindow(g, f, k, wx, wy);
+    if (FK === 'stalin') { g.fillStyle = '#f7ecd3'; g.beginPath(); g.moveTo(wx - 17, wy - 1); g.lineTo(wx, wy - 7); g.lineTo(wx + 17, wy - 1); g.fill(); }
     if (k === f.slot && k !== f.resK) paintDecor(g, f.dec, wx, wy);
   }
 }
@@ -631,6 +701,7 @@ function stability() {
     m += F[j].w; mx += F[j].w * F[j].off;
     const sup = j ? F[j - 1] : { off: 0, w: FW + 44 }, half = sup.w / 2, d = mx / m - sup.off;
     res[j] = { s: (half - Math.abs(d)) / half, dir: Math.sign(d) || 1 };
+    if (F[j].cement) res[j].s = Math.max(res[j].s, SHAKY + .05); // цемент держит
   }
   return res;
 }
@@ -849,11 +920,11 @@ function dead() { // каски кончились? запасная спаса�
 }
 function showTasks() {
   const list = dailyTasks();
-  $('tkInfo').innerHTML = `За каждое задание — <b>запасная каска</b>: когда каски кончатся, она спасёт стройку. Сейчас запасных: <b>${save.spare || 0}</b> из ${MAX_SPARE}.<br>Новые задания — каждый день.`;
-  $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n} · ${TASKS[t.k].sum ? 'копится за день во всех домах' : 'в одной стройке'}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : '+1'}</button>`}</div>`; }).join('');
+  $('tkInfo').innerHTML = `За задание — <b>помощник</b> (отвес, тихий кран, цемент или запасная каска) и 30 опыта.<br>Есть: отвес ${save.inv.plumb || 0}, тихий кран ${save.inv.calm || 0}, цемент ${save.inv.cement || 0}, каски ${save.spare || 0}.<br>Помощники включаются кнопками внизу во время стройки.`;
+  $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n} · ${TASKS[t.k].sum ? 'копится за день во всех домах' : 'в одной стройке'}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : 'Приз'}</button>`}</div>`; }).join('');
   $('tkList').querySelectorAll('.claim[data-i]').forEach(b => b.onclick = () => {
     const t = list[+b.dataset.i]; if (t.p < t.n || t.claimed) return;
-    t.claimed = true; save.spare = Math.min(MAX_SPARE, (save.spare || 0) + 1); store(); audio(); sfx.win(); showTasks();
+    t.claimed = true; const pick = ['plumb', 'calm', 'cement', 'spare'][Math.random() * 4 | 0]; grant(['help', pick]); addXP(30); store(); audio(); sfx.win(); showTasks(); $('tkInfo').innerHTML = `Получено: <b>${HELP[pick].name}</b> — ${HELP[pick].about}. И +30 опыта.`;
   });
   $('menu').classList.add('hide'); $('tasks').classList.remove('hide');
 }
@@ -882,7 +953,7 @@ function topX() { return st.floors.length ? floorX(st.floors.length - 1) : CX; }
 function topW() { return st.floors.length ? st.floors[st.floors.length - 1].w : FW + 44; }
 function pivot() { return { x: CX + CFG.drift * Math.sin(st.t * .55), y: st.crane }; }
 function hook() {
-  const w = 2 * Math.PI / CFG.per, a = CFG.amp * Math.sin(w * st.t + st.phase), da = CFG.amp * w * Math.cos(w * st.t + st.phase);
+  const amp = CFG.amp * (st.calm ? .55 : 1), w = 2 * Math.PI / (CFG.per * (st.calm ? 1.3 : 1)), a = amp * Math.sin(w * st.t + st.phase), da = amp * w * Math.cos(w * st.t + st.phase);
   const p = pivot(), enter = Math.max(0, 1 - st.enter) * 160;
   return { x: p.x + L * Math.sin(a), y: p.y - L * Math.cos(a) + enter, vx: L * Math.cos(a) * da, vy: L * Math.sin(a) * da, a };
 }
@@ -960,7 +1031,7 @@ function land(off) {
     sfx.perfect(s.combo); s.shake = .25;
     s.v *= .35; s.x *= .7; // ровный этаж гасит раскачку
     moveIn(f); // на ровный этаж заселяется жилец
-    daily('perf', 1); daily('combo', s.combo);
+    daily('perf', 1); daily('combo', s.combo); addXP(2);
     if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; s.x = 0; s.v = 0; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
   } else {
     s.combo = 0; f.off = prev + off; gain = Math.max(2, Math.round(10 - Math.abs(off) / 7));
@@ -971,12 +1042,13 @@ function land(off) {
   }
   s.people += gain; s.best = Math.max(s.best, s.combo);
   float(`+${gain}`, CX + f.off + f.w / 2 - 14, y - 10, '#d9f0ff', .8, 'people');
+  if (s.cement > 0) { f.cement = true; f.img = null; s.cement--; helpersUI(); }
   f.gain = gain; s.floors.push(f); s.drop = null;
   if (ENDLESS) {
     const n = s.floors.length, rec = save.sky || 0; Object.assign(CFG, skyCfg(n));
     if (n % 10 === 0) float(`${n} этажей!`, CX, topY() + 150, '#ffd23f', 1.3);
     if (rec && n === rec + 1) { float('Новый рекорд!', CX, topY() + 190, '#5be38a', 1.3); sfx.win(); }
-  } daily('floors', 1); daily('people', gain);
+  } daily('floors', 1); daily('people', gain); addXP(1);
   dust(CX + f.off, topY() - FH, f.w);
   s.stab = stability();
   const worst = s.stab.reduce((a, b, j) => b.s < a.s ? { s: b.s, j } : a, { s: 9, j: -1 });
@@ -1000,7 +1072,7 @@ function toast(id, isNew) {
   if (isNew) { tone(880, .12, 'triangle', .1); tone(1320, .2, 'triangle', .08, 0, .1); }
 }
 function moveIn(f) {
-  const d = distOf(ENDLESS ? save.lvl : LVL), pool = RES.filter(r => r.d <= d);
+  const d = distOf(ENDLESS ? save.lvl : LVL), pool = RES.filter(r => r.d <= d || (r.rare && save.res[r.id]));
   const r = pool[Math.random() * pool.length | 0];
   const ks = []; for (let k = 0; k < f.n; k++) if (!(f.door && k === (f.n >> 1))) ks.push(k);
   f.res = r.id; f.resK = ks[Math.random() * ks.length | 0]; f.img = null;
@@ -1027,7 +1099,7 @@ function finish(won) {
   }
   if (won) {
     const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
-    daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.sp === 'precise' ? 4 : 5)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
+    addXP(20 + k * 5); daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.sp === 'precise' ? 4 : 5)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
     if (save.lvl <= LVL) save.lvl = LVL + 1; store();
     const D1 = distInfo(LVL), dEnd = D1.house === 5, D2 = distInfo(LVL + 1), fresh = RES.filter(r => r.d === D2.d);
     $('eT').textContent = dEnd ? 'Район сдан!' : 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
@@ -1044,17 +1116,19 @@ function finish(won) {
     $('eNext').textContent = `▶ Следующий дом`; $('eNext').dataset.act = 'next'; $('eAgain').classList.remove('hide');
   }
   $('end').classList.remove('hide');
+  if (save.pend.length) setTimeout(showChest, 900);
 }
 
 // ═════════ HUD и меню ═════════
 const $ = id => document.getElementById(id);
-function hudShow(v) { $('hud').classList.toggle('hide', !v); }
+function hudShow(v) { $('hud').classList.toggle('hide', !v); if (v) helpersUI(); else $('helpers').classList.add('hide'); }
 function hud() {
   if (!st) return;
   $('hFloors').innerHTML = ENDLESS ? `${ICON.floors()} ${st.floors.length} <small style="font-size:11px;opacity:.8">рекорд ${Math.max(save.sky || 0, st.floors.length)}</small>` : `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
   $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('') + (save.spare ? `<b style="font-size:12px;margin-left:4px;color:#ffd23f">+${save.spare}</b>` : '');
   $('hPeople').innerHTML = `${ICON.people()} ${st.people}`;
   $('tbar').classList.toggle('hide', !CFG.time);
+  if (mode === 'play' && !st.done) helpersUI(); else $('helpers').classList.add('hide');
 }
 function hudTime() {
   if (!CFG.time || !st) return;
@@ -1063,6 +1137,65 @@ function hudTime() {
   $('tfill').style.background = k > .35 ? 'linear-gradient(90deg,#5be38a,#ffd23f)' : 'linear-gradient(90deg,#ff5a5a,#ff9a3d)';
   $('ttxt').innerHTML = `${ICON.clock()} ${Math.ceil(st.time)} с`;
 }
+
+function rankOf(xp) { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][1]) i++; return i; }
+function addXP(n) {
+  const r0 = rankOf(save.xp); save.xp += n; const r1 = rankOf(save.xp);
+  if (r1 > r0) { save.pend.push({ why: 'Новое звание: ' + RANKS[r1][0] }); if (st && mode === 'play') float('Новое звание: ' + RANKS[r1][0] + '!', CX, topY() + 200, '#ffd23f', 1.1); }
+  store();
+}
+function dayWord(n) { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'день' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'дня' : 'дней'; }
+function streakCheck() {
+  const d = new Date(), key = today(), y = new Date(d.getTime() - 864e5), ykey = `${y.getFullYear()}-${y.getMonth() + 1}-${y.getDate()}`;
+  const S2 = save.streak || { day: '', n: 0 }; if (S2.day === key) return;
+  S2.n = S2.day === ykey ? S2.n + 1 : 1; S2.day = key; save.streak = S2;
+  if (S2.n === 3 || S2.n === 7 || S2.n === 14 || (S2.n > 14 && S2.n % 7 === 0)) save.pend.push({ why: `${S2.n} ${dayWord(S2.n)} подряд` });
+  store();
+}
+function chestRoll() {
+  const owned = ([t, k]) => t === 'res' ? !!save.res[k] : save.own[t].includes(k);
+  const left = COSMETICS.filter(c => !owned(c)), items = [];
+  if (left.length) items.push(left[Math.random() * left.length | 0]);
+  const hk = ['plumb', 'calm', 'cement']; items.push(['help', hk[Math.random() * 3 | 0]]);
+  if (!left.length) items.push(['help', 'spare']);
+  return items;
+}
+function itemName([t, k]) { return t === 'facade' ? 'Фасад: ' + FACADES[k] : t === 'crane' ? CRANES[k] : t === 'decor' ? 'Украшение: ' + DECOR[k] : t === 'res' ? 'Редкий жилец: ' + RESD[k].name : HELP[k].name; }
+function itemAbout([t, k]) { return t === 'facade' ? 'Выбери в «Стиле» — так будут выглядеть твои дома' : t === 'crane' ? 'Выбери в «Стиле»' : t === 'decor' ? 'Встанет на газоне у стройки' : t === 'res' ? '«' + RESD[k].say + '»' : HELP[k].about; }
+function grant([t, k]) {
+  if (t === 'help') { if (k === 'spare') save.spare = Math.min(MAX_SPARE, (save.spare || 0) + 1); else save.inv[k] = (save.inv[k] || 0) + 1; }
+  else if (t === 'res') save.res[k] = save.res[k] || 1;
+  else if (!save.own[t].includes(k)) save.own[t].push(k);
+  if (t === 'decor') district = null;
+}
+function itemPreview(c, [t, k]) {
+  const g = c.getContext('2d'), Z = c.width; g.clearRect(0, 0, Z, Z);
+  if (t === 'res') { portrait(c, k, false); return; }
+  g.save(); g.scale(Z / 56, Z / 56);
+  if (t === 'facade') { const old = save.skin.facade; save.skin.facade = k; g.translate(28, 30); g.scale(.33, .33); paintFloor(g, { w: 150, n: 3, dec: '', slot: 9, win: [.9, .2, .3, 0], cur: [0, 0, 0, 0], tone: [.5, .5, .5, .5], door: false, night: 0 }, HOUSES[0]); save.skin.facade = old; }
+  else if (t === 'crane') { const m = { red: '#e8433a', striped: '#f4f4f0', garland: '#f5b81c' }[k], d2 = { red: '#a82a22', striped: '#e8433a', garland: '#d99a0b' }[k]; g.fillStyle = m; g.fillRect(36, 8, 5, 44); g.fillRect(4, 10, 50, 5); g.strokeStyle = d2; g.lineWidth = 1.5; g.beginPath(); for (let x = 4; x < 54; x += 8) { g.moveTo(x, 10); g.lineTo(x + 4, 15); g.lineTo(x + 8, 10); } g.stroke(); if (k === 'garland') ['#ff5a5a', '#ffd23f', '#5be38a', '#4aa3f0'].forEach((cc, i) => { g.fillStyle = cc; g.beginPath(); g.arc(8 + i * 12, 18, 2, 0, 7); g.fill(); }); g.strokeStyle = '#333'; g.beginPath(); g.moveTo(18, 15); g.lineTo(18, 34); g.stroke(); }
+  else if (t === 'decor') ctx2Decor(g, k);
+  else { g.translate(14, 14); g.scale(1.2, 1.2); const img = new Image(); img.onload = () => { const g2 = c.getContext('2d'); g2.drawImage(img, 10, 10, Z - 20, Z - 20); }; img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(k === 'spare' ? ICON.helmet(true) : HICON[k].replace(/#fff/g, '#1f3550')); }
+  g.restore();
+}
+function ctx2Decor(g, k) { g.save(); g.translate(28, 46); g.scale(1.1, 1.1); drawOneDecor(g, k, 0); g.restore(); }
+function showChest() {
+  if (!save.pend.length) return false;
+  const c = save.pend[0], items = c.items || (c.items = chestRoll()); store();
+  $('chWhy').textContent = c.why;
+  $('chList').innerHTML = items.map((it, i) => `<div class="rw"><canvas width="112" height="112" data-i="${i}"></canvas><div><b>${itemName(it)}</b><span class="small">${itemAbout(it)}</span></div></div>`).join('');
+  $('chList').querySelectorAll('canvas').forEach(cv2 => itemPreview(cv2, items[+cv2.dataset.i]));
+  $('chOk').onclick = () => { items.forEach(grant); save.pend.shift(); store(); audio(); sfx.win(); $('chest').classList.add('hide'); if (!showChest()) showMenu(); };
+  ['menu', 'end', 'tasks', 'dist', 'coll', 'style'].forEach(id => $(id).classList.add('hide')); $('chest').classList.remove('hide');
+  return true;
+}
+function showStyle() {
+  const row = (title, map, type) => `<div class="tk"><div class="nm"><b>${title}</b><div class="chips">${Object.entries(map).map(([k, n]) => { const own = type === 'decor' ? save.own.decor.includes(k) : save.own[type].includes(k), sel = type !== 'decor' && save.skin[type] === k; return `<button class="chip${sel ? ' sel' : ''}${own ? '' : ' lock'}" data-t="${type}" data-k="${k}">${n}</button>`; }).join('')}</div></div></div>`;
+  $('stList').innerHTML = row('Фасад домов', FACADES, 'facade') + row('Кран', CRANES, 'crane') + row('Украшения у стройки', DECOR, 'decor');
+  $('stList').querySelectorAll('.chip').forEach(b => b.onclick = () => { const t = b.dataset.t, k = b.dataset.k; if (t === 'decor' || !save.own[t].includes(k)) return; save.skin[t] = k; store(); if (st) for (const f of st.floors) f.img = null; if (st && st.hold) st.hold.img = null; district = null; showStyle(); });
+  ['menu'].forEach(id => $(id).classList.add('hide')); $('style').classList.remove('hide');
+}
+
 function showMenu() {
   mode = 'menu'; hudShow(false); $('end').classList.add('hide'); $('intro').classList.add('hide'); $('menu').classList.remove('hide');
   const hs = Object.values(save.h), built = hs.filter(h => h.stars).length, all = hs.reduce((a, h) => a + h.stars, 0), c = level(save.lvl);
@@ -1071,6 +1204,9 @@ function showMenu() {
   $('mInfo').innerHTML = `<b>${Di.name}</b> · дом ${Di.house} из 5<br>${c.goal} этажей${c.sp ? ` · особая: <b>${SPINFO[c.sp][0]}</b>` : ''}` + (built ? `<br>Сдано домов: <b>${built}</b> · звёзд: ${all}` : '');
   $('bColl').textContent = `Жильцы ${got}/${RES.length}`;
   $('bSky').textContent = save.sky ? `Небоскрёб · рекорд ${save.sky}` : 'Небоскрёб';
+  const ri = rankOf(save.xp), nx = RANKS[ri + 1], st0 = save.streak ? save.streak.n : 1;
+  $('mRank').innerHTML = `<b>${RANKS[ri][0]}</b> · опыт ${save.xp}${nx ? '/' + nx[1] : ''} · ${st0} ${dayWord(st0)} подряд${nx ? `<div class="bar"><i style="width:${Math.min(100, (save.xp - RANKS[ri][1]) / (nx[1] - RANKS[ri][1]) * 100)}%"></i></div>` : ''}`;
+  if (save.pend.length) setTimeout(showChest, 250);
   const tr2 = tasksReady(), tl = dailyTasks(); $('bTasks').innerHTML = `Задания ${tl.filter(t => t.p >= t.n).length}/3` + (tr2 ? `<span class="badge">${tr2}</span>` : '');
   $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL && !st.done));
 }
@@ -1109,6 +1245,8 @@ $('bPlay').onclick = () => play(save.lvl);
 $('bDist').onclick = showDistricts;
 $('bTasks').onclick = showTasks;
 $('bSky').onclick = playSky;
+$('bStyle').onclick = showStyle;
+$('stBack').onclick = () => { $('style').classList.add('hide'); showMenu(); };
 function optUI() {
   for (const [id, k, t] of [['oMus', 'music', 'Музыка'], ['oSfx', 'sfx', 'Звуки'], ['oVib', 'vib', 'Вибрация']]) { $(id).textContent = t; $(id).classList.toggle('off', !OPT[k]); $(id).onclick = () => { OPT[k] = !OPT[k]; store(); audio(); applyOpt(); optUI(); if (k === 'vib' && OPT.vib) vib(30); }; }
 }
@@ -1131,7 +1269,7 @@ optUI();
 $('tkBack').onclick = () => { $('tasks').classList.add('hide'); showMenu(); };
 $('bColl').onclick = () => {
   const d = distOf(save.lvl);
-  $('cGrid').innerHTML = RES.map(r => `<div class="rc${save.res[r.id] ? '' : ' lock'}"><canvas width="128" height="128" data-id="${r.id}"></canvas><b>${save.res[r.id] ? r.name : '???'}</b><div class="say">${save.res[r.id] ? '«' + r.say + '»' : r.d > d ? 'Откроется в районе «' + DIST[r.d % DIST.length].name + '»' : 'Ставь этажи ровно — заселится'}</div></div>`).join('');
+  $('cGrid').innerHTML = RES.map(r => `<div class="rc${save.res[r.id] ? '' : ' lock'}"><canvas width="128" height="128" data-id="${r.id}"></canvas><b>${save.res[r.id] ? r.name : '???'}</b><div class="say">${save.res[r.id] ? '«' + r.say + '»' : r.rare ? 'Только из сундука' : r.d > d ? 'Откроется в районе «' + DIST[r.d % DIST.length].name + '»' : 'Ставь этажи ровно — заселится'}</div></div>`).join('');
   $('cGrid').querySelectorAll('canvas').forEach(c => portrait(c, c.dataset.id, !save.res[c.dataset.id]));
   $('cInfo').textContent = `Жилец заселяется на каждый «Идеально». Собрано ${RES.filter(r => save.res[r.id]).length} из ${RES.length}.`;
   $('menu').classList.add('hide'); $('coll').classList.remove('hide');
@@ -1259,10 +1397,30 @@ function drawSite() {
   ctx.fillText(ENDLESS ? 'НЕБОСКРЁБ' : `СТРОЙКА №${LVL + 1}`, 16, g0 - 29); ctx.font = '600 9px Rubik, system-ui'; ctx.fillText(ENDLESS ? `рекорд: ${save.sky || 0} эт.` : `${distInfo(LVL).name} · ${CFG.goal} эт.`, 16, g0 - 19);
   paintWorker(ctx, CX + FW / 2 + 54, g0 + 1, st ? st.t : 0);
 }
+const CRM = () => ({ red: '#e8433a', striped: '#f4f4f0', garland: '#f5b81c' })[save.skin.crane] || '#f5b81c';
+const CRD = () => ({ red: '#a82a22', striped: '#e8433a', garland: '#d99a0b' })[save.skin.crane] || '#d99a0b';
+
+function drawDecor() {
+  const list = save.own.decor; if (!list.length) return;
+  const g0 = sy(0); if (g0 > H + 60) return;
+  const xs = [CX - 175, CX + 172, CX - 120, CX + 118, CX - 60, CX + 60], y = g0 + 25, t = st ? st.t : 0;
+  list.slice(0, 6).forEach((k, i) => { ctx.save(); ctx.translate(xs[i], y); drawOneDecor(ctx, k, t); ctx.restore(); });
+}
+function drawOneDecor(ctx, k, t) {
+  {
+    if (k === 'bench') { ctx.fillStyle = '#8a5a34'; ctx.fillRect(-14, -9, 28, 3); ctx.fillRect(-14, -15, 28, 3); ctx.fillStyle = '#3b4046'; ctx.fillRect(-12, -9, 2, 9); ctx.fillRect(10, -9, 2, 9); }
+    if (k === 'flowerbed') { ctx.fillStyle = '#6b4a2a'; ctx.beginPath(); ctx.ellipse(0, -3, 16, 5, 0, 0, 7); ctx.fill(); ['#ff5d7a', '#ffd23f', '#c77dff', '#fff', '#ff8a3d'].forEach((c, j) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(-11 + j * 5.5, -7 - (j % 2) * 3, 2.6, 0, 7); ctx.fill(); }); }
+    if (k === 'swing') { ctx.strokeStyle = '#d63b3b'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(-8, -24); ctx.lineTo(8, -24); ctx.lineTo(13, 0); ctx.stroke(); const sw = Math.sin(t * 2) * .4; ctx.save(); ctx.translate(0, -24); ctx.rotate(sw); ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(-3, 16); ctx.moveTo(3, 0); ctx.lineTo(3, 16); ctx.stroke(); ctx.fillStyle = '#ffd23f'; ctx.fillRect(-5, 15, 10, 3); ctx.restore(); }
+    if (k === 'tree') { ctx.fillStyle = '#5a3d23'; ctx.fillRect(-2, -5, 4, 5); ctx.fillStyle = '#2f8a46'; for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.moveTo(-12 + j * 2.5, -4 - j * 8); ctx.lineTo(0, -16 - j * 8); ctx.lineTo(12 - j * 2.5, -4 - j * 8); ctx.fill(); } ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(0, -33, 2.5, 0, 7); ctx.fill(); ['#ff5a5a', '#4aa3f0', '#ffd23f', '#5be38a'].forEach((c, j) => { ctx.fillStyle = (t * 2 + j) % 2 < 1 ? c : 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(-6 + (j % 2) * 11, -8 - j * 5, 1.8, 0, 7); ctx.fill(); }); }
+    if (k === 'fountain') { ctx.fillStyle = '#b9c2c8'; ctx.beginPath(); ctx.ellipse(0, -3, 16, 5, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#5fa9e0'; ctx.beginPath(); ctx.ellipse(0, -4, 12, 3, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#9aa3ab'; ctx.fillRect(-2, -14, 4, 10); ctx.fillStyle = 'rgba(160,210,255,.85)'; for (let j = 0; j < 6; j++) { const ph = (t * 1.5 + j / 6) % 1; ctx.beginPath(); ctx.arc((j % 2 ? 1 : -1) * ph * 10, -16 - Math.sin(ph * Math.PI) * 10 + ph * 10, 1.6, 0, 7); ctx.fill(); } }
+    if (k === 'statue') { ctx.fillStyle = '#8f969d'; ctx.fillRect(-9, -9, 18, 9); ctx.save(); ctx.translate(0, -9); ctx.scale(.75, .75); paintWorker(ctx, 0, 0, 0); ctx.restore(); }
+  }
+}
+
 function drawMast() {
   const py = sy(pivot().y), g0 = Math.min(H + 10, sy(0)), x = MX;
-  ctx.strokeStyle = '#d99a0b'; ctx.lineWidth = 2;
-  ctx.fillStyle = '#f5b81c'; ctx.fillRect(x - 10, py, 3, g0 - py); ctx.fillRect(x + 7, py, 3, g0 - py);
+  ctx.strokeStyle = CRD(); ctx.lineWidth = 2;
+  ctx.fillStyle = CRM(); ctx.fillRect(x - 10, py, 3, g0 - py); ctx.fillRect(x + 7, py, 3, g0 - py);
   ctx.beginPath(); const s0 = py - ((py % 22) + 22); for (let y = s0; y < g0; y += 22) { if (y < py) continue; ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y + 11); ctx.lineTo(x - 8, y + 22); } ctx.stroke();
   // основание
   if (sy(0) < H + 10) { ctx.fillStyle = '#6b7178'; ctx.fillRect(x - 18, sy(0) - 8, 36, 12); }
@@ -1271,25 +1429,51 @@ function drawJib() {
   const p = pivot(), py = sy(p.y), x = MX;
   // голова башни и растяжки
   ctx.strokeStyle = '#3b3f45'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, py - 52); ctx.lineTo(-10, py - 16); ctx.moveTo(x, py - 52); ctx.lineTo(W + 10, py - 16); ctx.stroke();
-  ctx.fillStyle = '#f5b81c'; ctx.beginPath(); ctx.moveTo(x - 9, py - 16); ctx.lineTo(x, py - 54); ctx.lineTo(x + 9, py - 16); ctx.fill();
+  ctx.fillStyle = CRM(); ctx.beginPath(); ctx.moveTo(x - 9, py - 16); ctx.lineTo(x, py - 54); ctx.lineTo(x + 9, py - 16); ctx.fill();
   // стрела-ферма
-  ctx.fillStyle = '#f5b81c'; ctx.fillRect(-10, py - 18, W + 20, 3); ctx.fillRect(-10, py - 5, W + 20, 3);
-  ctx.strokeStyle = '#d99a0b'; ctx.lineWidth = 1.6; ctx.beginPath(); for (let xx = -10; xx < W + 10; xx += 14) { ctx.moveTo(xx, py - 16); ctx.lineTo(xx + 7, py - 4); ctx.lineTo(xx + 14, py - 16); } ctx.stroke();
+  ctx.fillStyle = CRM(); ctx.fillRect(-10, py - 18, W + 20, 3); ctx.fillRect(-10, py - 5, W + 20, 3);
+  ctx.strokeStyle = CRD(); ctx.lineWidth = 1.6; ctx.beginPath(); for (let xx = -10; xx < W + 10; xx += 14) { ctx.moveTo(xx, py - 16); ctx.lineTo(xx + 7, py - 4); ctx.lineTo(xx + 14, py - 16); } ctx.stroke();
   ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(-10, py - 2, W + 20, 2);
   // противовес
   ctx.fillStyle = '#9aa1a8'; ctx.fillRect(x + 14, py - 2, 22, 14); ctx.fillStyle = '#7b828a'; ctx.fillRect(x + 14, py + 8, 22, 4);
   // кабина
-  ctx.fillStyle = '#f5b81c'; ctx.fillRect(x - 30, py - 2, 22, 20); ctx.fillStyle = '#9fd4ff'; ctx.fillRect(x - 28, py + 1, 12, 10); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(x - 27, py + 2, 4, 8);
+  ctx.fillStyle = CRM(); ctx.fillRect(x - 30, py - 2, 22, 20); ctx.fillStyle = '#9fd4ff'; ctx.fillRect(x - 28, py + 1, 12, 10); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(x - 27, py + 2, 4, 8);
   // тележка
   ctx.fillStyle = '#3b3f45'; ctx.fillRect(p.x - 13, py - 6, 26, 8); ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(p.x - 8, py - 6, 3, 0, 7); ctx.arc(p.x + 8, py - 6, 3, 0, 7); ctx.fill();
+  if (save.skin.crane === 'garland') { const cols = ['#ff5a5a', '#ffd23f', '#5be38a', '#4aa3f0']; for (let xx = 6, i = 0; xx < W; xx += 16, i++) { const on = ((st ? st.t : 0) * 3 + i) % 4 < 2; ctx.fillStyle = on ? cols[i % 4] : 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(xx, py + 1 + Math.sin(i) * 2, 2.6, 0, 7); ctx.fill(); } }
   return { x: p.x, y: py + 2 };
 }
 function hookBlock(x, y, a) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-  ctx.fillStyle = '#f5b81c'; ctx.fillRect(-8, -8, 16, 11); ctx.fillStyle = '#222'; ctx.fillRect(-8, -3, 16, 3);
+  ctx.fillStyle = CRM(); ctx.fillRect(-8, -8, 16, 11); ctx.fillStyle = '#222'; ctx.fillRect(-8, -3, 16, 3);
   ctx.strokeStyle = '#555'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 8, 4, -Math.PI / 2, Math.PI * .9); ctx.stroke();
   ctx.restore();
 }
+
+function helpersUI() {
+  const el = $('helpers'); if (!st || mode !== 'play' || st.done) { el.classList.add('hide'); return; }
+  const keys = ['plumb', 'calm', 'cement'].filter(k => (save.inv[k] || 0) > 0 || (k === 'plumb' && st.plumb) || (k === 'calm' && st.calm) || (k === 'cement' && st.cement > 0));
+  el.classList.toggle('hide', !keys.length);
+  el.innerHTML = keys.map(k => { const on = k === 'cement' ? st.cement > 0 : st[k]; return `<button class="hb${on ? ' on' : ''}" data-k="${k}" title="${HELP[k].name}">${HICON[k]}${on ? (k === 'cement' ? `<b>${st.cement}</b>` : '') : `<b>${save.inv[k]}</b>`}</button>`; }).join('');
+  el.querySelectorAll('.hb').forEach(b => { b.addEventListener('pointerdown', e => e.stopPropagation()); b.onclick = e => { e.stopPropagation(); useHelper(b.dataset.k); }; });
+}
+function useHelper(k) {
+  if (!st || st.done || !(save.inv[k] > 0)) return;
+  if ((k === 'plumb' && st.plumb) || (k === 'calm' && st.calm)) return;
+  save.inv[k]--; store(); audio(); tone(700, .12, 'triangle', .08); tone(1050, .15, 'triangle', .06, 0, .08);
+  if (k === 'plumb') st.plumb = true; if (k === 'calm') st.calm = true; if (k === 'cement') st.cement = (st.cement || 0) + 3;
+  float(HELP[k].name + '!', CX, topY() + 150, '#9effa8', 1.1); helpersUI();
+}
+// отвес: где упадёт этаж, если отпустить сейчас
+function drawPlumb() {
+  if (!st.plumb || !st.hold || st.enter < 1) return;
+  const h = hook(), vx = h.vx * .9, vy = Math.max(0, h.vy) * .5, dy = h.y - FH / 2 - topY(), k = -Math.log(.6);
+  const t = (vy + Math.sqrt(vy * vy + 2 * G * Math.max(0, dy))) / G, x = h.x + vx * (1 - Math.exp(-k * t)) / k, off = x - topX();
+  const col = Math.abs(off) < PERF ? '#5be38a' : Math.abs(off) < 30 ? '#ffd23f' : '#ff6b5a', yT = sy(topY());
+  ctx.save(); ctx.setLineDash([6, 6]); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, sy(h.y) + FH / 2); ctx.lineTo(x, yT); ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeRect(x - st.hold.w / 2, yT - FH, st.hold.w, FH); ctx.restore();
+}
+
 function drawHeld(tr) {
   const s = st;
   if (s.hold) {
@@ -1321,6 +1505,7 @@ function render() {
   drawMast();
   drawSite();
   drawSnowGround();
+  drawDecor();
   drawCleaner();
   const n = s.floors.length;
   for (let i = 0; i < n; i++) { const y = sy(i * FH + FH / 2); if (y < -FH * 2 || y > H + FH) continue; drawFloor(s.floors[i], floorX(i), y, floorRot(i), i === n - 1 && !s.roof); }
@@ -1337,7 +1522,7 @@ function render() {
     else { ctx.fillStyle = `rgba(214,200,176,${a * .8})`; ctx.beginPath(); ctx.arc(p.x, sy(p.y), 4 + p.t * 12, 0, 7); ctx.fill(); }
   }
   const tr = drawJib();
-  if (!s.done) drawHeld(tr);
+  if (!s.done) { drawPlumb(); drawHeld(tr); }
   ctx.restore();
   drawSnowfall();
   ctx.textAlign = 'center';
@@ -1364,6 +1549,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 addEventListener('resize', resize); resize();
+streakCheck();
 showMenu();
 if (document.fonts) document.fonts.load('900 20px Rubik').then(() => { for (const f of st ? st.floors : []) f.img = null; district = null; }).catch(() => {});
 requestAnimationFrame(frame);
