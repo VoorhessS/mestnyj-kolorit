@@ -59,6 +59,14 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .bar{height:7px;border-radius:9px;background:rgba(0,0,0,.25);margin-top:5px;overflow:hidden}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,#5be38a,#ffd23f)}
 .pc{font-weight:900;font-size:15px;flex:none;width:44px;text-align:right}
+.tk{display:flex;align-items:center;gap:10px;text-align:left;width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.12)}
+.tk.ok{border-color:#5be38a}
+.tk .nm{flex:1}
+.tk .nm b{display:block;font-size:15px}
+.tk .nm span{font-size:12px;opacity:.85}
+.claim{font:inherit;font-weight:900;font-size:14px;border:0;border-radius:12px;padding:8px 12px;background:linear-gradient(180deg,#ffe066,#ffb31f);color:#4a2c00;box-shadow:0 3px 0 #b9700a;flex:none}
+.claim[disabled]{background:rgba(255,255,255,.2);color:#fff;box-shadow:none}
+.badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:99px;background:#ff5a5a;color:#fff;font-size:13px;line-height:18px}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
@@ -75,9 +83,10 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn" id="bPlay">▶ Играть</button>
   <div class="sub small" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
+  <button class="btn sec" id="bTasks">Задания</button>
   <button class="btn sec" id="bDist">Районы</button>
   <button class="btn sec" id="bColl">Жильцы</button>
-</div><div id="ver">версия 0.5</div></div>
+</div><div id="ver">версия 0.6</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -96,6 +105,13 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 </div></div>
 
 <div id="toast" class="hide"><canvas id="tC" width="96" height="96"></canvas><div class="tx"><b id="tN"></b><div id="tS"></div></div></div>
+
+<div id="tasks" class="ov hide"><div class="card wide">
+  <h2>Задания на сегодня</h2>
+  <div class="sub small" id="tkInfo"></div>
+  <div id="tkList" class="list"></div>
+  <button class="btn sec" id="tkBack">Назад</button>
+</div></div>
 
 <div id="dist" class="ov hide"><div class="card wide">
   <h2 id="dT">Районы</h2>
@@ -585,7 +601,7 @@ function collapse(j, why) {
   float(why || 'Обвал! −1', CX, topY() + 100, '#ff8a7a', 1.3, 'helmet');
   if (lost) float(`−${lost}`, CX + 40, topY() + 60, '#ffb39a', .85, 'people');
   float('Жильцы спасаются!', CX, topY() + 140, '#d9f0ff', .95);
-  if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.5; s.hold = null; }
+  if (dead()) { s.done = true; s.why = 'lives'; s.endT = 1.5; s.hold = null; }
   hud();
 }
 
@@ -727,6 +743,54 @@ function drawSnowfall() {
   if (sn.lvl === 2) { ctx.fillStyle = 'rgba(225,235,248,.16)'; ctx.fillRect(0, 0, W, H); }
 }
 
+
+// ═════════ Ежедневные задания ═════════
+// три задания на день (одинаковые для всех в этот день), награда — запасная каска:
+// когда каски кончаются, запасная спасает стройку
+const TASKS = {
+  perf: { t: n => `Поставь ${n} «Идеально»`, ns: [10, 15, 20], sum: true },
+  combo: { t: n => `Серия «Идеально» ×${n}`, ns: [4, 5, 6] },
+  floors: { t: n => `Построй ${n} этажей`, ns: [30, 45, 60], sum: true },
+  house: { t: n => n > 1 ? `Сдай ${n} дома` : 'Сдай дом', ns: [1, 2, 2], sum: true },
+  stars3: { t: () => 'Сдай дом на три звезды', ns: [1] },
+  nomiss: { t: () => 'Сдай дом, не потеряв ни одной каски', ns: [1] },
+  snow: { t: () => 'Сдай дом в снегопад или метель', ns: [1] },
+  people: { t: n => `Засели ${n} жильцов`, ns: [300, 500, 800], sum: true },
+};
+const MAX_SPARE = 5;
+function today() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function dailyTasks() {
+  const day = today();
+  if (!save.daily || save.daily.day !== day) {
+    const r = rnd([...day].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7)), keys = Object.keys(TASKS), list = [];
+    while (list.length < 3) { const k = keys[r() * keys.length | 0]; if (!list.some(t => t.k === k)) { const ns = TASKS[k].ns; list.push({ k, n: ns[r() * ns.length | 0], p: 0, claimed: false }); } }
+    save.daily = { day, list }; store();
+  }
+  return save.daily.list;
+}
+function daily(k, v) {
+  const t = dailyTasks().find(x => x.k === k); if (!t || t.p >= t.n) return;
+  t.p = TASKS[k].sum ? Math.min(t.n, t.p + v) : Math.max(t.p, Math.min(t.n, v));
+  store();
+  if (t.p >= t.n && st && mode === 'play') { float('Задание выполнено!', CX, topY() + 160, '#5be38a', 1.1); tone(660, .12, 'triangle', .1); tone(990, .2, 'triangle', .08, 0, .1); }
+}
+const tasksReady = () => dailyTasks().filter(t => t.p >= t.n && !t.claimed).length;
+function dead() { // каски кончились? запасная спасает
+  if (st.lives > 0) return false;
+  if ((save.spare || 0) > 0) { save.spare--; store(); st.lives = 1; float('Запасная каска!', CX, topY() + 130, '#ffd23f', 1.2, 'helmet'); tone(784, .15, 'triangle', .1); hud(); return false; }
+  return true;
+}
+function showTasks() {
+  const list = dailyTasks();
+  $('tkInfo').innerHTML = `За каждое задание — <b>запасная каска</b>: когда каски кончатся, она спасёт стройку. Сейчас запасных: <b>${save.spare || 0}</b> из ${MAX_SPARE}.<br>Новые задания — каждый день.`;
+  $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : '+1'}</button>`}</div>`; }).join('');
+  $('tkList').querySelectorAll('.claim[data-i]').forEach(b => b.onclick = () => {
+    const t = list[+b.dataset.i]; if (t.p < t.n || t.claimed) return;
+    t.claimed = true; save.spare = Math.min(MAX_SPARE, (save.spare || 0) + 1); store(); audio(); sfx.win(); showTasks();
+  });
+  $('menu').classList.add('hide'); $('tasks').classList.remove('hide');
+}
+
 function physics() {
   const s = st, n = s.floors.length, S2 = s.stab;
   let weak = 0, lean = 0;
@@ -829,6 +893,7 @@ function land(off) {
     sfx.perfect(s.combo); s.shake = .25;
     s.v *= .35; s.x *= .7; // ровный этаж гасит раскачку
     moveIn(f); // на ровный этаж заселяется жилец
+    daily('perf', 1); daily('combo', s.combo);
     if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; s.x = 0; s.v = 0; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
   } else {
     s.combo = 0; f.off = prev + off; gain = Math.max(2, Math.round(10 - Math.abs(off) / 7));
@@ -839,13 +904,13 @@ function land(off) {
   }
   s.people += gain; s.best = Math.max(s.best, s.combo);
   float(`+${gain}`, CX + f.off + f.w / 2 - 14, y - 10, '#d9f0ff', .8, 'people');
-  f.gain = gain; s.floors.push(f); s.drop = null;
+  f.gain = gain; s.floors.push(f); s.drop = null; daily('floors', 1); daily('people', gain);
   dust(CX + f.off, topY() - FH, f.w);
   s.stab = stability();
   const worst = s.stab.reduce((a, b, j) => b.s < a.s ? { s: b.s, j } : a, { s: 9, j: -1 });
   if (worst.s < TIP) { s.wait = .7; collapse(worst.j, worst.j === s.floors.length - 1 ? 'Сорвался! −1' : 'Перевес! −1'); return; }
   if (s.stab[s.floors.length - 1].s < SHAKY || worst.s < SHAKY) float('Шатается!', CX + f.off, y + 64, '#ffb347', 1.05);
-  if (bad) { s.lives--; s.shake = .4; sfx.miss(); if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.3; hud(); return; } }
+  if (bad) { s.lives--; s.shake = .4; sfx.miss(); if (dead()) { s.done = true; s.why = 'lives'; s.endT = 1.3; hud(); return; } }
   if (s.floors.length >= CFG.goal) { s.done = true; s.roof = { y: topY() + 260, vy: 0 }; float('Дом готов!', CX, topY() + 120, '#ffe14a', 1.4); }
   else s.wait = CFG.time ? .2 : .35;
   hud();
@@ -875,7 +940,7 @@ function miss() {
   const s = st;
   if (s.lives <= 0) { s.drop = null; return; } s.drop = null; s.combo = 0; s.lives--; s.shake = .4; sfx.miss();
   float('Мимо! −1', CX, topY() + 90, '#ff8a7a', 1.2, 'helmet');
-  if (s.lives <= 0) { s.done = true; s.why = 'lives'; s.endT = 1.3; } else s.wait = .7;
+  if (dead()) { s.done = true; s.why = 'lives'; s.endT = 1.3; } else s.wait = .7;
   hud();
 }
 function stars() { const s = st, g = CFG.goal; return s.people >= g * 22 ? 3 : s.people >= g * 12 ? 2 : 1; }
@@ -883,6 +948,7 @@ function finish(won) {
   mode = 'end'; hudShow(false);
   if (won) {
     const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
+    daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.sp === 'precise' ? 4 : 5)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
     if (save.lvl <= LVL) save.lvl = LVL + 1; store();
     const D1 = distInfo(LVL), dEnd = D1.house === 5, D2 = distInfo(LVL + 1), fresh = RES.filter(r => r.d === D2.d);
     $('eT').textContent = dEnd ? 'Район сдан!' : 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
@@ -907,7 +973,7 @@ function hudShow(v) { $('hud').classList.toggle('hide', !v); }
 function hud() {
   if (!st) return;
   $('hFloors').innerHTML = `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
-  $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('');
+  $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('') + (save.spare ? `<b style="font-size:12px;margin-left:4px;color:#ffd23f">+${save.spare}</b>` : '');
   $('hPeople').innerHTML = `${ICON.people()} ${st.people}`;
   $('tbar').classList.toggle('hide', !CFG.time);
 }
@@ -925,6 +991,7 @@ function showMenu() {
   const Di = distInfo(save.lvl), got = RES.filter(r => save.res[r.id]).length;
   $('mInfo').innerHTML = `<b>${Di.name}</b> · дом ${Di.house} из 5<br>${c.goal} этажей${c.sp ? ` · особая: <b>${SPINFO[c.sp][0]}</b>` : ''}` + (built ? `<br>Сдано домов: <b>${built}</b> · звёзд: ${all}` : '');
   $('bColl').textContent = `Жильцы ${got}/${RES.length}`;
+  const tr2 = tasksReady(), tl = dailyTasks(); $('bTasks').innerHTML = `Задания ${tl.filter(t => t.p >= t.n).length}/3` + (tr2 ? `<span class="badge">${tr2}</span>` : '');
   $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL));
 }
 
@@ -960,6 +1027,8 @@ function play(l) {
 }
 $('bPlay').onclick = () => play(save.lvl);
 $('bDist').onclick = showDistricts;
+$('bTasks').onclick = showTasks;
+$('tkBack').onclick = () => { $('tasks').classList.add('hide'); showMenu(); };
 $('bColl').onclick = () => {
   const d = distOf(save.lvl);
   $('cGrid').innerHTML = RES.map(r => `<div class="rc${save.res[r.id] ? '' : ' lock'}"><canvas width="128" height="128" data-id="${r.id}"></canvas><b>${save.res[r.id] ? r.name : '???'}</b><div class="say">${save.res[r.id] ? '«' + r.say + '»' : r.d > d ? 'Откроется в районе «' + DIST[r.d % DIST.length].name + '»' : 'Ставь этажи ровно — заселится'}</div></div>`).join('');
