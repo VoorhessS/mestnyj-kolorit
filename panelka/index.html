@@ -26,12 +26,39 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .stars{display:flex;gap:6px;justify-content:center;filter:drop-shadow(0 3px 0 rgba(0,0,0,.3))}
 #hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 8px) 10px 0;pointer-events:none}
 #hud .pill svg{display:block}
+#hLives{gap:1px}
+#hLives svg{width:18px;height:15px}
 #hud .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .pill{display:flex;align-items:center;gap:6px;color:#fff;font-weight:800;font-size:17px;padding:6px 12px;border-radius:99px;background:rgba(14,24,52,.45);border:1px solid rgba(255,255,255,.2);text-shadow:0 1px 0 rgba(0,0,0,.4)}
 #bMenu{pointer-events:auto;font:inherit;font-weight:900;font-size:16px;border:0;border-radius:12px;padding:7px 11px;background:rgba(255,255,255,.88);color:#1f3550;box-shadow:0 3px 0 rgba(0,0,0,.2)}
 #tbar{margin:8px auto 0;max-width:360px;height:12px;border-radius:99px;background:rgba(14,24,52,.45);border:1px solid rgba(255,255,255,.25);overflow:hidden;position:relative}
 #tfill{height:100%;width:100%;background:linear-gradient(90deg,#5be38a,#ffd23f);border-radius:99px}
 #ttxt{position:absolute;inset:0;font-size:10px;font-weight:900;color:#fff;text-align:center;line-height:12px;text-shadow:0 1px 0 #0008}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 92px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(330px,88vw);padding:8px 12px 8px 8px;border-radius:18px;background:rgba(255,255,255,.95);color:#1f3550;box-shadow:0 10px 30px rgba(0,0,0,.3);pointer-events:none}
+#toast canvas{width:56px;height:56px;flex:none}
+#toast .tx{font-size:14px;line-height:1.25}
+#toast b{font-size:15px}
+#toast.show{animation:tin .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes tin{from{transform:translate(-50%,-30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.card.wide{max-width:400px;max-height:88vh;overflow:auto}
+#cGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.rc{background:rgba(255,255,255,.12);border-radius:14px;padding:6px 4px 8px;font-size:11px;line-height:1.2}
+.rc canvas{width:64px;height:64px;display:block;margin:0 auto 4px}
+.rc b{display:block;font-size:12px}
+.rc .say{opacity:.85;margin-top:3px}
+.rc.lock{opacity:.6}
+.list{display:flex;flex-direction:column;gap:8px;width:100%}
+.it{display:flex;align-items:center;gap:10px;text-align:left;width:100%;box-sizing:border-box;font:inherit;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.12);cursor:pointer}
+.it:active{transform:translateY(2px)}
+.it.lock{opacity:.45;cursor:default}
+.it.cur{border-color:#ffd23f;box-shadow:0 0 0 2px rgba(255,210,63,.45)}
+.it .nm{flex:1;min-width:0}
+.it .nm b{display:block;font-size:16px}
+.it .nm span{font-size:12px;opacity:.85}
+.it .st{display:flex;gap:1px;flex:none}
+.bar{height:7px;border-radius:9px;background:rgba(0,0,0,.25);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#5be38a,#ffd23f)}
+.pc{font-weight:900;font-size:15px;flex:none;width:44px;text-align:right}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
@@ -48,7 +75,9 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn" id="bPlay">▶ Играть</button>
   <div class="sub small" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
-</div><div id="ver">версия 0.3</div></div>
+  <button class="btn sec" id="bDist">Районы</button>
+  <button class="btn sec" id="bColl">Жильцы</button>
+</div><div id="ver">версия 0.4</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -62,7 +91,24 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <div class="stars" id="eStars"></div>
   <div class="sub" id="eS"></div>
   <button class="btn" id="eNext"></button>
+  <button class="btn sec" id="eAgain">↻ Заново</button>
   <button class="btn sec" id="eMenu">Меню</button>
+</div></div>
+
+<div id="toast" class="hide"><canvas id="tC" width="96" height="96"></canvas><div class="tx"><b id="tN"></b><div id="tS"></div></div></div>
+
+<div id="dist" class="ov hide"><div class="card wide">
+  <h2 id="dT">Районы</h2>
+  <div class="sub small" id="dInfo"></div>
+  <div id="dList" class="list"></div>
+  <button class="btn sec" id="dBack">Назад</button>
+</div></div>
+
+<div id="coll" class="ov hide"><div class="card wide">
+  <h2>Жильцы</h2>
+  <div class="sub small" id="cInfo"></div>
+  <div id="cGrid"></div>
+  <button class="btn sec" id="cClose">Назад</button>
 </div></div>
 
 <script>
@@ -104,9 +150,97 @@ const ICON = {
   clock: () => `<svg viewBox="0 0 12 12" width="9" height="9" style="vertical-align:-1px"><circle cx="6" cy="6" r="5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M6 3v3l2 1.2" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`,
 };
 
+
+// ═════════ Районы ═════════
+const DIST = [
+  { name: 'Спальный район', kind: 'bed' }, { name: 'Набережная', kind: 'river' },
+  { name: 'Промзона', kind: 'factory' }, { name: 'Центр', kind: 'center' },
+];
+const distOf = i => Math.floor(i / 5);
+const distInfo = i => { const d = distOf(i), D2 = DIST[d % DIST.length]; return { d, kind: D2.kind, name: D2.name + (d >= DIST.length ? ' ' + (Math.floor(d / DIST.length) + 1) : ''), house: i % 5 + 1 }; };
+
+// ═════════ Жильцы ═════════
+const RES = [
+  { id: 'rocker', name: 'Рокер Вася', say: 'Соседи, сегодня репетиция!', d: 0, skin: '#f0c39a', shirt: '#2b2b2b' },
+  { id: 'jock', name: 'Качок Гена', say: 'Лифт? Я по лестнице. С холодильником.', d: 0, skin: '#e9b48a', shirt: '#e0453a' },
+  { id: 'student', name: 'Студент Петя', say: 'А вайфай тут общий?', d: 0, skin: '#f3cba4', shirt: '#3fa35a' },
+  { id: 'chef', name: 'Повар Арам', say: 'Чую, на третьем жарят котлеты!', d: 0, skin: '#e2a982', shirt: '#f7f7f2' },
+  { id: 'dj', name: 'Диджей Макс', say: 'Бас пробьёт до первого этажа!', d: 1, skin: '#c98d62', shirt: '#7b4fc9' },
+  { id: 'blogger', name: 'Блогерша Лиза', say: 'Подписывайтесь на наш подъезд!', d: 1, skin: '#f5cfb0', shirt: '#ff7aa8' },
+  { id: 'plumber', name: 'Сантехник Толя', say: 'Где течёт? Уже бегу!', d: 1, skin: '#eab792', shirt: '#2f6db5' },
+  { id: 'gardener', name: 'Дачник Михалыч', say: 'Рассада поедет на балкон.', d: 2, skin: '#e8b08a', shirt: '#5c9e4a' },
+  { id: 'artist', name: 'Художник Жорж', say: 'Можно я покрашу лифт?', d: 2, skin: '#f2c8a2', shirt: '#ffffff' },
+  { id: 'catman', name: 'Кошатник Игорь', say: 'Со мной всего восемь котов.', d: 2, skin: '#eebd96', shirt: '#8a6a4a' },
+  { id: 'astro', name: 'Космонавт Юра', say: 'А этаж повыше есть?', d: 3, skin: '#f0c39a', shirt: '#eef2f6' },
+  { id: 'ninja', name: 'Ниндзя Кэндзи', say: 'Я по стене. Лифт не нужен.', d: 3, skin: '#e9b48a', shirt: '#1f1f26' },
+];
+const RESD = Object.fromEntries(RES.map(r => [r.id, r]));
+function paintResident(g, id, x, y, sc = 1) {
+  const R = RESD[id]; if (!R) return;
+  g.save(); g.translate(x, y); g.scale(sc, sc);
+  const big = id === 'jock' ? 4 : 0;
+  // плечи
+  g.fillStyle = R.shirt; g.beginPath(); g.moveTo(-17 - big, 0); g.quadraticCurveTo(-17 - big, -16, -6, -17); g.lineTo(6, -17); g.quadraticCurveTo(17 + big, -16, 17 + big, 0); g.fill();
+  if (id === 'artist') { g.fillStyle = '#1f3550'; for (let yy = -14; yy < 0; yy += 4) g.fillRect(-17, yy, 34, 2); }
+  if (id === 'plumber') { g.fillStyle = '#1f4f8a'; g.fillRect(-9, -15, 4, 15); g.fillRect(5, -15, 4, 15); }
+  if (id === 'chef') { g.fillStyle = '#c9c9c0'; for (const yy of [-11, -5]) { g.beginPath(); g.arc(-3, yy, 1.2, 0, 7); g.arc(3, yy, 1.2, 0, 7); g.fill(); } }
+  if (id === 'rocker') { g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(1, -14); g.lineTo(-3, -7); g.lineTo(0, -7); g.lineTo(-2, -1); g.lineTo(4, -9); g.lineTo(1, -9); g.fill(); }
+  if (id === 'student') { g.strokeStyle = '#2a7a40'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-3, -16); g.lineTo(-4, -9); g.moveTo(3, -16); g.lineTo(4, -9); g.stroke(); }
+  if (id === 'gardener') { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1; g.beginPath(); for (let xx = -14; xx < 16; xx += 5) { g.moveTo(xx, -16); g.lineTo(xx, 0); } for (let yy = -13; yy < 0; yy += 5) { g.moveTo(-17, yy); g.lineTo(17, yy); } g.stroke(); }
+  if (id === 'astro') { g.fillStyle = '#e04646'; g.fillRect(-12, -12, 6, 4); g.fillStyle = '#3d7fd6'; g.fillRect(6, -12, 6, 4); }
+  // шея и голова
+  g.fillStyle = R.skin; g.fillRect(-3.5, -21, 7, 5);
+  g.beginPath(); g.ellipse(0, -29, 9, 10, 0, 0, 7); g.fill();
+  // волосы и головные уборы (до лица)
+  const hair = (c, f) => { g.fillStyle = c; g.beginPath(); f(); g.fill(); };
+  if (id === 'rocker') hair('#1b1b1b', () => { g.moveTo(-10, -12); g.quadraticCurveTo(-12, -40, 0, -40); g.quadraticCurveTo(12, -40, 10, -12); g.lineTo(7, -14); g.lineTo(7, -31); g.quadraticCurveTo(0, -35, -7, -31); g.lineTo(-7, -14); g.closePath(); });
+  if (id === 'jock') hair('#5a3a22', () => { g.ellipse(0, -36, 8.5, 3.5, 0, Math.PI, 0); });
+  if (id === 'student') hair('#7a4a26', () => { for (let a = -2.6; a <= -.4; a += .45) g.arc(Math.cos(a) * 8, -31 + Math.sin(a) * 8, 4, 0, 7); });
+  if (id === 'dj' || id === 'catman') hair(id === 'dj' ? '#1b1b1b' : '#6b4a2a', () => { g.ellipse(0, -35, 9, 5, 0, Math.PI, 0); });
+  if (id === 'blogger') { hair('#f2d16b', () => { g.ellipse(0, -33, 9.5, 6.5, 0, Math.PI, 0); }); hair('#f2d16b', () => { g.arc(0, -42, 4.5, 0, 7); }); hair('#f2d16b', () => { g.ellipse(-8, -27, 2.5, 6, 0, 0, 7); g.ellipse(8, -27, 2.5, 6, 0, 0, 7); }); }
+  if (id === 'artist' || id === 'gardener' || id === 'plumber' || id === 'chef') hair('#3a2a1a', () => { g.ellipse(0, -35, 8.5, 4, 0, Math.PI, 0); });
+  // лицо
+  if (id !== 'ninja') {
+    g.fillStyle = '#1d1d1d'; g.beginPath(); g.arc(-3.2, -30, 1.2, 0, 7); g.arc(3.2, -30, 1.2, 0, 7); g.fill();
+    g.strokeStyle = '#7a3b2e'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -26.5, 3, .25, Math.PI - .25); g.stroke();
+    g.fillStyle = 'rgba(255,120,120,.35)'; g.beginPath(); g.arc(-6, -26.5, 1.8, 0, 7); g.arc(6, -26.5, 1.8, 0, 7); g.fill();
+  }
+  // аксессуары
+  if (id === 'rocker') { g.save(); g.translate(13, -6); g.rotate(-.6); g.fillStyle = '#8a4f24'; g.fillRect(-1.5, -26, 3, 26); g.fillStyle = '#3a2412'; g.fillRect(-2.5, -30, 5, 5); g.restore(); }
+  if (id === 'jock') { g.fillStyle = '#555'; g.fillRect(12, -24, 2, 12); g.fillStyle = '#2b2b2b'; g.fillRect(9, -27, 8, 4); g.fillRect(9, -13, 8, 4); }
+  if (id === 'student') { g.strokeStyle = '#1d1d1d'; g.lineWidth = 1.1; g.beginPath(); g.arc(-3.4, -30, 2.8, 0, 7); g.moveTo(.6, -30); g.arc(3.4, -30, 2.8, Math.PI, Math.PI * 3); g.stroke(); g.fillStyle = '#2f6db5'; g.fillRect(-14, -9, 10, 9); g.fillStyle = '#fff'; g.fillRect(-13, -8, 1.5, 7); }
+  if (id === 'chef') { g.fillStyle = '#fff'; g.beginPath(); g.arc(-5, -41, 5, 0, 7); g.arc(0, -44, 6, 0, 7); g.arc(5, -41, 5, 0, 7); g.fill(); g.fillRect(-8, -40, 16, 5); g.fillStyle = '#1d1d1d'; g.beginPath(); g.ellipse(-2.5, -26, 3, 1.3, -.3, 0, 7); g.ellipse(2.5, -26, 3, 1.3, .3, 0, 7); g.fill(); }
+  if (id === 'dj') { g.strokeStyle = '#222'; g.lineWidth = 2.2; g.beginPath(); g.arc(0, -30, 10.5, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); g.fillStyle = '#2b2b2b'; g.fillRect(-12.5, -32, 4.5, 7); g.fillRect(8, -32, 4.5, 7); g.fillStyle = '#5be38a'; g.fillRect(-12, -30, 1.5, 3); g.fillRect(10.5, -30, 1.5, 3); }
+  if (id === 'blogger') { g.fillStyle = '#1d1d1d'; g.fillRect(9, -30, 6, 11); g.fillStyle = '#9fd4ff'; g.fillRect(10, -29, 4, 8); g.fillStyle = R.skin; g.beginPath(); g.arc(12, -18, 2.6, 0, 7); g.fill(); }
+  if (id === 'plumber') { g.fillStyle = '#2f6db5'; g.beginPath(); g.ellipse(0, -36, 9.5, 5, 0, Math.PI, 0); g.fill(); g.fillRect(0, -37, 12, 3); g.save(); g.translate(13, -10); g.rotate(.5); g.fillStyle = '#9aa3ab'; g.fillRect(-1.5, -12, 3, 13); g.beginPath(); g.arc(0, -13, 3.5, 0, 7); g.fill(); g.fillStyle = R.shirt; g.fillRect(-1, -17, 2, 4); g.restore(); }
+  if (id === 'gardener') { g.fillStyle = '#e9cc6a'; g.beginPath(); g.ellipse(0, -36, 15, 3.5, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(0, -39, 7, 5, 0, Math.PI, 0); g.fill(); g.fillStyle = '#c0392b'; g.fillRect(-7, -38.5, 14, 2); g.fillStyle = '#9a9a9a'; g.beginPath(); g.ellipse(-2.5, -25.5, 3.2, 1.4, -.25, 0, 7); g.ellipse(2.5, -25.5, 3.2, 1.4, .25, 0, 7); g.fill(); paintPot(g, -12, 0); g.fillStyle = '#3f9a4a'; g.beginPath(); g.ellipse(-14, -11, 2, 3.5, -.5, 0, 7); g.ellipse(-10, -11, 2, 3.5, .5, 0, 7); g.fill(); }
+  if (id === 'artist') { g.fillStyle = '#d63b3b'; g.beginPath(); g.ellipse(-1, -37, 10, 4, -.15, 0, 7); g.fill(); g.fillRect(-1.5, -42, 2, 3); g.strokeStyle = '#1d1d1d'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-5, -25); g.quadraticCurveTo(0, -27, 5, -25); g.stroke(); g.save(); g.translate(13, -6); g.rotate(-.4); g.fillStyle = '#a0703c'; g.fillRect(-1, -16, 2, 16); g.fillStyle = '#4aa3f0'; g.beginPath(); g.ellipse(0, -18, 2, 3.5, 0, 0, 7); g.fill(); g.restore(); }
+  if (id === 'catman') { g.fillStyle = '#6b4a2a'; g.beginPath(); g.moveTo(-8.5, -27); g.quadraticCurveTo(-8, -17, 0, -16); g.quadraticCurveTo(8, -17, 8.5, -27); g.quadraticCurveTo(0, -22, -8.5, -27); g.fill(); g.fillStyle = '#8b8f96'; g.beginPath(); g.ellipse(0, -36, 9.5, 5.5, 0, Math.PI, 0); g.fill(); g.fillRect(-9.5, -37, 19, 3); g.save(); g.translate(13, -15); g.scale(.85, .85); paintCat(g, 0, 0); g.restore(); }
+  if (id === 'astro') { g.fillStyle = 'rgba(160,210,255,.45)'; g.strokeStyle = '#dfe6ee'; g.lineWidth = 3; g.beginPath(); g.arc(0, -29, 13, 0, 7); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(-5, -34, 3, 5, .5, 0, 7); g.fill(); g.strokeStyle = '#9aa3ab'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(6, -41); g.lineTo(8, -47); g.stroke(); g.fillStyle = '#ff3b3b'; g.beginPath(); g.arc(8, -47.5, 1.6, 0, 7); g.fill(); }
+  if (id === 'ninja') { g.fillStyle = '#1f1f26'; g.beginPath(); g.ellipse(0, -29, 9.6, 10.6, 0, 0, 7); g.fill(); g.fillStyle = R.skin; g.fillRect(-7, -32.5, 14, 5); g.fillStyle = '#1d1d1d'; g.fillRect(-5, -31, 2.6, 2); g.fillRect(2.4, -31, 2.6, 2); g.fillStyle = '#d6293b'; g.fillRect(-9.5, -38, 19, 3); g.beginPath(); g.moveTo(9, -37); g.lineTo(17, -40); g.lineTo(16, -35); g.closePath(); g.fill(); }
+  g.restore();
+}
+function portrait(c, id, locked) {
+  const g = c.getContext('2d'), w = c.width, h = c.height;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+  const bg = g.createRadialGradient(w / 2, h * .4, 4, w / 2, h / 2, w / 2); bg.addColorStop(0, '#bfe6ff'); bg.addColorStop(1, '#5d9ad6');
+  g.fillStyle = bg; g.beginPath(); g.arc(w / 2, h / 2, w / 2, 0, 7); g.fill();
+  g.save(); g.beginPath(); g.arc(w / 2, h / 2, w / 2, 0, 7); g.clip();
+  paintResident(g, id, w / 2, h + 2, w / 52);
+  if (locked) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(25,40,70,.92)'; g.fillRect(0, 0, w, h); g.globalCompositeOperation = 'source-over'; g.fillStyle = '#fff'; g.font = `900 ${w * .38}px Rubik, system-ui`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', w / 2, h * .56); }
+  g.restore();
+}
+
 // ═════════ Сохранение ═════════
-let save = { lvl: 0, stars: [] };
+let save = { lvl: 0, stars: [], res: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {}
+save.res = save.res || {};
+save.h = save.h || {};
+(save.stars || []).forEach((k, i) => { if (k && !save.h[i]) save.h[i] = { pct: 100, stars: k }; }); // перенос со старой версии
+const hInfo = i => save.h[i] || { pct: 0, stars: 0 };
+const distStats = d => { let st2 = 0, pc = 0; for (let i = d * 5; i < d * 5 + 5; i++) { st2 += hInfo(i).stars; pc += hInfo(i).pct; } return { stars: st2, pct: Math.round(pc / 5) }; };
+const distOpen = d => d * 5 <= save.lvl;
+const houseOpen = i => i <= save.lvl;
 const store = () => { try { localStorage.setItem(SAVE, JSON.stringify(save)); } catch (e) {} };
 
 // ═════════ Утилиты ═════════
@@ -224,7 +358,7 @@ function paintFloor(g, f, hc) {
     const wx = -w / 2 + cell * (k + .5), wy = -h / 2 + 9;
     if (f.door && k === (f.n >> 1)) { paintDoor(g, wx, h); continue; }
     paintWindow(g, f, k, wx, wy);
-    if (k === f.slot) paintDecor(g, f.dec, wx, wy);
+    if (k === f.slot && k !== f.resK) paintDecor(g, f.dec, wx, wy);
   }
 }
 function paintWindow(g, f, k, wx, wy) {
@@ -234,6 +368,7 @@ function paintWindow(g, f, k, wx, wy) {
   const gl = g.createLinearGradient(0, wy, 0, wy + 27);
   if (lit) { gl.addColorStop(0, '#fff4b8'); gl.addColorStop(1, '#ffb347'); } else { gl.addColorStop(0, '#c4e6ff'); gl.addColorStop(.5, '#7fb3e3'); gl.addColorStop(1, '#3f73ad'); }
   g.fillStyle = gl; g.fillRect(wx - 13, wy + 2, 26, 25);
+  if (f.res && k === f.resK) { g.save(); g.beginPath(); g.rect(wx - 13, wy + 2, 26, 25); g.clip(); paintResident(g, f.res, wx, wy + 29, .62); g.restore(); }
   if (f.cur[k] > .55) {
     g.fillStyle = ['#e86f6f', '#7fbf6a', '#f0b85a', '#b48be0', '#5fb3d9'][(f.cur[k] * 50 | 0) % 5];
     g.beginPath(); g.moveTo(wx - 13, wy + 2); g.lineTo(wx - 4, wy + 2); g.quadraticCurveTo(wx - 8, wy + 14, wx - 13, wy + 22); g.fill();
@@ -364,18 +499,24 @@ function drawRoof(cx, cy, w) {
 // ═════════ Район: сданные дома вокруг стройки ═════════
 let district = null;
 function buildDistrict() {
-  const built = save.stars.map((k, i) => k ? i : -1).filter(i => i >= 0 && i !== LVL).slice(-8);
+  const built = []; for (let i = distOf(LVL) * 5; i < distOf(LVL) * 5 + 5; i++) if (i !== LVL && hInfo(i).pct > 0) built.push(i);
   const sc = .4, maxH = 40 * FH * sc + 60, c = canvas(W * S, maxH * S), g = c.getContext('2d');
   const spots = [-1, 1, -2, 2, -3, 3, -4, 4];
   built.forEach((li, j) => {
-    const side = spots[j], x = CX + side * 108 + (side > 0 ? 22 : -22), n = level(li).goal, hc = house(li);
+    const side = spots[j], x = CX + side * 108 + (side > 0 ? 22 : -22), full = level(li).goal, hc = house(li), done = hInfo(li).stars > 0, n = done ? full : Math.max(1, Math.round(hInfo(li).pct / 100 * full));
     g.setTransform(S * sc, 0, 0, S * sc, x * S, (maxH - 2) * S);
     for (let i = 0; i < n; i++) {
       const r = rnd(li * 1000 + i);
       const f = { w: FW, n: 3, dec: r() < .3 ? 'balcony' : '', slot: r() * 3 | 0, win: [r(), r(), r(), r()], cur: [r(), r(), r(), r()], tone: [r(), r(), r(), r()], door: i === 0, night: 0 };
       g.save(); g.translate(0, -FH / 2 - i * FH); paintFloor(g, f, hc); g.restore();
     }
-    g.save(); g.translate(0, -n * FH); g.fillStyle = '#7b828a'; g.fillRect(-FW / 2 - 3, -12, FW + 3, 12); g.fillStyle = '#c9c3b5'; g.fillRect(-18, -34, 36, 22); g.restore();
+    g.save(); g.translate(0, -n * FH);
+    if (done) { g.fillStyle = '#7b828a'; g.fillRect(-FW / 2 - 3, -12, FW + 3, 12); g.fillStyle = '#c9c3b5'; g.fillRect(-18, -34, 36, 22); }
+    else { // недострой: арматура и сетка
+      g.strokeStyle = '#6b7178'; g.lineWidth = 3; g.beginPath(); for (let x2 = -FW / 2 + 8; x2 < FW / 2; x2 += 18) { g.moveTo(x2, 0); g.lineTo(x2, -22); } g.stroke();
+      g.fillStyle = 'rgba(60,170,90,.55)'; g.fillRect(-FW / 2, FH * 0, FW, FH * Math.min(2, n)); g.strokeStyle = 'rgba(30,90,50,.6)'; g.lineWidth = 1; g.beginPath(); for (let x2 = -FW / 2; x2 < FW / 2; x2 += 8) { g.moveTo(x2, 0); g.lineTo(x2, FH * Math.min(2, n)); } g.stroke();
+    }
+    g.restore();
   });
   district = { c, maxH, lvl: LVL, n: built.length };
 }
@@ -385,7 +526,7 @@ let LVL = save.lvl, CFG = level(LVL), st = null, mode = 'menu';
 function newGame() {
   CFG = level(LVL);
   st = {
-    floors: [], lives: 3, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
+    floors: [], lives: CFG.sp === 'precise' ? 4 : 5, people: 0, combo: 0, best: 0, t: 0, cam: 0, phase: Math.random() * 6,
     hold: null, drop: null, crane: 430, debris: [], texts: [], parts: [], rings: [], shake: 0, wait: 0, enter: 0,
     sway: 0, x: 0, v: 0, stab: [], creak: 0, done: false, roof: null, endT: 0, perfects: 0, time: CFG.time, why: '', lastTick: 99,
   };
@@ -542,6 +683,7 @@ function land(off) {
     s.rings.push({ x: topX(), y: topY(), t: 0, w: f.w });
     sfx.perfect(s.combo); s.shake = .25;
     s.v *= .35; s.x *= .7; // ровный этаж гасит раскачку
+    moveIn(f); // на ровный этаж заселяется жилец
     if (s.combo % 3 === 0) { for (const g of s.floors) g.off *= .5; f.off *= .5; s.x = 0; s.v = 0; float('Дом выпрямился!', CX, y + 62, '#9effa8'); }
   } else {
     s.combo = 0; f.off = prev + off; gain = Math.max(2, Math.round(10 - Math.abs(off) / 7));
@@ -563,6 +705,27 @@ function land(off) {
   else s.wait = CFG.time ? .2 : .35;
   hud();
 }
+
+let toastUntil = 0;
+function toast(id, isNew) {
+  const r = RESD[id], el = $('toast'), now = performance.now();
+  if (!isNew && toastUntil > now) return;
+  portrait($('tC'), id, false);
+  $('tN').textContent = (isNew ? 'Новый жилец! ' : '') + r.name; $('tS').textContent = '«' + r.say + '»';
+  el.classList.remove('hide', 'show'); void el.offsetWidth; el.classList.add('show');
+  toastUntil = now + (isNew ? 3000 : 2200);
+  clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.add('hide'), isNew ? 3000 : 2200);
+  if (isNew) { tone(880, .12, 'triangle', .1); tone(1320, .2, 'triangle', .08, 0, .1); }
+}
+function moveIn(f) {
+  const d = distOf(LVL), pool = RES.filter(r => r.d <= d);
+  const r = pool[Math.random() * pool.length | 0];
+  const ks = []; for (let k = 0; k < f.n; k++) if (!(f.door && k === (f.n >> 1))) ks.push(k);
+  f.res = r.id; f.resK = ks[Math.random() * ks.length | 0]; f.img = null;
+  const isNew = !save.res[r.id]; save.res[r.id] = (save.res[r.id] || 0) + 1; store();
+  toast(r.id, isNew);
+}
+
 function miss() {
   const s = st;
   if (s.lives <= 0) { s.drop = null; return; } s.drop = null; s.combo = 0; s.lives--; s.shake = .4; sfx.miss();
@@ -574,16 +737,21 @@ function stars() { const s = st, g = CFG.goal; return s.people >= g * 22 ? 3 : s
 function finish(won) {
   mode = 'end'; hudShow(false);
   if (won) {
-    const k = stars(); save.stars[LVL] = Math.max(save.stars[LVL] || 0, k);
+    const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
     if (save.lvl <= LVL) save.lvl = LVL + 1; store();
-    $('eT').textContent = 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
-    $('eS').innerHTML = `Этажей: <b>${CFG.goal}</b> · Жильцов: <b>${st.people}</b><br>Идеальных: ${st.perfects} · Лучшая серия: ${st.best}` + (k < 3 ? `<br><span class="small">Для трёх звёзд нужно ${CFG.goal * 22} жильцов — ставь ровнее!</span>` : '');
-    $('eNext').textContent = `▶ Стройка №${LVL + 2}`; $('eNext').dataset.act = 'next';
+    const D1 = distInfo(LVL), dEnd = D1.house === 5, D2 = distInfo(LVL + 1), fresh = RES.filter(r => r.d === D2.d);
+    $('eT').textContent = dEnd ? 'Район сдан!' : 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
+    $('eS').innerHTML = `Этажей: <b>${CFG.goal}</b> · Жильцов: <b>${st.people}</b><br>Идеальных: ${st.perfects} · Лучшая серия: ${st.best}` + (k < 3 ? `<br><span class="small">Для трёх звёзд нужно ${CFG.goal * 22} жильцов — ставь ровнее!</span>` : '')
+      + (dEnd ? `<br><br><b>«${D1.name}» готов!</b> Дальше — «${D2.name}».` + (fresh.length ? `<br>Новые жильцы: ${fresh.map(r => r.name).join(', ')}.` : '') : `<br><span class="small">${D1.name}: дом ${D1.house} из 5</span>`);
+    $('eNext').textContent = `▶ Стройка №${LVL + 2}`; $('eNext').dataset.act = 'next'; $('eAgain').classList.toggle('hide', k === 3);
   } else {
+    const pct = Math.round(st.floors.length / CFG.goal * 100), h0 = hInfo(LVL);
+    save.h[LVL] = { pct: Math.max(h0.pct, pct), stars: h0.stars };
+    if (save.lvl <= LVL) save.lvl = LVL + 1; store();
     sfx.lose();
     $('eT').textContent = st.why === 'time' ? 'Не успели к сроку' : 'Прораб недоволен'; $('eStars').innerHTML = '';
-    $('eS').innerHTML = `${st.why === 'time' ? 'Время вышло.' : 'Каски кончились.'}<br>Построено <b>${st.floors.length}</b> из ${CFG.goal} этажей.`;
-    $('eNext').textContent = '↻ Ещё раз'; $('eNext').dataset.act = 'again';
+    $('eS').innerHTML = `${st.why === 'time' ? 'Время вышло.' : 'Каски кончились.'}<br>Построено <b>${st.floors.length}</b> из ${CFG.goal} этажей — готовность <b>${pct}%</b>.<br><span class="small">Дом останется недостроенным. Вернуться и построить заново можно в «Районах».</span>`;
+    $('eNext').textContent = `▶ Следующий дом`; $('eNext').dataset.act = 'next'; $('eAgain').classList.remove('hide');
   }
   $('end').classList.remove('hide');
 }
@@ -594,7 +762,7 @@ function hudShow(v) { $('hud').classList.toggle('hide', !v); }
 function hud() {
   if (!st) return;
   $('hFloors').innerHTML = `${ICON.floors()} ${st.floors.length}/${CFG.goal}`;
-  $('hLives').innerHTML = [0, 1, 2].map(i => ICON.helmet(i < st.lives)).join('');
+  $('hLives').innerHTML = Array.from({ length: CFG.sp === 'precise' ? 4 : 5 }, (_, i) => ICON.helmet(i < st.lives)).join('');
   $('hPeople').innerHTML = `${ICON.people()} ${st.people}`;
   $('tbar').classList.toggle('hide', !CFG.time);
 }
@@ -607,23 +775,60 @@ function hudTime() {
 }
 function showMenu() {
   mode = 'menu'; hudShow(false); $('end').classList.add('hide'); $('intro').classList.add('hide'); $('menu').classList.remove('hide');
-  const built = save.stars.filter(Boolean).length, all = save.stars.reduce((a, b) => a + (b || 0), 0), c = level(save.lvl);
+  const hs = Object.values(save.h), built = hs.filter(h => h.stars).length, all = hs.reduce((a, h) => a + h.stars, 0), c = level(save.lvl);
   $('bPlay').textContent = `▶ Стройка №${save.lvl + 1}`;
-  $('mInfo').innerHTML = `${c.goal} этажей${c.sp ? ` · особая: <b>${SPINFO[c.sp][0]}</b>` : ''}` + (built ? `<br>Сдано домов: <b>${built}</b> · звёзд: ${all}` : '');
+  const Di = distInfo(save.lvl), got = RES.filter(r => save.res[r.id]).length;
+  $('mInfo').innerHTML = `<b>${Di.name}</b> · дом ${Di.house} из 5<br>${c.goal} этажей${c.sp ? ` · особая: <b>${SPINFO[c.sp][0]}</b>` : ''}` + (built ? `<br>Сдано домов: <b>${built}</b> · звёзд: ${all}` : '');
+  $('bColl').textContent = `Жильцы ${got}/${RES.length}`;
   $('bCont').classList.toggle('hide', !(st && !st.done && st.floors.length && st.lvlPlayed === LVL));
 }
+
+const starRow = (k, size = 14) => [0, 1, 2].map(i => ICON.star(i < k).replace('width="46" height="46"', `width="${size}" height="${size}"`)).join('');
+function showDistricts() {
+  const last = distOf(save.lvl) + 1;
+  $('dT').textContent = 'Районы'; $('dInfo').textContent = 'Выбери район, потом дом. Недостроенные дома можно перестроить.';
+  $('dList').innerHTML = Array.from({ length: last + 1 }, (_, d) => {
+    const D2 = distInfo(d * 5), op = distOpen(d), ds = distStats(d);
+    return `<button class="it${op ? '' : ' lock'}${d === distOf(save.lvl) ? ' cur' : ''}" data-d="${d}"><div class="nm"><b>${D2.name}</b><span>${op ? `Звёзды ${ds.stars}/15` : `Откроется после «${distInfo((d - 1) * 5).name}»`}</span>${op ? `<div class="bar"><i style="width:${ds.pct}%"></i></div>` : ''}</div><div class="pc">${op ? ds.pct + '%' : ''}</div></button>`;
+  }).join('');
+  $('dList').querySelectorAll('.it').forEach(b => b.onclick = () => { if (distOpen(+b.dataset.d)) showHouses(+b.dataset.d); });
+  $('dBack').onclick = () => { $('dist').classList.add('hide'); showMenu(); };
+  $('menu').classList.add('hide'); $('end').classList.add('hide'); $('dist').classList.remove('hide');
+}
+function showHouses(d) {
+  $('dT').textContent = distInfo(d * 5).name; const ds = distStats(d);
+  $('dInfo').textContent = `Готовность района ${ds.pct}% · звёзды ${ds.stars}/15`;
+  $('dList').innerHTML = Array.from({ length: 5 }, (_, h) => {
+    const i = d * 5 + h, c = level(i), hi = hInfo(i), op = houseOpen(i);
+    const state = !op ? 'закрыт' : hi.stars ? 'сдан' : hi.pct ? 'недострой' : 'новый';
+    return `<button class="it${op ? '' : ' lock'}${i === save.lvl ? ' cur' : ''}" data-i="${i}"><div class="nm"><b>Дом ${h + 1} · ${c.goal} эт.</b><span>${c.sp ? SPINFO[c.sp][0] + ' · ' : ''}${state}</span>${op ? `<div class="bar"><i style="width:${hi.pct}%"></i></div>` : ''}</div><div class="st">${op ? starRow(hi.stars) : ''}</div><div class="pc">${op ? hi.pct + '%' : ''}</div></button>`;
+  }).join('');
+  $('dList').querySelectorAll('.it').forEach(b => b.onclick = () => { const i = +b.dataset.i; if (houseOpen(i)) { $('dist').classList.add('hide'); play(i); } });
+  $('dBack').onclick = showDistricts;
+}
+
 function play(l) {
   LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
   if (CFG.sp) { mode = 'intro'; $('iT').textContent = SPINFO[CFG.sp][0]; $('iS').textContent = SPINFO[CFG.sp][1]; $('intro').classList.remove('hide'); }
   else { mode = 'play'; hudShow(true); }
 }
 $('bPlay').onclick = () => play(save.lvl);
+$('bDist').onclick = showDistricts;
+$('bColl').onclick = () => {
+  const d = distOf(save.lvl);
+  $('cGrid').innerHTML = RES.map(r => `<div class="rc${save.res[r.id] ? '' : ' lock'}"><canvas width="128" height="128" data-id="${r.id}"></canvas><b>${save.res[r.id] ? r.name : '???'}</b><div class="say">${save.res[r.id] ? '«' + r.say + '»' : r.d > d ? 'Откроется в районе «' + DIST[r.d % DIST.length].name + '»' : 'Ставь этажи ровно — заселится'}</div></div>`).join('');
+  $('cGrid').querySelectorAll('canvas').forEach(c => portrait(c, c.dataset.id, !save.res[c.dataset.id]));
+  $('cInfo').textContent = `Жилец заселяется на каждый «Идеально». Собрано ${RES.filter(r => save.res[r.id]).length} из ${RES.length}.`;
+  $('menu').classList.add('hide'); $('coll').classList.remove('hide');
+};
+$('cClose').onclick = () => { $('coll').classList.add('hide'); showMenu(); };
 $('iGo').onclick = () => { $('intro').classList.add('hide'); mode = 'play'; hudShow(true); hud(); };
 $('bCont').onclick = () => { $('menu').classList.add('hide'); mode = 'play'; hudShow(true); };
 $('bMenu').onclick = e => { e.stopPropagation(); showMenu(); };
 $('bMenu').addEventListener('pointerdown', e => e.stopPropagation());
 $('eMenu').onclick = showMenu;
 $('eNext').onclick = () => play($('eNext').dataset.act === 'next' ? LVL + 1 : LVL);
+$('eAgain').onclick = () => play(LVL);
 
 // ═════════ Рисование сцены ═════════
 const sy = wy => GY - (wy - (st ? st.cam : 0));
@@ -655,17 +860,63 @@ function drawSky() {
     if (base < H) { ctx.fillStyle = dark ? `rgb(${mixc([125, 152, 189], [30, 40, 80], k)})` : '#a9c4e0'; ctx.fillRect(0, base, W, H - base); }
   };
   layer(BG.far, .85, k * .5);
+  drawDistrictSky(cam, k);
   layer(BG.near, .6, k * .55);
 }
 function drawGround() {
   const g0 = sy(0); if (g0 > H + 60) return;
-  // деревья за забором
-  for (let i = 0; i < 9; i++) { const x = (i + .5) / 9 * W + (i % 2 ? 8 : -8); if (Math.abs(x - CX) < 90) continue; ctx.fillStyle = '#5a3d23'; ctx.fillRect(x - 2, g0 - 18, 4, 18); ctx.fillStyle = i % 3 ? '#3f9a4a' : '#4fae55'; ctx.beginPath(); ctx.arc(x, g0 - 26, 14, 0, 7); ctx.arc(x - 9, g0 - 18, 10, 0, 7); ctx.arc(x + 9, g0 - 18, 10, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(x - 4, g0 - 31, 7, 0, 7); ctx.fill(); }
-  const gg = ctx.createLinearGradient(0, g0, 0, g0 + 30); gg.addColorStop(0, '#79cc55'); gg.addColorStop(1, '#4f9c3c');
+  const kind = distInfo(LVL).kind, t = st ? st.t : 0;
+  if (kind === 'river') { // река за стройкой и катер
+    const wg = ctx.createLinearGradient(0, g0 - 30, 0, g0); wg.addColorStop(0, '#5fa9e0'); wg.addColorStop(1, '#2f74b5');
+    ctx.fillStyle = wg; ctx.fillRect(0, g0 - 30, W, 30);
+    ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i < 14; i++) { const x = ((i * 53 + t * 18) % (W + 40)) - 20, y = g0 - 24 + (i % 3) * 8; ctx.moveTo(x, y); ctx.lineTo(x + 12, y); } ctx.stroke();
+    const bx = ((t * 22) % (W + 120)) - 60;
+    ctx.fillStyle = '#f4f4f0'; ctx.beginPath(); ctx.moveTo(bx - 22, g0 - 20); ctx.lineTo(bx + 24, g0 - 20); ctx.lineTo(bx + 16, g0 - 12); ctx.lineTo(bx - 18, g0 - 12); ctx.fill();
+    ctx.fillStyle = '#d6293b'; ctx.fillRect(bx - 20, g0 - 15, 38, 2); ctx.fillStyle = '#e8eef2'; ctx.fillRect(bx - 8, g0 - 27, 16, 7); ctx.fillStyle = '#9fd4ff'; ctx.fillRect(bx - 6, g0 - 25, 4, 3); ctx.fillRect(bx + 1, g0 - 25, 4, 3);
+    ctx.fillStyle = '#b9bcc0'; ctx.fillRect(0, g0 - 4, W, 4); // гранитная набережная
+    for (let i = 0; i < 6; i++) { const x = (i + .5) / 6 * W; if (Math.abs(x - CX) < 110) continue; lamp(x, g0); }
+  } else if (kind === 'center') {
+    for (let i = 0; i < 7; i++) { const x = (i + .5) / 7 * W; if (Math.abs(x - CX) < 110) continue; if (i % 2) tree(x, g0, i); else lamp(x, g0); }
+  } else for (let i = 0; i < 9; i++) { const x = (i + .5) / 9 * W + (i % 2 ? 8 : -8); if (Math.abs(x - CX) < 90) continue; tree(x, g0, i, kind === 'factory'); }
+  const top = kind === 'factory' ? ['#b3aa92', '#958c76'] : kind === 'center' ? ['#c4c7cc', '#a2a7ae'] : ['#79cc55', '#4f9c3c'];
+  const gg = ctx.createLinearGradient(0, g0, 0, g0 + 30); gg.addColorStop(0, top[0]); gg.addColorStop(1, top[1]);
   ctx.fillStyle = gg; ctx.fillRect(0, g0, W, 30);
+  if (kind === 'center') { ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 1; ctx.beginPath(); for (let x = 0; x < W; x += 18) { ctx.moveTo(x, g0); ctx.lineTo(x - 6, g0 + 28); } ctx.stroke(); }
   const dg = ctx.createLinearGradient(0, g0 + 28, 0, H); dg.addColorStop(0, '#9a7650'); dg.addColorStop(1, '#6e5236');
   ctx.fillStyle = dg; ctx.fillRect(0, g0 + 28, W, Math.max(0, H - g0));
   ctx.fillStyle = '#c9a87a'; ctx.fillRect(0, g0 + 26, W, 4);
+}
+function tree(x, g0, i, dry) {
+  ctx.fillStyle = '#5a3d23'; ctx.fillRect(x - 2, g0 - 18, 4, 18);
+  ctx.fillStyle = dry ? (i % 3 ? '#7f9a4a' : '#8fa856') : (i % 3 ? '#3f9a4a' : '#4fae55');
+  ctx.beginPath(); ctx.arc(x, g0 - 26, 14, 0, 7); ctx.arc(x - 9, g0 - 18, 10, 0, 7); ctx.arc(x + 9, g0 - 18, 10, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(x - 4, g0 - 31, 7, 0, 7); ctx.fill();
+}
+function lamp(x, g0) {
+  ctx.fillStyle = '#3b4046'; ctx.fillRect(x - 1.5, g0 - 40, 3, 40); ctx.fillRect(x - 8, g0 - 42, 16, 3);
+  ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(x - 7, g0 - 37, 3, 0, 7); ctx.arc(x + 7, g0 - 37, 3, 0, 7); ctx.fill();
+  if (night() > .2) { const gl = ctx.createRadialGradient(x, g0 - 37, 0, x, g0 - 37, 26); gl.addColorStop(0, 'rgba(255,230,150,.45)'); gl.addColorStop(1, 'rgba(255,230,150,0)'); ctx.fillStyle = gl; ctx.fillRect(x - 26, g0 - 63, 52, 52); }
+}
+// дальний план района: трубы промзоны, высотки центра
+function drawDistrictSky(cam, k) {
+  const kind = distInfo(LVL).kind, t = st ? st.t : 0, base = GY + cam * .72;
+  if (base - 260 > H) return;
+  if (kind === 'factory') {
+    for (const [fx, h] of [[.16, 190], [.3, 150], [.82, 210]]) {
+      const x = fx * W; ctx.fillStyle = `rgb(${mixc([190, 70, 60], [80, 40, 50], k)})`; ctx.fillRect(x - 8, base - h, 16, h);
+      ctx.fillStyle = `rgba(255,255,255,${.85 - k * .5})`; for (let y = base - h + 12; y < base - h + 60; y += 22) ctx.fillRect(x - 8, y, 16, 9);
+      for (let i = 0; i < 5; i++) { const p = ((t * .25 + i / 5 + fx) % 1), r = 8 + p * 18; ctx.fillStyle = `rgba(230,230,235,${(1 - p) * .6})`; ctx.beginPath(); ctx.arc(x + p * 40, base - h - 8 - p * 70, r, 0, 7); ctx.fill(); }
+    }
+    ctx.fillStyle = `rgb(${mixc([120, 128, 140], [40, 46, 70], k)})`; ctx.fillRect(W * .55, base - 70, 120, 70); ctx.fillRect(W * .55 + 10, base - 92, 30, 22);
+  } else if (kind === 'center') {
+    for (const [fx, h] of [[.2, 230], [.78, 260]]) {
+      const x = fx * W; ctx.fillStyle = `rgb(${mixc([170, 186, 206], [50, 60, 100], k)})`;
+      ctx.fillRect(x - 30, base - h * .55, 60, h * .55); ctx.fillRect(x - 20, base - h * .8, 40, h * .25); ctx.fillRect(x - 11, base - h * .93, 22, h * .13);
+      ctx.beginPath(); ctx.moveTo(x - 4, base - h * .93); ctx.lineTo(x, base - h - 20); ctx.lineTo(x + 4, base - h * .93); ctx.fill();
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(x, base - h - 22, 3, 0, 7); ctx.fill();
+    }
+  }
 }
 function drawDistrictLayer() {
   if (!district || district.lvl !== LVL) buildDistrict();
@@ -687,10 +938,10 @@ function drawSite() {
   for (const x of [CX - FW / 2 - 18, CX + FW / 2 + 18]) { ctx.fillStyle = '#ff7a1a'; ctx.beginPath(); ctx.moveTo(x - 7, g0 + 2); ctx.lineTo(x, g0 - 17); ctx.lineTo(x + 7, g0 + 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(x - 4, g0 - 9, 8, 3); ctx.fillStyle = '#333'; ctx.fillRect(x - 9, g0 + 1, 18, 3); }
   // забор с табличкой
   for (let x = 4; x < W; x += 15) if (x < CX - FW / 2 - 100 || x > CX + FW / 2 + 100) { ctx.fillStyle = '#3f7fa8'; ctx.fillRect(x, g0 - 28, 13, 32); ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(x, g0 - 28, 4, 32); }
-  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(12, g0 - 44, 100, 32);
-  ctx.fillStyle = '#fff'; ctx.fillRect(10, g0 - 46, 100, 32); ctx.fillStyle = '#ff6b3d'; ctx.fillRect(10, g0 - 46, 100, 5);
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(12, g0 - 44, 118, 32);
+  ctx.fillStyle = '#fff'; ctx.fillRect(10, g0 - 46, 118, 32); ctx.fillStyle = '#ff6b3d'; ctx.fillRect(10, g0 - 46, 118, 5);
   ctx.fillStyle = '#1f3550'; ctx.font = '900 11px Rubik, system-ui'; ctx.textAlign = 'left';
-  ctx.fillText(`СТРОЙКА №${LVL + 1}`, 16, g0 - 29); ctx.font = '600 9px Rubik, system-ui'; ctx.fillText(`этажей: ${CFG.goal}`, 16, g0 - 19);
+  ctx.fillText(`СТРОЙКА №${LVL + 1}`, 16, g0 - 29); ctx.font = '600 9px Rubik, system-ui'; ctx.fillText(`${distInfo(LVL).name} · ${CFG.goal} эт.`, 16, g0 - 19);
   paintWorker(ctx, CX + FW / 2 + 54, g0 + 1, st ? st.t : 0);
 }
 function drawMast() {
