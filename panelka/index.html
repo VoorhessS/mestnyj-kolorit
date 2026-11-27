@@ -86,7 +86,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn sec" id="bTasks">Задания</button>
   <button class="btn sec" id="bDist">Районы</button>
   <button class="btn sec" id="bColl">Жильцы</button>
-</div><div id="ver">версия 0.6</div></div>
+</div><div id="ver">версия 0.6.1</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -783,7 +783,7 @@ function dead() { // каски кончились? запасная спаса�
 function showTasks() {
   const list = dailyTasks();
   $('tkInfo').innerHTML = `За каждое задание — <b>запасная каска</b>: когда каски кончатся, она спасёт стройку. Сейчас запасных: <b>${save.spare || 0}</b> из ${MAX_SPARE}.<br>Новые задания — каждый день.`;
-  $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : '+1'}</button>`}</div>`; }).join('');
+  $('tkList').innerHTML = list.map((t, i) => { const ok = t.p >= t.n; return `<div class="tk${ok ? ' ok' : ''}"><div class="nm"><b>${TASKS[t.k].t(t.n)}</b><span>${Math.min(t.p, t.n)} / ${t.n} · ${TASKS[t.k].sum ? 'копится за день во всех домах' : 'в одной стройке'}</span><div class="bar"><i style="width:${Math.min(100, t.p / t.n * 100)}%"></i></div></div>${t.claimed ? '<button class="claim" disabled>Взято</button>' : `<button class="claim" data-i="${i}" ${ok ? '' : 'disabled'}>${ok ? 'Забрать' : '+1'}</button>`}</div>`; }).join('');
   $('tkList').querySelectorAll('.claim[data-i]').forEach(b => b.onclick = () => {
     const t = list[+b.dataset.i]; if (t.p < t.n || t.claimed) return;
     t.claimed = true; save.spare = Math.min(MAX_SPARE, (save.spare || 0) + 1); store(); audio(); sfx.win(); showTasks();
