@@ -197,7 +197,7 @@ function speak(textOrEl, el) {
   if (voAudio) { voAudio.pause(); voAudio = null; } if (voEl) voEl.classList.remove('speaking'); try { speechSynthesis.cancel(); } catch (e) {}
   if (!t) return; voEl = el; if (el) el.classList.add('speaking');
   const done = () => { if (voEl === el && el) el.classList.remove('speaking'); };
-  const a = new Audio('vo/' + save.voice + '/' + vhash(t) + '.mp3'); voAudio = a; a.onended = done;
+  const a = new Audio('vo/' + save.voice + '/' + vhash(t) + '.mp3?v=3'); voAudio = a; a.onended = done;
   a.onerror = () => { if (voAudio !== a) return; try { const u = new SpeechSynthesisUtterance(sayText(t)); u.lang = 'ru-RU'; u.rate = .95; u.onend = done; speechSynthesis.speak(u); } catch (e) { done(); } };
   a.play().catch(() => {});
 }
