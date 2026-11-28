@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#6b4f35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Бумажное тело">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 <title>Бумажное тело — книжка-раскладушка</title>
 <style>
 @font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
@@ -64,6 +71,10 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
 #hint3{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);font-weight:900;font-size:17px;padding:9px 18px;z-index:3;pointer-events:none;animation:hintp 1.1s ease-in-out infinite}
 @keyframes hintp{50%{transform:translateX(-50%) scale(1.07)}}
 #bMus{position:fixed;left:calc(env(safe-area-inset-left) + 14px);bottom:calc(env(safe-area-inset-bottom) + 22px);font-size:14px;padding:8px 12px;z-index:2}
+#bFull{position:fixed;right:calc(env(safe-area-inset-right) + 12px);top:calc(env(safe-area-inset-top) + 12px);font-size:14px;padding:8px 12px;z-index:3}
+#fsHelp{position:fixed;inset:0;z-index:9;background:rgba(40,25,12,.6);display:flex;align-items:center;justify-content:center;padding:20px}
+#fsHelp > div{max-width:340px;font-size:16px;line-height:1.4;padding:16px 18px;text-align:left;animation:pop .5s cubic-bezier(.3,1.55,.5,1) both}
+#fsHelp b{color:#a3341f}
 #ver{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 4px);font-size:11px;color:#fff8ea;opacity:.55;pointer-events:none}
 </style>
 </head>
@@ -99,7 +110,9 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
 <button class="btn sec paper hide" id="bVoice"></button>
 <button class="btn sec paper hide" id="bMus"></button>
 <button class="btn sec paper hide" id="bToc">← Оглавление</button>
-<div id="ver">пробник 0.2</div>
+<button class="btn sec paper hide" id="bFull">⛶ Во весь экран</button>
+<div id="fsHelp" class="hide"><div class="paper"><div style="font-weight:900;font-size:19px;margin-bottom:8px">Во весь экран на iPhone</div>Safari не умеет разворачивать сайт кнопкой, зато умеет так:<br>1. Внизу нажми <b>«Поделиться»</b> (квадрат со стрелкой вверх).<br>2. Выбери <b>«На экран „Домой“»</b> и нажми <b>«Добавить»</b>.<br>3. На экране появится иконка книжки. Открывай с неё — будет без адресной строки, во весь экран.<div style="margin-top:12px;text-align:center;font-weight:900">Понятно</div></div></div>
+<div id="ver">пробник 0.3</div>
 
 <script>
 'use strict';
@@ -109,8 +122,10 @@ let W = 0, H = 0, DPR = 1, K = 1, VW = 400, VH = 760;
 const INK = '#4a2e1c', SH = 'rgba(140,80,30,.38)', SKIN = '#f2c6a0', BONE = '#fbf3df';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t, PI = Math.PI;
 const SAVE = 'bumtelo-v1';
-let save = { stars: {} }; try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {} save.stars = save.stars || {};
-const store = () => { try { localStorage.setItem(SAVE, JSON.stringify(save)); } catch (e) {} };
+const KEEP_PROGRESS = false; // прогресс пока не сохраняем: каждый запуск с нуля; голос и музыка запоминаются
+const prefs = o => KEEP_PROGRESS ? o : { voice: o.voice, music: o.music };
+let save = { stars: {} }; try { Object.assign(save, prefs(JSON.parse(localStorage.getItem(SAVE) || '{}'))); } catch (e) {} save.stars = save.stars || {};
+const store = () => { try { localStorage.setItem(SAVE, JSON.stringify(prefs(save))); } catch (e) {} };
 let cache = {};
 function resize() {
   DPR = Math.min(devicePixelRatio || 1, 2.5); W = innerWidth; H = innerHeight;
@@ -331,6 +346,7 @@ function ui() {
   $('res').classList.toggle('hide', scene !== 'res');
   $('bToc').classList.toggle('hide', scene !== 'body');
   $('bVoice').classList.toggle('hide', scene !== 'toc'); voiceBtn();
+  $('bFull').classList.toggle('hide', isFull() || !['cover', 'toc', 'body'].includes(scene));
   $('bMus').classList.toggle('hide', scene !== 'toc'); $('bMus').textContent = save.music === false ? 'Музыка: выкл' : 'Музыка: вкл';
   $('quiz').classList.toggle('hide', scene !== 'quiz' && !(scene === 'res' && resMode === 'quiz'));
   if (scene === 'res' && resMode === 'quiz') $('game').classList.add('hide');
@@ -349,6 +365,17 @@ function openPage(id) {
   $('pPlay').textContent = '▶ ' + ORG[id].game; go('page');
 }
 function voiceBtn() { const v = VOICES.find(x => x[0] === save.voice); $('bVoice').textContent = 'Голос: ' + v[1] + ' ▸'; }
+// полный экран: Android и компьютер — кнопкой; iPhone (Safari не умеет) — подсказка про «На экран „Домой“»
+function isFull() { return !!(navigator.standalone || document.fullscreenElement || document.webkitFullscreenElement || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches); }
+$('bFull').onclick = () => {
+  audio(); const d = document.documentElement, req = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (req && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+    Promise.resolve(req.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('portrait').catch(() => {}); } catch (e) {} }).catch(() => $('fsHelp').classList.remove('hide'));
+  } else $('fsHelp').classList.remove('hide');
+};
+$('fsHelp').onclick = () => $('fsHelp').classList.add('hide');
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => ui());
+setTimeout(ui); // показать кнопку полного экрана уже на обложке
 $('bMus').onclick = () => { audio(); save.music = save.music === false; store(); ui(); };
 $('bVoice').onclick = () => { audio(); const i = VOICES.findIndex(x => x[0] === save.voice); save.voice = VOICES[(i + 1) % VOICES.length][0]; store(); voiceBtn(); speak(FACTS.heart[0], $('bVoice')); };
 $('bToc').onclick = () => { audio(); swish(.4, .3); go('toc'); };
