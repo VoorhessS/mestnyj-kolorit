@@ -59,11 +59,19 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
 #qWhy{width:100%;max-width:440px;box-sizing:border-box;font-size:16px;line-height:1.35;padding:10px 30px 10px 14px;background:#fff8ea}
 #qWhy b{font-size:18px}
 #bToc,#ver{z-index:2}
+#cv3{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;touch-action:none}
+#toast3{position:fixed;left:50%;top:42%;transform:translateX(-50%);font-weight:900;font-size:17px;padding:10px 16px;z-index:4;pointer-events:none;animation:pop .5s cubic-bezier(.3,1.55,.5,1) both;text-align:center;max-width:80vw}
+#hint3{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%);font-weight:900;font-size:17px;padding:9px 18px;z-index:3;pointer-events:none;animation:hintp 1.1s ease-in-out infinite}
+@keyframes hintp{50%{transform:translateX(-50%) scale(1.07)}}
+#bMus{position:fixed;left:calc(env(safe-area-inset-left) + 14px);bottom:calc(env(safe-area-inset-bottom) + 22px);font-size:14px;padding:8px 12px;z-index:2}
 #ver{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 4px);font-size:11px;color:#fff8ea;opacity:.55;pointer-events:none}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
+<canvas id="cv3" class="hide"></canvas>
+<div id="toast3" class="paper hide"></div>
+<div id="hint3" class="paper hide">Тапни, чтобы открыть</div>
 
 <div id="page" class="hide">
   <div class="banner paper say" id="pT"></div>
@@ -89,8 +97,9 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
   <button class="btn big paper" id="qGo">Ответить</button>
 </div>
 <button class="btn sec paper hide" id="bVoice"></button>
+<button class="btn sec paper hide" id="bMus"></button>
 <button class="btn sec paper hide" id="bToc">← Оглавление</button>
-<div id="ver">пробник 0.1</div>
+<div id="ver">пробник 0.2</div>
 
 <script>
 'use strict';
@@ -119,9 +128,10 @@ const grainC = document.createElement('canvas'); grainC.width = grainC.height = 
   g.strokeStyle = 'rgba(150,110,70,.14)'; g.lineWidth = .6; for (let i = 0; i < 26; i++) { const x = Math.random() * 128, y = Math.random() * 128, a = Math.random() * 7; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6 + 3, x + Math.cos(a) * 12, y + Math.sin(a) * 12); g.stroke(); } })();
 const GRAIN = ctx.createPattern(grainC, 'repeat');
 // кусок картона: тень → контур → заливка → зерно → светлая кромка
+let FLAT = false; // рисуем текстуру для 3D: тени даст свет
 function piece(g, path, col, o = {}) {
   g.save();
-  if (o.shadow !== false) { g.shadowColor = o.shc || SH; g.shadowBlur = (o.blur ?? 4) * K * DPR; g.shadowOffsetX = (o.sx ?? 2.5) * K * DPR; g.shadowOffsetY = (o.sy ?? 3.5) * K * DPR; }
+  if (o.shadow !== false && !FLAT) { g.shadowColor = o.shc || SH; g.shadowBlur = (o.blur ?? 4) * K * DPR; g.shadowOffsetX = (o.sx ?? 2.5) * K * DPR; g.shadowOffsetY = (o.sy ?? 3.5) * K * DPR; }
   g.beginPath(); path(g); g.fillStyle = col; g.fill(); g.restore();
   g.save(); g.beginPath(); path(g); g.strokeStyle = INK; g.lineWidth = (o.lw ?? 1.6) * 2; g.lineJoin = 'round'; g.stroke(); g.fillStyle = col; g.fill(); g.restore();
   g.save(); g.beginPath(); path(g); g.clip();
@@ -321,6 +331,7 @@ function ui() {
   $('res').classList.toggle('hide', scene !== 'res');
   $('bToc').classList.toggle('hide', scene !== 'body');
   $('bVoice').classList.toggle('hide', scene !== 'toc'); voiceBtn();
+  $('bMus').classList.toggle('hide', scene !== 'toc'); $('bMus').textContent = save.music === false ? 'Музыка: выкл' : 'Музыка: вкл';
   $('quiz').classList.toggle('hide', scene !== 'quiz' && !(scene === 'res' && resMode === 'quiz'));
   if (scene === 'res' && resMode === 'quiz') $('game').classList.add('hide');
 }
@@ -338,6 +349,7 @@ function openPage(id) {
   $('pPlay').textContent = '▶ ' + ORG[id].game; go('page');
 }
 function voiceBtn() { const v = VOICES.find(x => x[0] === save.voice); $('bVoice').textContent = 'Голос: ' + v[1] + ' ▸'; }
+$('bMus').onclick = () => { audio(); save.music = save.music === false; store(); ui(); };
 $('bVoice').onclick = () => { audio(); const i = VOICES.findIndex(x => x[0] === save.voice); save.voice = VOICES[(i + 1) % VOICES.length][0]; store(); voiceBtn(); speak(FACTS.heart[0], $('bVoice')); };
 $('bToc').onclick = () => { audio(); swish(.4, .3); go('toc'); };
 $('pBack').onclick = () => { audio(); swish(.4, .3); go('body'); };
@@ -536,7 +548,7 @@ function endGame(stars, msg) {
 }
 const gArea = () => { const top = 120, bot = VH - 30; return { top, bot, h: bot - top, cx: VW / 2 }; };
 const floatTxt = [];
-function float(s, x, y, col = INK) { floatTxt.push({ s, x, y, col, t: 0 }); }
+function float(s, x, y, col = INK) { let d3 = false; try { d3 = use3D(); } catch (e) {} if (d3) { toast3(s); return; } floatTxt.push({ s, x, y, col, t: 0 }); }
 function drawFloats(dt) { for (const f of floatTxt) { f.t += dt; ctx.globalAlpha = Math.max(0, 1 - f.t / .9); text(ctx, f.s, f.x, f.y - f.t * 40, 20, f.col); } ctx.globalAlpha = 1; for (let i = floatTxt.length - 1; i >= 0; i--) if (floatTxt[i].t > .9) floatTxt.splice(i, 1); }
 
 // ── Сердце: тапай, когда метка доходит до линии ──
@@ -759,6 +771,10 @@ let last = now();
 function frame() {
   requestAnimationFrame(frame);
   const tn = now(), dt = Math.min(.05, (tn - last) / 1000); last = tn;
+  let d3 = false; try { d3 = use3D(); } catch (e) {}
+  if (cv3.classList.contains('hide') === d3) cv3.classList.toggle('hide', !d3); cv.style.visibility = d3 ? 'hidden' : '';
+  const h3 = d3 && scene === 'cover'; if ($('hint3').classList.contains('hide') === h3) $('hint3').classList.toggle('hide', !h3);
+  if (d3) { try { R3.frame(dt); } catch (e) { console.warn('3D сломалось', e); R3 = null; } return; }
   ctx.setTransform(DPR * K, 0, 0, DPR * K, 0, 0);
   drawDesk();
   const t = sceneT();
@@ -787,6 +803,240 @@ function voiceLines() {
   return [...L].map(t => ({ id: vhash(t), t, say: sayText(t) }));
 }
 window.__b = { get scene() { return scene; }, voiceLines, get quiz() { return quiz; }, startQuiz, QUIZZES, setChap: i => { chap = CHAPTERS[i]; }, tocRects, CHAPTERS, get game() { return game; }, GAMES, go, openPage, startGame, figLayout, tagRect, SPOT, get save() { return save; }, toScreen: (x, y) => [x * K, y * K] };
+</script>
+<script>
+'use strict';
+// ═════════ 3D-раскладушка: обложка, оглавление и развороты глав — объёмные (three.js) ═════════
+// Книжка раскрыта «уголком»: нижняя страница — пол, верхняя встаёт стенкой. Детали — картонки на сгибах.
+const cv3 = document.getElementById('cv3'), SC3 = ['cover', 'open', 'toc', 'body'];
+let R3 = null;
+const use3D = () => R3 && SC3.includes(scene);
+import('./lib/three.min.js').then(T => { try { init3D(T); } catch (e) { console.warn('3D выключено', e); R3 = null; } }).catch(e => console.warn('3D выключено', e));
+
+function init3D(T) {
+  const r = new T.WebGLRenderer({ canvas: cv3, antialias: false, powerPreference: 'high-performance' });
+  r.shadowMap.enabled = true; r.shadowMap.type = 1; // PCF: мягкость даёт shadow.radius r.outputColorSpace = T.SRGBColorSpace;
+  const sc = new T.Scene(); sc.background = new T.Color('#5e442c');
+  const cam = new T.PerspectiveCamera(30, 1, .05, 40);
+  const PW = 1, PH = 1.36, FLOOR = .034;
+  // свет: тёплый ключевой сбоку-сверху, мягкая заливка
+  sc.add(new T.HemisphereLight('#fff3dc', '#7a5634', 1.25));
+  const key = new T.DirectionalLight('#ffe9c8', 2.6); key.position.set(-1.8, 2.7, 2.2); key.target.position.set(0, .35, .3);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -1.3, right: 1.3, top: 1.6, bottom: -1.2, near: .5, far: 9 });
+  key.shadow.radius = 5; key.shadow.bias = -.0012; key.shadow.normalBias = .03; sc.add(key, key.target);
+  const world = new T.Group(); sc.add(world);
+  // ── текстуры из нашего же бумажного рисования ──
+  const tex = (w, h, s, fn) => { const c = document.createElement('canvas'); c.width = Math.ceil(w * s); c.height = Math.ceil(h * s); const g = c.getContext('2d'); g.scale(s, s); FLAT = true; try { fn(g); } finally { FLAT = false; } const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = r.capabilities.getMaxAnisotropy(); return t; };
+  const mat = (o) => new T.MeshStandardMaterial(Object.assign({ roughness: 1, metalness: 0 }, o));
+  const paperFill = (g, w, h, col) => { g.fillStyle = col; g.fillRect(0, 0, w, h); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .7; g.fillStyle = GRAIN; g.fillRect(0, 0, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; };
+  // картонка: лицо с вырезом по альфе + тёмный «торец» сзади для толщины
+  function cardMesh(t, w, h, anchorY = 0, back = '#9a7a52') {
+    const grp = new T.Group(), geo = new T.PlaneGeometry(w, h); geo.translate(0, h * (.5 - anchorY), 0);
+    const f = new T.Mesh(geo, mat({ map: t, alphaTest: .5, side: T.DoubleSide })); f.castShadow = f.receiveShadow = true;
+    const b = new T.Mesh(geo, mat({ map: t, alphaTest: .5, color: back })); b.position.z = -.005; b.castShadow = true; b.receiveShadow = true;
+    grp.add(b, f); grp.userData.face = f; return grp;
+  }
+  // ── стол ──
+  const deskT = tex(256, 256, 2, g => paperFill(g, 256, 256, '#8a6a48')); deskT.wrapS = deskT.wrapT = 1000; deskT.repeat.set(6, 6);
+  const desk = new T.Mesh(new T.PlaneGeometry(12, 12), mat({ map: deskT })); desk.rotation.x = -Math.PI / 2; desk.position.y = -.012; desk.receiveShadow = true; world.add(desk);
+  // ── книжка: нижняя половина ──
+  const coverMat = mat({ color: '#a8402c' }), edgeMat = mat({ color: '#f1e4c6' });
+  const lowBoard = new T.Mesh(new T.BoxGeometry(PW + .05, .012, PH + .04), coverMat); lowBoard.position.set(0, -.006, PH / 2); lowBoard.castShadow = lowBoard.receiveShadow = true;
+  const lowBlock = new T.Mesh(new T.BoxGeometry(PW, FLOOR - .002, PH), edgeMat); lowBlock.position.set(0, (FLOOR - .002) / 2, PH / 2); lowBlock.receiveShadow = true; lowBlock.castShadow = true;
+  const floorT = tex(500, 680, 2, g => { paperFill(g, 500, 680, '#fbf1dc'); const v = g.createLinearGradient(0, 0, 0, 120); v.addColorStop(0, 'rgba(120,80,40,.22)'); v.addColorStop(1, 'rgba(120,80,40,0)'); g.fillStyle = v; g.fillRect(0, 0, 500, 120); });
+  const floor = new T.Mesh(new T.PlaneGeometry(PW, PH), mat({ map: floorT })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, FLOOR, PH / 2); floor.receiveShadow = true;
+  world.add(lowBoard, lowBlock, floor);
+  // ── верхняя половина на сгибе: внутренняя страница (стенка), блок, обложка ──
+  const back = new T.Group(); back.position.set(0, FLOOR + .002, 0); world.add(back);
+  let wallT = null; const wallMat = mat({});
+  const wall = new T.Mesh(new T.PlaneGeometry(PW, PH), wallMat); wall.rotation.x = Math.PI / 2; wall.position.set(0, 0, PH / 2); wall.receiveShadow = true;
+  const upBlock = new T.Mesh(new T.BoxGeometry(PW, .016, PH), edgeMat); upBlock.position.set(0, .008, PH / 2); upBlock.castShadow = true;
+  const upBoard = new T.Mesh(new T.BoxGeometry(PW + .05, .012, PH + .04), coverMat); upBoard.position.set(0, .022, PH / 2); upBoard.castShadow = true;
+  const coverT = tex(520, 700, 2, g => {
+    g.fillStyle = '#c8553a'; g.fillRect(0, 0, 520, 700); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .6; g.fillStyle = GRAIN; g.fillRect(0, 0, 520, 700); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    g.strokeStyle = 'rgba(255,240,220,.35)'; g.lineWidth = 3; g.strokeRect(16, 16, 488, 668);
+    g.save(); g.translate(260, 110); g.rotate(-.04); piece(g, g2 => tornRect(g2, -175, -58, 350, 116, 5), '#fff8ea'); text(g, 'Бумажное', 0, -17, 46); text(g, 'тело', 0, 30, 46, '#a3341f'); g.restore();
+    g.save(); g.translate(260, 365); g.scale(.6, .6); g.translate(0, 220); drawBodyFigure(g); g.restore();
+    g.save(); g.translate(260, 600); g.rotate(.02); piece(g, g2 => tornRect(g2, -160, -34, 320, 68, 9), '#ffd36b'); text(g, 'Книжка-раскладушка', 0, -10, 21); text(g, 'о том, как ты устроен', 0, 15, 16, INK, 'center', 700); g.restore();
+  });
+  const coverFace = new T.Mesh(new T.PlaneGeometry(PW + .05, PH + .04), mat({ map: coverT })); coverFace.rotation.x = -Math.PI / 2; coverFace.position.set(0, .0285, PH / 2);
+  upBlock.position.y = .0095; back.add(wall, upBlock, upBoard, coverFace); [upBlock, upBoard, coverFace].forEach(m => m.castShadow = true); wall.castShadow = false;
+  // текстура стенки: заголовок главы / оглавления
+  function wallTex(title, sub) {
+    if (wallT) wallT.dispose();
+    wallT = tex(500, 680, 2, g => { paperFill(g, 500, 680, '#fbf1dc'); const v = g.createLinearGradient(0, 680, 0, 560); v.addColorStop(0, 'rgba(120,80,40,.25)'); v.addColorStop(1, 'rgba(120,80,40,0)'); g.fillStyle = v; g.fillRect(0, 560, 500, 120);
+      text(g, title, 250, 52, 34); if (sub) text(g, sub, 250, 88, 18, '#a3341f', 'center', 800); });
+    wallMat.map = wallT; wallMat.needsUpdate = true;
+  }
+  // ── фигура, органы, ярлыки, карточки оглавления ──
+  const FW = .56, U = FW / 260, FH = 480 * U, FZ = .14;
+  const figT = tex(260, 480, 3, g => { g.translate(130, 460); drawBodyFigure(g, { noOrgans: true }); });
+  const figPivot = new T.Group(); figPivot.position.set(0, FLOOR, FZ); const fig = cardMesh(figT, FW, FH, 0); figPivot.add(fig); world.add(figPivot);
+  fig.userData.face.userData.hit = 'fig';
+  const ORGDRAW = { lungs: drawLungs, heart: drawHeart, stomach: drawStomach, brain: drawBrain };
+  const organs = {};
+  for (const id of ['lungs', 'heart', 'stomach', 'brain']) {
+    const t = tex(110, 110, 4, g => { g.translate(55, 55); ORGDRAW[id](g); }), [sx, sy] = SPOT[id], s = 110 * U;
+    const pv = new T.Group(), dz = id === 'heart' ? .07 : .04; pv.position.set(sx * U, FLOOR, FZ + dz);
+    const c = cardMesh(t, s, s, .5); c.position.y = (20 - sy) * U; pv.add(c); world.add(pv); c.userData.face.userData.hit = id;
+    // бумажная ножка-опора от пола до органа
+    if (0) { const leg = new T.Mesh(new T.PlaneGeometry(.018, (20 - sy) * U - s * .3), mat({ color: '#e9d9b8', side: T.DoubleSide })); leg.position.set(0, ((20 - sy) * U - s * .3) / 2, -.006); leg.castShadow = true; pv.add(leg); }
+    organs[id] = pv;
+  }
+  const rings = new T.Group(); world.add(rings);
+  const tags = new T.Group(); back.add(tags);
+  const lines = new T.Group(); world.add(lines);
+  const tocCards = new T.Group(); back.add(tocCards);
+  // точка на стенке (x, высота H над полом) в координатах back
+  const onWall = (o, x, H) => { o.position.set(x, -.004, H); o.rotation.x = Math.PI / 2; };
+  function tagTex(id) { const rd = ready(id); return tex(90, 52, 4, g => { g.translate(45, 26); piece(g, gg => tornRect(gg, -41, -23, 82, 46, id.length * 13, 1.6), rd ? '#fff8ea' : '#ece2cc', { lw: 1.2 }); text(g, ORG[id].name, 0, -7, ORG[id].name.length > 8 ? 12 : 14, rd ? INK : '#7a5a3a');
+    if (rd) { const st = save.stars[id] || 0; for (let i = 0; i < 3; i++) { g.beginPath(); starPath(g, -14 + i * 14, 11, 5.5); g.fillStyle = i < st ? '#ffc93b' : '#e2d4b8'; g.fill(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke(); } } else text(g, 'скоро', 0, 11, 11, '#8a6a48', 'center', 800); }); }
+  function tocTex(i) {
+    const W = 380, H = 96;
+    return tex(W + 12, H + 8, 3, g => { g.translate(2, 4);
+      if (i === CHAPTERS.length) { const Q = QUIZZES.find(q => quizOpen(q) && !save.quiz[q.name]) || QUIZZES.find(quizOpen), any = !!Q, fresh = Q && !save.quiz[Q.name];
+        piece(g, gg => tornRect(gg, 0, 0, W, H, 77, 1.8), any ? '#ffe7a3' : '#ece2cc', { lw: 1.3 });
+        g.save(); g.translate(46, H / 2); piece(g, gg => rr(gg, -20, -26, 40, 52, 5), '#fff8ea'); g.strokeStyle = INK; g.lineWidth = 2.2; g.lineCap = 'round';
+        for (let k = 0; k < 3; k++) { const y = -13 + k * 13; g.beginPath(); g.moveTo(-12, y); g.lineTo(-8, y + 4); g.lineTo(-2, y - 4); g.stroke(); g.beginPath(); g.moveTo(3, y); g.lineTo(13, y); g.stroke(); } g.restore();
+        const done = QUIZZES.filter(q => save.quiz[q.name]).length;
+        text(g, 'Проверь себя', 92, H / 2 - 20, 19, INK, 'left'); text(g, any ? (fresh ? 'Новый тест открыт — жми!' : 'Можно пройти ещё раз') : 'Тест откроется после трёх страниц', 92, H / 2 + 2, 12.5, '#6b4a30', 'left', 700, W - 110);
+        text(g, `Тесты: ${done} из ${QUIZZES.length} · после каждых трёх органов`, 92, H / 2 + 24, 12, '#a3341f', 'left', 800, W - 110); return; }
+      const c = CHAPTERS[i], nReady = c.pages.filter(ready).length, nSoon = c.pages.length - nReady;
+      piece(g, gg => rr(gg, W - 26, 10, 34, H - 20, 6), c.tab, { lw: 1.2 });
+      piece(g, gg => tornRect(gg, 0, 0, W, H, 40 + i * 9, 1.8), nReady ? '#fff8ea' : '#ece2cc', { lw: 1.3 });
+      g.save(); g.translate(46, H / 2); g.scale(1.15, 1.15);
+      if (c.id === 'inside') drawHeart(g); else if (c.id === 'move') { g.rotate(.6); g.translate(0, -30); drawBone(g, 60, 10); } else if (c.id === 'senses') drawEyeIcon(g); else drawCellIcon(g);
+      g.restore();
+      text(g, c.name, 92, H / 2 - 20, 19, INK, 'left', 900, W - 130); text(g, c.sub, 92, H / 2 + 2, 12.5, '#6b4a30', 'left', 700, W - 130);
+      text(g, nReady ? `${nReady} стр.${nSoon ? ' · ещё ' + nSoon + ' скоро' : ''} · звёзд ${chapStars(c)}/${chapMax(c)}` : `${nSoon} стр. скоро`, 92, H / 2 + 24, 12.5, nReady ? '#a3341f' : '#8a6a48', 'left', 800);
+    });
+  }
+  const clearGroup = g => { while (g.children.length) { const o = g.children.pop(); o.traverse(m => { if (m.material) { if (m.material.map && m.material.map !== figT) m.material.map.dispose(); m.material.dispose(); } if (m.geometry) m.geometry.dispose(); }); } };
+  function buildToc() {
+    clearGroup(tocCards);
+    const tot = CHAPTERS.reduce((a, c) => a + chapStars(c), 0), mx = CHAPTERS.reduce((a, c) => a + chapMax(c), 0);
+    wallTex('Оглавление', `Звёзд: ${tot} из ${mx}`);
+    const n = CHAPTERS.length + 1, cw = .9, ch = cw * 104 / 392, gap = .232;
+    for (let i = 0; i < n; i++) {
+      const pv = new T.Group(), H = PH - .2 - (i + 1) * gap; onWall(pv, 0, H); pv.rotation.x = Math.PI / 2;
+      const c = cardMesh(tocTex(i), cw, ch, 0, '#b89a70'); c.userData.face.userData.hit = 'toc' + i; pv.add(c); pv.userData.i = i; tocCards.add(pv);
+    }
+  }
+  function buildBody() {
+    clearGroup(tags); clearGroup(rings); clearGroup(lines);
+    wallTex(chap.name, `Звёзд: ${chapStars(chap)} из ${chapMax(chap)}`);
+    const side = { '-1': [], '1': [] };
+    for (const id of chap.pages) side[SIDE[id]].push(id);
+    for (const sd of [-1, 1]) {
+      const ids = side[sd].sort((a, b) => SPOT[a][1] - SPOT[b][1]); let last = 9;
+      for (const id of ids) {
+        let H = (20 - SPOT[id][1]) * U + .02; if (H > last - .135) H = last - .135; last = H; // раздвинуть сверху вниз
+        const tw = .21, th = tw * 52 / 90, pv = new T.Group(); onWall(pv, sd * (PW / 2 - .03 - tw / 2), H - th / 2); pv.rotation.x = Math.PI / 2;
+        const c = cardMesh(tagTex(id), tw, th, 0, '#b89a70'); c.userData.face.userData.hit = 'tag:' + id; pv.add(c); pv.userData.id = id; pv.userData.sd = sd; pv.userData.tw = tw; pv.userData.th = th; tags.add(pv);
+        // пунктир от ярлыка к органу
+        const geo = new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]), ln = new T.Line(geo, new T.LineDashedMaterial({ color: '#4a2e1c', dashSize: .012, gapSize: .01, transparent: true, opacity: .75 })); ln.userData.id = id; ln.userData.tag = pv; lines.add(ln);
+        if (!ready(id) || chap.id !== 'inside') { const [sx, sy, rx, ry] = SPOT[id], pts = []; for (let k = 0; k <= 40; k++) { const a = k / 40 * Math.PI * 2; pts.push(new T.Vector3(Math.cos(a) * (rx + 5) * U, Math.sin(a) * (ry + 5) * U, 0)); }
+          const rg = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineDashedMaterial({ color: ready(id) ? '#a3341f' : '#6b4a30', dashSize: .01, gapSize: .008 })); rg.computeLineDistances(); rg.userData.id = id; rg.userData.base = [sx * U, (20 - sy) * U]; rings.add(rg); }
+      }
+    }
+  }
+  // ── размытие краёв «как макросъёмка» ──
+  const rt = new T.WebGLRenderTarget(4, 4, { type: T.HalfFloatType, samples: 4 });
+  const post = new T.ShaderMaterial({ uniforms: { t: { value: rt.texture }, px: { value: new T.Vector2() }, c: { value: .52 }, band: { value: .2 }, maxr: { value: 7 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+    fragmentShader: `uniform sampler2D t; uniform vec2 px; uniform float c, band, maxr; varying vec2 vUv;
+      void main(){ float d = max(0., abs(vUv.y - c) - band); float r = clamp(d / max(.05, .5 - band), 0., 1.); r = r * r * maxr;
+        vec4 s = texture2D(t, vUv); float w = 1.;
+        for (int i = 0; i < 16; i++) { float a = float(i) * 2.39996; float q = r * sqrt((float(i) + .5) / 16.); s += texture2D(t, vUv + vec2(cos(a), sin(a)) * q * px); w += 1.; }
+        gl_FragColor = s / w; vec2 v = vUv - .5; gl_FragColor.rgb *= 1. - dot(v, v) * .55;
+        #include <colorspace_fragment>
+      }` });
+  const quad = new T.Mesh(new T.PlaneGeometry(2, 2), post), qsc = new T.Scene(), qcam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1); quad.frustumCulled = false; qsc.add(quad);
+  // ── камера: сверху на закрытую книгу → спереди на раскрытую ──
+  const look = new T.Vector3(), camPos = new T.Vector3(), tmpL = new T.Vector3(), tmpP = new T.Vector3(), camDir = new T.Vector3();
+  let aspect = 1;
+  function fitDist(hw, hh) { const tv = Math.tan(cam.fov * Math.PI / 360); return Math.max(hh / tv, hw / (tv * aspect)); }
+  function camFor(kind, out, lk) {
+    if (kind === 'closed') { lk.set(0, 0, PH / 2 + .05); const d = fitDist(.57, .9) * 1.02; out.set(0, d * .97, PH / 2 + d * .24); return; }
+    const hw = .5, hh = .62; lk.set(0, .7, .22); const d = fitDist(hw, hh) * 1.02, dir = camDir.set(0, .26, 1).normalize(); out.copy(lk).addScaledVector(dir, d);
+  }
+  function resize3() { const w = innerWidth, h = innerHeight, pr = Math.min(devicePixelRatio || 1, 2); r.setPixelRatio(pr); r.setSize(w, h, false); rt.setSize(Math.round(w * pr), Math.round(h * pr)); post.uniforms.px.value.set(1 / (w * pr) * pr, 1 / (h * pr) * pr); aspect = w / h; cam.aspect = aspect; cam.updateProjectionMatrix(); }
+  addEventListener('resize', resize3); resize3();
+  camFor('closed', camPos, look);
+  // ── касания: тап — выбор, ведёшь пальцем — книжка чуть поворачивается ──
+  const ray = new T.Raycaster(), ndc = new T.Vector2(); let drag = null, yaw = 0, yawT = 0, tilt = 0, tiltT = 0;
+  cv3.addEventListener('pointerdown', e => { e.preventDefault(); audio(); drag = { x: e.clientX, y: e.clientY, moved: false, y0: yawT, t0: tiltT }; cv3.setPointerCapture && cv3.setPointerCapture(e.pointerId); });
+  cv3.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 9) drag.moved = true; if (drag.moved && scene !== 'cover') { yawT = clamp(drag.y0 + dx * .0035, -.45, .45); tiltT = clamp(drag.t0 + dy * .0015, -.12, .18); } });
+  cv3.addEventListener('pointerup', e => { const d = drag; drag = null; if (!d) return; yawT = 0; tiltT = 0; if (d.moved) return; tap3(e.clientX, e.clientY); });
+  cv3.addEventListener('pointercancel', () => { drag = null; yawT = 0; tiltT = 0; });
+  function tap3(x, y) {
+    if (scene === 'cover') { swish(.6, .35, 1400); go('open'); return; }
+    ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, cam);
+    const seen = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+    const hits = ray.intersectObjects(world.children, true).filter(h => h.object.userData.hit && seen(h.object));
+    const hit = hits.length ? hits[0].object.userData.hit : null; if (!hit) return;
+    if (scene === 'toc' && sceneT() > .5 && hit.startsWith('toc')) { const i = +hit.slice(3);
+      if (i === CHAPTERS.length) { const Q = QUIZZES.find(q => quizOpen(q) && !save.quiz[q.name]) || QUIZZES.find(quizOpen); if (Q) startQuiz(Q); else { toast3('Пройди три страницы — и тест откроется'); sfx.bad(); } return; }
+      chap = CHAPTERS[i]; sfx.pop(); swish(.4, .3); go('body'); return; }
+    if (scene === 'body' && sceneT() > 1) {
+      let id = hit.startsWith('tag:') ? hit.slice(4) : hit === 'fig' ? (chap.pages.includes('bones') ? 'bones' : nearestSpot(hits[0].point)) : hit;
+      if (!id || !chap.pages.includes(id)) id = nearestSpot(hits[0].point);
+      if (!id) return; if (ready(id)) openPage(id); else { toast3('«' + ORG[id].name + '» — скоро!'); sfx.bad(); }
+    }
+  }
+  function nearestSpot(p) { // по точке на фигуре — ближайший орган/место главы
+    const lx = (p.x) / U, ly = 20 - (p.y - FLOOR) / U; let best = null, bd = 1e9;
+    for (const id of chap.pages) { const [sx, sy, rx, ry] = SPOT[id], d = ((lx - sx) / (rx + 12)) ** 2 + ((ly - sy) / (ry + 12)) ** 2; if (d < 1 && d < bd) { bd = d; best = id; } }
+    return best;
+  }
+  // ── музыка: тихая музыкальная шкатулка ──
+  let musT = 0, musI = 0; const NOTES = [523, 587, 659, 784, 880, 1047, 784, 659];
+  function music(dt) { if (save.music === false || !ac || ac.state !== 'running') return; musT -= dt; if (musT > 0) return; musT = .62 + (musI % 8 === 7 ? .6 : 0);
+    const f = NOTES[(musI * 3 + (musI >> 3)) % NOTES.length] * (musI % 16 < 8 ? 1 : .75); musI++; tone(f, 1.1, 'sine', .028); tone(f * 2, .5, 'triangle', .008); if (musI % 4 === 0) tone(f / 2, 1.4, 'sine', .02); }
+  // ── состояние сцен ──
+  let built = null;
+  function enter(s) { if (s === 'toc') { buildToc(); built = 'toc'; } else if (s === 'body') { buildBody(); built = 'body:' + chap.id; } }
+  const v3 = new T.Vector3(), v4 = new T.Vector3();
+  R3 = {
+    frame(dt) {
+      const t = sceneT();
+      if ((scene === 'toc' || scene === 'open') && built !== 'toc') enter('toc'); if (scene === 'body' && built !== 'body:' + chap.id) enter('body'); if (scene === 'cover') built = null;
+      // раскрытие книжки
+      let th = 1.78; if (scene === 'cover') th = 0; else if (scene === 'open') { const k = clamp(t / 1.1, 0, 1); th = 1.78 * (1 - Math.pow(1 - k, 3)); if (t > 1.15) go('toc'); }
+      back.rotation.x = -th; coverFace.visible = th < 1.6;
+      // камера
+      camFor(scene === 'cover' ? 'closed' : scene === 'toc' || scene === 'open' ? 'toc' : 'body', tmpP, tmpL);
+      const kc = scene === 'open' ? clamp(t / 1.1, 0, 1) : 1, ease = 1 - Math.pow(1 - Math.min(1, dt * 4), 1);
+      if (scene === 'open') { const a = 1 - Math.pow(1 - kc, 2); camPos.lerp(tmpP, a * .25 + .02); look.lerp(tmpL, a * .25 + .02); } else { camPos.lerp(tmpP, ease); look.lerp(tmpL, ease); }
+      yaw += (yawT - yaw) * Math.min(1, dt * 6); tilt += (tiltT - tilt) * Math.min(1, dt * 6);
+      world.rotation.y = yaw; cam.position.copy(camPos); cam.position.y += tilt; cam.lookAt(look);
+      // оглавление: карточки отходят от стенки по очереди
+      tocCards.visible = scene === 'toc' || (scene === 'open' && t > .9);
+      tocCards.children.forEach(pv => { const k = scene === 'toc' ? rise((t - .1 - pv.userData.i * .1) / .7) : 0; pv.rotation.x = Math.PI / 2 + .32 * k; pv.children[0].visible = k > .01 || scene === 'open'; });
+      // разворот главы: фигура и органы встают из сгиба
+      const inBody = scene === 'body';
+      figPivot.visible = inBody; tags.visible = inBody; lines.visible = inBody; rings.visible = inBody;
+      if (inBody) {
+        const kf = rise(t / .9); figPivot.rotation.x = Math.PI / 2 * (1 - kf);
+        ['lungs', 'heart', 'stomach', 'brain'].forEach((id, i) => { const pv = organs[id], show = chap.id === 'inside'; pv.visible = show; if (!show) return; const k = rise((t - .45 - i * .14) / .7); pv.rotation.x = Math.PI / 2 * (1 - k);
+          if (id === 'heart') { const pu = 1 + Math.max(0, Math.sin(now() / 1000 * 7.5)) ** 8 * .06; pv.children[0].scale.setScalar(pu); } });
+        tags.children.forEach((pv, i) => { const k = rise((t - 1 - i * .08) / .6); pv.rotation.x = Math.PI / 2 + .25 * k; pv.visible = k > .01; });
+        lines.children.forEach(ln => { const id = ln.userData.id, tg = ln.userData.tag, a = clamp((t - 1.3) / .4, 0, 1); ln.visible = a > 0;
+          v3.set(-tg.userData.sd * tg.userData.tw / 2, tg.userData.th / 2, 0); tg.children[0].userData.face.localToWorld(v3); world.worldToLocal(v3);
+          const [sx, sy] = SPOT[id]; v4.set(sx * U, FLOOR + (20 - sy) * U, FZ + .045); ln.geometry.setFromPoints([v3, v4]); ln.computeLineDistances(); });
+        rings.children.forEach(rg => { const pu = 1 + Math.sin(now() / 1000 * 3 + rg.userData.base[0] * 30) * .1; rg.scale.setScalar(pu * kf); rg.position.set(rg.userData.base[0], FLOOR + rg.userData.base[1] * kf, FZ + .02); });
+      } else Object.values(organs).forEach(pv => pv.visible = false);
+      // фокус размытия
+      post.uniforms.c.value = scene === 'cover' ? .5 : .5; post.uniforms.band.value = scene === 'toc' || scene === 'open' ? .36 : scene === 'cover' ? .3 : .28; post.uniforms.maxr.value = 6.5;
+      music(dt);
+      r.setRenderTarget(rt); r.render(sc, cam); r.setRenderTarget(null); r.render(qsc, qcam);
+    },
+    get cam() { return cam; }, world, T,
+  };
+}
+// всплывающая подсказка поверх 3D
+let toastTimer = 0;
+function toast3(s) { const el = document.getElementById('toast3'); el.textContent = s; el.classList.remove('hide'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.add('hide'), 1800); }
 </script>
 </body>
 </html>
