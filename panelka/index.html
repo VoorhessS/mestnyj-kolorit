@@ -39,7 +39,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 #tbar{margin:8px auto 0;max-width:360px;height:12px;border-radius:99px;background:rgba(14,24,52,.45);border:1px solid rgba(255,255,255,.25);overflow:hidden;position:relative}
 #tfill{height:100%;width:100%;background:linear-gradient(90deg,#5be38a,#ffd23f);border-radius:99px}
 #ttxt{position:absolute;inset:0;font-size:10px;font-weight:900;color:#fff;text-align:center;line-height:12px;text-shadow:0 1px 0 #0008}
-#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 92px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(330px,88vw);padding:8px 12px 8px 8px;border-radius:18px;background:rgba(255,255,255,.95);color:#1f3550;box-shadow:0 10px 30px rgba(0,0,0,.3);pointer-events:none}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 132px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(330px,88vw);padding:8px 12px 8px 8px;border-radius:18px;background:rgba(255,255,255,.95);color:#1f3550;box-shadow:0 10px 30px rgba(0,0,0,.3);pointer-events:none}
 #toast canvas{width:56px;height:56px;flex:none}
 #toast .tx{font-size:14px;line-height:1.25}
 #toast b{font-size:15px}
@@ -75,8 +75,8 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .opt{font:inherit;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:6px 11px;background:rgba(255,255,255,.12);color:#fff}
 .opt.off{opacity:.5;text-decoration:line-through}
-#helpers{position:fixed;left:calc(env(safe-area-inset-left) + 8px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;pointer-events:none}
-.hb{pointer-events:auto;position:relative;width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(14,24,52,.55);display:flex;align-items:center;justify-content:center;padding:0}
+#helpers{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;pointer-events:none}
+.hb{pointer-events:auto;position:relative;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(14,24,52,.55);display:flex;align-items:center;justify-content:center;padding:0}
 .hb.on{border-color:#5be38a;box-shadow:0 0 0 4px rgba(91,227,138,.35);background:rgba(30,90,60,.6)}
 .hb b{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;border-radius:9px;background:#ffd23f;color:#4a2c00;font-size:12px;line-height:18px}
 .rank{width:100%;font-size:13px}
@@ -89,15 +89,25 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 .chip.lock{opacity:.35}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 @media (max-width:360px){.pill{font-size:14px;padding:5px 8px;gap:4px}#hLives svg{width:15px;height:13px}#bMenu{padding:6px 8px}#hud .row{gap:4px}}
+#chCv{width:220px;height:150px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#chest .tag.gold{background:linear-gradient(180deg,#ffe066,#f0a90f);color:#5a3500;box-shadow:0 3px 0 #a36a00}
+#chHint{font-weight:800;font-size:16px;animation:hint 1.1s ease-in-out infinite}
+@keyframes hint{50%{transform:scale(1.08)}}
+.rw.pop{animation:pop .42s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes pop{from{transform:scale(.3) translateY(-30px);opacity:0}to{transform:none;opacity:1}}
+.rw.gold{background:linear-gradient(90deg,rgba(255,210,63,.35),rgba(255,255,255,.12));border:1px solid rgba(255,210,63,.7)}
+.cbtn{display:flex;align-items:center;justify-content:center;gap:8px}
+.cbtn.wig{animation:wig 1.6s ease-in-out infinite}
+@keyframes wig{0%,70%,100%{transform:none}75%{transform:rotate(-4deg)}80%{transform:rotate(4deg)}85%{transform:rotate(-3deg)}90%{transform:rotate(2deg)}}
 #ver{position:fixed;bottom:6px;right:8px;font-size:11px;opacity:.55;color:#fff}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
-<div id="helpers" class="hide"></div>
 <div id="hud" class="hide">
   <div class="row"><span class="pill" id="hFloors"></span><span class="pill" id="hLives"></span><span class="row"><span class="pill" id="hPeople"></span><button id="bMenu" aria-label="Меню"><svg viewBox="0 0 16 14" width="16" height="14" style="display:block"><rect y="1" width="16" height="2.6" rx="1.3" fill="#1f3550"/><rect y="5.7" width="16" height="2.6" rx="1.3" fill="#1f3550"/><rect y="10.4" width="16" height="2.6" rx="1.3" fill="#1f3550"/></svg></button></span></div>
   <div id="tbar" class="hide"><div id="tfill"></div><div id="ttxt"></div></div>
+  <div id="helpers" class="hide"></div>
 </div>
 
 <div id="menu" class="ov"><div class="card">
@@ -105,6 +115,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <div class="sub">Кран качает этаж. <b>Тапни</b> — и он упадёт.<br>Ставь ровно — будет «Идеально!» и больше жильцов.</div>
   <button class="btn" id="bPlay">▶ Играть</button>
   <button class="btn sec" id="bSky">Небоскрёб</button>
+  <button class="btn sec cbtn hide" id="bChest"></button>
   <div class="sub small" id="mInfo"></div>
   <button class="btn sec hide" id="bCont">Продолжить</button>
   <button class="btn sec" id="bTasks">Задания</button>
@@ -115,7 +126,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <button class="btn sec hide" id="bInst">На экран «Домой»</button>
   <div class="sub small hide" id="instHint"></div>
   <div class="opts"><button class="opt" id="oMus"></button><button class="opt" id="oSfx"></button><button class="opt" id="oVib"></button></div>
-</div><div id="ver">версия 0.10</div></div>
+</div><div id="ver">версия 0.11</div></div>
 
 <div id="intro" class="ov hide"><div class="card">
   <span class="tag">Особая стройка</span>
@@ -129,6 +140,7 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
   <div class="stars" id="eStars"></div>
   <div class="sub" id="eS"></div>
   <button class="btn" id="eNext"></button>
+  <button class="btn sec cbtn hide" id="eChest"></button>
   <button class="btn sec" id="eAgain">↻ Заново</button>
   <button class="btn sec" id="eMenu">Меню</button>
 </div></div>
@@ -144,9 +156,12 @@ h2{margin:0;font-size:30px;font-weight:900;line-height:1.05;text-shadow:0 3px 0 
 
 <div id="chest" class="ov hide"><div class="card">
   <span class="tag" id="chWhy"></span>
-  <h2>Сундук!</h2>
+  <h2 id="chT">Сундук!</h2>
+  <canvas id="chCv" width="440" height="300"></canvas>
+  <div class="sub" id="chHint">Тапни по сундуку!</div>
   <div id="chList" class="list"></div>
-  <button class="btn" id="chOk">Забрать</button>
+  <button class="btn hide" id="chOk">Забрать</button>
+  <button class="btn sec" id="chLater">Потом</button>
 </div></div>
 
 <div id="style" class="ov hide"><div class="card wide">
@@ -326,7 +341,8 @@ try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } cat
 save.res = save.res || {};
 save.h = save.h || {};
 save.inv = Object.assign({ plumb: 1, calm: 1, cement: 1 }, save.inv || {}); // по одному помощнику на пробу
-save.xp = save.xp || 0; save.pend = save.pend || [];
+save.xp = save.xp || 0; save.pend = save.pend || []; save.dch = save.dch || {};
+function addChest(why, gold) { save.pend.push({ why, gold: !!(gold || Math.random() < .2) }); }
 save.own = Object.assign({ facade: ['panel'], crane: ['yellow'], decor: [] }, save.own || {});
 save.skin = Object.assign({ facade: 'panel', crane: 'yellow' }, save.skin || {});
 (save.stars || []).forEach((k, i) => { if (k && !save.h[i]) save.h[i] = { pct: 100, stars: k }; }); // перенос со старой версии
@@ -680,7 +696,7 @@ function skyCfg(n) {
     wind: n >= 10 ? Math.min(.3 + (n - 10) * .02 + hi * .012, 1.6) : 0, drift: n >= 20 ? Math.min(30 + (n - 20) * 1.5 + hi, 120) : 0 };
 }
 function playSky() {
-  clearTimeout(chestTimer); $('chest').classList.add('hide'); ENDLESS = true; LVL = SKY_LVL; $('menu').classList.add('hide'); $('end').classList.add('hide');
+  clearTimeout(chestTimer); CH = null; $('chest').classList.add('hide'); ENDLESS = true; LVL = SKY_LVL; $('menu').classList.add('hide'); $('end').classList.add('hide');
   newGame(); CFG = skyCfg(0); st.lvlPlayed = LVL; st.sky = true; audio(); mode = 'play'; hudShow(true); hud();
   float('Небоскрёб: строй, пока есть каски!', CX, st.crane - 250, '#fff', 1);
 }
@@ -1110,13 +1126,14 @@ function finish(won) {
     $('eT').textContent = nr ? 'Новый рекорд!' : 'Небоскрёб'; $('eStars').innerHTML = '';
     $('eS').innerHTML = `Высота: <b>${n}</b> этажей (лучшая за игру) · Жильцов: <b>${st.people}</b><br>Рекорд: <b>${Math.max(rec, n)}</b> этажей<br><span class="small">Чем выше, тем сильнее качает и дует ветер.</span>`;
     $('eNext').textContent = '↻ Ещё раз'; $('eNext').dataset.act = 'sky'; $('eAgain').classList.add('hide');
-    $('end').classList.remove('hide'); return;
+    $('end').classList.remove('hide'); endAt = performance.now(); chestBtns(); return;
   }
   if (won) {
     const k = stars(), h0 = hInfo(LVL); save.h[LVL] = { pct: 100, stars: Math.max(h0.stars, k) };
     addXP(20 + k * 5); daily('house', 1); if (k === 3) daily('stars3', 1); if (st.lives >= (CFG.lives)) daily('nomiss', 1); if (st.snow.lvl) daily('snow', 1);
-    if (save.lvl <= LVL) save.lvl = LVL + 1; store();
+    if (save.lvl <= LVL) save.lvl = LVL + 1;
     const D1 = distInfo(LVL), dEnd = D1.house === 5, D2 = distInfo(LVL + 1), fresh = RES.filter(r => r.d === D2.d);
+    distChests(); store();
     $('eT').textContent = dEnd ? 'Район сдан!' : 'Дом сдан!'; $('eStars').innerHTML = [0, 1, 2].map(i => ICON.star(i < k)).join('');
     $('eS').innerHTML = `Этажей: <b>${CFG.goal}</b> · Жильцов: <b>${st.people}</b><br>Идеальных: ${st.perfects} · Лучшая серия: ${st.best}` + (k < 3 ? `<br><span class="small">Для трёх звёзд нужно ${CFG.goal * 22} жильцов — ставь ровнее!</span>` : '')
       + (dEnd ? `<br><br><b>«${D1.name}» готов!</b> Дальше — «${D2.name}».` + (fresh.length ? `<br>Новые жильцы: ${fresh.map(r => r.name).join(', ')}.` : '') : `<br><span class="small">${D1.name}: дом ${D1.house} из 5</span>`);
@@ -1130,8 +1147,7 @@ function finish(won) {
     $('eS').innerHTML = `${st.why === 'time' ? 'Время вышло.' : 'Каски кончились.'}<br>Построено <b>${st.floors.length}</b> из ${CFG.goal} этажей — готовность <b>${pct}%</b>.<br><span class="small">Дом останется недостроенным. Вернуться и построить заново можно в «Районах».</span>`;
     $('eNext').textContent = `▶ Следующий дом`; $('eNext').dataset.act = 'next'; $('eAgain').classList.remove('hide');
   }
-  $('end').classList.remove('hide'); endAt = performance.now();
-  if (save.pend.length) chestSoon(900);
+  $('end').classList.remove('hide'); endAt = performance.now(); chestBtns();
 }
 
 // ═════════ HUD и меню ═════════
@@ -1156,7 +1172,7 @@ function hudTime() {
 function rankOf(xp) { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][1]) i++; return i; }
 function addXP(n) {
   const r0 = rankOf(save.xp); save.xp += n; const r1 = rankOf(save.xp);
-  if (r1 > r0) { save.pend.push({ why: 'Новое звание: ' + RANKS[r1][0] }); if (st && mode === 'play') float('Новое звание: ' + RANKS[r1][0] + '!', CX, topY() + 200, '#ffd23f', 1.1); }
+  if (r1 > r0) { addChest('Новое звание: ' + RANKS[r1][0], r1 >= 4); if (st && mode === 'play') float('Новое звание: ' + RANKS[r1][0] + '!', CX, topY() + 200, '#ffd23f', 1.1); }
   store();
 }
 function dayWord(n) { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'день' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'дня' : 'дней'; }
@@ -1164,16 +1180,25 @@ function streakCheck() {
   const d = new Date(), key = today(), y = new Date(d.getTime() - 864e5), ykey = `${y.getFullYear()}-${y.getMonth() + 1}-${y.getDate()}`;
   const S2 = save.streak || { day: '', n: 0 }; if (S2.day === key) return;
   S2.n = S2.day === ykey ? S2.n + 1 : 1; S2.day = key; save.streak = S2;
-  if (S2.n === 3 || S2.n === 7 || S2.n === 14 || (S2.n > 14 && S2.n % 7 === 0)) save.pend.push({ why: `${S2.n} ${dayWord(S2.n)} подряд` });
+  if (S2.n === 3 || S2.n === 7 || S2.n === 14 || (S2.n > 14 && S2.n % 7 === 0)) addChest(`${S2.n} ${dayWord(S2.n)} подряд`, S2.n >= 7);
   store();
 }
-function chestRoll() {
-  const owned = ([t, k]) => t === 'res' ? !!save.res[k] : save.own[t].includes(k);
-  const left = COSMETICS.filter(c => !owned(c)), items = [];
-  if (left.length) items.push(left[Math.random() * left.length | 0]);
-  const hk = ['plumb', 'calm', 'cement']; items.push(['help', hk[Math.random() * 3 | 0]]);
-  if (!left.length) items.push(['help', 'spare']);
+function chestRoll(gold) {
+  const owned = ([t, k]) => t === 'res' ? !!save.res[k] : save.own[t].includes(k), pick = a => a.splice(Math.random() * a.length | 0, 1)[0];
+  const cos = COSMETICS.filter(c => c[0] !== 'res' && !owned(c)), rare = COSMETICS.filter(c => c[0] === 'res' && !owned(c)), hk = ['plumb', 'calm', 'cement'], items = [];
+  if (!gold) { // обычный: украшение/раскраска + плюшка (раскрасок не осталось — запасная каска)
+    const had = cos.length; if (had) items.push(pick(cos)); items.push(['help', pick(hk)]); if (!had) items.push(['help', 'spare']);
+    return items;
+  }
+  // золотой: шанс на редкого жильца, ещё раскраска, две плюшки и каска
+  if (rare.length && (Math.random() < .6 || !cos.length)) items.push(pick(rare)); else if (cos.length) items.push(pick(cos));
+  if (cos.length) items.push(pick(cos));
+  items.push(['help', pick(hk)], ['help', pick(hk)], ['help', 'spare']);
   return items;
+}
+// сданные районы без сундука (и за прошлые версии) — по золотому
+function distChests() {
+  for (let d = 0; d * 5 + 4 < save.lvl; d++) { if (save.dch[d]) continue; let ok = true; for (let i = d * 5; i < d * 5 + 5; i++) if (!(save.h[i] && save.h[i].pct >= 100)) ok = false; if (ok) { save.dch[d] = 1; addChest(`Район «${distInfo(d * 5).name}» сдан`, true); } }
 }
 function itemName([t, k]) { return t === 'facade' ? 'Фасад: ' + FACADES[k] : t === 'crane' ? CRANES[k] : t === 'decor' ? 'Украшение: ' + DECOR[k] : t === 'res' ? 'Редкий жилец: ' + RESD[k].name : HELP[k].name; }
 function itemAbout([t, k]) { return t === 'facade' ? 'Выбери в «Стиле» — так будут выглядеть твои дома' : t === 'crane' ? 'Выбери в «Стиле»' : t === 'decor' ? 'Встанет на газоне у стройки' : t === 'res' ? '«' + RESD[k].say + '»' : HELP[k].about; }
@@ -1194,19 +1219,109 @@ function itemPreview(c, [t, k]) {
   g.restore();
 }
 function ctx2Decor(g, k) { g.save(); g.translate(28, 46); g.scale(1.1, 1.1); drawOneDecor(g, k, 0); g.restore(); }
-let chestTimer = 0, chestBack = null;
-function chestSoon(ms) { clearTimeout(chestTimer); chestTimer = setTimeout(showChest, ms); }
-function showChest() {
+if (!CanvasRenderingContext2D.prototype.roundRect) CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+let chestTimer = 0, chestBack = null, CH = null;
+const CHEST_ICO = (g = false) => `<svg width="26" height="22" viewBox="0 0 26 22" xmlns="http://www.w3.org/2000/svg"><path d="M2 9 Q13 -1 24 9 Z" fill="${g ? '#f0a90f' : '#8a4f1f'}"/><rect x="2" y="9" width="22" height="12" rx="2" fill="${g ? '#ffd23f' : '#b0692c'}"/><rect x="6" y="2" width="3" height="19" fill="${g ? '#fff1b0' : '#5b6672'}"/><rect x="17" y="2" width="3" height="19" fill="${g ? '#fff1b0' : '#5b6672'}"/><rect x="10.5" y="8" width="5" height="6" rx="1" fill="${g ? '#e8433a' : '#ffd23f'}"/></svg>`;
+function chestBtns() {
+  const n = save.pend.length, g = save.pend.some(c => c.gold);
+  for (const id of ['bChest', 'eChest']) { const b = $(id); b.classList.toggle('hide', !n); b.classList.toggle('wig', !!n); b.innerHTML = `${CHEST_ICO(g)} ${id === 'eChest' ? 'Открыть сундук' : 'Сундуки'}<span class="badge">${n}</span>`; }
+}
+function chestSoon() { chestBtns(); }
+function showChest() { // открыть окно с первым сундуком из копилки
   if (!save.pend.length || (mode !== 'menu' && mode !== 'end')) return false;
   if ($('chest').classList.contains('hide')) chestBack = !$('end').classList.contains('hide') ? 'end' : 'menu';
-  const c = save.pend[0], items = c.items || (c.items = chestRoll()); store();
-  $('chWhy').textContent = c.why;
-  $('chList').innerHTML = items.map((it, i) => `<div class="rw"><canvas width="112" height="112" data-i="${i}"></canvas><div><b>${itemName(it)}</b><span class="small">${itemAbout(it)}</span></div></div>`).join('');
-  $('chList').querySelectorAll('canvas').forEach(cv2 => itemPreview(cv2, items[+cv2.dataset.i]));
-  const shownAt = performance.now();
-  $('chOk').onclick = () => { if (performance.now() - shownAt < 450) return; items.forEach(grant); save.pend.shift(); store(); audio(); sfx.win(); $('chest').classList.add('hide'); if (!showChest()) { if (chestBack === 'end' && mode === 'end') { $('end').classList.remove('hide'); endAt = performance.now(); } else showMenu(); } };
+  const c = save.pend[0];
+  CH = { c, gold: !!c.gold, phase: 'closed', t0: performance.now(), parts: [], shown: performance.now() };
+  $('chWhy').textContent = c.why; $('chWhy').classList.toggle('gold', CH.gold);
+  $('chT').textContent = CH.gold ? 'Золотой сундук!' : 'Сундук!';
+  $('chList').innerHTML = ''; $('chHint').classList.remove('hide'); $('chHint').textContent = 'Тапни по сундуку!';
+  $('chOk').classList.add('hide'); $('chLater').classList.remove('hide'); $('chCv').classList.remove('hide');
   ['menu', 'end', 'tasks', 'dist', 'coll', 'style'].forEach(id => $(id).classList.add('hide')); $('chest').classList.remove('hide');
+  if (!showChest.loop) { showChest.loop = true; requestAnimationFrame(chestFrame); }
   return true;
+}
+function chestBackTo() {
+  CH = null; $('chest').classList.add('hide');
+  if (chestBack === 'end' && mode === 'end') { $('end').classList.remove('hide'); endAt = performance.now(); chestBtns(); } else showMenu();
+}
+function chestTap() {
+  if (!CH || CH.phase !== 'closed' || performance.now() - CH.shown < 250) return;
+  audio(); CH.phase = 'shake'; CH.t0 = performance.now(); $('chHint').classList.add('hide'); $('chLater').classList.add('hide');
+  [0, .12, .24, .36].forEach((d, i) => tone(180 + i * 30, .07, 'square', .05, 0, d)); vib([20, 40, 20, 40, 20]);
+  setTimeout(chestOpen, 560);
+}
+function chestOpen() {
+  if (!CH) return;
+  const c = CH.c, items = c.items || (c.items = chestRoll(c.gold));
+  items.forEach(grant); save.pend.shift(); store(); // выдаём сразу: закрыл игру посреди анимации — награда уже твоя
+  CH.phase = 'open'; CH.t0 = performance.now(); thud(.5); vib(40);
+  [523, 784, 1047].forEach((f, i) => tone(f, .3, 'triangle', .1, 0, i * .07));
+  const cols = CH.gold ? ['#ffd23f', '#fff1b0', '#ff9a1f', '#ffffff'] : ['#ffd23f', '#ffffff', '#5be38a', '#4aa3f0'];
+  for (let i = 0; i < (CH.gold ? 46 : 28); i++) CH.parts.push({ x: 110 + (Math.random() - .5) * 60, y: 76, vx: (Math.random() - .5) * 260, vy: -150 - Math.random() * 230, r: 2 + Math.random() * 3.5, c: cols[i % cols.length], star: Math.random() < .5, a: Math.random() * 6, va: (Math.random() - .5) * 12 });
+  const shownC = CH;
+  items.forEach((it, i) => setTimeout(() => {
+    if (CH !== shownC) return;
+    const row = document.createElement('div'); row.className = 'rw pop' + (it[0] === 'res' || (CH.gold && i === 0) ? ' gold' : '');
+    row.innerHTML = `<canvas width="112" height="112"></canvas><div><b>${itemName(it)}</b><span class="small">${itemAbout(it)}</span></div>`;
+    $('chList').appendChild(row); itemPreview(row.querySelector('canvas'), it); tone(700 + i * 120, .14, 'triangle', .09);
+    if (i === items.length - 1) setTimeout(() => { if (CH !== shownC) return; const n = save.pend.length; $('chOk').textContent = n ? `Забрать · ещё ${n}` : 'Забрать'; $('chOk').classList.remove('hide'); CH.okAt = performance.now(); sfx.win(); row.scrollIntoView({ block: 'nearest' }); }, 250);
+  }, 420 + i * 380));
+}
+$('chCv').addEventListener('pointerdown', e => { e.preventDefault(); chestTap(); });
+$('chHint').addEventListener('pointerdown', chestTap);
+$('chOk').onclick = () => { if (!CH || CH.phase !== 'open' || performance.now() - (CH.okAt || 0) < 350) return; if (save.pend.length) showChest(); else chestBackTo(); };
+$('chLater').onclick = () => { if (CH && CH.phase === 'closed') chestBackTo(); };
+$('bChest').onclick = () => { if (save.pend.length) { chestBack = 'menu'; showChest(); } };
+$('eChest').onclick = () => { if (save.pend.length && endReady()) { chestBack = 'end'; showChest(); } };
+// рисунок сундука
+function drawChest(g, t, gold, lidY, lidA, lidAlpha, shake) {
+  const W1 = gold ? '#ffd23f' : '#b0692c', W2 = gold ? '#e89a0c' : '#8a4f1f', BAND = gold ? '#fff1b0' : '#5b6672', BAND2 = gold ? '#d9a514' : '#3f4852';
+  g.save(); g.translate(110 + shake, 0);
+  // тень
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 134, 58, 7, 0, 0, 7); g.fill();
+  // короб
+  const gr = g.createLinearGradient(0, 74, 0, 132); gr.addColorStop(0, W1); gr.addColorStop(1, W2); g.fillStyle = gr;
+  g.beginPath(); g.roundRect(-52, 74, 104, 58, 6); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1.5; for (const y of [93, 112]) { g.beginPath(); g.moveTo(-50, y); g.lineTo(50, y); g.stroke(); }
+  g.fillStyle = BAND; for (const x of [-38, 30]) g.fillRect(x, 74, 8, 58); g.fillStyle = BAND2; for (const x of [-38, 30]) g.fillRect(x + 6, 74, 2, 58);
+  if (lidAlpha < 1) { // открыт: тёмное нутро и свет
+    g.fillStyle = gold ? '#6b3d00' : '#3b220f'; g.beginPath(); g.ellipse(0, 75, 50, 7, 0, 0, 7); g.fill();
+    const lg = g.createRadialGradient(0, 70, 2, 0, 70, 70); lg.addColorStop(0, gold ? 'rgba(255,240,170,.95)' : 'rgba(255,250,220,.8)'); lg.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = lg; g.beginPath(); g.arc(0, 70, 70, 0, 7); g.fill();
+  }
+  // замок
+  if (lidAlpha >= 1) { g.fillStyle = gold ? '#e8433a' : '#ffd23f'; g.beginPath(); g.roundRect(-8, 70, 16, 18, 3); g.fill(); g.fillStyle = gold ? '#7a1010' : '#7a5200'; g.beginPath(); g.arc(0, 78, 2.6, 0, 7); g.fill(); g.fillRect(-1.2, 78, 2.4, 6); }
+  // крышка
+  if (lidAlpha > 0) {
+    g.save(); g.globalAlpha = lidAlpha; g.translate(0, 74 + lidY); g.rotate(lidA);
+    const lg2 = g.createLinearGradient(0, -34, 0, 0); lg2.addColorStop(0, W1); lg2.addColorStop(1, W2); g.fillStyle = lg2;
+    g.beginPath(); g.moveTo(-54, 0); g.lineTo(-54, -12); g.quadraticCurveTo(0, -46, 54, -12); g.lineTo(54, 0); g.closePath(); g.fill();
+    g.fillStyle = BAND; for (const x of [-38, 30]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, x < 0 ? -24 : -26); g.lineTo(x + 8, x < 0 ? -27 : -23); g.lineTo(x + 8, 0); g.fill(); }
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(-54, -3, 108, 3);
+    if (gold) { g.fillStyle = '#4aa3f0'; g.beginPath(); g.arc(0, -20, 4, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(-1.3, -21.3, 1.3, 0, 7); g.fill(); }
+    g.restore();
+  }
+  // блеск на золоте
+  if (gold && lidAlpha >= 1) { const k = (t * .6) % 2.2 - .6; g.save(); g.beginPath(); g.roundRect(-52, 40, 104, 92, 6); g.clip(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.moveTo(-60 + k * 120, 40); g.lineTo(-44 + k * 120, 40); g.lineTo(-74 + k * 120, 134); g.lineTo(-90 + k * 120, 134); g.fill(); g.restore(); }
+  g.restore();
+}
+function chestFrame(now) {
+  if (!CH || $('chest').classList.contains('hide')) { showChest.loop = false; return; }
+  requestAnimationFrame(chestFrame);
+  const c = $('chCv'), g = c.getContext('2d'), t = now / 1000, e = (now - CH.t0) / 1000;
+  g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 220, 150);
+  // лучи
+  const rays = CH.phase === 'open' ? Math.min(1, e * 2) : CH.gold ? .45 : .2;
+  if (rays > 0) { g.save(); g.translate(110, 78); g.rotate(t * .4); const rg = g.createRadialGradient(0, 0, 8, 0, 0, 74); rg.addColorStop(0, CH.gold ? `rgba(255,214,80,${.5 * rays})` : `rgba(255,255,255,${.35 * rays})`); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; for (let i = 0; i < 12; i++) { g.rotate(Math.PI / 6); g.beginPath(); g.moveTo(0, 0); g.lineTo(-9, -120); g.lineTo(9, -120); g.fill(); } g.restore(); }
+  let lidY = 0, lidA = 0, lidAl = 1, sh = 0, bob = 0;
+  if (CH.phase === 'closed') { bob = Math.sin(t * 3) * 2; lidY = bob; lidA = Math.sin(t * 6) * .015; }
+  else if (CH.phase === 'shake') { const k = Math.min(1, e / .56); sh = Math.sin(e * 70) * (3 + k * 5); lidY = -Math.abs(Math.sin(e * 35)) * 4 * k; lidA = Math.sin(e * 50) * .05 * k; }
+  else { lidY = -e * 330 + e * e * 120; lidA = -e * 4; lidAl = Math.max(0, 1 - e * 1.4); }
+  g.save(); g.translate(0, CH.phase === 'closed' ? bob * .5 : 0); drawChest(g, t, CH.gold, lidY, lidA, lidAl, sh); g.restore();
+  // искры и звёзды
+  const dt = Math.min(.05, (now - (CH.last || now)) / 1000); CH.last = now;
+  for (const p of CH.parts) { p.vy += 380 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.a += p.va * dt; }
+  CH.parts = CH.parts.filter(p => p.y < 170);
+  for (const p of CH.parts) { g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = p.c; if (p.star) { g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? p.r * .45 : p.r * 1.4, a = i * Math.PI / 5; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.fill(); } else { g.beginPath(); g.ellipse(0, 0, p.r, p.r * .6, 0, 0, 7); g.fill(); } g.restore(); }
 }
 function showStyle() {
   const row = (title, map, type) => `<div class="tk"><div class="nm"><b>${title}</b><div class="chips">${Object.entries(map).map(([k, n]) => { const own = type === 'decor' ? save.own.decor.includes(k) : save.own[type].includes(k), sel = type !== 'decor' && save.skin[type] === k; return `<button class="chip${sel ? ' sel' : ''}${own ? '' : ' lock'}" data-t="${type}" data-k="${k}">${n}</button>`; }).join('')}</div></div></div>`;
@@ -1225,7 +1340,7 @@ function showMenu() {
   $('bSky').textContent = save.sky ? `Небоскрёб · рекорд ${save.sky}` : 'Небоскрёб';
   const ri = rankOf(save.xp), nx = RANKS[ri + 1], st0 = save.streak ? save.streak.n : 1;
   $('mRank').innerHTML = `<b>${RANKS[ri][0]}</b> · опыт ${save.xp}${nx ? '/' + nx[1] : ''} · ${st0} ${dayWord(st0)} подряд${nx ? `<div class="bar"><i style="width:${Math.min(100, (save.xp - RANKS[ri][1]) / (nx[1] - RANKS[ri][1]) * 100)}%"></i></div>` : ''}`;
-  if (save.pend.length) chestSoon(250);
+  chestBtns();
   const tr2 = tasksReady(), tl = dailyTasks(); $('bTasks').innerHTML = `Задания ${tl.filter(t => t.p >= t.n).length}/3` + (tr2 ? `<span class="badge">${tr2}</span>` : '');
   const canCont = !!(st && !st.done && (st.floors.length || st.plumb || st.calm || st.cement) && st.lvlPlayed === LVL);
   $('bCont').classList.toggle('hide', !canCont); $('bCont').className = 'btn' + (canCont ? '' : ' sec hide'); $('bPlay').className = 'btn' + (canCont ? ' sec' : '');
@@ -1257,7 +1372,7 @@ function showHouses(d) {
 }
 
 function play(l) {
-  clearTimeout(chestTimer); $('chest').classList.add('hide'); ENDLESS = false; LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
+  clearTimeout(chestTimer); CH = null; $('chest').classList.add('hide'); ENDLESS = false; LVL = l; $('menu').classList.add('hide'); $('end').classList.add('hide'); newGame(); st.lvlPlayed = l; audio();
   if (st.snow.lvl) float(st.snow.lvl === 2 ? 'Метель!' : 'Снегопад', CX, st.crane - 260, '#e8f6ff', 1.1);
   if (CFG.sp) { mode = 'intro'; $('iT').textContent = SPINFO[CFG.sp][0]; $('iS').textContent = SPINFO[CFG.sp][1]; $('intro').classList.remove('hide'); }
   else { mode = 'play'; hudShow(true); }
@@ -1577,6 +1692,7 @@ function frame(now) {
 }
 addEventListener('resize', resize); resize();
 streakCheck();
+distChests(); store();
 showMenu();
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { if (mode === 'play' && st && !st.done) showMenu(); try { ac && ac.suspend(); } catch (e) {} return; }
@@ -1588,7 +1704,7 @@ if (document.fonts) document.fonts.load('900 20px Rubik').then(() => { for (cons
 requestAnimationFrame(frame);
 
 // для автотестов
-window.__p = { get st() { return st; }, get mode() { return mode; }, get cfg() { return CFG; }, hook, topX, topY, tap, step, play, go: () => $('iGo').click(), setRunning: v => { running = v; }, get save() { return save; } };
+window.__p = { get st() { return st; }, get mode() { return mode; }, get cfg() { return CFG; }, hook, topX, topY, tap, step, play, go: () => $('iGo').click(), setRunning: v => { running = v; }, get save() { return save; }, get ch() { return CH; }, chestTap, chestRoll };
 </script>
 </body>
 </html>
