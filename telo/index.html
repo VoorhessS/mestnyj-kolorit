@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#6b4f35">
+<title>Бумажное тело — книжка-раскладушка</title>
+<style>
+@font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-cyr.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+2116; }
+@font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(fonts/rubik-lat.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+html,body{margin:0;height:100%;background:#6b4f35;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;font-family:Rubik,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#3b2616}
+canvas{display:block;width:100vw;height:100vh;height:100dvh}
+.hide{display:none!important}
+:root{--ink:#4a2e1c;--paper:#fff8ea;--sh:rgba(140,80,30,.38)}
+.paper{background-color:var(--paper);background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .18  0 0 0 .09 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");border:2px solid var(--ink);border-radius:7px;box-shadow:3px 4px 0 var(--sh)}
+#page,#game,#res{position:fixed;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 14px;box-sizing:border-box;pointer-events:none}
+#page{bottom:calc(env(safe-area-inset-bottom) + 14px);max-height:60%;}
+#page > *,#res > *,#game > *{pointer-events:auto}
+#pScroll{width:100%;max-width:440px;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:4px 6px 8px;box-sizing:border-box;touch-action:pan-y}
+.banner{font-weight:900;font-size:24px;padding:6px 18px;background:#ffd36b;transform:rotate(-1.5deg)}
+.fact{font-size:15.5px;line-height:1.36;padding:9px 12px;text-align:left;transform-origin:50% 100%;animation:pop .75s cubic-bezier(.3,1.55,.5,1) both}
+.fact b{color:#a3341f}
+.fact:nth-child(2n){transform:rotate(.6deg)}
+.fact:nth-child(2n+1){transform:rotate(-.5deg)}
+@keyframes pop{0%{transform:perspective(600px) rotateX(-92deg)}100%{transform:perspective(600px) rotateX(0)}}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:900;font-size:18px;color:var(--ink);padding:11px 20px;background:#ffd36b;cursor:pointer;transition:transform .08s}
+.btn:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--sh)}
+.btn.sec{background:#fff8ea;font-size:16px}
+.btn.big{font-size:21px;padding:13px 26px}
+#game{top:calc(env(safe-area-inset-top) + 10px)}
+#gTop{display:flex;align-items:center;gap:8px;width:100%;max-width:440px}
+#gTitle{flex:1;font-weight:900;font-size:17px;padding:6px 12px;background:#fff8ea}
+#gScore{font-weight:900;font-size:17px;padding:6px 12px;background:#ffd36b;min-width:44px;text-align:center}
+#gX{font:inherit;font-weight:900;font-size:16px;padding:6px 12px;background:#fff8ea;color:var(--ink)}
+#gHint{font-size:15px;font-weight:700;padding:6px 12px;max-width:400px;text-align:center;line-height:1.3}
+#res{top:0;bottom:0;justify-content:center;background:rgba(60,40,20,.45);z-index:5}
+#rCard{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 22px;max-width:360px;text-align:center;animation:pop .7s cubic-bezier(.3,1.55,.5,1) both}
+#rT{font-weight:900;font-size:28px}
+#rS{font-size:16px;line-height:1.4}
+#rStars svg{margin:0 3px}
+#bToc{position:fixed;left:calc(env(safe-area-inset-left) + 12px);bottom:calc(env(safe-area-inset-bottom) + 14px);font-size:14px;padding:8px 12px}
+.say{cursor:pointer;position:relative}
+.say::after{content:'';position:absolute;right:6px;top:6px;width:16px;height:16px;opacity:.55;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2 6h3l4-3v10l-4-3H2z' fill='%234a2e1c'/><path d='M11 5.5q1.6 2.5 0 5M12.8 3.8q3 4.2 0 8.4' stroke='%234a2e1c' stroke-width='1.4' fill='none' stroke-linecap='round'/></svg>") no-repeat center/contain}
+.fact.say{padding-right:26px}
+#gHint.say{padding-right:28px}
+.speaking{outline:3px solid #ffb31f;outline-offset:2px}
+#quiz{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 14px);box-sizing:border-box;overflow:auto;touch-action:pan-y}
+#qTop{display:flex;gap:8px;width:100%;max-width:440px;align-items:center}
+#qTitle{flex:1;font-weight:900;font-size:16px;padding:6px 12px;background:#fff8ea}
+#qNum{font-weight:900;font-size:15px;padding:6px 12px;background:#ffd36b}
+#qQ{width:100%;max-width:440px;box-sizing:border-box;font-weight:900;font-size:20px;line-height:1.3;padding:14px 30px 14px 14px;background:#fff8ea;animation:pop .6s cubic-bezier(.3,1.55,.5,1) both}
+#qOpts{display:flex;flex-direction:column;gap:9px;width:100%;max-width:440px}
+.opt{font:inherit;font-weight:800;font-size:17px;text-align:left;color:var(--ink);padding:12px 30px 12px 14px;background:#fff8ea;animation:pop .6s cubic-bezier(.3,1.55,.5,1) both}
+.opt.sel{background:#ffe7a3;transform:translate(-1px,-1px)}
+.opt.good{background:#c9efc2}
+.opt.bad{background:#f7c2b8}
+#qWhy{width:100%;max-width:440px;box-sizing:border-box;font-size:16px;line-height:1.35;padding:10px 30px 10px 14px;background:#fff8ea}
+#qWhy b{font-size:18px}
+#bToc,#ver{z-index:2}
+#ver{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 4px);font-size:11px;color:#fff8ea;opacity:.55;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="page" class="hide">
+  <div class="banner paper say" id="pT"></div>
+  <div id="pScroll"></div>
+  <div class="row"><button class="btn big paper" id="pPlay"></button><button class="btn sec paper" id="pBack">К телу</button></div>
+</div>
+
+<div id="game" class="hide">
+  <div id="gTop"><button class="paper" id="gX">←</button><div class="paper" id="gTitle"></div><div class="paper" id="gScore"></div></div>
+  <div class="paper say" id="gHint"></div>
+</div>
+
+<div id="res" class="hide"><div class="paper" id="rCard">
+  <div id="rT"></div><div id="rStars"></div><div id="rS"></div>
+  <button class="btn big paper hide" id="rQuiz">Пройти тест</button>
+  <div class="row"><button class="btn paper" id="rAgain">Ещё раз</button><button class="btn sec paper" id="rBack">К странице</button></div>
+</div></div>
+<div id="quiz" class="hide">
+  <div id="qTop"><button class="paper" id="qX" style="font:inherit;font-weight:900;font-size:16px;padding:6px 12px;background:#fff8ea;color:#4a2e1c">←</button><div class="paper" id="qTitle"></div><div class="paper" id="qNum"></div></div>
+  <div class="paper say" id="qQ"></div>
+  <div id="qOpts"></div>
+  <div class="paper say hide" id="qWhy"></div>
+  <button class="btn big paper" id="qGo">Ответить</button>
+</div>
+<button class="btn sec paper hide" id="bToc">← Оглавление</button>
+<div id="ver">пробник 0.1</div>
+
+<script>
+'use strict';
+// ═════════ Основа ═════════
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d'), $ = id => document.getElementById(id);
+let W = 0, H = 0, DPR = 1, K = 1, VW = 400, VH = 760;
+const INK = '#4a2e1c', SH = 'rgba(140,80,30,.38)', SKIN = '#f2c6a0', BONE = '#fbf3df';
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t, PI = Math.PI;
+const SAVE = 'bumtelo-v1';
+let save = { stars: {} }; try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {} save.stars = save.stars || {};
+const store = () => { try { localStorage.setItem(SAVE, JSON.stringify(save)); } catch (e) {} };
+let cache = {};
+function resize() {
+  DPR = Math.min(devicePixelRatio || 1, 2.5); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  K = Math.min(W / 400, H / 700); VW = W / K; VH = H / K; cache = {};
+}
+addEventListener('resize', resize); resize();
+// наскок «раскладушки»: поднимается на сгибе с перелётом ~10% и успокаивается к 1 с
+const rise = t => { t = clamp(t, 0, 1); const c1 = 1.25, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+
+// ═════════ Бумага: зерно, кусок картона, рваный край ═════════
+const grainC = document.createElement('canvas'); grainC.width = grainC.height = 128;
+(() => { const g = grainC.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 1400; i++) { const v = 200 + Math.random() * 55 | 0; g.fillStyle = `rgba(${v - 30},${v - 50},${v - 80},${Math.random() * .5})`; g.fillRect(Math.random() * 128, Math.random() * 128, 1, 1); }
+  g.strokeStyle = 'rgba(150,110,70,.14)'; g.lineWidth = .6; for (let i = 0; i < 26; i++) { const x = Math.random() * 128, y = Math.random() * 128, a = Math.random() * 7; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6 + 3, x + Math.cos(a) * 12, y + Math.sin(a) * 12); g.stroke(); } })();
+const GRAIN = ctx.createPattern(grainC, 'repeat');
+// кусок картона: тень → контур → заливка → зерно → светлая кромка
+function piece(g, path, col, o = {}) {
+  g.save();
+  if (o.shadow !== false) { g.shadowColor = o.shc || SH; g.shadowBlur = (o.blur ?? 4) * K * DPR; g.shadowOffsetX = (o.sx ?? 2.5) * K * DPR; g.shadowOffsetY = (o.sy ?? 3.5) * K * DPR; }
+  g.beginPath(); path(g); g.fillStyle = col; g.fill(); g.restore();
+  g.save(); g.beginPath(); path(g); g.strokeStyle = INK; g.lineWidth = (o.lw ?? 1.6) * 2; g.lineJoin = 'round'; g.stroke(); g.fillStyle = col; g.fill(); g.restore();
+  g.save(); g.beginPath(); path(g); g.clip();
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = .55; g.fillStyle = GRAIN; g.fillRect(-900, -900, 1800, 1800);
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  if (o.hl !== false) { g.translate(1.5, 1.5); g.beginPath(); path(g); g.strokeStyle = 'rgba(255,251,238,.6)'; g.lineWidth = 2.4; g.stroke(); }
+  g.restore();
+}
+function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function tornRect(g, x, y, w, h, seed, amp = 2.2) { // рваный край по периметру
+  const r = rng(seed), pts = [], st = 7;
+  for (let i = 0; i <= w; i += st) pts.push([x + i, y + (r() - .5) * amp]);
+  for (let i = 0; i <= h; i += st) pts.push([x + w + (r() - .5) * amp, y + i]);
+  for (let i = w; i >= 0; i -= st) pts.push([x + i, y + h + (r() - .5) * amp]);
+  for (let i = h; i >= 0; i -= st) pts.push([x + (r() - .5) * amp, y + i]);
+  g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.closePath();
+}
+const rr = (g, x, y, w, h, r) => { g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+// готовая картинка (рисуется один раз под текущий размер экрана)
+function cached(key, w, h, ox, oy, fn) {
+  let c = cache[key];
+  if (!c) { c = cache[key] = document.createElement('canvas'); const s = K * DPR; c.width = Math.ceil(w * s); c.height = Math.ceil(h * s); const g = c.getContext('2d'); g.setTransform(s, 0, 0, s, ox * s, oy * s); fn(g); }
+  return c;
+}
+const blit = (c, x, y, w, h) => ctx.drawImage(c, x, y, w, h);
+function text(g, s, x, y, size, col = INK, al = 'center', wt = 900, maxW = 0) { g.font = `${wt} ${size}px Rubik, system-ui, sans-serif`; if (maxW) { const m = g.measureText(s).width; if (m > maxW) { size *= maxW / m; g.font = `${wt} ${size}px Rubik, system-ui, sans-serif`; } } g.textAlign = al; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(s, x, y); }
+function starPath(g, x, y, r) { for (let i = 0; i < 10; i++) { const rad = i % 2 ? r * .45 : r, a = -PI / 2 + i * PI / 5; g.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad); } g.closePath(); }
+const STAR_SVG = on => `<svg width="38" height="38" viewBox="-20 -20 40 40" xmlns="http://www.w3.org/2000/svg"><path d="${Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 7.6 : 17, a = -PI / 2 + i * PI / 5; return (i ? 'L' : 'M') + (Math.cos(a) * r).toFixed(1) + ' ' + (Math.sin(a) * r).toFixed(1); }).join('')}Z" fill="${on ? '#ffc93b' : '#e8dcc4'}" stroke="#4a2e1c" stroke-width="2" stroke-linejoin="round"/></svg>`;
+
+// ═════════ Звук ═════════
+let ac = null, bus = null;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .7; bus.connect(ac.destination); } catch (e) {} } if (ac && ac.state !== 'running') ac.resume().catch(() => {}); }
+function tone(f, d, type = 'triangle', v = .12, slide = 0, delay = 0) {
+  if (!ac) return; const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(bus); o.start(t); o.stop(t + d + .02);
+}
+function swish(d = .35, v = .25, f0 = 1800) { // шелест страницы
+  if (!ac) return; const t = ac.currentTime, n = ac.sampleRate * d, b = ac.createBuffer(1, n, ac.sampleRate), dd = b.getChannelData(0);
+  for (let i = 0; i < n; i++) dd[i] = (Math.random() * 2 - 1) * Math.sin(PI * i / n);
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'bandpass'; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f0 * .4, t + d); f.Q.value = .8; g.gain.value = v;
+  s.buffer = b; s.connect(f).connect(g).connect(bus); s.start(t);
+}
+const sfx = {
+  pop: () => { tone(420, .09, 'triangle', .1, 260); swish(.12, .12, 2600); },
+  ok: () => { tone(660, .1); tone(990, .14, 'triangle', .1, 0, .07); },
+  bad: () => tone(200, .25, 'square', .05, -80),
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .22, 'triangle', .1, 0, i * .1)),
+  beat: () => { tone(70, .16, 'sine', .4, -25); tone(55, .14, 'sine', .3, -15, .14); },
+};
+const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+// ═════════ Озвучка ═════════
+const norm = t => t.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+const vhash = t => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+// как читать вслух то, что на экране цифрами и стрелками
+const SAY = {
+  'За день оно бьётся около 100 000 раз и никогда не отдыхает.': 'За день оно бьётся около ста тысяч раз и никогда не отдыхает.',
+  'Взрослый в покое делает 12–20 вдохов в минуту, а после бега — гораздо больше.': 'Взрослый в покое делает от двенадцати до двадцати вдохов в минуту, а после бега — гораздо больше.',
+  'Мозг взрослого весит около 1,4 кг — как большой пакет сахара.': 'Мозг взрослого весит около килограмма и четырёхсот граммов — как большой пакет сахара.',
+  'Еда идёт так: рот → пищевод → желудок → тонкая кишка → толстая кишка.': 'Еда идёт так: рот, потом пищевод, желудок, тонкая кишка и толстая кишка.',
+  'Тонкая кишка у взрослого длиной около 6 метров — она сложена петлями.': 'Тонкая кишка у взрослого длиной около шести метров — она сложена петлями.',
+  'У взрослого 206 костей.': 'У взрослого двести шесть костей.',
+  'У младенца костей больше — около 300: часть из них потом срастается.': 'У младенца костей больше — около трёхсот. Часть из них потом срастается.',
+  '1 000': 'Тысяча.', '10 000': 'Десять тысяч.', '100 000': 'Сто тысяч.', '1 000 000': 'Миллион.',
+};
+const sayText = k => SAY[k] || k.replace(/→/g, ',').replace(/[«»]/g, '');
+let voEl = null, voAudio = null;
+function speak(textOrEl, el) {
+  const t = norm(typeof textOrEl === 'string' ? textOrEl : textOrEl.innerHTML); el = el || (typeof textOrEl === 'string' ? null : textOrEl);
+  if (voAudio) { voAudio.pause(); voAudio = null; } if (voEl) voEl.classList.remove('speaking'); try { speechSynthesis.cancel(); } catch (e) {}
+  if (!t) return; voEl = el; if (el) el.classList.add('speaking');
+  const done = () => { if (voEl === el && el) el.classList.remove('speaking'); };
+  const a = new Audio('vo/' + vhash(t) + '.mp3'); voAudio = a; a.onended = done;
+  a.onerror = () => { if (voAudio !== a) return; try { const u = new SpeechSynthesisUtterance(sayText(t)); u.lang = 'ru-RU'; u.rate = .95; u.onend = done; speechSynthesis.speak(u); } catch (e) { done(); } };
+  a.play().catch(() => {});
+}
+const hush = () => { if (voAudio) { voAudio.pause(); voAudio = null; } if (voEl) voEl.classList.remove('speaking'); try { speechSynthesis.cancel(); } catch (e) {} };
+document.addEventListener('click', e => { const el = e.target.closest('.say'); if (el && !el.classList.contains('opt')) speak(el); });
+
+// ═════════ Органы: формы (локальные координаты, размер «на теле») ═════════
+const ORG = {
+  brain: { name: 'Мозг', col: '#f4a7b9', game: 'Память' },
+  lungs: { name: 'Лёгкие', col: '#f08a7e', game: 'Дыши в ритм' },
+  heart: { name: 'Сердце', col: '#d8343f', game: 'Качай кровь' },
+  stomach: { name: 'Желудок', col: '#f3a960', game: 'Путь бутерброда' },
+  bones: { name: 'Скелет', col: BONE, game: 'Собери скелет' },
+  muscles: { name: 'Мышцы', soon: true }, eye: { name: 'Глаз', soon: true }, ear: { name: 'Ухо', soon: true }, tongue: { name: 'Нос и язык', soon: true },
+  skin: { name: 'Кожа', soon: true }, blood: { name: 'Кровь', soon: true }, germs: { name: 'Иммунитет', soon: true },
+};
+const CHAPTERS = [
+  { id: 'inside', name: 'Внутри', sub: 'Органы, которые работают без остановки', pages: ['heart', 'lungs', 'stomach', 'brain'], tab: '#e2585b' },
+  { id: 'move', name: 'Опора и движение', sub: 'Кости держат, мышцы двигают', pages: ['bones', 'muscles'], tab: '#f3d27a' },
+  { id: 'senses', name: 'Органы чувств', sub: 'Как мы видим, слышим и чувствуем', pages: ['eye', 'ear', 'tongue', 'skin'], tab: '#8fc6e8' },
+  { id: 'guard', name: 'Защита', sub: 'Кровь и борьба с микробами', pages: ['blood', 'germs'], tab: '#9ed39a' },
+];
+let chap = CHAPTERS[0];
+const QUIZZES = [
+  { name: 'Проверь себя 1', pages: ['heart', 'lungs', 'stomach'], qs: [
+    { q: 'Сколько примерно раз в день бьётся сердце?', o: ['1 000', '10 000', '100 000', '1 000 000'], a: 2, why: 'Около ста тысяч раз в день — и так всю жизнь.' },
+    { q: 'По каким сосудам кровь идёт от сердца?', o: ['По венам', 'По артериям', 'По нервам'], a: 1, why: 'От сердца кровь идёт по артериям, а обратно — по венам.' },
+    { q: 'Какое лёгкое меньше?', o: ['Правое', 'Левое', 'Они одинаковые'], a: 1, why: 'Левое лёгкое меньше: рядом с ним лежит сердце.' },
+    { q: 'Что из воздуха нужно каждой клетке тела?', o: ['Углекислый газ', 'Кислород', 'Водяной пар'], a: 1, why: 'Клеткам нужен кислород, а углекислый газ мы выдыхаем.' },
+    { q: 'Куда еда попадает сразу после пищевода?', o: ['В желудок', 'В тонкую кишку', 'В лёгкие'], a: 0, why: 'После пищевода еда попадает в желудок.' },
+    { q: 'Какой на вкус желудочный сок?', o: ['Сладкий', 'Кислый', 'Солёный'], a: 1, why: 'Желудочный сок кислый — он помогает расщеплять еду.' },
+  ] },
+  { name: 'Проверь себя 2', pages: ['brain', 'bones', 'muscles'], qs: [] },
+];
+const quizOpen = Q => Q.qs.length && Q.pages.every(id => ready(id) && (save.stars[id] || 0) > 0);
+save.quiz = save.quiz || {};
+const ready = id => !ORG[id].soon;
+const chapStars = c => c.pages.filter(ready).reduce((a, id) => a + (save.stars[id] || 0), 0);
+const chapMax = c => c.pages.filter(ready).length * 3;
+const brainPath = g => { for (let i = 0; i <= 48; i++) { const a = i / 48 * PI * 2, b = 1 + .07 * Math.sin(a * 9) + .03 * Math.sin(a * 4), x = Math.cos(a) * 32 * b, y = Math.sin(a) * 21 * b; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); };
+function drawBrain(g) {
+  piece(g, brainPath, ORG.brain.col);
+  g.save(); g.beginPath(); brainPath(g); g.clip(); g.strokeStyle = '#c8607c'; g.lineWidth = 1.6; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(-2, -20); g.bezierCurveTo(4, -8, -6, 2, 2, 20); g.stroke();
+  for (const [x, y, s] of [[-18, -8, 1], [-14, 7, -1], [16, -9, -1], [18, 6, 1], [-26, 0, 1], [26, -1, -1]]) { g.beginPath(); g.moveTo(x - 6, y); g.bezierCurveTo(x - 2, y - 6 * s, x + 2, y + 6 * s, x + 7, y); g.stroke(); }
+  g.restore();
+}
+const lungPath = s => g => { g.moveTo(s * 8, -38); g.bezierCurveTo(s * 30, -40, s * 41, -6, s * 39, 22); g.bezierCurveTo(s * 38, 40, s * 20, 42, s * 6, 37);
+  if (s > 0) { g.bezierCurveTo(s * 2, 28, s * 17, 16, s * 6, 5); } g.lineTo(s * 4, -28); g.closePath(); };
+function drawLungs(g, inflate = 1) {
+  g.save(); g.scale(1 + (inflate - 1) * .5, inflate);
+  piece(g, g2 => { rr(g2, -4.5, -64, 9, 30, 4); }, '#f6c3b5', { sx: 2, sy: 2 });
+  for (const s of [-1, 1]) { g.save(); g.translate(s * 3, 0); piece(g, lungPath(s), ORG.lungs.col); g.save(); g.translate(s * 9, 6); g.scale(.6, .62); piece(g, lungPath(s), '#f6a597', { shadow: false, lw: .9 }); g.restore(); g.restore(); }
+  g.strokeStyle = '#b64f45'; g.lineWidth = 2.2; g.lineCap = 'round'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(0, -36); g.quadraticCurveTo(s * 4, -26, s * 14, -18); g.moveTo(s * 10, -21); g.lineTo(s * 16, -6); g.moveTo(s * 12, -19); g.lineTo(s * 24, -14); g.stroke(); }
+  g.restore();
+}
+const heartPath = g => { g.moveTo(2, 22); g.bezierCurveTo(-14, 12, -24, -2, -18, -12); g.bezierCurveTo(-13, -21, -2, -20, 1, -12); g.bezierCurveTo(5, -21, 18, -21, 20, -10); g.bezierCurveTo(23, 2, 14, 13, 2, 22); g.closePath(); };
+function drawHeart(g, squeeze = 0) {
+  g.save(); g.scale(1 - squeeze * .1, 1 - squeeze * .12);
+  piece(g, g2 => rr(g2, -19, -33, 8, 24, 3.5), '#5b7fd1', { sx: 1.5, sy: 2 });
+  for (const [x, h] of [[-3, 8], [3, 9], [9, 7]]) piece(g, g2 => rr(g2, x, -42 - h + 7, 4.5, h, 2), '#e2585b', { sx: 1, sy: 1.5, lw: 1.1, hl: false });
+  piece(g, g2 => { g2.moveTo(-7, -12); g2.lineTo(-7, -27); g2.bezierCurveTo(-7, -42, 20, -42, 20, -27); g2.lineTo(20, -14); g2.lineTo(13, -14); g2.lineTo(13, -26); g2.bezierCurveTo(13, -34, 0, -34, 0, -26); g2.lineTo(0, -12); g2.closePath(); }, '#e2585b', { sx: 1.5, sy: 2 });
+  g.save(); g.rotate(-.22);
+  piece(g, heartPath, ORG.heart.col);
+  g.save(); g.translate(-3, 2); g.scale(.55, .55); piece(g, heartPath, '#ec5b62', { shadow: false, lw: .8 }); g.restore();
+  g.strokeStyle = 'rgba(74,46,28,.55)'; g.lineWidth = 1.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(4, -12); g.bezierCurveTo(0, 0, 6, 10, 2, 19); g.stroke();
+  g.restore(); g.restore();
+}
+const stomachPath = g => { g.moveTo(-10, -22); g.bezierCurveTo(10, -27, 27, -11, 23, 8); g.bezierCurveTo(19, 25, -4, 27, -19, 19); g.bezierCurveTo(-25, 15, -23, 6, -15, 8); g.bezierCurveTo(-3, 12, 8, 6, 6, -2); g.bezierCurveTo(4, -10, -6, -10, -12, -12); g.closePath(); };
+function drawStomach(g) {
+  piece(g, g2 => { rr(g2, -16, -40, 9, 22, 4); }, '#f4c39a', { sx: 1.5, sy: 2 });
+  piece(g, stomachPath, ORG.stomach.col);
+  g.save(); g.beginPath(); stomachPath(g); g.clip(); g.strokeStyle = '#c9783a'; g.lineWidth = 1.5; g.lineCap = 'round';
+  for (const [x, y] of [[4, -14], [14, -4], [12, 10], [0, 18]]) { g.beginPath(); g.moveTo(x - 6, y - 3); g.quadraticCurveTo(x, y + 3, x + 6, y - 2); g.stroke(); } g.restore();
+}
+// кость: два набалдашника и стержень (рисуется объединением — контур только снаружи)
+const bonePath = (len, w) => g => { const k = w * .62; g.rect(-w / 2, k * .6, w, len - k * 1.2); for (const y of [0, len]) for (const s of [-1, 1]) { g.moveTo(s * w * .42 + k, y); g.arc(s * w * .42, y, k, 0, PI * 2); } };
+const drawBone = (g, len, w) => piece(g, bonePath(len, w), BONE, { hl: false, lw: 1.3 });
+
+// ═════════ Тело на развороте ═════════
+const bodyPath = g => { // единый силуэт: голова, шея, туловище, руки, ноги
+  g.moveTo(42, -395); g.arc(0, -395, 42, 0, PI * 2);
+  rr(g, -14, -362, 28, 30, 6);
+  rr(g, -62, -342, 124, 178, 34);
+  for (const s of [-1, 1]) { g.save && 0; }
+  g.moveTo(-64, -330); g.lineTo(-88, -322); g.quadraticCurveTo(-100, -318, -100, -300); g.lineTo(-104, -186); g.quadraticCurveTo(-104, -172, -92, -172); g.quadraticCurveTo(-80, -172, -80, -186); g.lineTo(-74, -290); g.lineTo(-60, -292); g.closePath();
+  g.moveTo(64, -330); g.lineTo(88, -322); g.quadraticCurveTo(100, -318, 100, -300); g.lineTo(104, -186); g.quadraticCurveTo(104, -172, 92, -172); g.quadraticCurveTo(80, -172, 80, -186); g.lineTo(74, -290); g.lineTo(60, -292); g.closePath();
+  rr(g, -50, -200, 44, 196, 18); rr(g, 6, -200, 44, 196, 18);
+};
+// где органы на теле (центр и размер для касаний)
+const SPOT = { brain: [0, -402, 36, 26], lungs: [0, -282, 48, 46], heart: [12, -268, 22, 22], stomach: [14, -212, 28, 24], bones: [-28, -110, 24, 70],
+  muscles: [92, -262, 14, 34], eye: [15, -378, 10, 9], ear: [-42, -386, 9, 13], tongue: [0, -366, 13, 9], skin: [-92, -215, 14, 30], blood: [-36, -230, 16, 18], germs: [-92, -175, 14, 12] };
+const SIDE = { brain: -1, lungs: -1, heart: 1, stomach: 1, bones: -1, muscles: 1, eye: 1, ear: -1, tongue: 1, skin: -1, blood: -1, germs: 1 };
+function drawBodyFigure(g, opts = {}) {
+  piece(g, bodyPath, SKIN, { hl: false, sx: 4, sy: 6, blur: 7 });
+  // шорты и волосы — отдельные слои бумаги
+  piece(g, g2 => { g2.moveTo(-56, -200); g2.lineTo(56, -200); g2.lineTo(56, -140); g2.lineTo(8, -140); g2.lineTo(2, -168); g2.lineTo(-2, -168); g2.lineTo(-8, -140); g2.lineTo(-56, -140); g2.closePath(); }, '#4a7bd0');
+  piece(g, g2 => { g2.moveTo(-43, -398); g2.bezierCurveTo(-46, -440, 40, -450, 44, -404); g2.bezierCurveTo(30, -420, 0, -428, -18, -416); g2.bezierCurveTo(-30, -410, -38, -400, -43, -398); g2.closePath(); }, '#7a4a2a');
+  // кости на руках и ногах
+  for (const s of [-1, 1]) { g.save(); g.translate(s * 90, -300); g.rotate(-s * .03); drawBone(g, 110, 9); g.restore(); g.save(); g.translate(s * 28, -128); drawBone(g, 112, 12); g.restore(); }
+  if (!opts.noOrgans) {
+    g.save(); g.translate(0, -282); drawLungs(g); g.restore();
+    g.save(); g.translate(12, -268); drawHeart(g); g.restore();
+    g.save(); g.translate(14, -212); g.scale(.95, .95); drawStomach(g); g.restore();
+    g.save(); g.translate(0, -402); g.scale(.95, .95); drawBrain(g); g.restore();
+  }
+  // лицо
+  g.fillStyle = INK; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * 15, -378, 3.2, 4, 0, 0, 7); g.fill(); }
+  g.strokeStyle = INK; g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.arc(0, -370, 9, .25, PI - .25); g.stroke();
+  g.fillStyle = 'rgba(232,110,100,.35)'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * 26, -366, 6, 4, 0, 0, 7); g.fill(); }
+}
+
+// ═════════ Сцены ═════════
+let scene = 'cover', t0 = performance.now(), cur = null, game = null;
+const now = () => performance.now();
+const sceneT = () => (now() - t0) / 1000;
+function go(s) { if (s !== scene) hush(); scene = s; t0 = now(); ui(); }
+function ui() {
+  $('page').classList.toggle('hide', scene !== 'page');
+  $('game').classList.toggle('hide', scene !== 'game' && scene !== 'res');
+  $('res').classList.toggle('hide', scene !== 'res');
+  $('bToc').classList.toggle('hide', scene !== 'body');
+  $('quiz').classList.toggle('hide', scene !== 'quiz' && !(scene === 'res' && resMode === 'quiz'));
+  if (scene === 'res' && resMode === 'quiz') $('game').classList.add('hide');
+}
+const FACTS = {
+  heart: ['Сердце — это <b>мышца</b> размером примерно с твой кулак.', 'За день оно бьётся около <b>100 000 раз</b> и никогда не отдыхает.', 'Сердце гонит кровь по сосудам: от сердца она идёт по <b>артериям</b>, а обратно возвращается по <b>венам</b>.'],
+  lungs: ['Лёгких два. Левое чуть <b>меньше</b> правого: рядом с ним лежит сердце.', 'Вдыхаем <b>кислород</b> — он нужен каждой клетке. Выдыхаем <b>углекислый газ</b>.', 'Взрослый в покое делает <b>12–20 вдохов</b> в минуту, а после бега — гораздо больше.'],
+  brain: ['Мозг взрослого весит около <b>1,4 кг</b> — как большой пакет сахара.', 'У каждой части своя работа: <b>лобная</b> — думать и решать, <b>затылочная</b> — видеть, <b>височная</b> — слышать, <b>теменная</b> — чувствовать касания.', 'Мозг тратит примерно <b>пятую часть</b> всей энергии тела.'],
+  stomach: ['Еда идёт так: <b>рот → пищевод → желудок → тонкая кишка → толстая кишка</b>.', 'Желудочный сок <b>кислый</b>: он помогает расщеплять еду.', 'Тонкая кишка у взрослого длиной около <b>6 метров</b> — она сложена петлями.'],
+  bones: ['У взрослого <b>206 костей</b>.', 'У младенца костей <b>больше — около 300</b>: часть из них потом срастается.', 'Самая длинная кость — <b>бедренная</b>, а самая маленькая — <b>стремечко</b> в ухе, размером с рисовое зёрнышко.'],
+};
+function openPage(id) {
+  cur = id; sfx.pop(); swish(.4, .3);
+  $('pT').textContent = ORG[id].name;
+  $('pScroll').innerHTML = FACTS[id].map((f, i) => `<div class="fact paper say" style="animation-delay:${.35 + i * .18}s">${f}</div>`).join('');
+  $('pPlay').textContent = '▶ ' + ORG[id].game; go('page');
+}
+$('bToc').onclick = () => { audio(); swish(.4, .3); go('toc'); };
+$('pBack').onclick = () => { audio(); swish(.4, .3); go('body'); };
+$('pPlay').onclick = () => { audio(); startGame(cur); };
+$('gX').onclick = () => { audio(); game = null; go('page'); openPage(cur); };
+$('rAgain').onclick = () => { audio(); if (resMode === 'quiz') startQuiz(quiz.Q); else startGame(cur); };
+$('rBack').onclick = () => { audio(); if (resMode === 'quiz') { quiz = null; resMode = 'game'; go('toc'); return; } game = null; openPage(cur); };
+// ── тест: вопрос → выбор (диктор читает) → «Ответить» → верно/нет и объяснение ──
+let quiz = null, resMode = 'game';
+function startQuiz(Q) {
+  audio(); sfx.pop(); swish(.4, .3); resMode = 'quiz'; game = null;
+  const qs = Q.qs.slice().sort(() => Math.random() - .5).slice(0, 5).map(q => { const idx = q.o.map((_, i) => i).sort(() => Math.random() - .5); return { q: q.q, o: idx.map(i => q.o[i]), a: idx.indexOf(q.a), why: q.why }; });
+  quiz = { Q, qs, i: 0, ok: 0, sel: -1, shown: false }; $('qTitle').textContent = Q.name; go('quiz'); showQ();
+}
+function showQ() {
+  const z = quiz, q = z.qs[z.i]; z.sel = -1; z.shown = false;
+  $('qNum').textContent = `${z.i + 1} из ${z.qs.length}`; $('qQ').textContent = q.q; $('qQ').style.animation = 'none'; void $('qQ').offsetWidth; $('qQ').style.animation = '';
+  $('qOpts').innerHTML = q.o.map((o, i) => `<button class="opt paper say" data-i="${i}" style="animation-delay:${.15 + i * .1}s">${o}</button>`).join('');
+  $('qWhy').classList.add('hide'); $('qGo').textContent = 'Ответить'; $('qGo').disabled = true; $('qGo').style.opacity = .5;
+  $('qOpts').querySelectorAll('.opt').forEach(b => b.onclick = () => { if (z.shown) { speak(b); return; } z.sel = +b.dataset.i; $('qOpts').querySelectorAll('.opt').forEach(x => x.classList.toggle('sel', x === b)); $('qGo').disabled = false; $('qGo').style.opacity = 1; speak(b); tone(600, .06); });
+  setTimeout(() => quiz === z && !z.shown && z.sel < 0 && speak($('qQ')), 450);
+}
+$('qGo').onclick = () => {
+  const z = quiz; if (!z) return; audio();
+  if (!z.shown) { if (z.sel < 0) return; const q = z.qs[z.i], good = z.sel === q.a; z.shown = true; if (good) z.ok++;
+    $('qOpts').querySelectorAll('.opt').forEach(x => { const i = +x.dataset.i; x.classList.toggle('good', i === q.a); x.classList.toggle('bad', i === z.sel && !good); });
+    $('qWhy').innerHTML = `<b>${good ? 'Верно!' : 'Неверно.'}</b> ${q.why}`; $('qWhy').classList.remove('hide'); if (good) { sfx.ok(); vib(20); } else { sfx.bad(); vib([40, 30, 40]); }
+    speak($('qWhy')); $('qGo').textContent = z.i + 1 < z.qs.length ? 'Дальше' : 'Итог'; return; }
+  if (z.i + 1 < z.qs.length) { z.i++; showQ(); return; }
+  const n = z.qs.length, st = z.ok === n ? 3 : z.ok >= n - 1 ? 2 : z.ok >= n - 2 ? 1 : 0, best = save.quiz[z.Q.name] || 0; if (st > best || !save.quiz[z.Q.name]) { save.quiz[z.Q.name] = Math.max(st, best, 0) || .5; store(); }
+  hush(); resMode = 'quiz'; $('rQuiz').classList.add('hide'); $('rBack').textContent = 'К оглавлению';
+  $('rT').textContent = st >= 3 ? 'Отлично!' : st === 2 ? 'Хорошо!' : st === 1 ? 'Неплохо!' : 'Попробуй ещё';
+  $('rStars').innerHTML = [0, 1, 2].map(i => STAR_SVG(i < st)).join(''); $('rS').innerHTML = `Правильных ответов: <b>${z.ok} из ${n}</b>.` + (st < 3 ? '<br>Перечитай страницы и попробуй снова.' : '<br>Ты всё запомнил!');
+  go('res'); if (st) sfx.win(); else sfx.bad();
+};
+$('qX').onclick = () => { audio(); quiz = null; resMode = 'game'; go('toc'); };
+
+// ═════════ Рисование кадра ═════════
+function drawDesk() {
+  const c = cached('desk', VW, VH, 0, 0, g => {
+    g.fillStyle = '#8a6a48'; g.fillRect(0, 0, VW, VH);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = GRAIN; g.fillRect(0, 0, VW, VH); g.globalCompositeOperation = 'source-over';
+    const v = g.createRadialGradient(VW / 2, VH * .45, 50, VW / 2, VH * .45, Math.max(VW, VH) * .75); v.addColorStop(0, 'rgba(255,220,160,.12)'); v.addColorStop(1, 'rgba(40,20,5,.45)'); g.fillStyle = v; g.fillRect(0, 0, VW, VH);
+  });
+  blit(c, 0, 0, VW, VH);
+}
+const book = () => { const w = Math.min(VW - 16, 560), h = Math.min(VH - 24, 820); return { x: (VW - w) / 2, y: (VH - h) / 2, w, h }; };
+function drawSpread() {
+  const B = book();
+  const c = cached('spread', VW, VH, 0, 0, g => {
+    piece(g, g2 => rr(g2, B.x - 6, B.y - 5, B.w + 12, B.h + 10, 10), '#9c3b2c', { sx: 4, sy: 7, blur: 10, hl: false });
+    for (const s of [0, 1]) piece(g, g2 => tornRect(g2, B.x + s * B.w / 2 + (s ? 0 : 2), B.y + 4, B.w / 2 - 2, B.h - 8, 11 + s * 7), '#fbf1dc', { sx: 1, sy: 1.5, blur: 2, hl: false, lw: 1 });
+    const f = g.createLinearGradient(VW / 2 - 26, 0, VW / 2 + 26, 0); f.addColorStop(0, 'rgba(120,80,40,0)'); f.addColorStop(.5, 'rgba(120,80,40,.28)'); f.addColorStop(1, 'rgba(120,80,40,0)'); g.fillStyle = f; g.fillRect(VW / 2 - 26, B.y + 4, 52, B.h - 8);
+    g.strokeStyle = 'rgba(120,80,40,.4)'; g.lineWidth = 1; g.beginPath(); g.moveTo(VW / 2, B.y + 6); g.lineTo(VW / 2, B.y + B.h - 6); g.stroke();
+  });
+  blit(c, 0, 0, VW, VH);
+}
+// человечек на развороте: масштаб и низ
+const TAGW = 82;
+function figLayout() { const B = book(), s = clamp(Math.min((B.h - 140) / 470, (B.w - 2 * (TAGW + 22)) / 212), .55, 1.3), top = B.y + 74, bot = B.y + B.h - 20, by = Math.min(bot - 8, (top + bot) / 2 + 452 * s / 2); return { s, cx: VW / 2, by }; }
+function drawBody(t) {
+  const L = figLayout(), c = cached('body', 260, 480, 130, 460, g => drawBodyFigure(g, { noOrgans: true }));
+  const k = rise(t / .9);
+  ctx.save(); ctx.translate(L.cx, L.by); ctx.scale(L.s, L.s * k);
+  // подставка-клапан, на котором стоит фигура
+  piece(ctx, g => { g.moveTo(-70, 8); g.lineTo(70, 8); g.lineTo(60, -4); g.lineTo(-60, -4); g.closePath(); }, '#e9d9b8', { sy: 2 });
+  blit(c, -130, -460, 260, 480);
+  // органы выпрыгивают по очереди
+  const order = chap.id === 'inside' ? ['lungs', 'heart', 'stomach', 'brain'] : [];
+  order.forEach((id, i) => {
+    const kk = rise((t - .45 - i * .15) / .7); if (kk <= .01) return;
+    const [x, y] = SPOT[id], oc = cached('o-' + id, 110, 110, 55, 55, g => ({ lungs: drawLungs, heart: drawHeart, stomach: drawStomach, brain: drawBrain })[id](g));
+    const pul = id === 'heart' ? 1 + Math.max(0, Math.sin(now() / 1000 * 7.5)) ** 8 * .06 : 1;
+    ctx.save(); ctx.translate(x, y + 30); ctx.scale(pul, kk * pul); blit(oc, -55, -85, 110, 110); ctx.restore();
+  });
+  ctx.restore();
+  // ярлыки
+  if (t > 1.2) drawTags(Math.min(1, (t - 1.2) / .6));
+}
+function tagRects() {
+  const L = figLayout(), B = book(), w = TAGW, h = 46, out = {};
+  for (const side of [-1, 1]) {
+    const ids = chap.pages.filter(id => SIDE[id] === side).sort((a, b) => SPOT[a][1] - SPOT[b][1]); let lastY = -1e9;
+    for (const id of ids) { let y = L.by + SPOT[id][1] * L.s - h / 2; if (y < lastY + h + 8) y = lastY + h + 8; lastY = y; out[id] = { x: side < 0 ? B.x + 10 : B.x + B.w - 10 - w, y, w, h }; }
+  }
+  return out;
+}
+const tagRect = id => tagRects()[id];
+function drawTags(a) {
+  const L = figLayout(), TR = tagRects();
+  for (const id of chap.pages) {
+    const R = TR[id], [sx, sy] = SPOT[id], tx = L.cx + sx * L.s, ty = L.by + sy * L.s, side = SIDE[id], rd = ready(id);
+    ctx.globalAlpha = a * (rd ? 1 : .75);
+    ctx.strokeStyle = 'rgba(74,46,28,.7)'; ctx.lineWidth = 1.4; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(side < 0 ? R.x + R.w : R.x, R.y + R.h / 2); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(tx, ty, 3, 0, 7); ctx.fill();
+    if (!rd || chap.id !== 'inside') { const pu = 1 + Math.sin(now() / 1000 * 3 + sx) * .12; ctx.strokeStyle = rd ? '#a3341f' : 'rgba(74,46,28,.5)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.ellipse(tx, ty, SPOT[id][2] * L.s * pu + 4, SPOT[id][3] * L.s * pu + 4, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.save(); ctx.translate(R.x + R.w / 2, R.y + R.h / 2); ctx.rotate((side < 0 ? -1 : 1) * .03);
+    piece(ctx, g => tornRect(g, -R.w / 2, -R.h / 2, R.w, R.h, id.length * 13, 1.6), rd ? '#fff8ea' : '#ece2cc', { lw: 1.2 });
+    text(ctx, ORG[id].name, 0, -7, ORG[id].name.length > 8 ? 12 : 14, rd ? INK : '#7a5a3a');
+    if (rd) { const st = save.stars[id] || 0; for (let i = 0; i < 3; i++) { ctx.beginPath(); starPath(ctx, -14 + i * 14, 11, 5.5); ctx.fillStyle = i < st ? '#ffc93b' : '#e2d4b8'; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.stroke(); } }
+    else text(ctx, 'скоро', 0, 11, 11, '#8a6a48', 'center', 800);
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  const B = book();
+  ctx.globalAlpha = a; text(ctx, chap.name, VW / 2, B.y + 30, 20); text(ctx, `Звёзд: ${chapStars(chap)} из ${chapMax(chap)}`, VW / 2, B.y + 54, 14, '#a3341f', 'center', 800); ctx.globalAlpha = 1;
+}
+// ═════════ Оглавление ═════════
+function tocRects() { const B = book(), n = CHAPTERS.length + 1, w = Math.min(B.w - 40, 380), h = Math.min(112, (B.h - 150) / n - 12), x = VW / 2 - w / 2; return Array.from({ length: n }, (_, i) => ({ x, y: B.y + 100 + i * (h + 12), w, h })); }
+function drawToc(t) {
+  drawSpread(); const B = book();
+  text(ctx, 'Оглавление', VW / 2, B.y + 46, 30);
+  const tot = CHAPTERS.reduce((a, c) => a + chapStars(c), 0), mx = CHAPTERS.reduce((a, c) => a + chapMax(c), 0);
+  text(ctx, `Звёзд: ${tot} из ${mx}`, VW / 2, B.y + 78, 15, '#a3341f', 'center', 800);
+  tocRects().forEach((R, i) => {
+    if (i === CHAPTERS.length) return drawQuizCard(R, rise((t - .15 - i * .12) / .7), t);
+    const c = CHAPTERS[i], k = rise((t - .15 - i * .12) / .7); if (k <= .01) return;
+    const nReady = c.pages.filter(ready).length, nSoon = c.pages.length - nReady;
+    ctx.save(); ctx.translate(R.x, R.y + R.h); ctx.scale(1, k); ctx.translate(0, -R.h); ctx.rotate((i % 2 ? .008 : -.008));
+    piece(ctx, g => rr(g, R.w - 26, 10, 34, R.h - 20, 6), c.tab, { lw: 1.2 });
+    piece(ctx, g => tornRect(g, 0, 0, R.w, R.h, 40 + i * 9, 1.8), nReady ? '#fff8ea' : '#ece2cc', { lw: 1.3 });
+    ctx.save(); ctx.translate(46, R.h / 2); const ic = Math.min(1.3, R.h / 80); ctx.scale(ic, ic);
+    if (c.id === 'inside') { ctx.scale(1.1, 1.1); drawHeart(ctx); } else if (c.id === 'move') { ctx.rotate(.6); ctx.translate(0, -34); drawBone(ctx, 68, 11); } else if (c.id === 'senses') { drawEyeIcon(ctx); } else drawCellIcon(ctx);
+    ctx.restore();
+    text(ctx, c.name, 92, R.h / 2 - 20, 19, INK, 'left', 900, R.w - 130);
+    text(ctx, c.sub, 92, R.h / 2 + 2, 12.5, '#6b4a30', 'left', 700, R.w - 130);
+    text(ctx, nReady ? `${nReady} стр.${nSoon ? ' · ещё ' + nSoon + ' скоро' : ''} · звёзд ${chapStars(c)}/${chapMax(c)}` : `${nSoon} стр. скоро`, 92, R.h / 2 + 24, 12.5, nReady ? '#a3341f' : '#8a6a48', 'left', 800);
+    ctx.restore();
+  });
+}
+function drawQuizCard(R, k, t) {
+  if (k <= .01) return; const Q = QUIZZES.find(q => quizOpen(q) && !save.quiz[q.name]) || QUIZZES.find(quizOpen), any = !!Q, fresh = Q && !save.quiz[Q.name];
+  ctx.save(); ctx.translate(R.x, R.y + R.h); ctx.scale(1, k); ctx.translate(0, -R.h);
+  if (fresh) { const w = Math.sin(t * 5) * .012; ctx.translate(R.w / 2, R.h / 2); ctx.rotate(w); ctx.translate(-R.w / 2, -R.h / 2); }
+  piece(ctx, g => tornRect(g, 0, 0, R.w, R.h, 77, 1.8), any ? '#ffe7a3' : '#ece2cc', { lw: 1.3 });
+  ctx.save(); ctx.translate(46, R.h / 2); const ic = Math.min(1.2, R.h / 84); ctx.scale(ic, ic);
+  piece(ctx, g => rr(g, -22, -28, 44, 56, 5), '#fff8ea'); ctx.strokeStyle = INK; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) { const y = -14 + i * 14; ctx.beginPath(); ctx.moveTo(-13, y); ctx.lineTo(-9, y + 4); ctx.lineTo(-3, y - 4); ctx.stroke(); ctx.beginPath(); ctx.moveTo(3, y); ctx.lineTo(14, y); ctx.stroke(); }
+  ctx.restore();
+  const done = QUIZZES.filter(q => save.quiz[q.name]).length;
+  text(ctx, 'Проверь себя', 92, R.h / 2 - 20, 19, INK, 'left');
+  text(ctx, any ? (fresh ? 'Новый тест открыт — жми!' : 'Можно пройти ещё раз') : 'Тест откроется после трёх страниц', 92, R.h / 2 + 2, 12.5, '#6b4a30', 'left', 700, R.w - 110);
+  text(ctx, `Тесты: ${done} из ${QUIZZES.length} · после каждых трёх органов`, 92, R.h / 2 + 24, 12, '#a3341f', 'left', 800, R.w - 110);
+  ctx.restore();
+}
+function drawEyeIcon(g) { piece(g, gg => { gg.moveTo(-30, 0); gg.quadraticCurveTo(0, -26, 30, 0); gg.quadraticCurveTo(0, 26, -30, 0); gg.closePath(); }, '#fff8ea'); piece(g, gg => gg.arc(0, 0, 12, 0, 7), '#5aa0d8', { shadow: false, lw: 1.2 }); g.fillStyle = INK; g.beginPath(); g.arc(0, 0, 5.5, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(-3.5, -4, 2.4, 0, 7); g.fill(); }
+function drawCellIcon(g) { piece(g, gg => gg.ellipse(-6, 4, 24, 16, -.3, 0, 7), '#e2585b'); g.save(); g.translate(-6, 4); g.rotate(-.3); piece(g, gg => gg.ellipse(0, 0, 12, 7, 0, 0, 7), '#c43a45', { shadow: false, lw: 1 }); g.restore(); piece(g, gg => { for (let i = 0; i < 9; i++) { const a = i / 9 * PI * 2, r = i % 2 ? 9 : 13; gg.lineTo(18 + Math.cos(a) * r, -12 + Math.sin(a) * r); } gg.closePath(); }, '#9ed39a'); }
+function drawCover(t, flip) {
+  const B = book(), ch = B.h;
+  ctx.save();
+  if (flip !== undefined) { const k = Math.cos(flip * PI); if (k <= 0) { ctx.restore(); return; } ctx.translate(B.x, 0); ctx.scale(k, 1); ctx.translate(-B.x, 0); }
+  const c = cached('cover', VW, VH, 0, 0, g => {
+    g.translate(VW / 2, 0);
+    piece(g, g2 => rr(g2, -B.w / 2 - 6, B.y - 5, B.w + 12, ch + 10, 10), '#b8452f', { sx: 5, sy: 8, blur: 12, hl: false });
+    piece(g, g2 => rr(g2, -B.w / 2 + 12, B.y + 12, B.w - 24, ch - 24, 8), '#c8553a', { shadow: false, lw: 1 });
+    g.fillStyle = 'rgba(80,20,10,.25)'; g.fillRect(-B.w / 2 - 6, B.y - 5, 14, ch + 10);
+    const ww = Math.min(300, B.w - 60);
+    g.save(); g.translate(0, B.y + ch * .17); g.rotate(-.04); piece(g, g2 => tornRect(g2, -ww / 2, -50, ww, 100, 5), '#fff8ea'); text(g, 'Бумажное', 0, -15, 40); text(g, 'тело', 0, 27, 40, '#a3341f'); g.restore();
+    const sc = Math.min(1.25, ch / 640);
+    g.save(); g.translate(0, B.y + ch * .5); g.scale(sc, sc); drawBodyFigure2(g); g.restore();
+    g.save(); g.translate(0, B.y + ch * .8); g.rotate(.02); piece(g, g2 => tornRect(g2, -ww / 2 + 10, -30, ww - 20, 60, 9), '#ffd36b'); text(g, 'Книжка-раскладушка', 0, -9, 18); text(g, 'о том, как ты устроен', 0, 13, 14, INK, 'center', 700); g.restore();
+  });
+  blit(c, 0, 0, VW, VH); ctx.restore();
+  if (flip === undefined) { const a = .6 + .4 * Math.sin(t * 4); ctx.save(); ctx.globalAlpha = a; ctx.translate(VW / 2, B.y + ch * .92); piece(ctx, g => rr(g, -105, -17, 210, 34, 17), '#fff8ea', { lw: 1.2 }); text(ctx, 'Тапни, чтобы открыть', 0, 1, 16); ctx.restore(); }
+}
+// человечек на обложке: силуэт-окошко с органами
+function drawBodyFigure2(g) {
+  g.save(); g.scale(.62, .62); g.translate(0, 200); drawBodyFigure(g); g.restore();
+}
+// страница органа: большой орган выпрыгивает над фактами
+function drawPage(t) {
+  drawSpread();
+  const B = book(), top = B.y + 16, pt = $('page').getBoundingClientRect().top / K, avail = Math.max(120, (pt > 50 ? pt : VH * .45) - top - 10), s = clamp(Math.min(avail / 105, (B.w - 60) / 90), 1.4, 3.6), cx = VW / 2, cy = top + avail * .5;
+  const k = rise(t / .85);
+  ctx.save(); ctx.translate(cx, cy + 55 * s * .5); ctx.scale(s, s * k); ctx.translate(0, -55 * .5);
+  if (cur === 'bones') { drawSkull(ctx, 0, -6, .9); }
+  else ({ lungs: drawLungs, heart: g => drawHeart(g, Math.max(0, Math.sin(now() / 1000 * 7.5)) ** 8), stomach: drawStomach, brain: drawBrain })[cur](ctx);
+  ctx.restore();
+}
+
+// ═════════ Мини-игры ═════════
+const GAMES = {};
+function startGame(id) {
+  audio(); sfx.pop(); game = GAMES[id].init(); game.id = id; game.t = 0; go('game');
+  $('gTitle').textContent = ORG[id].game; setHint(game.hint || ''); setScore('');
+}
+const setHint = s => { $('gHint').textContent = s; $('gHint').classList.toggle('hide', !s); };
+const setScore = s => { $('gScore').textContent = s; $('gScore').classList.toggle('hide', s === ''); };
+function endGame(stars, msg) {
+  const id = game.id, best = save.stars[id] || 0, was = QUIZZES.filter(quizOpen).length; if (stars > best) { save.stars[id] = stars; store(); }
+  const newQ = QUIZZES.filter(quizOpen).length > was ? QUIZZES.filter(quizOpen)[was] : null; resMode = 'game';
+  $('rQuiz').classList.toggle('hide', !newQ); $('rQuiz').onclick = () => { audio(); if (newQ) startQuiz(newQ); }; $('rBack').textContent = 'К странице';
+  $('rT').textContent = stars >= 3 ? 'Отлично!' : stars === 2 ? 'Хорошо!' : stars === 1 ? 'Неплохо!' : 'Попробуй ещё';
+  $('rStars').innerHTML = [0, 1, 2].map(i => STAR_SVG(i < stars)).join('');
+  $('rS').innerHTML = msg + (stars > best && best ? '<br><b>Новый рекорд страницы!</b>' : '') + (newQ ? `<br><br><b>Открыт тест «${newQ.name}»!</b>` : '');
+  game.over = true; go('res'); if (stars) sfx.win(); else sfx.bad();
+}
+const gArea = () => { const top = 120, bot = VH - 30; return { top, bot, h: bot - top, cx: VW / 2 }; };
+const floatTxt = [];
+function float(s, x, y, col = INK) { floatTxt.push({ s, x, y, col, t: 0 }); }
+function drawFloats(dt) { for (const f of floatTxt) { f.t += dt; ctx.globalAlpha = Math.max(0, 1 - f.t / .9); text(ctx, f.s, f.x, f.y - f.t * 40, 20, f.col); } ctx.globalAlpha = 1; for (let i = floatTxt.length - 1; i >= 0; i--) if (floatTxt[i].t > .9) floatTxt.splice(i, 1); }
+
+// ── Сердце: тапай, когда метка доходит до линии ──
+GAMES.heart = {
+  init() { const beats = []; let tt = 2.2; for (let i = 0; i < 18; i++) { beats.push({ t: tt, hit: 0 }); tt += i < 8 ? .82 : i < 13 ? .7 : .6; } return { beats, score: 0, max: beats.length * 2, sq: 0, flow: 0, hint: 'Тапай, когда сердечко на ленте дошло до красной линии' }; },
+  tap(g) {
+    let best = null; for (const b of g.beats) if (!b.hit && Math.abs(b.t - g.t) < .26 && (!best || Math.abs(b.t - g.t) < Math.abs(best.t - g.t))) best = b;
+    const A = gArea();
+    if (!best) { float('Рано!', A.cx, A.top + A.h * .55, '#a3341f'); sfx.bad(); return; }
+    const d = Math.abs(best.t - g.t); best.hit = d < .09 ? 2 : d < .17 ? 1 : -1;
+    if (best.hit > 0) { g.score += best.hit; g.sq = 1; g.flow += best.hit; sfx.beat(); vib(25); float(best.hit === 2 ? 'Точно!' : 'Хорошо', A.cx, A.top + A.h * .55, best.hit === 2 ? '#2d8a4a' : INK); } else { sfx.bad(); float('Мимо', A.cx, A.top + A.h * .55, '#a3341f'); }
+  },
+  step(g, dt) {
+    g.sq = Math.max(0, g.sq - dt * 5); g.flow = Math.max(0, g.flow - dt * .5);
+    for (const b of g.beats) if (!b.hit && g.t - b.t > .26) { b.hit = -1; float('Пропуск', gArea().cx, gArea().top + gArea().h * .55, '#a3341f'); }
+    setScore(`${g.score}`);
+    if (g.t > g.beats[g.beats.length - 1].t + .8 && !g.over) { const p = g.score / g.max; endGame(p >= .8 ? 3 : p >= .55 ? 2 : p >= .3 ? 1 : 0, `Ты сделал <b>${g.beats.filter(b => b.hit > 0).length}</b> ударов из ${g.beats.length}.<br>Сердце так работает всю жизнь — без перерывов!`); }
+  },
+  draw(g) {
+    const A = gArea(), cx = A.cx, cy = A.top + A.h * .3, s = clamp(A.h / 230, 1.6, 3);
+    // сосуды: кровь бежит по кругу
+    ctx.save(); ctx.translate(cx, cy); ctx.lineCap = 'round';
+    for (const [col, r, dir] of [['#d8343f', 1, 1], ['#5b7fd1', .8, -1]]) { ctx.strokeStyle = INK; ctx.lineWidth = 15; ctx.beginPath(); ctx.ellipse(0, 0, 150 * r, 100 * r, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 11; ctx.stroke();
+      ctx.fillStyle = '#fff3e6'; for (let i = 0; i < 14; i++) { const a = (i / 14 + dir * g.t * (.05 + g.flow * .05)) * PI * 2; ctx.beginPath(); ctx.ellipse(Math.cos(a) * 150 * r, Math.sin(a) * 100 * r, 3, 2, a, 0, 7); ctx.fill(); } }
+    ctx.scale(s, s); drawHeart(ctx, g.sq); ctx.restore();
+    // лента пульса
+    const y = A.top + A.h * .7, x0 = 20, x1 = VW - 20, hx = x0 + (x1 - x0) * .25, sp = 150;
+    piece(ctx, gg => tornRect(gg, x0, y - 34, x1 - x0, 68, 3), '#fff8ea');
+    ctx.save(); ctx.beginPath(); ctx.rect(x0 + 2, y - 32, x1 - x0 - 4, 64); ctx.clip();
+    ctx.strokeStyle = 'rgba(163,52,31,.18)'; ctx.lineWidth = 1; for (let gx = x0; gx < x1; gx += 12) { ctx.beginPath(); ctx.moveTo(gx, y - 32); ctx.lineTo(gx, y + 32); ctx.stroke(); }
+    ctx.strokeStyle = '#a3341f'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let px = x0; px <= x1; px += 2) { const tt = g.t + (px - hx) / sp; let v = 0; for (const b of g.beats) { const d = tt - b.t; if (d > -.06 && d < .1) v = d < 0 ? -d * 160 : d < .04 ? -18 + (d) * 300 : (d - .1) * 50; } px === x0 ? ctx.moveTo(px, y + v) : ctx.lineTo(px, y + v); }
+    ctx.stroke();
+    for (const b of g.beats) { const bx = hx + (b.t - g.t) * sp; if (bx < x0 - 20 || bx > x1 + 20) continue; ctx.save(); ctx.translate(bx, y - 18); ctx.scale(.5, .5); ctx.globalAlpha = b.hit ? .3 : 1; piece(ctx, heartPath, b.hit > 0 ? '#5bbf6a' : b.hit < 0 ? '#999' : '#d8343f', { shadow: false, lw: 1.2 }); ctx.restore(); }
+    ctx.restore();
+    ctx.strokeStyle = '#d8343f'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hx, y - 38); ctx.lineTo(hx, y + 38); ctx.stroke();
+  },
+  bot(g) { const b = g.beats.find(b2 => !b2.hit); return b && Math.abs(b.t - g.t) < .03; },
+};
+
+// ── Лёгкие: держи палец на вдохе, отпусти на выдохе ──
+GAMES.lungs = {
+  init() { return { fill: 0, ok: 0, tot: 0, hold: false, cyc: 6.4, len: 4, hint: 'Держи палец на экране — вдох. Отпусти — выдох. Повторяй за кругом.' }; },
+  guide(g) { const p = (g.t % g.cyc) / g.cyc; return p < .5 ? Math.sin(p * 2 * PI / 2) : Math.cos((p - .5) * 2 * PI / 2); },
+  step(g, dt) {
+    if (g.t < 1) return; const tt = g.t - 1;
+    g.fill = clamp(g.fill + (g.hold ? 1 : -1) * dt / (g.cyc / 2), 0, 1);
+    const gd = this.guide({ t: tt, cyc: g.cyc }); g.gd = gd; g.tot += dt; if (Math.abs(gd - g.fill) < .22) g.ok += dt;
+    g.inh = (tt % g.cyc) < g.cyc / 2;
+    setScore(Math.round(g.ok / Math.max(.01, g.tot) * 100) + '%');
+    if (tt > g.cyc * g.len && !g.over) { const p = g.ok / g.tot; endGame(p >= .75 ? 3 : p >= .55 ? 2 : p >= .35 ? 1 : 0, `Ты дышал в ритм <b>${Math.round(p * 100)}%</b> времени.<br>Медленное дыхание успокаивает — попробуй перед сном.`); }
+  },
+  draw(g) {
+    const A = gArea(), cx = A.cx, cy = A.top + A.h * .38, s = clamp(A.h / 190, 1.8, 3.4), gd = g.gd || 0;
+    // круг-подсказка
+    const R = (60 + gd * 70) * s / 2.4;
+    ctx.save(); ctx.setLineDash([8, 7]); ctx.strokeStyle = 'rgba(74,46,28,.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.translate(cx, cy + 10); ctx.scale(s, s); drawLungs(ctx, .78 + g.fill * .32); ctx.restore();
+    const y = A.top + A.h * .8; text(ctx, g.t < 1 ? 'Готовься…' : g.inh ? 'Вдох…' : 'Выдох…', cx, y, 28, g.inh ? '#2d6fb0' : '#a3341f');
+    // полоса: ты и подсказка
+    const bw = Math.min(300, VW - 60), bx = cx - bw / 2, by = y + 34;
+    piece(ctx, gg => rr(gg, bx, by, bw, 18, 9), '#fff8ea', { lw: 1.2 });
+    ctx.fillStyle = '#f08a7e'; ctx.beginPath(); rr(ctx, bx + 3, by + 3, (bw - 6) * g.fill, 12, 6); ctx.fill();
+    ctx.fillStyle = INK; ctx.fillRect(bx + 3 + (bw - 6) * gd - 2, by - 4, 4, 26);
+  },
+  bot(g) { const tt = g.t - 1; return tt >= 0 && (tt % g.cyc) < g.cyc / 2; },
+};
+
+// ── Мозг: повтори, какие доли загорались ──
+const LOBES = [
+  { id: 'front', name: 'Лобная', job: 'думать', col: '#f5c35c', lit: '#ffe39a', f: 330 },
+  { id: 'par', name: 'Теменная', job: 'касания', col: '#8fc6e8', lit: '#cbe9fb', f: 415 },
+  { id: 'occ', name: 'Затылочная', job: 'зрение', col: '#9ed39a', lit: '#d4f2cf', f: 494 },
+  { id: 'temp', name: 'Височная', job: 'слух', col: '#e9a3c9', lit: '#f9d6ea', f: 587 },
+];
+const bigBrain = g => { for (let i = 0; i <= 60; i++) { const a = i / 60 * PI * 2, b = 1 + .05 * Math.sin(a * 11), x = Math.cos(a) * 100 * b, y = Math.sin(a) * 68 * b - Math.max(0, Math.sin(a)) * Math.cos(a) * 8; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); };
+const lobeOf = (x, y) => x < -28 ? 0 : x > 46 ? 2 : y < 4 ? 1 : 3; // спереди слева
+GAMES.brain = {
+  init() { return { seq: [Math.random() * 4 | 0, Math.random() * 4 | 0], pos: 0, showing: true, st: 0, lead: 1.2, shown: -1, lit: -1, litT: 0, round: 0, hint: 'Запомни, какие части мозга загорятся, и нажми их в том же порядке' }; },
+  step(g, dt) {
+    g.litT -= dt; if (g.litT <= 0) g.lit = -1;
+    if (g.showing) { g.st += dt; const per = Math.max(.42, .7 - g.round * .03); if (g.st >= g.lead) { const idx = Math.floor((g.st - g.lead) / per); if (idx < g.seq.length) { if (g.shown !== idx) { g.shown = idx; g.lit = g.seq[idx]; g.litT = per * .7; tone(LOBES[g.lit].f, .25); } } else { g.showing = false; g.input = true; g.shown = -1; setHint('Твоя очередь! Нажимай доли по порядку'); } } }
+    setScore(`${g.round}`);
+  },
+  tapAt(g, x, y) {
+    if (!g.input || g.over) return; const L = this.lay(); const lx = (x - L.cx) / L.s, ly = (y - L.cy) / L.s;
+    if ((lx / 104) ** 2 + (ly / 72) ** 2 > 1) return; const k = lobeOf(lx, ly); g.lit = k; g.litT = .25; tone(LOBES[k].f, .2);
+    if (k !== g.seq[g.pos]) { sfx.bad(); vib([50, 30, 50]); g.input = false; const r = g.round; setTimeout(() => game === g && endGame(r >= 7 ? 3 : r >= 5 ? 2 : r >= 3 ? 1 : 0, `Ты запомнил цепочку из <b>${g.seq.length - 1}</b>.<br>За память и решения отвечает лобная доля, а помогает ей гиппокамп — он глубоко внутри.`), 500); return; }
+    g.pos++; if (g.pos >= g.seq.length) { g.round++; g.input = false; g.pos = 0; sfx.ok(); float('Верно!', L.cx, L.cy - 90 * L.s, '#2d8a4a'); g.seq.push(Math.random() * 4 | 0); g.showing = true; g.st = 0; g.lead = .9; g.shown = -1; setHint('Смотри…'); if (g.round >= 9) setTimeout(() => game === g && endGame(3, `Цепочка из <b>${g.seq.length - 1}</b> — супер-память!`), 400); }
+  },
+  lay() { const A = gArea(), s = clamp(Math.min((VW - 36) / 236, A.h / 330), .9, 1.9); return { cx: A.cx, cy: A.top + A.h * .42, s }; },
+  draw(g) {
+    const L = this.lay(); ctx.save(); ctx.translate(L.cx, L.cy); ctx.scale(L.s, L.s);
+    // мозжечок и ствол
+    piece(ctx, gg => { rr(gg, 22, 40, 18, 50, 8); }, '#e8b4a8');
+    piece(ctx, gg => { gg.ellipse(60, 58, 34, 20, -.2, 0, 7); }, '#d99aa8');
+    piece(ctx, bigBrain, '#f4a7b9');
+    ctx.save(); ctx.beginPath(); bigBrain(ctx); ctx.clip();
+    LOBES.forEach((lb, i) => { ctx.fillStyle = g.lit === i ? lb.lit : lb.col; ctx.beginPath(); if (i === 0) ctx.rect(-130, -100, 102, 200); else if (i === 2) ctx.rect(46, -100, 90, 200); else if (i === 1) ctx.rect(-28, -100, 74, 104); else ctx.rect(-28, 4, 74, 100); ctx.fill(); if (g.lit === i) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fill(); } });
+    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = .5; ctx.fillStyle = GRAIN; ctx.fillRect(-130, -100, 270, 200); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(74,46,28,.35)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    for (let i = 0; i < 9; i++) { const x = -90 + i * 22, y = -40 + (i % 3) * 30; ctx.beginPath(); ctx.moveTo(x - 10, y); ctx.bezierCurveTo(x - 3, y - 10, x + 4, y + 10, x + 12, y); ctx.stroke(); }
+    ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-28, -80); ctx.lineTo(-28, 80); ctx.moveTo(46, -80); ctx.lineTo(46, 80); ctx.moveTo(-28, 4); ctx.lineTo(46, 4); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = INK; ctx.lineWidth = 3.2; ctx.beginPath(); bigBrain(ctx); ctx.stroke();
+    // подписи долей
+    const P = [[-64, 0], [9, -40], [76, -6], [9, 40]];
+    const MW = [74, 66, 50, 66]; LOBES.forEach((lb, i) => { text(ctx, lb.name, P[i][0], P[i][1] - 7, 11, INK, 'center', 900, MW[i]); text(ctx, lb.job, P[i][0], P[i][1] + 7, 10, '#6b4a30', 'center', 700, MW[i]); });
+    ctx.restore();
+    text(ctx, '← лоб', L.cx - 70 * L.s, L.cy - 82 * L.s, 13, '#6b4a30', 'center', 800); text(ctx, 'затылок →', L.cx + 66 * L.s, L.cy + 92 * L.s, 13, '#6b4a30', 'center', 800);
+    const n = g.seq.length, dy = L.cy + 130 * L.s; for (let i = 0; i < n; i++) { const x = L.cx + (i - (n - 1) / 2) * 22; ctx.beginPath(); ctx.arc(x, dy, 7, 0, 7); ctx.fillStyle = g.input && i < g.pos ? '#5bbf6a' : '#fff8ea'; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.stroke(); }
+    text(ctx, g.input ? 'Твоя очередь' : 'Смотри и запоминай', L.cx, dy + 26, 15, '#6b4a30', 'center', 800);
+  },
+  bot(g) { if (!g.input) return null; const k = g.seq[g.pos], L = this.lay(), P = [[-68, 0], [9, -40], [80, 0], [9, 42]][k]; return [L.cx + P[0] * L.s, L.cy + P[1] * L.s]; },
+};
+
+// ── Желудок: путь бутерброда — нажимай органы по порядку ──
+const PATH_ORG = [
+  { name: 'Рот', draw: g => { piece(g, gg => { gg.moveTo(-26, 0); gg.bezierCurveTo(-14, -16, -4, -10, 0, -6); gg.bezierCurveTo(4, -10, 14, -16, 26, 0); gg.bezierCurveTo(14, 16, -14, 16, -26, 0); gg.closePath(); }, '#e2585b'); g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.moveTo(-24, 0); g.quadraticCurveTo(0, 5, 24, 0); g.stroke(); } },
+  { name: 'Пищевод', draw: g => { piece(g, gg => rr(gg, -9, -30, 18, 60, 8), '#f4c39a'); g.strokeStyle = 'rgba(74,46,28,.45)'; g.lineWidth = 1.5; for (let y = -20; y <= 20; y += 10) { g.beginPath(); g.moveTo(-8, y); g.quadraticCurveTo(0, y + 3, 8, y); g.stroke(); } } },
+  { name: 'Желудок', draw: g => { g.save(); g.scale(1.2, 1.2); drawStomach(g); g.restore(); } },
+  { name: 'Тонкая кишка', draw: g => { piece(g, gg => rr(gg, -30, -26, 60, 52, 18), '#f6c7b0'); g.lineCap = 'round'; for (const [c, w] of [[INK, 9], ['#e89a86', 6]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(-20, -16); for (let i = 0; i < 4; i++) { const y = -16 + i * 10; g.lineTo(i % 2 ? -20 : 20, y); g.quadraticCurveTo(i % 2 ? -26 : 26, y + 5, i % 2 ? -20 : 20, y + 10); } g.lineTo(i => 0, 0); g.stroke(); } } },
+  { name: 'Толстая кишка', draw: g => { g.lineCap = 'round'; g.lineJoin = 'round'; for (const [c, w] of [[INK, 17], ['#d98a6a', 13]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(-22, 26); g.lineTo(-22, -20); g.quadraticCurveTo(-22, -26, -14, -26); g.lineTo(14, -26); g.quadraticCurveTo(22, -26, 22, -20); g.lineTo(22, 22); g.lineTo(8, 28); g.stroke(); } g.strokeStyle = 'rgba(74,46,28,.4)'; g.lineWidth = 1.2; for (let y = -16; y < 20; y += 8) for (const x of [-22, 22]) { g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.stroke(); } } },
+];
+GAMES.stomach = {
+  init() { const g = { round: 0, rounds: 3, miss: 0, hint: 'Бутерброд хочет в путь! Нажимай органы в том порядке, как по ним идёт еда' }; this.shuffle(g); return g; },
+  shuffle(g) { const slots = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - .5); g.pos = slots.slice(0, 5); g.next = 0; g.tok = null; g.shake = []; },
+  lay() { const A = gArea(), cw = Math.min(130, (VW - 30) / 3), chh = Math.min(150, A.h * .34); return { x0: A.cx - cw * 1.5, y0: A.top + 30, cw, chh }; },
+  slotXY(i) { const L = this.lay(); return [L.x0 + (i % 3 + .5) * L.cw, L.y0 + (Math.floor(i / 3) + .5) * L.chh]; },
+  tapAt(g, x, y) {
+    if (g.over || g.wait) return; const L = this.lay();
+    for (let o = 0; o < 5; o++) { const [sx, sy] = this.slotXY(g.pos[o]); if (Math.abs(x - sx) < L.cw * .45 && Math.abs(y - sy) < L.chh * .45) {
+      if (o === g.next) { g.next++; sfx.ok(); g.tok = { x: sx, y: sy - 20 }; if (g.next >= 5) { g.round++; g.wait = true; float(g.round < g.rounds ? 'Доехал!' : 'Готово!', VW / 2, L.y0 + L.chh * 2 + 30, '#2d8a4a'); setTimeout(() => { if (game !== g) return; g.wait = false; if (g.round >= g.rounds) endGame(g.miss === 0 ? 3 : g.miss <= 2 ? 2 : 1, `Ошибок: <b>${g.miss}</b>.<br>Путь еды: рот → пищевод → желудок → тонкая кишка → толстая кишка. Он длится от нескольких часов до суток.`); else this.shuffle(g); }, 700); } }
+      else { g.miss++; sfx.bad(); vib(60); g.shake[o] = .4; }
+      return; } }
+  },
+  step(g, dt) { for (let o = 0; o < 5; o++) if (g.shake[o]) g.shake[o] = Math.max(0, g.shake[o] - dt); setScore(`${g.round}/${g.rounds}`); },
+  draw(g) {
+    const L = this.lay();
+    for (let o = 0; o < 5; o++) { const [sx, sy] = this.slotXY(g.pos[o]), sh = g.shake[o] ? Math.sin(g.t * 60) * 5 : 0, done = o < g.next;
+      ctx.save(); ctx.translate(sx + sh, sy); ctx.rotate(((o * 37) % 7 - 3) * .01);
+      piece(ctx, gg => tornRect(gg, -L.cw / 2 + 6, -L.chh / 2 + 6, L.cw - 12, L.chh - 12, 20 + o), done ? '#e3f3d8' : '#fff8ea', { lw: 1.2 });
+      ctx.save(); ctx.translate(0, -12); const k = Math.min(1.25, L.chh / 120); ctx.scale(k, k); PATH_ORG[o].draw(ctx); ctx.restore();
+      text(ctx, PATH_ORG[o].name, 0, L.chh / 2 - 24, 13.5); if (done) text(ctx, String(o + 1), L.cw / 2 - 22, -L.chh / 2 + 22, 18, '#2d8a4a');
+      ctx.restore(); }
+    // бутерброд
+    if (g.tok) { ctx.save(); ctx.translate(g.tok.x, g.tok.y - 30); piece(ctx, gg => rr(gg, -18, -8, 36, 16, 5), '#e9b86a', { lw: 1.2 }); piece(ctx, gg => rr(gg, -16, -13, 32, 7, 3), '#7bc46b', { lw: 1 }); piece(ctx, gg => rr(gg, -17, -18, 34, 7, 4), '#f2cf88', { lw: 1 }); ctx.restore(); }
+    text(ctx, `Раунд ${Math.min(g.round + 1, g.rounds)} из ${g.rounds}. Следующий: ${g.next + 1}-й`, VW / 2, L.y0 + L.chh * 2 + 60, 15, '#6b4a30', 'center', 800);
+  },
+  bot(g) { if (g.wait) return null; return this.slotXY(g.pos[g.next]); },
+};
+
+// ── Скелет: перетащи кости на место ──
+function drawSkull(g, x = 0, y = 0, s = 1) {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  piece(g, gg => { gg.moveTo(26, 0); gg.arc(0, 0, 26, 0, PI * 2); rr(gg, -15, 10, 30, 20, 7); }, BONE, { hl: false, lw: 1.3 });
+  g.fillStyle = INK; for (const sx of [-10, 10]) { g.beginPath(); g.ellipse(sx, 2, 6.5, 7.5, 0, 0, 7); g.fill(); }
+  g.beginPath(); g.moveTo(0, 9); g.lineTo(-3, 15); g.lineTo(3, 15); g.closePath(); g.fill();
+  g.strokeStyle = INK; g.lineWidth = 1.3; for (let i = -9; i <= 9; i += 4.5) { g.beginPath(); g.moveTo(i, 21); g.lineTo(i, 28); g.stroke(); }
+  g.restore();
+}
+const PARTS = [
+  { id: 'skull', name: 'Череп', slot: [0, -392], draw: g => drawSkull(g, 0, 0, 1.2) },
+  { id: 'ribs', name: 'Рёбра', slot: [0, -282], draw: g => { g.lineCap = 'round'; for (let i = 0; i < 6; i++) { const y = -36 + i * 13, w = 36 + Math.sin(i / 5 * PI) * 12; for (const [c, lw] of [[INK, 8], [BONE, 5]]) { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.moveTo(-3, y); g.quadraticCurveTo(-w, y - 2, -w * .8, y + 10); g.moveTo(3, y); g.quadraticCurveTo(w, y - 2, w * .8, y + 10); g.stroke(); } } piece(g, gg => rr(gg, -5, -42, 10, 64, 4), BONE, { lw: 1.2 }); } },
+  { id: 'spine', name: 'Позвоночник', slot: [0, -196], draw: g => { for (let i = 0; i < 5; i++) piece(g, gg => rr(gg, -9, -26 + i * 11, 18, 9, 3), BONE, { lw: 1.1, sy: 1.5 }); } },
+  { id: 'pelvis', name: 'Таз', slot: [0, -152], draw: g => piece(g, gg => { gg.moveTo(0, -10); gg.bezierCurveTo(-14, -22, -40, -24, -42, -6); gg.bezierCurveTo(-42, 8, -26, 18, -12, 20); gg.lineTo(-6, 10); gg.lineTo(6, 10); gg.lineTo(12, 20); gg.bezierCurveTo(26, 18, 42, 8, 42, -6); gg.bezierCurveTo(40, -24, 14, -22, 0, -10); gg.closePath(); }, BONE, { lw: 1.3 }) },
+  { id: 'arm', name: 'Рука', slot: [-90, -245], draw: g => { g.translate(0, -55); drawBone(g, 110, 10); } },
+  { id: 'arm', name: 'Рука', slot: [90, -245], draw: g => { g.translate(0, -55); drawBone(g, 110, 10); } },
+  { id: 'leg', name: 'Нога', slot: [-28, -72], draw: g => { g.translate(0, -62); drawBone(g, 124, 13); } },
+  { id: 'leg', name: 'Нога', slot: [28, -72], draw: g => { g.translate(0, -62); drawBone(g, 124, 13); } },
+];
+GAMES.bones = {
+  init() { const L = this.lay(); const order = PARTS.map((_, i) => i).sort(() => Math.random() - .5); const parts = PARTS.map((p, i) => { const j = order.indexOf(i), col = j % 4, row = j / 4 | 0, x = L.tx0 + (col + .5) * L.tw, y = L.ty0 + (row + .5) * L.th; return { i, id: p.id, x, y, hx: x, hy: y, done: false }; }); return { parts, drag: null, placed: 0, hint: 'Перетащи кости на силуэт. Руки и ноги подходят на любую сторону' }; },
+  lay() { const A = gArea(), trayH = Math.min(220, A.h * .34), fs = clamp((A.h - trayH - 20) / 470, .55, 1), tw = (VW - 20) / 4; return { cx: A.cx, by: A.top + (A.h - trayH) - 6, fs, tx0: 10, ty0: A.bot - trayH, tw, th: trayH / 2 }; },
+  slotPos(p) { const L = this.lay(), [sx, sy] = PARTS[p].slot; return [L.cx + sx * L.fs, L.by + sy * L.fs]; },
+  down(g, x, y) { if (g.over) return; let best = null, bd = 1e9; for (const p of g.parts) { if (p.done) continue; const d = Math.hypot(p.x - x, p.y - y); if (d < 60 && d < bd) { bd = d; best = p; } } if (best) { g.drag = { p: best, dx: best.x - x, dy: best.y - y }; tone(500, .05); } },
+  move(g, x, y) { if (g.drag) { g.drag.p.x = x + g.drag.dx; g.drag.p.y = y + g.drag.dy; } },
+  up(g) {
+    const d = g.drag; if (!d) return; g.drag = null; const p = d.p;
+    // свободный слот того же типа рядом
+    let hit = null; PARTS.forEach((P2, j) => { if (P2.id !== p.id || g.parts.some(q => q.done && q.slot === j)) return; const [sx, sy] = this.slotPos(j); if (Math.hypot(p.x - sx, p.y - sy) < 50) hit = j; });
+    if (hit !== null) { const [sx, sy] = this.slotPos(hit); p.x = sx; p.y = sy; p.done = true; p.slot = hit; g.placed++; sfx.ok(); vib(20); if (g.placed === PARTS.length) { const t = g.t; setTimeout(() => game === g && endGame(t < 25 ? 3 : t < 45 ? 2 : 1, `Скелет собран за <b>${Math.round(t)} с</b>.<br>В настоящем скелете 206 костей — только в кисти руки их 27!`), 500); } }
+    else { p.x = p.hx; p.y = p.hy; sfx.bad(); }
+  },
+  step(g) { if (!g.over && g.placed < PARTS.length) setScore(`${Math.floor(g.t)} с`); },
+  draw(g) {
+    const L = this.lay();
+    // силуэт
+    ctx.save(); ctx.translate(L.cx, L.by); ctx.scale(L.fs, L.fs); ctx.beginPath(); bodyPath(ctx); ctx.fillStyle = 'rgba(255,248,234,.55)'; ctx.fill(); ctx.setLineDash([7, 6]); ctx.strokeStyle = 'rgba(74,46,28,.6)'; ctx.lineWidth = 2.4; ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    PARTS.forEach((P2, j) => { if (g.parts.some(q => q.done && q.slot === j)) return; const [sx, sy] = this.slotPos(j); ctx.save(); ctx.translate(sx, sy); ctx.scale(L.fs, L.fs); ctx.globalAlpha = .18; P2.draw(ctx); ctx.restore(); ctx.globalAlpha = 1; });
+    piece(ctx, gg => tornRect(gg, 6, L.ty0 - 6, VW - 12, L.th * 2 + 6, 31), '#efe2c6', { lw: 1.2 });
+    const ord = g.parts.slice().sort((a, b) => (a.done ? 0 : 1) - (b.done ? 0 : 1) || (g.drag && g.drag.p === a ? 1 : 0) - (g.drag && g.drag.p === b ? 1 : 0));
+    for (const p of ord) { const inTray = !p.done && (!g.drag || g.drag.p !== p), s = p.done || !inTray ? L.fs : Math.min(L.fs, .62); ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s, s); PARTS[p.i].draw(ctx); ctx.restore(); if (inTray) text(ctx, PARTS[p.i].name, p.x, p.y + L.th / 2 - 12, 12, '#6b4a30', 'center', 800); }
+  },
+  bot(g) { const p = g.parts.find(q => !q.done); if (!p) return null; const j = PARTS.findIndex((P2, k) => P2.id === p.id && !g.parts.some(q => q.done && q.slot === k)); return { from: [p.x, p.y], to: this.slotPos(j) }; },
+};
+
+// ═════════ Ввод ═════════
+function toWorld(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / K, (e.clientY - r.top) / K]; }
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio(); const [x, y] = toWorld(e);
+  if (scene === 'cover') { swish(.6, .35, 1400); go('open'); return; }
+  if (scene === 'toc' && sceneT() > .5) { const i = tocRects().findIndex(R => x > R.x && x < R.x + R.w && y > R.y && y < R.y + R.h); if (i === CHAPTERS.length) { const Q = QUIZZES.find(q => quizOpen(q) && !save.quiz[q.name]) || QUIZZES.find(quizOpen); if (Q) startQuiz(Q); else { float('Пройди три страницы — и тест откроется', VW / 2, VH * .5, '#a3341f'); sfx.bad(); } return; } if (i >= 0) { chap = CHAPTERS[i]; sfx.pop(); swish(.4, .3); go('body'); } return; }
+  if (scene === 'body' && sceneT() > 1.1) { const id = hitOrgan(x, y); if (id) { if (ready(id)) openPage(id); else { float('«' + ORG[id].name + '» — скоро!', VW / 2, VH * .5, '#a3341f'); sfx.bad(); } } return; }
+  if (scene === 'game' && game && !game.over) { const G = GAMES[game.id]; if (G.tap) G.tap(game); if (G.tapAt) G.tapAt(game, x, y); if (G.down) G.down(game, x, y); if (game.id === 'lungs') game.hold = true; }
+});
+addEventListener('pointermove', e => { if (scene === 'game' && game && GAMES[game.id].move) { const [x, y] = toWorld(e); GAMES[game.id].move(game, x, y); } });
+addEventListener('pointerup', () => { if (game) { if (GAMES[game.id].up) GAMES[game.id].up(game); game.hold = false; } });
+addEventListener('pointercancel', () => { if (game) { if (GAMES[game.id].up) GAMES[game.id].up(game); game.hold = false; } });
+function hitOrgan(x, y) {
+  const TR = tagRects();
+  for (const id of chap.pages) { const R = TR[id]; if (x > R.x && x < R.x + R.w && y > R.y && y < R.y + R.h) return id; }
+  const L = figLayout(); let best = null, bd = 1e9;
+  for (const id of chap.pages) { const [sx, sy, rx, ry] = SPOT[id], dx = (x - (L.cx + sx * L.s)) / ((rx + 6) * L.s), dy = (y - (L.by + sy * L.s)) / ((ry + 6) * L.s), d = dx * dx + dy * dy; if (d < 1 && d < bd) { bd = d; best = id; } }
+  if (!best && chap.pages.includes('bones')) { const dx = Math.abs(x - L.cx) / L.s, ly = (y - L.by) / L.s; if ((ly > -330 && ly < -170 && dx > 70 && dx < 110) || (ly > -200 && ly < 0 && dx < 50)) best = 'bones'; }
+  return best;
+}
+// ═════════ Цикл ═════════
+let last = now();
+function frame() {
+  requestAnimationFrame(frame);
+  const tn = now(), dt = Math.min(.05, (tn - last) / 1000); last = tn;
+  ctx.setTransform(DPR * K, 0, 0, DPR * K, 0, 0);
+  drawDesk();
+  const t = sceneT();
+  if (scene === 'cover') drawCover(t);
+  else if (scene === 'open') { drawSpread(); if (t < .7) drawCover(t, t / .7); else go('toc'); }
+  else if (scene === 'toc') drawToc(t);
+  else if (scene === 'body') { drawSpread(); drawBody(t); }
+  else if (scene === 'page') drawPage(t);
+  else if (scene === 'quiz' || (scene === 'res' && resMode === 'quiz')) drawSpread();
+  else if (scene === 'game' || scene === 'res') {
+    drawSpread();
+    if (game) { if (scene === 'game' && !game.over) { game.t += dt; GAMES[game.id].step(game, dt); } GAMES[game.id].draw(game); }
+  }
+  drawFloats(dt);
+}
+requestAnimationFrame(frame);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { try { ac && ac.suspend(); } catch (e) {} } else { last = now(); try { ac && ac.resume(); } catch (e) {} } });
+if (document.fonts) document.fonts.load('900 20px Rubik').then(() => { cache = {}; }).catch(() => {});
+// для автотестов
+function voiceLines() {
+  const L = new Set(); const add = t => { t = norm(t); if (t) L.add(t); };
+  Object.values(FACTS).flat().forEach(add); Object.keys(ORG).filter(ready).forEach(id => add(ORG[id].name));
+  for (const id of Object.keys(GAMES)) { const g = GAMES[id].init(); add(g.hint); }
+  ['Твоя очередь! Нажимай доли по порядку', 'Смотри…'].forEach(add);
+  for (const Q of QUIZZES) for (const q of Q.qs) { add(q.q); q.o.forEach(add); add('Верно! ' + q.why); add('Неверно. ' + q.why); }
+  return [...L].map(t => ({ id: vhash(t), t, say: sayText(t) }));
+}
+window.__b = { get scene() { return scene; }, voiceLines, get quiz() { return quiz; }, startQuiz, QUIZZES, setChap: i => { chap = CHAPTERS[i]; }, tocRects, CHAPTERS, get game() { return game; }, GAMES, go, openPage, startGame, figLayout, tagRect, SPOT, get save() { return save; }, toScreen: (x, y) => [x * K, y * K] };
+</script>
+</body>
+</html>
