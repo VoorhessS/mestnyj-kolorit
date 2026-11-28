@@ -39,6 +39,7 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
 #rT{font-weight:900;font-size:28px}
 #rS{font-size:16px;line-height:1.4}
 #rStars svg{margin:0 3px}
+#bVoice{position:fixed;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 22px);font-size:14px;padding:8px 12px;z-index:2}
 #bToc{position:fixed;left:calc(env(safe-area-inset-left) + 12px);bottom:calc(env(safe-area-inset-bottom) + 14px);font-size:14px;padding:8px 12px}
 .say{cursor:pointer;position:relative}
 .say::after{content:'';position:absolute;right:6px;top:6px;width:16px;height:16px;opacity:.55;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2 6h3l4-3v10l-4-3H2z' fill='%234a2e1c'/><path d='M11 5.5q1.6 2.5 0 5M12.8 3.8q3 4.2 0 8.4' stroke='%234a2e1c' stroke-width='1.4' fill='none' stroke-linecap='round'/></svg>") no-repeat center/contain}
@@ -87,6 +88,7 @@ canvas{display:block;width:100vw;height:100vh;height:100dvh}
   <div class="paper say hide" id="qWhy"></div>
   <button class="btn big paper" id="qGo">Ответить</button>
 </div>
+<button class="btn sec paper hide" id="bVoice"></button>
 <button class="btn sec paper hide" id="bToc">← Оглавление</button>
 <div id="ver">пробник 0.1</div>
 
@@ -187,13 +189,15 @@ const SAY = {
   '1 000': 'Тысяча.', '10 000': 'Десять тысяч.', '100 000': 'Сто тысяч.', '1 000 000': 'Миллион.',
 };
 const sayText = k => SAY[k] || k.replace(/→/g, ',').replace(/[«»]/g, '');
+const VOICES = [['kseniya', 'Ксения'], ['xenia', 'Ксюша'], ['baya', 'Бая'], ['aidar', 'Айдар'], ['eugene', 'Евгений']];
+if (!VOICES.some(v => v[0] === save.voice)) save.voice = 'kseniya';
 let voEl = null, voAudio = null;
 function speak(textOrEl, el) {
   const t = norm(typeof textOrEl === 'string' ? textOrEl : textOrEl.innerHTML); el = el || (typeof textOrEl === 'string' ? null : textOrEl);
   if (voAudio) { voAudio.pause(); voAudio = null; } if (voEl) voEl.classList.remove('speaking'); try { speechSynthesis.cancel(); } catch (e) {}
   if (!t) return; voEl = el; if (el) el.classList.add('speaking');
   const done = () => { if (voEl === el && el) el.classList.remove('speaking'); };
-  const a = new Audio('vo/' + vhash(t) + '.mp3'); voAudio = a; a.onended = done;
+  const a = new Audio('vo/' + save.voice + '/' + vhash(t) + '.mp3'); voAudio = a; a.onended = done;
   a.onerror = () => { if (voAudio !== a) return; try { const u = new SpeechSynthesisUtterance(sayText(t)); u.lang = 'ru-RU'; u.rate = .95; u.onend = done; speechSynthesis.speak(u); } catch (e) { done(); } };
   a.play().catch(() => {});
 }
@@ -316,6 +320,7 @@ function ui() {
   $('game').classList.toggle('hide', scene !== 'game' && scene !== 'res');
   $('res').classList.toggle('hide', scene !== 'res');
   $('bToc').classList.toggle('hide', scene !== 'body');
+  $('bVoice').classList.toggle('hide', scene !== 'toc'); voiceBtn();
   $('quiz').classList.toggle('hide', scene !== 'quiz' && !(scene === 'res' && resMode === 'quiz'));
   if (scene === 'res' && resMode === 'quiz') $('game').classList.add('hide');
 }
@@ -332,6 +337,8 @@ function openPage(id) {
   $('pScroll').innerHTML = FACTS[id].map((f, i) => `<div class="fact paper say" style="animation-delay:${.35 + i * .18}s">${f}</div>`).join('');
   $('pPlay').textContent = '▶ ' + ORG[id].game; go('page');
 }
+function voiceBtn() { const v = VOICES.find(x => x[0] === save.voice); $('bVoice').textContent = 'Голос: ' + v[1] + ' ▸'; }
+$('bVoice').onclick = () => { audio(); const i = VOICES.findIndex(x => x[0] === save.voice); save.voice = VOICES[(i + 1) % VOICES.length][0]; store(); voiceBtn(); speak(FACTS.heart[0], $('bVoice')); };
 $('bToc').onclick = () => { audio(); swish(.4, .3); go('toc'); };
 $('pBack').onclick = () => { audio(); swish(.4, .3); go('body'); };
 $('pPlay').onclick = () => { audio(); startGame(cur); };
